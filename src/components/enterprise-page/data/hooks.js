@@ -49,7 +49,9 @@ export function useEnterpriseCustomerConfig(enterpriseSlug) {
             slug,
             contactEmail,
             hideCourseOriginalPrice,
+            enableCommunity,
           } = config;
+
           setEnterpriseConfig({
             name,
             uuid,
@@ -58,6 +60,7 @@ export function useEnterpriseCustomerConfig(enterpriseSlug) {
             hideCourseOriginalPrice,
             disableSearch,
             showIntegrationWarning,
+            enableCommunity,
             branding: {
               logo,
               colors: {
