@@ -3,6 +3,8 @@ import {
   Button, Stepper, FullscreenModal, Container,
 } from '@edx/paragon';
 
+import TagCloud from './TagCloud';
+
 const SkillsQuizStepper = () => {
   const steps = ['skills-search', 'review'];
   const [currentStep, setCurrentStep] = useState(steps[0]);
@@ -43,6 +45,7 @@ const SkillsQuizStepper = () => {
                 edX is here to help you find the course(s) or program(s) to help you take the next step in your career.
                 Tell us a bit about your current role, and skills or jobs you&apos;re interested in.
               </p>
+              <TagCloud tags={[{ title: 'test', metadata: { id: 1 } }]} onRemove={console.log} />
             </Stepper.Step>
             <Stepper.Step eventKey="review" title="Review Skills">
               <div className="row justify-content-center">
