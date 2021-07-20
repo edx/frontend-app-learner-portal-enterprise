@@ -24,7 +24,7 @@
     "core-js": "3.7.0",
     "email-prop-type": "1.1.7",
     "font-awesome": "4.7.0",
-    "history": "4.10.1",
+    "history": "5.0.0",
     "iso-639-1": "2.1.4",
     "lodash.debounce": "^4.0.8",
     "moment": "2.29.1",
