@@ -35,7 +35,7 @@
     "react-fullstory": "1.4.0",
     "react-helmet": "5.2.1",
     "react-instantsearch-dom": "6.8.2",
-    "react-intl": "2.9.0",
+    "react-intl": "5.20.4",
     "react-loading-skeleton": "2.1.1",
     "react-redux": "7.2.2",
     "react-responsive": "6.1.2",
