@@ -41,7 +41,7 @@
     "react-responsive": "6.1.2",
     "react-router": "4.3.1",
     "react-router-dom": "5.2.0",
-    "react-router-hash-link": "2.3.1",
+    "react-router-hash-link": "2.4.3",
     "react-router-redux": "5.0.0-alpha.9",
     "react-transition-group": "4.4.1",
     "react-truncate": "2.4.0",
