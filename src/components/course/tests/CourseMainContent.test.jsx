@@ -1,6 +1,7 @@
 import renderer from 'react-test-renderer';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
+import { useParams } from 'react-router-dom';
 
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import CourseMainContent from '../CourseMainContent';
@@ -30,6 +31,17 @@ jest.mock('@edx/frontend-platform', () => ({
   getConfig: jest.fn().mockReturnValue({
     MARKETING_SITE_BASE_URL: 'https://test-marketing-site-base-url',
   }),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn(),
+}));
+
+jest.mock('../data/hooks/useCourseFromAlgolia', () => ({
+  useCourseFromAlgolia: jest.fn(() => ({
+    algoliaCourse: null,
+  })),
 }));
 
 const CourseMainContentWrapper = () => (
@@ -81,6 +93,7 @@ const mockCourseMetadata = {
 describe('CourseMainContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useParams.mockReturnValue({ courseKey: 'edX+DemoX' });
     useCourseMetadata.mockReturnValue({ data: mockCourseMetadata });
   });
   it('renders and matches snapshot', () => {
