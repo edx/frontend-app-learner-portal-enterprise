@@ -1,3 +1,4 @@
+import { useParams } from 'react-router-dom';
 import { getConfig } from '@edx/frontend-platform';
 import { breakpoints, Hyperlink, MediaQuery } from '@openedx/paragon';
 
@@ -7,6 +8,7 @@ import CourseSidebar from './CourseSidebar';
 import CreatedBy from './CreatedBy';
 import VerifiedCertPitch from './VerifiedCertPitch';
 import { COURSE_MODES_MAP, useCourseMetadata } from '../app/data';
+import { useCourseFromAlgolia } from './data/hooks/useCourseFromAlgolia';
 
 function formatSponsorTextList(sponsors) {
   const names = sponsors.map(sponsor => sponsor.name);
@@ -30,8 +32,11 @@ function formatSponsorTextList(sponsors) {
 
 const CourseMainContent = () => {
   const config = getConfig();
+  const { courseKey } = useParams();
   const { data: courseMetadata } = useCourseMetadata();
+  const { algoliaCourse } = useCourseFromAlgolia(courseKey);
   const intl = useIntl();
+  const displayFullDescription = algoliaCourse?.fullDescription || courseMetadata.fullDescription;
   return (
     <>
       <MediaQuery minWidth={breakpoints.large.minWidth}>
@@ -41,7 +46,7 @@ const CourseMainContent = () => {
           </div>
         )}
       </MediaQuery>
-      {courseMetadata.fullDescription && (
+      {displayFullDescription && (
         <PreviewExpand
           className="mb-5"
           cta={{
@@ -68,7 +73,7 @@ const CourseMainContent = () => {
           )}
         >
           {/* eslint-disable-next-line react/no-danger */}
-          <div dangerouslySetInnerHTML={{ __html: courseMetadata.fullDescription }} />
+          <div dangerouslySetInnerHTML={{ __html: displayFullDescription }} />
         </PreviewExpand>
       )}
       {courseMetadata.sponsors?.length > 0 && (

@@ -58,6 +58,7 @@ const CourseHeader = () => {
 
   // Use language-aware description from Algolia if available, otherwise fall back to Discovery API data
   const displayDescription = algoliaCourse?.shortDescription || courseMetadata.shortDescription;
+  const displayTitle = algoliaCourse?.title || courseMetadata.title;
 
   return (
     <div className="course-header">
@@ -70,7 +71,7 @@ const CourseHeader = () => {
               <div className="small mb-4">
                 <Breadcrumb
                   links={routeLinks}
-                  activeLabel={courseMetadata.title}
+                  activeLabel={displayTitle}
                   linkAs={Link}
                 />
               </div>
@@ -102,7 +103,7 @@ const CourseHeader = () => {
                 },
               )}
             >
-              <h2 className="mb-0">{courseMetadata.title}</h2>
+              <h2 className="mb-0">{displayTitle}</h2>
               {(features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT && shouldDisplayAssignmentsOnly) && (
                 <Badge variant="info" className="ml-4">
                   <FormattedMessage
