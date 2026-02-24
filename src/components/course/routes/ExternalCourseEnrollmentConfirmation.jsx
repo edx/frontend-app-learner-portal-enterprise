@@ -5,12 +5,14 @@ import {
 
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { useExternalEnrollmentFailureReason } from '../data';
+import { useEnterpriseCustomer } from '../../app/data';
 import CourseSummaryCard from '../../executive-education-2u/components/CourseSummaryCard';
 import EnrollmentCompletedSummaryCard from '../../executive-education-2u/components/EnrollmentCompletedSummaryCard';
 import ErrorPageContent from '../../executive-education-2u/components/ErrorPageContent';
 
 const ExternalCourseEnrollmentConfirmation = () => {
   const { enterpriseSlug } = useParams();
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const {
     failureReason,
     failureMessage,
@@ -56,7 +58,12 @@ const ExternalCourseEnrollmentConfirmation = () => {
           </Row>
           <Row>
             <Col>
-              <CourseSummaryCard enrollmentCompleted />
+              <CourseSummaryCard
+                enrollmentCompleted
+                hideCourseOriginalPrice={
+                  enterpriseCustomer.hideCourseOriginalPrice
+                }
+              />
               <EnrollmentCompletedSummaryCard />
             </Col>
           </Row>

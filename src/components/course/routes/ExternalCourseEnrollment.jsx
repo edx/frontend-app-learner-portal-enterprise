@@ -157,8 +157,17 @@ const ExternalCourseEnrollment = () => {
                     )}
                 </p>
               )}
-              <CourseSummaryCard />
-              <RegistrationSummaryCard priceDetails={minimalCourseMetadata.priceDetails} />
+              <CourseSummaryCard
+                hideCourseOriginalPrice={
+                  enterpriseCustomer.hideCourseOriginalPrice
+                }
+              />
+              <RegistrationSummaryCard
+                priceDetails={minimalCourseMetadata.priceDetails}
+                hideCourseOriginalPrice={
+                  enterpriseCustomer.hideCourseOriginalPrice
+                }
+              />
               <UserEnrollmentForm />
             </Col>
           </Row>
