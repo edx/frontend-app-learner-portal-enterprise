@@ -5,7 +5,7 @@ import { getContentPriceDisplay } from '../../course/data/utils';
 import { CURRENCY_USD, ZERO_PRICE } from '../../course/data/constants';
 import { formatPrice } from '../../../utils/common';
 
-const RegistrationSummaryCard = ({ priceDetails }) => (
+const RegistrationSummaryCard = ({ priceDetails, hideCourseOriginalPrice }) => (
   <Card
     className="mb-4 registration-summary"
     orientation="horizontal"
@@ -41,14 +41,22 @@ const RegistrationSummaryCard = ({ priceDetails }) => (
                   />
                 </Col>
                 <Col xs={12} lg={{ span: 6, offset: 0 }} className="justify-content-end">
-                  <div className="d-flex justify-content-end mr-2.5">
-                    <del>
-                      {priceDetails?.price ? `${getContentPriceDisplay(priceDetails.price)} ${priceDetails.currency}` : '-'}
-                    </del>
-                  </div>
-                  <div className="d-flex justify-content-end mr-2.5">
-                    {priceDetails?.price ? `${formatPrice(ZERO_PRICE)} ${priceDetails?.currency ? priceDetails.currency : CURRENCY_USD}` : '-'}
-                  </div>
+                  {hideCourseOriginalPrice ? (
+                    <div className="d-flex justify-content-end mr-2.5">
+                      {priceDetails?.price ? `${formatPrice(ZERO_PRICE)} ${priceDetails?.currency ? priceDetails.currency : CURRENCY_USD}` : '-'}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="d-flex justify-content-end mr-2.5">
+                        <del>
+                          {priceDetails?.price ? `${getContentPriceDisplay(priceDetails.price)} ${priceDetails.currency}` : '-'}
+                        </del>
+                      </div>
+                      <div className="d-flex justify-content-end mr-2.5">
+                        {priceDetails?.price ? `${formatPrice(ZERO_PRICE)} ${priceDetails?.currency ? priceDetails.currency : CURRENCY_USD}` : '-'}
+                      </div>
+                    </>
+                  )}
                   <div className="d-flex justify-content-end small font-weight-light text-gray-500 mr-2.5">
                     <FormattedMessage
                       id="executive.education.external.course.enrollment.page.registration.tax.included"
@@ -66,11 +74,16 @@ const RegistrationSummaryCard = ({ priceDetails }) => (
   </Card>
 );
 
+RegistrationSummaryCard.defaultProps = {
+  hideCourseOriginalPrice: false,
+};
+
 RegistrationSummaryCard.propTypes = {
   priceDetails: PropTypes.shape({
     price: PropTypes.number.isRequired,
     currency: PropTypes.string.isRequired,
   }).isRequired,
+  hideCourseOriginalPrice: PropTypes.bool,
 };
 
 export default RegistrationSummaryCard;

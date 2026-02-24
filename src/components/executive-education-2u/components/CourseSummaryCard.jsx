@@ -10,16 +10,22 @@ import {
 } from '../../course/data';
 import { formatPrice } from '../../../utils/common';
 
-const CourseSummaryCard = ({ enrollmentCompleted }) => {
+const CourseSummaryCard = ({ enrollmentCompleted, hideCourseOriginalPrice }) => {
   const { data: minimalCourseMetadata } = useMinimalCourseMetadata();
 
   let coursePrice = null;
   const precisePrice = minimalCourseMetadata.priceDetails?.price ? `${getContentPriceDisplay(
     minimalCourseMetadata.priceDetails.price,
   )} ${minimalCourseMetadata.priceDetails.currency}` : '-';
-  if (enrollmentCompleted && minimalCourseMetadata.priceDetails?.price) {
+
+  if (hideCourseOriginalPrice) {
+    coursePrice = `${formatPrice(ZERO_PRICE)} ${
+      minimalCourseMetadata.priceDetails.currency
+    }`;
+  } else if (enrollmentCompleted && minimalCourseMetadata.priceDetails?.price) {
     coursePrice = (
-      <><del>{precisePrice}</del>
+      <>
+        <del>{precisePrice}</del>
         {formatPrice(ZERO_PRICE)} {minimalCourseMetadata.priceDetails.currency}
       </>
     );
@@ -106,10 +112,12 @@ const CourseSummaryCard = ({ enrollmentCompleted }) => {
 
 CourseSummaryCard.defaultProps = {
   enrollmentCompleted: false,
+  hideCourseOriginalPrice: false,
 };
 
 CourseSummaryCard.propTypes = {
   enrollmentCompleted: PropTypes.bool,
+  hideCourseOriginalPrice: PropTypes.bool,
 };
 
 export default CourseSummaryCard;
