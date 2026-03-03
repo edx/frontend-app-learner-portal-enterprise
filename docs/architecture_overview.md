@@ -166,7 +166,7 @@ Instead of calling TanStack Query directly in every component, we create **custo
 ### Example: `useCourseMetadata`
 
 ```typescript
-// In useCoursMetadata.ts
+// In useCourseMetadata.ts
 export default function useCourseMetadata<TData = CourseMetadataWithAvailableRuns>(
   options: UseCourseMetadataQueryOptions<TData> = {},
 ) {
@@ -454,6 +454,6 @@ return useSuspenseQuery(
 - **Explore the hooks**: Look at `src/components/app/data/hooks/` to see real examples
 - **Check the query factory**: Open `src/components/app/data/queries/queryKeyFactory.js` to understand the structure
 - **Read tests**: Hook tests in `*.test.ts` files show how to test data fetching
-- **Read the CLAUDE.md**: It has more detailed info about the project
+- **Read the README.md**: It has more detailed info about the project
 
 Happy coding! 🚀

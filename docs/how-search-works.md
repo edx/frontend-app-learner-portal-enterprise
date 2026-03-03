@@ -576,4 +576,4 @@ Start with these hooks to understand search behavior:
 
 - [Subsidies & Course Redemption Guide](./subsidies.md) - Detailed subsidy system explanation
 - [Architecture Overview](./architecture_overview.md) - Overall application structure
-- [CLAUDE.md](../CLAUDE.md) - Development commands and patterns
+
