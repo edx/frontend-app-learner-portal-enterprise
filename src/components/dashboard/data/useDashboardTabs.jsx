@@ -18,6 +18,7 @@ import {
   DASHBOARD_PATHWAYS_TAB,
   DASHBOARD_PROGRAMS_TAB,
   DASHBOARD_TABS_SEGMENT_KEY,
+  DASHBOARD_AI_PATHWAYS_TAB,
 } from './constants';
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
@@ -32,6 +33,12 @@ const MyCareerTab = loadable(() => import(
   '../../my-career/MyCareerTab'
 ), {
   fallback: <MyCareerTabSkeleton />,
+});
+
+const AIPathwaysTab = loadable(() => import(
+  '../../ai-pathways/AIPathwaysTab'
+), {
+  fallback: <div>Loading AI Pathways...</div>,
 });
 
 const useDashboardTabs = () => {
@@ -116,6 +123,18 @@ const useDashboardTabs = () => {
         })}
       >
         {activeTab === DASHBOARD_MY_CAREER_TAB && <MyCareerTab learnerCurrentJobID={learnerCurrentJobID} />}
+      </Tab>
+    ),
+    features.FEATURE_ENABLE_AI_PATHWAYS && (
+      <Tab
+        eventKey={DASHBOARD_AI_PATHWAYS_TAB}
+        title={intl.formatMessage({
+          id: 'enterprise.dashboard.tab.ai.pathways',
+          defaultMessage: 'AI Pathways',
+          description: 'Title for AI pathways tab on enterprise dashboard.',
+        })}
+      >
+        {activeTab === DASHBOARD_AI_PATHWAYS_TAB && <AIPathwaysTab />}
       </Tab>
     ),
   ].filter(tab => tab); // Filtering for truthy values
