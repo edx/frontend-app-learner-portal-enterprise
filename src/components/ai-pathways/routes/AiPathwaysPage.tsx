@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { getConfig } from '@edx/frontend-platform';
 import { usePathways } from '../hooks/usePathways';
 import {
   PathwayList,
@@ -6,7 +7,14 @@ import {
   ErrorState,
   IntakeForm,
   UserProfile,
+  InstantSearchWrapper,
+  TaxonomyResultList,
+  FacetBootstrapDebug,
 } from '../components';
+import useAlgoliaSearch from '../../app/data/hooks/useAlgoliaSearch';
+import useEnterpriseCustomer from '../../app/data/hooks/useEnterpriseCustomer';
+import useSearchCatalogs from '../../app/data/hooks/useSearchCatalogs';
+import { getSupportedLocale } from '../../app/data/utils';
 
 /**
  * AiPathwaysPage is the top-level entry point for the AI Pathways feature.
@@ -19,8 +27,11 @@ export const AiPathwaysPage = () => {
   const {
     currentStep,
     learnerProfile,
+    searchIntent,
     selectedCareer,
     pathway,
+    taxonomyResults,
+    taxonomyFilters,
     isLoading,
     error,
     generateProfile,
@@ -29,17 +40,28 @@ export const AiPathwaysPage = () => {
     setCurrentStep,
   } = usePathways();
 
+  const { searchClient } = useAlgoliaSearch();
+  const enterpriseCustomerResult = useEnterpriseCustomer();
+  const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string };
+  const searchCatalogs = useSearchCatalogs();
+
+  const isDebug = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('debug') === 'true';
+  }, []);
+
   const renderContent = useMemo(() => {
     switch (currentStep) {
       case 'intake':
         return (
           <IntakeForm
-            onSubmit={generateProfile}
+            onSubmit={async (args) => { await generateProfile(args); }}
             isSubmitting={isLoading}
           />
         );
       case 'profile':
         if (isLoading) return <LoadingState />;
+        if (error) return <ErrorState message={error.message} />;
         if (!learnerProfile) return <ErrorState message="No profile found" />;
         return (
           <UserProfile
@@ -53,12 +75,24 @@ export const AiPathwaysPage = () => {
       case 'pathway':
         if (isLoading) return <LoadingState />;
         if (error) return <ErrorState message={error.message} />;
-        if (!pathway) return <ErrorState message="No pathway found" />;
+        if (!searchIntent || !searchClient) return <ErrorState message="No results data available" />;
         return (
-          <PathwayList
-            pathway={pathway}
-            onAdjustPathway={() => setCurrentStep('intake')}
-          />
+          <InstantSearchWrapper
+            searchClient={searchClient}
+            indexName={getConfig().ALGOLIA_INDEX_NAME_JOBS}
+            initialIntent={searchIntent}
+            context={{
+              enterpriseCustomerUuid: enterpriseCustomer.uuid,
+              catalogQueryUuids: searchCatalogs,
+              locale: getSupportedLocale(),
+            }}
+          >
+            <TaxonomyResultList
+              results={taxonomyResults}
+              filters={taxonomyFilters}
+              onAdjustPathway={() => setCurrentStep('intake')}
+            />
+          </InstantSearchWrapper>
         );
       default:
         return <div>Not Found</div>;
@@ -66,14 +100,20 @@ export const AiPathwaysPage = () => {
   }, [
     currentStep,
     learnerProfile,
+    searchIntent,
     selectedCareer,
     pathway,
+    taxonomyResults,
+    taxonomyFilters,
     isLoading,
     error,
     generateProfile,
     selectCareer,
     generatePathway,
     setCurrentStep,
+    searchClient,
+    enterpriseCustomer.uuid,
+    searchCatalogs,
   ]);
 
   return (
@@ -84,6 +124,7 @@ export const AiPathwaysPage = () => {
           <p className="text-muted">A personalized prototype for AI-generated learning roadmaps.</p>
         </header>
         <main>
+          {isDebug && <FacetBootstrapDebug filters={taxonomyFilters} />}
           {renderContent}
         </main>
       </div>

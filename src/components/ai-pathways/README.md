@@ -21,15 +21,27 @@ This directory is a self-contained prototype of the **Learning Pathways** applic
 - `__tests__/`: Unit and integration tests.
 
 ## Architecture
-This feature follows a **sealed boundary** pattern. All logic required for the AI Pathways experience should reside within this directory to ensure it remains portable and easy to maintain.
+The AI Pathways feature follows a **modular, multi-phase retrieval architecture** to ensure clean separation between semantic intent and structured metadata.
 
-## Integration
-The main entry point is `index.ts`, which exports `AIPathwaysTab` and `AiPathwaysPage`.
+### Data Flow
+1. **Intake Form**: User provides goals and background.
+2. **Metadata Bootstrap (Phase A)**: A deterministic Algolia call (empty query) fetches available facets (skills, industries) to inform the UI and OpenAI.
+3. **Intent Extraction (Phase B)**: OpenAI parses user prose into a structured `SearchIntent` object, using bootstrap facets for normalization.
+4. **Structured Retrieval (Phase C)**: A targeted Algolia call uses structured filters from `SearchIntent` to find relevant careers and content.
+5. **Pathway Assembly**: Results are normalized and assembled into a learning journey with AI-driven reasoning.
+
+### Key Layers
+- **Intent Extraction Layer**: OpenAI Structured Outputs for semantic parsing.
+- **Request Builder Layer**: Deterministic mapping from intent to Algolia parameters.
+- **Retrieval Layer**: Imperative Algolia search using the `Taxonomy` index.
+- **Adapter Layer**: Normalization of raw provider hits into stable feature-local contracts.
+- **Presentation Layer**: UI components that consume only normalized models.
 
 ## Current Status
-- **Prototype Fidelity**: High. The complete "Intake -> Profile -> Pathway" flow is functional.
+- **Algolia Integration**: Phase A (Bootstrap) and Phase C (Refined) search are fully implemented and bug-free.
+- **OpenAI Integration**: Intent extraction is using Structured Outputs and is informed by real taxonomy metadata.
 - **UI System**: 100% Paragon. No Ionic or styled-components are used.
-- **Service Layer**: Fully functional with OpenAI structured output support and robust stubs for local development.
+- **Service Layer**: Fully functional with clean boundaries and provider isolation.
 - **Cleanup & Normalization**: Completed. All exports follow a consistent named export pattern.
 - **Isolation**: Verified. No external coupling to legacy pathways logic.
 
