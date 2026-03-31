@@ -62,6 +62,7 @@ initialize({
         EXPERIMENT_2_ID: process.env.EXPERIMENT_2_ID || null,
         EXPERIMENT_2_VARIANT_2_ID: process.env.EXPERIMENT_2_VARIANT_2_ID || null,
         FEATURE_ENABLE_RESTRICTED_RUNS: process.env.FEATURE_ENABLE_RESTRICTED_RUNS || null,
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || null,
       });
     },
   },
