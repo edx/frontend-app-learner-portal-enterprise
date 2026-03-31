@@ -30,7 +30,7 @@ export const usePathwayFilters = ({ courses }: UsePathwayFiltersProps) => {
       result = result.filter(
         (course) =>
           course.title.toLowerCase().includes(query) ||
-          course.reasoning.toLowerCase().includes(query)
+          (course.reasoning?.toLowerCase().includes(query) ?? false)
       );
     }
 

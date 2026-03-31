@@ -1,53 +1,18 @@
-/**
- * Core types for the AI Pathways service.
- * These types define the data structures used by the service and the UI components.
- */
+import {
+  LearnerProfile as Profile,
+  LearningPathway as Pathway,
+  PathwayCourse as Course,
+  CourseStatus as Status,
+  CareerOption as Match,
+  CreateLearnerProfileArgs as Args,
+} from '../types';
 
-export type CourseStatus = 'completed' | 'in progress' | 'not started';
-
-export interface CareerOption {
-  title: string;
-  percentMatch: number;
-  skills: string[];
-}
-
-export interface LearnerProfile {
-  overview: string;
-  careerGoal: string;
-  targetIndustry: string;
-  background: string;
-  motivation: string;
-  learningStyle: string;
-  timeAvailable: string;
-  certificate: string;
-  careerMatches: CareerOption[];
-}
-
-export interface PathwayCourse {
-  title: string;
-  level: string;
-  skills: string[];
-  reasoning: string;
-  status: CourseStatus;
-  order: number;
-}
-
-export interface LearningPathway {
-  courses: PathwayCourse[];
-}
-
-/**
- * Arguments for creating a learner profile.
- */
-export interface CreateLearnerProfileArgs {
-  bringsYouHereRes: string;
-  careerGoalRes: string;
-  learningPrefRes: string;
-  backgroundRes: string;
-  industryRes: string;
-  timeAvailableRes: string;
-  certificateRes: string;
-}
+export type CourseStatus = Status;
+export type CareerOption = Match;
+export type LearnerProfile = Profile;
+export type PathwayCourse = Course;
+export type LearningPathway = Pathway;
+export type CreateLearnerProfileArgs = Args;
 
 /**
  * Service interface for AI Pathways.
