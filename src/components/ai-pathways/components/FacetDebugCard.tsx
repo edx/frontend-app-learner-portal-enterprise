@@ -4,11 +4,12 @@ import {
   Button,
   Card,
   DataTable,
-  Icon,
   Skeleton,
   Stack,
 } from '@openedx/paragon';
-import { CheckCircle, Error as ErrorIcon, Refresh, Warning } from '@openedx/paragon/icons';
+import {
+  CheckCircle, Error as ErrorIcon, Refresh, Warning,
+} from '@openedx/paragon/icons';
 
 import useAlgoliaSearch from '../../app/data/hooks/useAlgoliaSearch';
 import useEnterpriseCustomer from '../../app/data/hooks/useEnterpriseCustomer';
@@ -156,7 +157,11 @@ export const FacetDebugCard = () => {
           )}
 
           <div className="small text-muted">
-            <div><strong>Query:</strong> <code>{JSON.stringify(debugState?.rawQuery ?? bootstrapInput.query)}</code></div>
+            <div>
+              <strong>Query:</strong>
+              {' '}
+              <code>{JSON.stringify(debugState?.rawQuery ?? bootstrapInput.query)}</code>
+            </div>
             <div><strong>Filters:</strong> <code>{debugState?.filters || filterString || '(none)'}</code></div>
             <div><strong>Requested facets:</strong> <code>{FACET_ATTRIBUTES.join(', ')}</code></div>
             {debugState && (

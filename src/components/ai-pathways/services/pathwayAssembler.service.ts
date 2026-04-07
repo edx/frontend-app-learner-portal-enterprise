@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { PathwayCourse, LearningPathway, CourseStatus, SearchIntent } from '../types';
+import {
+  PathwayCourse, LearningPathway, CourseStatus, SearchIntent,
+} from '../types';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-4o-mini';
@@ -19,7 +21,8 @@ export const pathwayAssemblerService = {
     // 1. Sort by the 'order' field (determined by search relevance or explicit sequencing)
     const sorted = [...candidates].sort((a, b) => a.order - b.order);
 
-    // 2. Assign lifecycle status based on sequence (Prototype logic: 1st completed, 2nd in-progress, others not-started)
+    // 2. Assign lifecycle status based on sequence
+    // (Prototype logic: 1st completed, 2nd in-progress, others not-started)
     const courses: PathwayCourse[] = sorted.map((course, index) => {
       let status: CourseStatus = 'not started';
       if (index === 0) {
@@ -126,6 +129,7 @@ export const pathwayAssemblerService = {
 
       return { courses: enrichedCourses };
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to enrich pathway with AI reasoning:', error);
       return pathway;
     }

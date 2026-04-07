@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { getConfig } from '@edx/frontend-platform';
 import { usePathways } from '../hooks/usePathways';
 import {
-  PathwayList,
   LoadingState,
   ErrorState,
   IntakeForm,
@@ -29,9 +28,9 @@ export const AiPathwaysPage = () => {
     learnerProfile,
     searchIntent,
     selectedCareer,
-    pathway,
     taxonomyResults,
     taxonomyFilters,
+    pathwayResponse,
     isLoading,
     error,
     generateProfile,
@@ -46,7 +45,7 @@ export const AiPathwaysPage = () => {
   const searchCatalogs = useSearchCatalogs();
 
   const isDebug = useMemo(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') { return false; }
     return new URLSearchParams(window.location.search).get('debug') === 'true';
   }, []);
 
@@ -60,9 +59,9 @@ export const AiPathwaysPage = () => {
           />
         );
       case 'profile':
-        if (isLoading) return <LoadingState />;
-        if (error) return <ErrorState message={error.message} />;
-        if (!learnerProfile) return <ErrorState message="No profile found" />;
+        if (isLoading) { return <LoadingState />; }
+        if (error) { return <ErrorState message={error.message} />; }
+        if (!learnerProfile) { return <ErrorState message="No profile found" />; }
         return (
           <UserProfile
             profile={learnerProfile}
@@ -73,9 +72,9 @@ export const AiPathwaysPage = () => {
           />
         );
       case 'pathway':
-        if (isLoading) return <LoadingState />;
-        if (error) return <ErrorState message={error.message} />;
-        if (!searchIntent || !searchClient) return <ErrorState message="No results data available" />;
+        if (isLoading) { return <LoadingState />; }
+        if (error) { return <ErrorState message={error.message} />; }
+        if (!searchIntent || !searchClient) { return <ErrorState message="No results data available" />; }
         return (
           <InstantSearchWrapper
             searchClient={searchClient}
@@ -102,7 +101,6 @@ export const AiPathwaysPage = () => {
     learnerProfile,
     searchIntent,
     selectedCareer,
-    pathway,
     taxonomyResults,
     taxonomyFilters,
     isLoading,
@@ -124,7 +122,7 @@ export const AiPathwaysPage = () => {
           <p className="text-muted">A personalized prototype for AI-generated learning roadmaps.</p>
         </header>
         <main>
-          {isDebug && <FacetBootstrapDebug filters={taxonomyFilters} />}
+          {isDebug && <FacetBootstrapDebug filters={taxonomyFilters} response={pathwayResponse} />}
           {renderContent}
         </main>
       </div>

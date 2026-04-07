@@ -63,6 +63,8 @@ initialize({
         EXPERIMENT_2_VARIANT_2_ID: process.env.EXPERIMENT_2_VARIANT_2_ID || null,
         FEATURE_ENABLE_RESTRICTED_RUNS: process.env.FEATURE_ENABLE_RESTRICTED_RUNS || null,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY || null,
+        XPERT_AI_CLIENT_ID: process.env.XPERT_AI_CLIENT_ID || null,
+        USE_XPERT_API: process.env.USE_XPERT_API === 'true' || false,
       });
     },
   },

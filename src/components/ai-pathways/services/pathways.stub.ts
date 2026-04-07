@@ -3,7 +3,6 @@ import type {
   LearningPathway,
   CareerOption,
   AiPathwaysService,
-  CreateLearnerProfileArgs
 } from './pathways.types';
 
 export const MOCK_CAREER_OPTIONS: CareerOption[] = [
@@ -69,14 +68,10 @@ export const MOCK_PATHWAY: LearningPathway = {
  * Stub implementation of AiPathwaysService for development and testing.
  */
 export const pathwaysStub: AiPathwaysService = {
-  createLearnerProfile: async (_args: CreateLearnerProfileArgs): Promise<LearnerProfile> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(MOCK_LEARNER_PROFILE), 1000);
-    });
-  },
-  createLearningPathway: async (_careerGoal: CareerOption, _learnerProfile: LearnerProfile): Promise<LearningPathway> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(MOCK_PATHWAY), 1000);
-    });
-  },
+  createLearnerProfile: async (): Promise<LearnerProfile> => new Promise((resolve) => {
+    setTimeout(() => resolve(MOCK_LEARNER_PROFILE), 1000);
+  }),
+  createLearningPathway: async (): Promise<LearningPathway> => new Promise((resolve) => {
+    setTimeout(() => resolve(MOCK_PATHWAY), 1000);
+  }),
 };

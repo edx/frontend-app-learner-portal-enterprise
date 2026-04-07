@@ -1,5 +1,7 @@
 import React from 'react';
-import { Card, Badge, Button, Icon } from '@openedx/paragon';
+import {
+  Card, Badge, Button,
+} from '@openedx/paragon';
 import { ExpandMore } from '@openedx/paragon/icons';
 import type { PathwayCourse, CourseStatus } from '../../services/pathways.types';
 
@@ -46,11 +48,12 @@ export const PathwayCard = ({
     reasoning,
   } = course;
 
-  const actionText = status === 'completed'
-    ? 'View Certificate'
-    : status === 'in progress'
-      ? 'Continue Course'
-      : 'Register';
+  let actionText = 'Register';
+  if (status === 'completed') {
+    actionText = 'View Certificate';
+  } else if (status === 'in progress') {
+    actionText = 'Continue Course';
+  }
 
   return (
     <Card className={`h-100 ${className}`}>

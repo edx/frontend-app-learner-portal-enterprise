@@ -1,11 +1,12 @@
 import {
-  useState, useCallback, useEffect, useRef,
+  useState, useCallback,
 } from 'react';
 import { getConfig } from '@edx/frontend-platform';
 import { intentExtractionService } from '../services/intentExtraction.service';
-import { buildAlgoliaRequest } from '../services/algoliaRequestBuilder';
+import { intentExtractionXpertService } from '../services/intentExtraction.xpert.service';
 import { contentDiscoveryService } from '../services/contentDiscovery.service';
 import { pathwayAssemblerService } from '../services/pathwayAssembler.service';
+import { pathwayAssemblerXpertService } from '../services/pathwayAssembler.xpert.service';
 
 import useAlgoliaSearch from '../../app/data/hooks/useAlgoliaSearch';
 import useEnterpriseCustomer from '../../app/data/hooks/useEnterpriseCustomer';
@@ -20,13 +21,11 @@ import {
   SearchIntent,
   TaxonomyResult,
   TaxonomyFilters,
+  AIPathwaysResponseModel,
 } from '../types';
 import {
   adaptAlgoliaHitsToCandidates,
-  adaptAlgoliaTaxonomyHits,
-  adaptAlgoliaFacets,
   adaptTaxonomyResultsToCareerOptions,
-  AlgoliaTaxonomyHit,
 } from '../services/algolia.adapters';
 
 export type PathwayStep = 'intake' | 'profile' | 'pathway';
@@ -46,6 +45,7 @@ export const usePathways = () => {
   const [pathway, setPathway] = useState<LearningPathway | null>(null);
   const [taxonomyResults, setTaxonomyResults] = useState<TaxonomyResult[]>([]);
   const [taxonomyFilters, setTaxonomyFilters] = useState<TaxonomyFilters | null>(null);
+  const [pathwayResponse, setPathwayResponse] = useState<AIPathwaysResponseModel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -59,37 +59,7 @@ export const usePathways = () => {
   const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string };
   const searchCatalogs = useSearchCatalogs();
   const apiKey = getConfig().OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-
-  const bootstrapCalled = useRef(false);
-
-  useEffect(() => {
-    const bootstrap = async () => {
-      if (!searchIndex || bootstrapCalled.current || !enterpriseCustomer.uuid) {
-        return;
-      }
-      bootstrapCalled.current = true;
-      try {
-        const facets = await contentDiscoveryService.bootstrapFacets(searchIndex, {
-          enterpriseCustomerUuid: enterpriseCustomer.uuid,
-          searchCatalogs,
-          catalogUuidsToCatalogQueryUuids,
-          locale: getSupportedLocale(),
-          shouldUseSecuredAlgoliaApiKey,
-        });
-        setTaxonomyFilters(facets);
-        console.log('[AI-Pathways] Deterministic bootstrap complete. Facets:', facets);
-      } catch (err) {
-        console.error('[AI-Pathways] Deterministic bootstrap failed:', err);
-      }
-    };
-    bootstrap();
-  }, [
-    searchIndex,
-    enterpriseCustomer.uuid,
-    searchCatalogs,
-    catalogUuidsToCatalogQueryUuids,
-    shouldUseSecuredAlgoliaApiKey,
-  ]);
+  const USE_XPERT_API = getConfig().USE_XPERT_API === 'true' || getConfig().USE_XPERT_API === true || false;
 
   /**
    * Generates a learner profile and extracts search intent from intake form data.
@@ -105,39 +75,92 @@ export const usePathways = () => {
       // 1. Preprocess Input
       const preprocessed = intentExtractionService.preprocessInput(args);
 
-      // 2. Phase A: Metadata Bootstrap
-      // Bootstrap now runs automatically on load via useEffect.
-      // We only ensure we have currentFacets available for intent extraction.
-      const currentFacets = taxonomyFilters;
-
-      // 3. Phase B: Intent Extraction (using bootstrap facets for better semantic mapping)
-      const intent = await intentExtractionService.extractIntent(preprocessed, apiKey, currentFacets);
+      // 2. Phase A: Intent Extraction (first OpenAI call)
+      // Xpert API path — replaces direct OpenAI call when USE_XPERT_API=true
+      const intent = USE_XPERT_API
+        ? await intentExtractionXpertService.extractIntent(preprocessed, null)
+        : await intentExtractionService.extractIntent(preprocessed, apiKey, null);
       setSearchIntent(intent);
 
-      // 4. Phase C: Selection Retrieval (Refined search based on extracted intent)
-      const refinedRequestInput = buildAlgoliaRequest({
-        intent,
-        mode: 'assembly',
-        context: {
+      // 3. Phase B: First Algolia Request (condensed query + base scope)
+      const scopedUniverse = await contentDiscoveryService.bootstrapScopedUniverse(
+        searchIndex,
+        {
           enterpriseCustomerUuid: enterpriseCustomer.uuid,
-          catalogQueryUuids: searchCatalogs,
+          searchCatalogs,
+          catalogUuidsToCatalogQueryUuids,
           locale: getSupportedLocale(),
+          shouldUseSecuredAlgoliaApiKey,
         },
-      });
+        intent.condensedQuery,
+      );
 
-      const refinedResponse = await contentDiscoveryService.discoverContent(searchIndex, refinedRequestInput);
-      const refinedResults = adaptAlgoliaTaxonomyHits(refinedResponse.hits as AlgoliaTaxonomyHit[]);
-      const refinedFacets = adaptAlgoliaFacets(refinedResponse.facets || {});
+      setTaxonomyFilters(scopedUniverse.facets);
+      setTaxonomyResults(scopedUniverse.hits);
 
-      setTaxonomyResults(refinedResults);
-      setTaxonomyFilters(refinedFacets);
+      // 4. Phase C: Correlate Intent against Available Facets
+      const matchedSelections = contentDiscoveryService.correlateIntentWithFacets(intent, scopedUniverse.facets);
 
-      // 5. Map Real Results to Career Matches for Profile View
-      const careerMatches = adaptTaxonomyResultsToCareerOptions(refinedResults);
+      // 5. Phase D: Optional refined discovery (only when we have matched selections)
+      const hasRefinements = Object.values(matchedSelections).some(values => values.length > 0);
+      const refinedDiscovery = hasRefinements
+        ? await contentDiscoveryService.refineDiscovery(
+          searchIndex,
+          {
+            enterpriseCustomerUuid: enterpriseCustomer.uuid,
+            searchCatalogs,
+            catalogUuidsToCatalogQueryUuids,
+            locale: getSupportedLocale(),
+          },
+          matchedSelections,
+          intent.condensedQuery,
+        )
+        : {
+          hits: scopedUniverse.hits,
+          totalHits: scopedUniverse.totalHits,
+        };
 
-      // 6. Construct the UI-facing LearnerProfile
-      const result: LearnerProfile = {
-        overview: `Targeting roles like ${intent.roles.join(', ')}.`,
+      setTaxonomyResults(scopedUniverse.hits);
+
+      // 6. Build profile from initial real data so page can render immediately
+      let careerMatches = adaptTaxonomyResultsToCareerOptions(scopedUniverse.hits);
+
+      // Xpert Fallback: If no results found, ask Xpert for sample careers
+      if (careerMatches.length === 0 && USE_XPERT_API) {
+        careerMatches = await intentExtractionXpertService.generateSampleCareers(preprocessed);
+      }
+
+      const inferredCareer = scopedUniverse.hits[0]?.title || intent.roles[0] || 'Career Explorer';
+
+      // Derive metadata from either Algolia hits or Xpert sample careers
+      const sourceData = scopedUniverse.hits.length > 0 ? scopedUniverse.hits : careerMatches;
+      const topSkills = sourceData
+        .flatMap(item => {
+          if ('skills' in item && Array.isArray(item.skills)) {
+            return item.skills.map(skill => (typeof skill === 'string' ? skill : skill.name));
+          }
+          return [];
+        })
+        .filter((value, index, arr) => arr.indexOf(value) === index)
+        .slice(0, 5);
+
+      const topIndustries = sourceData
+        .flatMap(item => ('industries' in item ? item.industries || [] : []))
+        .filter((value, index, arr) => arr.indexOf(value) === index)
+        .slice(0, 5);
+
+      const topSimilarJobs = scopedUniverse.hits
+        .flatMap(hit => hit.similarJobs)
+        .filter((value, index, arr) => arr.indexOf(value) === index)
+        .slice(0, 5);
+
+      // 7. Construct the UI-facing LearnerProfile
+      const overview = scopedUniverse.totalHits > 0
+        ? `Initial discovery for "${intent.condensedQuery}" returned ${scopedUniverse.totalHits} scoped matches.`
+        : `We couldn't find exact matches for "${intent.condensedQuery}" in our current catalog, but here are some recommended career paths based on your profile.`;
+
+      const profile: LearnerProfile = {
+        overview,
         careerGoal: args.careerGoalRes,
         targetIndustry: args.industryRes,
         background: args.backgroundRes,
@@ -148,13 +171,51 @@ export const usePathways = () => {
         careerMatches,
       };
 
-      setLearnerProfile(result);
-      if (result.careerMatches.length > 0) {
-        setSelectedCareer(result.careerMatches[0]);
+      // 8. Build the complete Response Model (Phase 4 Deliverable)
+      const responseModel: AIPathwaysResponseModel = {
+        intake: {
+          rawQuery: [
+            args.bringsYouHereRes,
+            args.careerGoalRes,
+            args.backgroundRes,
+            args.industryRes,
+          ].join(' | '),
+          condensedQuery: intent.condensedQuery,
+        },
+        initialDiscovery: {
+          hits: scopedUniverse.hits,
+          totalHits: scopedUniverse.totalHits,
+          availableFacets: scopedUniverse.facets,
+          inferredCareer,
+          topSkills,
+          topIndustries,
+          similarJobs: topSimilarJobs,
+          firstRequest: scopedUniverse.request,
+        },
+        intent,
+        scopedFacetUniverse: scopedUniverse.facets,
+        matchedFacetSelections: matchedSelections,
+        refinedDiscovery,
+        learnerProfile: profile,
+        pathwayInputs: {
+          candidateContent: refinedDiscovery.hits,
+          matchedTaxonomySignals: [
+            ...matchedSelections['skills.name'],
+            ...matchedSelections.industry_names,
+          ],
+        },
+      };
+
+      setPathwayResponse(responseModel);
+      setLearnerProfile(profile);
+
+      if (profile.careerMatches.length > 0) {
+        setSelectedCareer(profile.careerMatches[0]);
       }
       setCurrentStep('profile');
-      return result;
+      return profile;
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to generate profile:', err);
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate profile');
       setError(errorInstance);
@@ -162,7 +223,15 @@ export const usePathways = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [apiKey, searchIndex, enterpriseCustomer.uuid, searchCatalogs]);
+  }, [
+    apiKey,
+    searchIndex,
+    enterpriseCustomer.uuid,
+    searchCatalogs,
+    catalogUuidsToCatalogQueryUuids,
+    shouldUseSecuredAlgoliaApiKey,
+    USE_XPERT_API,
+  ]);
 
   /**
    * Selects a career option from the match list.
@@ -182,38 +251,53 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Map SearchIntent to Algolia Request (Taxonomy Centric)
-      const requestInput = buildAlgoliaRequest({
-        intent: {
-          ...searchIntent,
-          roles: [selectedCareer.title], // Prioritize the selected career role
-        },
-        mode: 'assembly',
-        context: {
+      // 1. Prepare refinements based on selected career
+      const selections = {
+        'skills.name': [
+          ...(pathwayResponse?.matchedFacetSelections['skills.name'] || []),
+          ...(selectedCareer.skills || []),
+        ],
+        industry_names: [
+          ...(pathwayResponse?.matchedFacetSelections.industry_names || []),
+          ...(selectedCareer.industries || []),
+        ],
+        job_sources: [
+          ...(pathwayResponse?.matchedFacetSelections.job_sources || []),
+          ...(selectedCareer.jobSources || []),
+        ],
+      };
+
+      // 2. Discover Content (Algolia Taxonomy Retrieval via Refined Discovery)
+      const refinedDiscovery = await contentDiscoveryService.refineDiscovery(
+        searchIndex,
+        {
           enterpriseCustomerUuid: enterpriseCustomer.uuid,
-          catalogQueryUuids: searchCatalogs,
+          searchCatalogs,
+          catalogUuidsToCatalogQueryUuids,
           locale: getSupportedLocale(),
         },
-      });
-
-      // 2. Discover Content (Algolia Taxonomy Retrieval)
-      const searchResults = await contentDiscoveryService.discoverContent(searchIndex, requestInput);
+        selections,
+        searchIntent.condensedQuery,
+      );
 
       // 3. Adapter Layer (Normalization)
-      const results = adaptAlgoliaTaxonomyHits(searchResults.hits as AlgoliaTaxonomyHit[]);
-      const facets = adaptAlgoliaFacets(searchResults.facets || {});
-
-      setTaxonomyResults(results);
-      setTaxonomyFilters(facets);
+      setTaxonomyResults(refinedDiscovery.hits);
 
       // 4. (Temporary) Keep a mock pathway for components that still expect one
-      const candidates = adaptAlgoliaHitsToCandidates(searchResults.hits as any);
+      const candidates = adaptAlgoliaHitsToCandidates(refinedDiscovery.hits as any);
       const initialPathway = pathwayAssemblerService.assemblePathway(candidates);
-      setPathway(initialPathway);
+
+      // Xpert API path — replaces direct OpenAI call when USE_XPERT_API=true
+      const enrichedPathway = USE_XPERT_API
+        ? await pathwayAssemblerXpertService.enrichWithReasoning(initialPathway, searchIntent)
+        : await pathwayAssemblerService.enrichWithReasoning(initialPathway, searchIntent, apiKey);
+
+      setPathway(enrichedPathway);
 
       setCurrentStep('pathway');
-      return results;
+      return refinedDiscovery.hits;
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to generate pathway:', err);
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate pathway');
       setError(errorInstance);
@@ -221,7 +305,17 @@ export const usePathways = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCareer, searchIntent, searchIndex, enterpriseCustomer.uuid, searchCatalogs, apiKey]);
+  }, [
+    selectedCareer,
+    searchIntent,
+    searchIndex,
+    enterpriseCustomer.uuid,
+    searchCatalogs,
+    catalogUuidsToCatalogQueryUuids,
+    pathwayResponse,
+    USE_XPERT_API,
+    apiKey,
+  ]);
 
   /**
    * Resets the entire flow state.
@@ -243,6 +337,7 @@ export const usePathways = () => {
     pathway,
     taxonomyResults,
     taxonomyFilters,
+    pathwayResponse,
     isLoading,
     error,
     generateProfile,

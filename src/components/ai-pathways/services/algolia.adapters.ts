@@ -5,6 +5,7 @@ import {
   FacetOption,
   TaxonomyFilters,
   CareerOption,
+  TaxonomyFacetBootstrap,
 } from '../types';
 
 /**
@@ -81,26 +82,39 @@ export function adaptAlgoliaTaxonomyHits(hits: AlgoliaTaxonomyHit[]): TaxonomyRe
 }
 
 /**
- * Normalizes raw Algolia facets into TaxonomyFilters.
+ * Normalizes raw Algolia facets into RefinementList-style items.
  */
-export function adaptAlgoliaFacets(facets: Record<string, Record<string, number>>): TaxonomyFilters {
-  const normalize = (facetName: string): FacetOption[] => {
+export function adaptAlgoliaFacetsToRefinementItems(
+  facets: Record<string, Record<string, number>>,
+  currentRefinements: Record<string, string[]> = {},
+): TaxonomyFacetBootstrap {
+  const normalize = (facetName: string): { items: FacetOption[] } => {
     const rawOptions = facets[facetName] || {};
-    return Object.entries(rawOptions)
+    const items = Object.entries(rawOptions)
       .map(([value, count]) => ({
         label: value,
         value,
         count,
-        isRefined: false,
+        isRefined: currentRefinements[facetName]?.includes(value) || false,
       }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)); // Sort by count desc then label asc
+
+    return { items };
   };
 
   return {
-    skills: normalize('skills.name'),
-    industries: normalize('industry_names'),
-    jobSources: normalize('job_sources'),
+    'skills.name': normalize('skills.name'),
+    industry_names: normalize('industry_names'),
+    job_sources: normalize('job_sources'),
   };
+}
+
+/**
+ * Legacy adapter (maintained for compatibility with TaxonomyFilters structure).
+ * @deprecated Use adaptAlgoliaFacetsToRefinementItems instead.
+ */
+export function adaptAlgoliaFacets(facets: Record<string, Record<string, number>>): TaxonomyFilters {
+  return adaptAlgoliaFacetsToRefinementItems(facets);
 }
 
 /**

@@ -37,6 +37,8 @@ export interface CareerOption {
   title: string;
   percentMatch: number;
   skills: string[];
+  industries?: string[];
+  jobSources?: string[];
 }
 
 /**
@@ -59,6 +61,9 @@ export interface LearnerProfile {
  * It is used to drive content discovery (Algolia) and pathway assembly.
  */
 export interface SearchIntent {
+  /** Condensed, query-safe search phrase (2–5 words) for first Algolia retrieval. */
+  condensedQuery: string;
+
   /** Target roles or career titles extracted from user goals. */
   roles: string[];
 
@@ -130,9 +135,9 @@ export interface FacetOption {
  * TaxonomyFacetBootstrap returns normalized UI-ready facets.
  */
 export interface TaxonomyFacetBootstrap {
-  skills: FacetOption[];
-  industries: FacetOption[];
-  jobSources: FacetOption[];
+  'skills.name': { items: FacetOption[] };
+  'industry_names': { items: FacetOption[] };
+  'job_sources': { items: FacetOption[] };
 }
 
 /**
@@ -160,4 +165,57 @@ export interface PathwayFilters {
   levelFilter: string | 'all';
   sortKey: 'order' | 'title' | 'status' | 'level';
   sortOrder: 'asc' | 'desc';
+}
+
+/**
+ * AIPathwaysResponseModel represents the complete staged state of a pathway generation.
+ */
+export interface AIPathwaysResponseModel {
+  intake: {
+    rawQuery: string;
+    condensedQuery: string;
+  };
+  initialDiscovery: {
+    hits: TaxonomyResult[];
+    totalHits: number;
+    availableFacets: TaxonomyFacetBootstrap;
+    inferredCareer?: string;
+    topSkills?: string[];
+    topIndustries?: string[];
+    similarJobs?: string[];
+    firstRequest: {
+      query: string;
+      filters: string;
+      facets: string[];
+      hitsPerPage: number;
+      maxValuesPerFacet: number;
+      page: number;
+    };
+  };
+  intent: SearchIntent;
+  scopedFacetUniverse: TaxonomyFacetBootstrap;
+  matchedFacetSelections: {
+    'skills.name': string[];
+    'industry_names': string[];
+    'job_sources': string[];
+  };
+  refinedDiscovery: {
+    hits: TaxonomyResult[];
+    totalHits: number;
+  };
+  learnerProfile: LearnerProfile;
+  pathwayInputs: {
+    candidateContent: TaxonomyResult[];
+    matchedTaxonomySignals: string[];
+  };
+}
+
+export interface XpertMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface XpertServiceConfig {
+  clientId: string;
+  baseUrl: string;
 }

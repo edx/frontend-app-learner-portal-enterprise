@@ -125,7 +125,7 @@ const useDashboardTabs = () => {
         {activeTab === DASHBOARD_MY_CAREER_TAB && <MyCareerTab learnerCurrentJobID={learnerCurrentJobID} />}
       </Tab>
     ),
-    features.FEATURE_ENABLE_AI_PATHWAYS && (
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS && (
       <Tab
         eventKey={DASHBOARD_AI_PATHWAYS_TAB}
         title={intl.formatMessage({

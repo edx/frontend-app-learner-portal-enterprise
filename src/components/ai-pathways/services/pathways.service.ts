@@ -32,6 +32,7 @@ export class OpenAIPathwaysService implements AiPathwaysService {
    */
   private async callOpenAI(input: string, instructions: string, schema: any, schemaName: string) {
     if (!this.apiKey) {
+      // eslint-disable-next-line no-console
       console.warn('OpenAI API Key not provided. Falling back to stub.');
       throw new Error('MISSING_API_KEY');
     }
@@ -134,6 +135,7 @@ export class OpenAIPathwaysService implements AiPathwaysService {
         learningStyle: args.learningPrefRes,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to create learner profile via OpenAI:', error);
       return pathwaysStub.createLearnerProfile(args);
     }
@@ -179,6 +181,7 @@ export class OpenAIPathwaysService implements AiPathwaysService {
 
       return pathwaysAdapters.normalizePathway(pathwayData);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to create learning pathway via OpenAI:', error);
       return pathwaysStub.createLearningPathway(careerGoal, learnerProfile);
     }

@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { RefinementContext } from '../components/InstantSearchWrapper';
-import { SearchIntent, PathwayCourse } from '../types';
+import { SearchIntent } from '../types';
 
 /**
  * Hook for UI components to interact with the refinement state.

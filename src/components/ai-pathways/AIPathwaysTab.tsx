@@ -6,7 +6,12 @@ import { AiPathwaysPage } from './routes/AiPathwaysPage';
  * It renders the main AiPathwaysPage prototype.
  */
 export const AIPathwaysTab = () => (
-  <AiPathwaysPage />
+  <>
+    <AiPathwaysPage />
+    <div>
+      test
+    </div>
+  </>
 );
 
 export default AIPathwaysTab;

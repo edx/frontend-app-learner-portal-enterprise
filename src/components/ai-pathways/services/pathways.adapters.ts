@@ -2,7 +2,7 @@ import type {
   LearnerProfile,
   LearningPathway,
   PathwayCourse,
-  CourseStatus
+  CourseStatus,
 } from './pathways.types';
 
 /**

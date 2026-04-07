@@ -28,9 +28,8 @@ export const usePathwayFilters = ({ courses }: UsePathwayFiltersProps) => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        (course) =>
-          course.title.toLowerCase().includes(query) ||
-          (course.reasoning?.toLowerCase().includes(query) ?? false)
+        (course) => course.title.toLowerCase().includes(query)
+          || (course.reasoning?.toLowerCase().includes(query) ?? false),
       );
     }
 
@@ -49,7 +48,7 @@ export const usePathwayFilters = ({ courses }: UsePathwayFiltersProps) => {
       const aValue = a[sortKey];
       const bValue = b[sortKey];
 
-      if (aValue === undefined || bValue === undefined) return 0;
+      if (aValue === undefined || bValue === undefined) { return 0; }
 
       let comparison = 0;
       if (typeof aValue === 'string' && typeof bValue === 'string') {

@@ -9,14 +9,14 @@ export interface IntakePageInfo {
 export const INTAKE_PAGES: IntakePageInfo[] = [
   {
     title: "Let's start with your goals",
-    subtitle: "A few thoughtful answers now mean a faster, clearer path ahead.",
+    subtitle: 'A few thoughtful answers now mean a faster, clearer path ahead.',
   },
   {
-    title: "Tell us about your background",
-    subtitle: "This helps us understand your starting point.",
+    title: 'Tell us about your background',
+    subtitle: 'This helps us understand your starting point.',
   },
   {
-    title: "How you like to learn",
+    title: 'How you like to learn',
     subtitle: "We'll use this to build a learning pathway tailored to you.",
   },
   {

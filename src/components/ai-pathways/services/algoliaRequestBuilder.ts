@@ -59,6 +59,13 @@ export const DEFAULT_ATTRIBUTES_TO_RETRIEVE = [
 
 /**
  * Maps semantic SearchIntent into a structured Algolia request input.
+ *
+ * @deprecated This builder is not used in the main AI Pathways flow.
+ * The primary flow uses contentDiscoveryService functions directly.
+ * Kept for reference and potential future use.
+ *
+ * IMPORTANT: Never use empty query ('') for bootstrap or assembly modes.
+ * Always provide a seeded query string (2-5 words minimum).
  */
 export function buildAlgoliaRequest(params: RequestBuilderParams): AlgoliaRequestInput {
   const { intent, mode, context } = params;
@@ -70,6 +77,10 @@ export function buildAlgoliaRequest(params: RequestBuilderParams): AlgoliaReques
     // Deterministic empty query for bootstrap
     query = '';
   } else if (intent) {
+    if (intent.condensedQuery?.trim()) {
+      query = intent.condensedQuery;
+    }
+
     // For refined/assembly, construct from structured tokens
     const queryTokens = new Set<string>();
     (intent.roles || []).forEach(r => queryTokens.add(r));
@@ -79,9 +90,11 @@ export function buildAlgoliaRequest(params: RequestBuilderParams): AlgoliaReques
       (intent.queryTerms || []).forEach(t => queryTokens.add(t));
     }
 
-    query = Array.from(queryTokens)
+    const structuredQuery = Array.from(queryTokens)
       .join(' ')
-      .trim()
+      .trim();
+
+    query = (structuredQuery || query)
       .replace(/[^\w\s]/gi, '') // Simple normalization to remove prose-like punctuation
       .toLowerCase();
   }
@@ -105,27 +118,27 @@ export function buildAlgoliaRequest(params: RequestBuilderParams): AlgoliaReques
   }
 
   if (intent?.roles?.length) {
-    optionalFilters['name'] = intent.roles;
+    optionalFilters.name = intent.roles;
   }
 
   // 4. Build Excluded Filters (NOT logic)
   const excludedFilters: Record<string, string[]> = {};
 
   if (intent?.excludeTags?.length) {
-    excludedFilters['industry_names'] = intent.excludeTags;
+    excludedFilters.industry_names = intent.excludeTags;
   }
 
   // 5. Apply Enterprise Context to Required Filters
   if (context.enterpriseCustomerUuid) {
-    requiredFilters['enterprise_customer_uuid'] = [context.enterpriseCustomerUuid];
+    requiredFilters.enterprise_customer_uuid = [context.enterpriseCustomerUuid];
   }
 
   if (context.catalogQueryUuids?.length) {
-    requiredFilters['catalog_query_uuids'] = context.catalogQueryUuids;
+    requiredFilters.catalog_query_uuids = context.catalogQueryUuids;
   }
 
   if (context.locale) {
-    requiredFilters['locale'] = [context.locale];
+    requiredFilters.locale = [context.locale];
   }
 
   return {

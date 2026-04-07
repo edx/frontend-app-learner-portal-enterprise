@@ -7,7 +7,7 @@ import {
   Spinner,
 } from '@openedx/paragon';
 import type { CreateLearnerProfileArgs } from '../../services/pathways.types';
-import { useIntakeForm, INTAKE_PAGES } from '../../hooks/useIntakeForm';
+import { useIntakeForm } from '../../hooks/useIntakeForm';
 import {
   LEARNING_STYLE_OPTIONS,
   TIME_AVAILABILITY_OPTIONS,
@@ -67,7 +67,9 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
         return (
           <>
             <Form.Group className="mb-4">
-              <Form.Label>What's your current background or role? What relevant skills or experience do you have?</Form.Label>
+              <Form.Label>
+                What&apos;s your current background or role? What relevant skills or experience do you have?
+              </Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
@@ -154,7 +156,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
       <div className="text-center mb-5">
         <h2 className="h3 font-weight-bold">Welcome to Your Learning Journey</h2>
         <p className="text-muted">
-          Every learner's path looks a little different — this quick intake helps us shape yours.
+          Every learner&apos;s path looks a little different — this quick intake helps us shape yours.
         </p>
       </div>
 

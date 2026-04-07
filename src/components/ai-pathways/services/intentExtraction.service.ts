@@ -1,14 +1,16 @@
 import axios from 'axios';
-import { SearchIntent, CareerOption, CreateLearnerProfileArgs, TaxonomyFilters } from '../types';
+import {
+  SearchIntent, CreateLearnerProfileArgs, TaxonomyFilters,
+} from '../types';
 
 /**
  * Preprocessed user data ready for LLM extraction.
  */
 export interface PreprocessedInput {
-  freeText: string;        // Cleaned primary user input
+  freeText: string; // Cleaned primary user input
   selectedGoals?: string[]; // Extracted from "Career Goal" and "Industry" fields
-  knownContext?: string[];  // Extracted from "Background" and "Skills" fields
-  preferences?: string[];   // Map of technical/style preferences (e.g., "practical", "certificate")
+  knownContext?: string[]; // Extracted from "Background" and "Skills" fields
+  preferences?: string[]; // Map of technical/style preferences (e.g., "practical", "certificate")
 }
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
@@ -38,6 +40,10 @@ export const intentExtractionService = {
     const jsonSchema = {
       type: 'object',
       properties: {
+        condensedQuery: {
+          type: 'string',
+          description: 'A short, query-safe phrase (2-5 words) to seed the first Algolia request. Example: "software engineering".',
+        },
         roles: {
           type: 'array',
           items: { type: 'string' },
@@ -75,6 +81,7 @@ export const intentExtractionService = {
         },
       },
       required: [
+        'condensedQuery',
         'roles',
         'skillsRequired',
         'skillsPreferred',
@@ -95,7 +102,15 @@ export const intentExtractionService = {
             {
               role: 'system',
               content:
-                `You are a precision intent extraction engine. Map user goals and background into a structured SearchIntent object. Focus on standardizing career roles and identifying essential skill requirements for those roles.${facets ? `\n\nUse the following available taxonomy facets to normalize your output if they match the user's intent: ${JSON.stringify(facets)}` : ''}`,
+                `You are a precision intent extraction engine. Map user goals and background into a structured SearchIntent object. Focus on standardizing career roles and identifying essential skill requirements for those roles.
+
+You MUST generate a condensedQuery that is:
+- a single short phrase
+- 2-5 words
+- plain keywords (no punctuation-heavy sentence fragments)
+- suitable as the primary query for Algolia search.
+
+Prefer role/profession keywords over generic motivation words.${facets ? `\n\nUse the following available taxonomy facets to normalize your output if they match the user's intent: ${JSON.stringify(facets)}` : ''}`,
             },
             {
               role: 'user',
@@ -121,8 +136,28 @@ export const intentExtractionService = {
       );
 
       const { content } = response.data.choices[0].message;
-      return JSON.parse(content);
+      const parsed = JSON.parse(content) as SearchIntent;
+
+      const fallbackQuery = (
+        parsed.condensedQuery
+        || parsed.roles?.[0]
+        || parsed.queryTerms?.[0]
+        || input.freeText
+      )
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .slice(0, 5)
+        .join(' ');
+
+      return {
+        ...parsed,
+        condensedQuery: fallbackQuery || 'career pathways',
+      };
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to extract intent via OpenAI:', error);
       throw error;
     }
@@ -141,9 +176,9 @@ export const intentExtractionService = {
     // 2. Map fixed-choice UI strings to concise keywords (Local Normalization)
     const mapTime = (time: string) => {
       const t = time.toLowerCase();
-      if (t.includes('0-2') || t.includes('short')) return 'short';
-      if (t.includes('2-5') || t.includes('medium')) return 'medium';
-      if (t.includes('5+') || t.includes('long')) return 'long';
+      if (t.includes('0-2') || t.includes('short')) { return 'short'; }
+      if (t.includes('2-5') || t.includes('medium')) { return 'medium'; }
+      if (t.includes('5+') || t.includes('long')) { return 'long'; }
       return t;
     };
 

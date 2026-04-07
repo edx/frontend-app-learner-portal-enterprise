@@ -37,11 +37,12 @@ export const PathwayDetail = ({
     status,
   } = course;
 
-  const actionText = status === 'completed'
-    ? 'View Certificate'
-    : status === 'in progress'
-      ? 'Continue Course'
-      : 'Register';
+  let actionText = 'Register';
+  if (status === 'completed') {
+    actionText = 'View Certificate';
+  } else if (status === 'in progress') {
+    actionText = 'Continue Course';
+  }
 
   return (
     <ModalDialog

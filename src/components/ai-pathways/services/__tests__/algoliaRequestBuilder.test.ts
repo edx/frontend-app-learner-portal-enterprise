@@ -16,11 +16,12 @@ describe('algoliaRequestBuilder', () => {
 
     expect(result.query).toBe('');
     expect(result.metadata.mode).toBe('bootstrap');
-    expect(result.requiredFilters['enterprise_customer_uuid']).toEqual(['test-uuid']);
+    expect(result.requiredFilters.enterprise_customer_uuid).toEqual(['test-uuid']);
   });
 
   it('builds a refined request from roles', () => {
     const intent: SearchIntent = {
+      condensedQuery: 'software engineering',
       roles: ['Software Engineer'],
       skillsRequired: ['React'],
       skillsPreferred: [],
@@ -38,11 +39,12 @@ describe('algoliaRequestBuilder', () => {
 
     expect(result.query).toBe('software engineer');
     expect(result.requiredFilters['skills.name']).toEqual(['React']);
-    expect(result.optionalFilters?.['name']).toEqual(['Software Engineer']);
+    expect(result.optionalFilters?.name).toEqual(['Software Engineer']);
   });
 
   it('uses queryTerms when roles are empty', () => {
     const intent: SearchIntent = {
+      condensedQuery: 'machine learning',
       roles: [],
       skillsRequired: [],
       skillsPreferred: [],
@@ -63,6 +65,7 @@ describe('algoliaRequestBuilder', () => {
 
   it('applies a fallback query when both roles and queryTerms are missing', () => {
     const intent: SearchIntent = {
+      condensedQuery: 'career opportunities',
       roles: [],
       skillsRequired: [],
       skillsPreferred: [],
@@ -83,6 +86,7 @@ describe('algoliaRequestBuilder', () => {
 
   it('handles excluded tags correctly', () => {
     const intent: SearchIntent = {
+      condensedQuery: 'design career',
       roles: ['Designer'],
       skillsRequired: [],
       skillsPreferred: [],
@@ -98,6 +102,6 @@ describe('algoliaRequestBuilder', () => {
       context: mockContext,
     });
 
-    expect(result.excludedFilters?.['industry_names']).toEqual(['Finance']);
+    expect(result.excludedFilters?.industry_names).toEqual(['Finance']);
   });
 });

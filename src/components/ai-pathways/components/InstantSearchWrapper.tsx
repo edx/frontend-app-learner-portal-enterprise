@@ -17,13 +17,15 @@ interface InstantSearchWrapperProps {
   };
 }
 
+interface RefinementContextType {
+  intent: SearchIntent;
+  setIntent: (intent: SearchIntent) => void;
+}
+
 /**
  * Context for sharing refinement state and actions.
  */
-export const RefinementContext = React.createContext<{
-  intent: SearchIntent;
-  setIntent: (intent: SearchIntent) => void;
-} | null>(null);
+export const RefinementContext = React.createContext<RefinementContextType | null>(null);
 
 /**
  * Provides an InstantSearch context for AI Pathways refinement.
@@ -66,8 +68,10 @@ export const InstantSearchWrapper = ({
     [requestInput],
   );
 
+  const contextValue = useMemo(() => ({ intent, setIntent }), [intent]);
+
   return (
-    <RefinementContext.Provider value={{ intent, setIntent }}>
+    <RefinementContext.Provider value={contextValue}>
       <InstantSearch searchClient={searchClient} indexName={indexName}>
         <Configure
           filters={filters}

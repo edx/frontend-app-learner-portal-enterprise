@@ -6,7 +6,7 @@ import {
   Col,
 } from '@openedx/paragon';
 import { Edit } from '@openedx/paragon/icons';
-import type { LearningPathway, CourseStatus, PathwayCourse } from '../../services/pathways.types';
+import type { LearningPathway, CourseStatus } from '../../services/pathways.types';
 import { PrototypeCard } from '../PrototypeCard';
 import { PathwayFilters } from '../pathway-filters/PathwayFilters';
 import { PathwayDetail } from '../pathway-detail/PathwayDetail';
@@ -135,11 +135,12 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
               </thead>
               <tbody>
                 {filteredAndSortedCourses.map((course) => {
-                  const actionText = course.status === 'completed'
-                    ? 'View Certificate'
-                    : course.status === 'in progress'
-                      ? 'Continue Course'
-                      : 'Register';
+                  let actionText = 'Register';
+                  if (course.status === 'completed') {
+                    actionText = 'View Certificate';
+                  } else if (course.status === 'in progress') {
+                    actionText = 'Continue Course';
+                  }
 
                   return (
                     <tr key={`${course.title}-${course.order}`}>
@@ -198,8 +199,8 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
         course={selectedCourse}
         isOpen={isDetailOpen}
         onClose={closeDetail}
-        onAction={(course: PathwayCourse) => {
-          console.log('Action performed on course:', course.title);
+        onAction={() => {
+          // console.log('Action performed on course:', course.title);
           // In a real app, this might navigate to the course or open a registration flow.
         }}
       />

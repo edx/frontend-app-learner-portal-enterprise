@@ -1,6 +1,8 @@
 import React from 'react';
-import { Card, Badge, Row, Col, Icon } from '@openedx/paragon';
-import { Business, Assignment, MonetizationOn } from '@openedx/paragon/icons';
+import {
+  Card, Badge, Row, Col, Icon,
+} from '@openedx/paragon';
+import { Assignment, MonetizationOn } from '@openedx/paragon/icons';
 import { TaxonomyResult } from '../../types';
 
 interface TaxonomyResultCardProps {
@@ -30,10 +32,10 @@ export const TaxonomyResultCard = ({
       <Card.Body className="d-flex flex-column">
         <header className="mb-3">
           <div className="d-flex justify-content-between align-items-start mb-1">
-             <Badge variant="primary" className="text-uppercase">Career Role</Badge>
-             {marketData?.uniquePostings && (
-               <Badge variant="info">High Demand</Badge>
-             )}
+            <Badge variant="primary" className="text-uppercase">Career Role</Badge>
+            {marketData?.uniquePostings && (
+              <Badge variant="info">High Demand</Badge>
+            )}
           </div>
           <h4 className="h5 font-weight-bold mb-1">{title}</h4>
           <div className="text-muted small">
@@ -42,7 +44,12 @@ export const TaxonomyResultCard = ({
         </header>
 
         <section className="mb-3 flex-grow-1">
-          <p className="small text-muted" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p
+            className="small text-muted"
+            style={{
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}
+          >
             {description}
           </p>
           {reasoning && (
@@ -55,8 +62,8 @@ export const TaxonomyResultCard = ({
         <section className="mb-3">
           <h6 className="small font-weight-bold text-uppercase mb-2">Top Skills</h6>
           <div className="d-flex flex-wrap gap-1">
-            {skills.slice(0, 5).map((skill, idx) => (
-              <Badge key={idx} variant="light" className="mr-1 mb-1 border" style={{ fontWeight: 'normal' }}>
+            {skills.slice(0, 5).map((skill) => (
+              <Badge key={skill.name} variant="light" className="mr-1 mb-1 border" style={{ fontWeight: 'normal' }}>
                 {skill.name}
               </Badge>
             ))}
