@@ -8,7 +8,7 @@ import { features } from '../../../../../config';
 import { LICENSE_STATUS } from '../../../../enterprise-user-subsidy/data/constants';
 import { fetchPaginatedData } from '../utils';
 import { getBaseSubscriptionsData, SESSION_STORAGE_KEY_LICENSE_ACTIVATION_MESSAGE } from '../../constants';
-import { addLicenseToSubscriptionLicensesByStatus } from '../../utils';
+import { addLicenseToSubscriptionLicensesByStatus, buildCatalogIndex } from '../../utils';
 
 // Subscriptions
 
@@ -158,8 +158,10 @@ export async function activateOrAutoApplySubscriptionLicense({
     isCurrentSubscriptionLicenseFilter,
   )[0];
 
-  // Check if learner already has activated license. If so, return early.
-  if (hasActivatedSubscriptionLicense) {
+  // Return early only when learner has an activated license AND no pending assigned license.
+  // In multi-license scenarios, a learner may have an activated license from one subscription
+  // and an assigned (unactivated) license from a different subscription that still needs activation.
+  if (hasActivatedSubscriptionLicense && !subscriptionLicenseToActivate) {
     return checkLicenseActivationRouteAndRedirectToDashboard();
   }
 
@@ -196,10 +198,9 @@ export async function activateOrAutoApplySubscriptionLicense({
 export function transformSubscriptionsData({ customerAgreement, subscriptionLicenses }) {
   const { baseSubscriptionsData } = getBaseSubscriptionsData();
   const subscriptionsData = { ...baseSubscriptionsData };
+  const normalizedSubscriptionLicenses = subscriptionLicenses || [];
 
-  if (subscriptionLicenses) {
-    subscriptionsData.subscriptionLicenses = subscriptionLicenses;
-  }
+  subscriptionsData.subscriptionLicenses = normalizedSubscriptionLicenses;
   if (customerAgreement) {
     subscriptionsData.customerAgreement = customerAgreement;
   }
@@ -210,13 +211,28 @@ export function transformSubscriptionsData({ customerAgreement, subscriptionLice
 
   // Sort licenses within each license status by whether the associated subscription plans
   // are current; current plans should be prioritized over non-current plans.
-  subscriptionsData.subscriptionLicenses = [...subscriptionLicenses].sort((a, b) => {
+  subscriptionsData.subscriptionLicenses = [...normalizedSubscriptionLicenses].sort((a, b) => {
     const aIsCurrent = a.subscriptionPlan.isCurrent;
     const bIsCurrent = b.subscriptionPlan.isCurrent;
-    if (aIsCurrent && bIsCurrent) {
-      return 0;
+    if (aIsCurrent !== bIsCurrent) {
+      return aIsCurrent ? -1 : 1;
     }
-    return aIsCurrent ? -1 : 1;
+
+    const activationA = a.activationDate || '9999-12-31';
+    const activationB = b.activationDate || '9999-12-31';
+    const activationDiff = activationA.localeCompare(activationB);
+    if (activationDiff !== 0) {
+      return activationDiff;
+    }
+
+    const expirationA = a.subscriptionPlan?.expirationDate || '0000-00-00';
+    const expirationB = b.subscriptionPlan?.expirationDate || '0000-00-00';
+    const expirationDiff = expirationB.localeCompare(expirationA);
+    if (expirationDiff !== 0) {
+      return expirationDiff;
+    }
+
+    return (b.uuid || '').localeCompare(a.uuid || '');
   });
 
   // Group licenses by status.
@@ -230,6 +246,8 @@ export function transformSubscriptionsData({ customerAgreement, subscriptionLice
     });
     subscriptionsData.subscriptionLicensesByStatus = updatedLicensesByStatus;
   });
+
+  subscriptionsData.licensesByCatalog = buildCatalogIndex(subscriptionsData.subscriptionLicenses);
 
   // Extracts a single subscription license for the user, from the ordered licenses by status.
   const applicableSubscriptionLicense = Object.values(subscriptionsData.subscriptionLicensesByStatus).flat()[0];

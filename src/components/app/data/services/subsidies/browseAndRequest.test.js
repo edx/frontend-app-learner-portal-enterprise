@@ -36,6 +36,12 @@ describe('fetchBrowseAndRequestConfiguration', () => {
     const result = await fetchBrowseAndRequestConfiguration(mockEnterpriseId);
     expect(result).toEqual(mockConfig);
   });
+
+  it('returns null when browse and request configuration does not exist', async () => {
+    axiosMock.onGet(BNR_CONFIG_URL).reply(404);
+    const result = await fetchBrowseAndRequestConfiguration(mockEnterpriseId);
+    expect(result).toBeNull();
+  });
 });
 
 describe('fetchLicenseRequests', () => {

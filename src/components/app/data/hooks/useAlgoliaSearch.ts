@@ -182,7 +182,7 @@ const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFi
     const shouldUseSecuredAlgoliaApiKey = (
       isCatalogQueryFiltersEnabled
       && isIndexSupported
-      && !!securedAlgoliaMetadata.algolia.securedAlgoliaApiKey
+      && !!securedAlgoliaMetadata.algolia?.securedAlgoliaApiKey
     );
 
     // Based on the waffle flag and supported indexes, we will use the secured algolia
@@ -192,7 +192,7 @@ const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFi
     // display the <SearchUnavailableAlert /> if no search client is returned or the upstream secured
     // algolia api call fails from the BFF.
     const algoliaSearchApiKey = shouldUseSecuredAlgoliaApiKey
-      ? securedAlgoliaMetadata.algolia.securedAlgoliaApiKey!
+      ? securedAlgoliaMetadata.algolia?.securedAlgoliaApiKey
       : config.ALGOLIA_SEARCH_API_KEY;
 
     if (!algoliaSearchApiKey || !config.ALGOLIA_APP_ID || !config.ALGOLIA_INDEX_NAME) {

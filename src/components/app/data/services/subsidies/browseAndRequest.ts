@@ -20,8 +20,15 @@ type BrowseAndRequestConfigurationAxiosResponseData = (
  */
 export async function fetchBrowseAndRequestConfiguration(enterpriseUUID) {
   const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}/api/v1/customer-configurations/${enterpriseUUID}/`;
-  const response: AxiosResponse<BrowseAndRequestConfigurationResponseRaw> = await getAuthenticatedHttpClient().get(url);
-  return camelCaseObject(response.data) as BrowseAndRequestConfigurationAxiosResponseData;
+  try {
+    const response: AxiosResponse<BrowseAndRequestConfigurationResponseRaw> = await getAuthenticatedHttpClient().get(url);
+    return camelCaseObject(response.data) as BrowseAndRequestConfigurationAxiosResponseData;
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**

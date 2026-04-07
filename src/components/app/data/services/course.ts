@@ -4,6 +4,26 @@ import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { findHighestLevelEntitlementSku, getActiveCourseRun } from '../utils';
 import { ENTERPRISE_RESTRICTION_TYPE } from '../../../../constants';
 
+function isCourseRunKey(contentKey: string) {
+  return contentKey.startsWith('course-v1:');
+}
+
+function transformCourseRunMetadataAsCourseMetadata(courseRunMetadata) {
+  return {
+    ...courseRunMetadata,
+    owners: courseRunMetadata.owners || [],
+    subjects: courseRunMetadata.subjects || [],
+    programs: courseRunMetadata.programs || [],
+    staff: courseRunMetadata.staff || [],
+    entitlements: courseRunMetadata.entitlements || [],
+    advertisedCourseRunUuid: courseRunMetadata.uuid,
+    courseRuns: [courseRunMetadata],
+    availableCourseRuns: [courseRunMetadata],
+    activeCourseRun: courseRunMetadata,
+    courseEntitlementProductSku: findHighestLevelEntitlementSku(courseRunMetadata.entitlements),
+  };
+}
+
 /**
  * Service method to fetch course metadata for a given course key.
  * @param {string} enterpriseId
@@ -11,6 +31,11 @@ import { ENTERPRISE_RESTRICTION_TYPE } from '../../../../constants';
  * @returns
  */
 export async function fetchCourseMetadata(courseKey): Promise<CourseMetadata> {
+  if (isCourseRunKey(courseKey)) {
+    const courseRunMetadata = await fetchCourseRunMetadata(courseKey);
+    return transformCourseRunMetadataAsCourseMetadata(courseRunMetadata);
+  }
+
   const contentMetadataUrl = `${getConfig().DISCOVERY_API_BASE_URL}/api/v1/courses/${courseKey}/`;
   const queryParams = new URLSearchParams();
   // Always include restricted/custom-b2b-enterprise runs in case one has been requested.

@@ -55,7 +55,12 @@ describe('useSearchCatalogs', () => {
     useRedeemablePolicies.mockReturnValue({ data: { redeemablePolicies: [] } });
     useCatalogsForSubsidyRequests.mockReturnValue([]);
     useEnterpriseOffers.mockReturnValue({ data: { currentEnterpriseOffers: [] } });
-    useSubscriptions.mockReturnValue({ data: { subscriptionLicense: { subscriptionPlan: { isCustom: false } } } });
+    useSubscriptions.mockReturnValue({
+      data: {
+        subscriptionLicense: { subscriptionPlan: { isCustom: false } },
+        subscriptionLicenses: [],
+      },
+    });
     useCouponCodes.mockReturnValue({ data: { couponCodeAssignments: [] } });
   });
 
@@ -93,6 +98,50 @@ describe('useSearchCatalogs', () => {
     } else {
       expect(result.current).toEqual([]);
     }
+  });
+
+  it('should include catalogs from multiple active current subscriptions', () => {
+    useSubscriptions.mockReturnValue({
+      data: {
+        subscriptionLicenses: [
+          {
+            status: LICENSE_STATUS.ACTIVATED,
+            subscriptionPlan: {
+              enterpriseCatalogUuid: 'test-subscription-catalog-uuid-1',
+              isCurrent: true,
+            },
+          },
+          {
+            status: LICENSE_STATUS.ASSIGNED,
+            subscriptionPlan: {
+              enterpriseCatalogUuid: 'test-subscription-catalog-uuid-2',
+              isCurrent: true,
+            },
+          },
+          {
+            status: LICENSE_STATUS.ACTIVATED,
+            subscriptionPlan: {
+              enterpriseCatalogUuid: 'test-subscription-catalog-uuid-3',
+              isCurrent: true,
+            },
+          },
+          {
+            status: LICENSE_STATUS.ACTIVATED,
+            subscriptionPlan: {
+              enterpriseCatalogUuid: 'test-subscription-catalog-uuid-4',
+              isCurrent: false,
+            },
+          },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => useSearchCatalogs(), { wrapper: Wrapper });
+
+    expect(result.current).toEqual([
+      'test-subscription-catalog-uuid-1',
+      'test-subscription-catalog-uuid-3',
+    ]);
   });
 
   it.each([

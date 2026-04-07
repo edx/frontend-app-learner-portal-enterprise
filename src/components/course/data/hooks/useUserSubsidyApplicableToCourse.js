@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import {
-  determineSubscriptionLicenseApplicable,
   findCouponCodeForCourse,
   getSubsidyToApplyForCourse,
+  resolveApplicableSubscriptionLicense,
   useCouponCodes,
   useCourseMetadata,
   useCourseRedemptionEligibility,
@@ -51,6 +51,8 @@ const useUserSubsidyApplicableToCourse = () => {
     data: {
       customerAgreement,
       subscriptionLicense,
+      subscriptionLicenses = [],
+      licensesByCatalog = {},
     },
   } = useSubscriptions();
   const {
@@ -88,13 +90,15 @@ const useUserSubsidyApplicableToCourse = () => {
  */
   const { data: canRequestData, isPending: isCanRequestPending } = useCourseCanRequestEligibility();
 
-  const isSubscriptionLicenseApplicable = determineSubscriptionLicenseApplicable(
+  const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
     subscriptionLicense,
+    subscriptionLicenses,
+    licensesByCatalog,
     catalogsWithCourse,
-  );
+  });
 
   const userSubsidyApplicableToCourse = getSubsidyToApplyForCourse({
-    applicableSubscriptionLicense: isSubscriptionLicenseApplicable ? subscriptionLicense : null,
+    applicableSubscriptionLicense,
     applicableSubsidyAccessPolicy: {
       isPolicyRedemptionEnabled,
       redeemableSubsidyAccessPolicy,

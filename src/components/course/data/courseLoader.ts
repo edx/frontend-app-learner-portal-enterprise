@@ -5,13 +5,13 @@ import {
 import {
   determineAllocatedAssignmentsForCourse,
   determineLearnerHasContentAssignmentsOnly,
-  determineSubscriptionLicenseApplicable,
   extractCourseRunKeyFromSearchParams,
   extractEnterpriseCustomer,
   findCouponCodeForCourse,
   getCatalogsForSubsidyRequests,
   getCourseRunsForRedemption,
   getLateEnrollmentBufferDays,
+  resolveApplicableSubscriptionLicense,
   getSearchCatalogs,
   queryCourseMetadata,
   safeEnsureQueryDataBrowseAndRequestConfiguration,
@@ -90,7 +90,13 @@ const makeCourseLoader: MakeRouteLoaderFunctionWithQueryClient = function makeCo
     const [
       { catalogList: catalogsWithCourse },
       { couponsOverview, couponCodeAssignments, couponCodeRedemptionCount },
-      { customerAgreement, subscriptionLicense, subscriptionPlan },
+      {
+        customerAgreement,
+        subscriptionLicense,
+        subscriptionLicenses = [],
+        licensesByCatalog = {},
+        subscriptionPlan,
+      },
       redeemableLearnerCreditPolicies,
     ] = prerequisiteQueries;
 
@@ -132,12 +138,14 @@ const makeCourseLoader: MakeRouteLoaderFunctionWithQueryClient = function makeCo
           const lateEnrollmentBufferDays = getLateEnrollmentBufferDays(
             redeemableLearnerCreditPolicies.redeemablePolicies,
           );
-          const isSubscriptionLicenseApplicable = determineSubscriptionLicenseApplicable(
+          const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
             subscriptionLicense,
+            subscriptionLicenses,
+            licensesByCatalog,
             catalogsWithCourse,
-          );
+          });
           const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
-          const hasSubsidyPrioritizedOverLearnerCredit = isSubscriptionLicenseApplicable
+          const hasSubsidyPrioritizedOverLearnerCredit = !!applicableSubscriptionLicense
             || applicableCouponCode?.couponCodeRedemptionCount > 0;
           const { courseRunKeys: courseRunKeysForRedemption } = getCourseRunsForRedemption({
             course: courseMetadata,

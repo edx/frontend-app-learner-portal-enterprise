@@ -175,6 +175,7 @@ describe('fetchSubscriptions', () => {
     }
     const expectedResult = {
       customerAgreement: mockResponse.customerAgreement,
+      licensesByCatalog: {},
       subscriptionLicensesByStatus: expectedLicensesByStatus,
       subscriptionPlan: isValidLicenseStatus ? mockSubscriptionLicense.subscriptionPlan : null,
       subscriptionLicense: isValidLicenseStatus ? mockSubscriptionLicense : null,
@@ -239,6 +240,7 @@ describe('fetchSubscriptions', () => {
 
     const expectedResult = {
       customerAgreement: mockResponse.customerAgreement,
+      licensesByCatalog: {},
       subscriptionLicensesByStatus: expectedLicensesByStatus,
       subscriptionPlan: mockSubscriptionLicenseCurrent.subscriptionPlan,
       subscriptionLicense: mockSubscriptionLicenseCurrent,

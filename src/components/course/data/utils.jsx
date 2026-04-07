@@ -26,6 +26,7 @@ import {
   findHighestLevelEntitlementSku,
   findHighestLevelSkuByEntityModeType,
   isEnrollmentUpgradeable,
+  normalizeCatalogUuid,
   START_DATE_DEFAULT_TO_TODAY_THRESHOLD_DAYS,
 } from '../../app/data';
 
@@ -460,8 +461,9 @@ function determineLicenseApplicableToCourse({
   if (!subscriptionLicense) {
     return false;
   }
-  return catalogsWithCourse.includes(
-    subscriptionLicense.subscriptionPlan.enterpriseCatalogUuid,
+  const normalizedCatalogsWithCourse = new Set(catalogsWithCourse.map(normalizeCatalogUuid));
+  return normalizedCatalogsWithCourse.has(
+    normalizeCatalogUuid(subscriptionLicense.subscriptionPlan.enterpriseCatalogUuid),
   );
 }
 
@@ -473,8 +475,9 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
 }) => {
   // If customer does not have a subscription plan(s) containing the
   // course being viewed, return early.
+  const normalizedCatalogsWithCourse = new Set(catalogsWithCourse.map(normalizeCatalogUuid));
   const hasSubscriptionPlanApplicableToCourse = !!customerAgreement?.availableSubscriptionCatalogs.some(
-    subscriptionCatalogUuid => catalogsWithCourse.includes(subscriptionCatalogUuid),
+    subscriptionCatalogUuid => normalizedCatalogsWithCourse.has(normalizeCatalogUuid(subscriptionCatalogUuid)),
   );
   if (!hasSubscriptionPlanApplicableToCourse) {
     return undefined;

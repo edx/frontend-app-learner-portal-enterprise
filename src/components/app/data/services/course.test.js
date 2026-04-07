@@ -38,6 +38,7 @@ jest.mock('@edx/frontend-platform/auth', () => ({
 describe('fetchCourseMetadata', () => {
   const params = `include_restricted=${ENTERPRISE_RESTRICTION_TYPE}`;
   const CONTENT_METADATA_URL = `${APP_CONFIG.DISCOVERY_API_BASE_URL}/api/v1/courses/${mockCourseKey}/?${params}`;
+  const COURSE_RUN_METADATA_URL = `${APP_CONFIG.DISCOVERY_API_BASE_URL}/api/v1/course_runs/${mockCourseRunKey}/?${params}`;
   const courseMetadata = {
     key: mockCourseKey,
     title: 'edX Demonstration Course',
@@ -61,6 +62,39 @@ describe('fetchCourseMetadata', () => {
       courseEntitlementProductSku: null,
     };
     expect(result).toEqual(expectedResult);
+  });
+
+  it('returns normalized course metadata for course run keys', async () => {
+    const courseRunMetadata = {
+      key: mockCourseRunKey,
+      uuid: 'test-course-run-uuid',
+      title: 'Run-scoped Demonstration Course',
+      entitlements: null,
+      owners: [],
+      subjects: [],
+      programs: [],
+      staff: [],
+      availability: 'Current',
+      isMarketable: true,
+      isEnrollable: true,
+    };
+    axiosMock.onGet(COURSE_RUN_METADATA_URL).reply(200, courseRunMetadata);
+
+    const result = await fetchCourseMetadata(mockCourseRunKey);
+
+    expect(result).toEqual({
+      ...courseRunMetadata,
+      entitlements: [],
+      owners: [],
+      subjects: [],
+      programs: [],
+      staff: [],
+      advertisedCourseRunUuid: 'test-course-run-uuid',
+      courseRuns: [courseRunMetadata],
+      availableCourseRuns: [courseRunMetadata],
+      activeCourseRun: courseRunMetadata,
+      courseEntitlementProductSku: null,
+    });
   });
 });
 

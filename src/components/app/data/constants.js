@@ -82,6 +82,8 @@ export const getBaseSubscriptionsData = () => {
   };
   const baseSubscriptionsData = {
     subscriptionLicenses: [],
+    licensesByCatalog: {},
+    licenseSchemaVersion: 'v1',
     customerAgreement: null,
     subscriptionLicense: null,
     subscriptionPlan: null,
