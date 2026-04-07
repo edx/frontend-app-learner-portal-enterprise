@@ -1161,20 +1161,25 @@ export function findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse = []
 }
 
 export function resolveApplicableSubscriptionLicense({
+  licenseSchemaVersion = 'v1',
   subscriptionLicense = null,
   subscriptionLicenses = [],
   licensesByCatalog = {},
   catalogsWithCourse = [],
 }) {
-  const indexedLicense = findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog);
+  const indexedLicense = licenseSchemaVersion === 'v2'
+    ? findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog)
+    : null;
   if (indexedLicense) {
     // eslint-disable-next-line no-console
     console.debug('[multi-license] resolveApplicableSubscriptionLicense (indexed):', { catalogsWithCourse, licensesByCatalog, resolved: indexedLicense?.uuid });
     return indexedLicense;
   }
 
-  const licensesToEvaluate = subscriptionLicenses.length > 0
-    ? subscriptionLicenses
+  const licensesToEvaluate = licenseSchemaVersion === 'v2'
+    ? (subscriptionLicenses.length > 0
+      ? subscriptionLicenses
+      : [subscriptionLicense].filter(Boolean))
     : [subscriptionLicense].filter(Boolean);
 
   const resolved = selectBestLicense(getApplicableSubscriptionLicenses(licensesToEvaluate, catalogsWithCourse));
@@ -1188,8 +1193,10 @@ export function determineSubscriptionLicenseApplicable(
   catalogsWithCourse = [],
   licensesByCatalog = {},
   subscriptionLicenses = [],
+  licenseSchemaVersion = 'v1',
 ) {
   return !!resolveApplicableSubscriptionLicense({
+    licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,

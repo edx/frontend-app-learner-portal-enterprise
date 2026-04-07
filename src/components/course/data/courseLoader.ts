@@ -91,6 +91,7 @@ const makeCourseLoader: MakeRouteLoaderFunctionWithQueryClient = function makeCo
       { catalogList: catalogsWithCourse },
       { couponsOverview, couponCodeAssignments, couponCodeRedemptionCount },
       {
+        licenseSchemaVersion,
         customerAgreement,
         subscriptionLicense,
         subscriptionLicenses = [],
@@ -139,6 +140,7 @@ const makeCourseLoader: MakeRouteLoaderFunctionWithQueryClient = function makeCo
             redeemableLearnerCreditPolicies.redeemablePolicies,
           );
           const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
+            licenseSchemaVersion,
             subscriptionLicense,
             subscriptionLicenses,
             licensesByCatalog,

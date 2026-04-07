@@ -26,13 +26,16 @@ export default function useSubscriptions(queryOptions: UseSubscriptionsQueryOpti
       select: (data) => {
         const transformedData = data?.enterpriseCustomerUserSubsidies?.subscriptions;
 
-        // When the BFF sends an empty licensesByCatalog (v1 / flag-off), build the catalog
-        // index client-side from subscriptionLicenses so that the indexed lookup path in
-        // resolveApplicableSubscriptionLicense is always available.
+        // Only v2 / multi-license responses should rebuild a catalog index client-side.
+        // v1 / legacy responses must preserve single-license semantics.
         const normalizedData = (() => {
           if (!transformedData) { return transformedData; }
-          const { licensesByCatalog, subscriptionLicenses } = transformedData;
-          if (Object.keys(licensesByCatalog || {}).length === 0 && subscriptionLicenses?.length) {
+          const { licenseSchemaVersion, licensesByCatalog, subscriptionLicenses } = transformedData;
+          if (
+            licenseSchemaVersion === 'v2'
+            && Object.keys(licensesByCatalog || {}).length === 0
+            && subscriptionLicenses?.length
+          ) {
             const rebuilt = buildCatalogIndex(subscriptionLicenses);
             // eslint-disable-next-line no-console
             console.debug('[multi-license] useSubscriptions: rebuilt licensesByCatalog client-side:', rebuilt);
