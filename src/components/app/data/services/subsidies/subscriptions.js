@@ -249,6 +249,15 @@ export function transformSubscriptionsData({ customerAgreement, subscriptionLice
 
   subscriptionsData.licensesByCatalog = buildCatalogIndex(subscriptionsData.subscriptionLicenses);
 
+  // If any activated+current licenses were indexed into licensesByCatalog, upgrade to the v2
+  // schema so that resolveApplicableSubscriptionLicense uses the full multi-license catalog
+  // index instead of the single legacy subscriptionLicense field. Without this, a multi-license
+  // user whose "primary" subscriptionLicense belongs to a different catalog than the requested
+  // course would be incorrectly denied access.
+  if (Object.keys(subscriptionsData.licensesByCatalog).length > 0) {
+    subscriptionsData.licenseSchemaVersion = 'v2';
+  }
+
   // Extracts a single subscription license for the user, from the ordered licenses by status.
   const applicableSubscriptionLicense = Object.values(subscriptionsData.subscriptionLicensesByStatus).flat()[0];
   if (applicableSubscriptionLicense) {
