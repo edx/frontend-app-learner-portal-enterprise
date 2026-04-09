@@ -4,6 +4,9 @@
 module.config.js
 env.config.*
 
+# Claude Code settings
+.claude/settings.local.json
+
 # Logs
 logs
 *.log
