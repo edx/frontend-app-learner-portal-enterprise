@@ -25,7 +25,6 @@ export const facetBootstrapService = {
       maxValuesPerFacet: 500,
     });
     const facets = response.facets || {};
-    console.log(facets)
     const mapFacet = (facetName: string): FacetValue[] => {
       const values = facets[facetName] || {};
       return Object.entries(values).map(([value, count]) => ({

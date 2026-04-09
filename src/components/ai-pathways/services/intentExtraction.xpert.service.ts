@@ -101,26 +101,75 @@ You MUST respond with raw JSON only.`;
    * Builds the system prompt for Xpert intent extraction.
    */
   buildSystemPrompt(facets?: FacetReference | null): string {
-    const base = `You are a precision intent extraction engine. Map user goals and background into a structured XpertIntent object.
-Focus on standardizing career roles and identifying essential skill requirements for those roles.
+    const base = `You are a taxonomy-grounded intent extraction engine.
 
+Your task is to map user goals and background into a structured XpertIntent object optimized for Algolia retrieval.
+
+CRITICAL BEHAVIOR:
+- You MUST prioritize normalization using provided taxonomy facets.
+- You MUST prefer exact facet values over generating new terms.
+- You MUST select the most retrieval-effective role and skills.
+
+PRIORITY ORDER:
+1. Jobs (role/title)
+2. Skills
+3. Industries
+4. Job Sources
+
+CONDENSED QUERY RULES:
 You MUST generate a condensedQuery that is:
 - a single short phrase
 - 2-5 words
-- plain keywords (no punctuation)
-- suitable for Algolia search.
+- plain lowercase keywords only
+- no punctuation
+- optimized for Algolia search
 
-Prefer role/profession keywords over generic motivation words.
+CONDENSED QUERY STRATEGY:
+- Start with the normalized job/role (if available)
+- Add 1–2 high-signal skills if relevant
+- Avoid generic or motivational words
 
-You MUST respond with only a valid JSON object matching the schema. Raw JSON only, no markdown.`;
+GOOD EXAMPLES:
+- "software engineer react"
+- "data analyst python sql"
+- "product manager agile"
+
+BAD EXAMPLES:
+- "career transition tech"
+- "looking for better job"
+- "entry level opportunities"
+
+ADDITIONAL RULES:
+- Do NOT output full sentences
+- Do NOT include explanations
+- Do NOT invent synonyms if a close facet exists
+- If user input is vague, infer the closest matching role from available facets
+
+You MUST respond with only a valid JSON object matching the schema.
+Return raw JSON only.
+
+OUTPUT EXPECTATIONS:
+- role: MUST match a Jobs facet if possible
+- skills: MUST be selected from Skills facets when possible
+- industry: MUST match Industries facet if relevant`;
 
     if (facets) {
       const facetContext = `
-Use the following available taxonomy facets to normalize your output if they match the user's intent:
+AVAILABLE TAXONOMY FACETS (SOURCE OF TRUTH):
+
+Use these values EXACTLY when possible.
+
+SELECTION RULES:
+- Prefer exact matches from these lists
+- If multiple matches exist, choose the most specific and relevant
+- If user input is broader, map it to the closest facet
+- Only infer values if no reasonable match exists
+
+FACETS:
+- Jobs: ${facets.name.slice(0, 50).map(f => f.value).join(', ')}
 - Skills: ${facets.skills.slice(0, 50).map(f => f.value).join(', ')}
-- Industries: ${facets.industries.map(f => f.value).join(', ')}
-- Job Sources: ${facets.jobSources.map(f => f.value).join(', ')}
-- Jobs (name): ${facets.name.map(f => f.value).join(', ')}
+- Industries: ${facets.industries.slice(0, 50).map(f => f.value).join(', ')}
+- Job Sources: ${facets.jobSources.slice(0, 50).map(f => f.value).join(', ')}
 `;
       return `${base}\n\n${facetContext}`;
     }
@@ -153,7 +202,6 @@ You MUST respond with only a valid JSON array of objects matching the CareerOpti
             content: JSON.stringify(input),
           },
         ],
-        // TODO: confirm correct tag value with Xpert/Discovery team before production
       });
 
       let parsed: CareerOption[];

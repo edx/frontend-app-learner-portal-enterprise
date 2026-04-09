@@ -293,3 +293,7 @@ export interface XpertServiceConfig {
   clientId: string;
   baseUrl: string;
 }
+
+export * from './catalogFacet';
+export * from './catalogTranslation';
+export * from './translationContracts';

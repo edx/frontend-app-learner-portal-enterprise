@@ -1,5 +1,5 @@
 import React from 'react';
-import {Configure, InstantSearch} from 'react-instantsearch-dom';
+import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { getConfig } from '@edx/frontend-platform';
 import { useAlgoliaSearch } from '../app/data';
 import { AiPathwaysPage } from './routes/AiPathwaysPage';
