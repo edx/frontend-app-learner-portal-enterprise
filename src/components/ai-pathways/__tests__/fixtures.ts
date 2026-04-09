@@ -110,37 +110,25 @@ export const mockLearnerProfile: LearnerProfile = {
 };
 
 export const mockPathwayResponse: AIPathwaysResponseModel = {
-  intake: {
-    rawQuery: 'I want to transition into software engineering | Become a Full Stack Developer | Some basic HTML/CSS knowledge | Technology',
-    condensedQuery: 'software engineering',
-  },
-  initialDiscovery: {
-    hits: mockRefinedHits as any,
-    totalHits: 2,
-    availableFacets: mockTaxonomyUniverse,
-    inferredCareer: 'Software Engineer',
-    topSkills: ['JavaScript', 'React'],
-    topIndustries: ['Technology'],
-    similarJobs: ['Full Stack Developer'],
-    firstRequest: {
-      query: 'software engineering',
-      filters: 'enterprise_customer_uuids:ent-uuid',
-      facets: ['*'],
-      hitsPerPage: 10,
-      maxValuesPerFacet: 100,
-      page: 0,
+  requestId: 'test-request-id',
+  stages: {
+    facetBootstrap: { durationMs: 150, success: true },
+    intentExtraction: {
+      durationMs: 450,
+      success: true,
+      systemPrompt: 'You are an AI career advisor...',
+      rawResponse: '{"condensedQuery": "software engineering"}',
+      parsedResponse: mockSearchIntent,
+      validationErrors: [],
+      repairPromptUsed: false,
     },
-  },
-  intent: mockSearchIntent,
-  scopedFacetUniverse: mockTaxonomyUniverse,
-  matchedFacetSelections: mockMatchedSelections,
-  refinedDiscovery: {
-    hits: mockRefinedHits as any,
-    totalHits: 2,
-  },
-  learnerProfile: mockLearnerProfile,
-  pathwayInputs: {
-    candidateContent: mockRefinedHits as any,
-    matchedTaxonomySignals: ['JavaScript', 'React', 'Node.js', 'Technology'],
+    careerRetrieval: { durationMs: 120, success: true, resultCount: 2 },
+    courseRetrieval: { durationMs: 210, success: true, resultCount: 2 },
+    pathwayEnrichment: {
+      durationMs: 800,
+      success: true,
+      systemPrompt: 'You are a curriculum designer...',
+      rawResponse: '{"courses": []}',
+    },
   },
 };

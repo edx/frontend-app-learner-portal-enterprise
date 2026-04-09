@@ -2,6 +2,18 @@
  * Feature-local types for the AI Pathways prototype.
  */
 
+export interface FacetValue {
+  value: string;
+  count?: number;
+}
+
+export interface FacetReference {
+  skills: FacetValue[];
+  industries: FacetValue[];
+  jobSources: FacetValue[];
+  name: FacetValue[];
+}
+
 /**
  * CourseStatus defines the lifecycle of a course within a pathway.
  */
@@ -30,6 +42,21 @@ export interface LearningPathway {
   courses: PathwayCourse[];
 }
 
+export type LearnerLevel = 'beginner' | 'intermediate' | 'advanced';
+export type TimeCommitment = 'short' | 'medium' | 'long';
+
+export interface XpertIntent {
+  condensedQuery: string;
+  roles: string[];
+  skillsRequired: string[];
+  skillsPreferred: string[];
+  industries: string[];
+  jobSources: string[];
+  learnerLevel: LearnerLevel;
+  timeCommitment: TimeCommitment;
+  excludeTags: string[];
+}
+
 /**
  * CareerOption represents a potential career path matching the user's profile.
  */
@@ -39,6 +66,35 @@ export interface CareerOption {
   skills: string[];
   industries?: string[];
   jobSources?: string[];
+}
+
+export interface CareerCardModel {
+  id: string;
+  title: string;
+  description: string;
+  skills: string[];
+  industries: string[];
+  similarJobs: string[];
+  jobSources: string[];
+  marketData?: {
+    medianSalary?: number;
+    uniquePostings?: number;
+  };
+  reasoning?: string;
+  raw: TaxonomyResult;
+}
+
+export interface CourseCardModel {
+  id: string;
+  title: string;
+  level: string | null;
+  skills: string[];
+  marketingUrl: string | null;
+  imageUrl: string | null;
+  shortDescription: string | null;
+  order: number;
+  status: 'recommended' | 'optional' | 'unavailable';
+  raw?: unknown;
 }
 
 /**
@@ -99,26 +155,53 @@ export interface CreateLearnerProfileArgs {
   certificateRes: string;
 }
 
-/**
- * TaxonomyResult represents a single career role or job from the taxonomy index.
- */
+export interface TaxonomySkill {
+  name: string;
+  type_name?: string;
+  significance?: number;
+  unique_postings?: number;
+  external_id?: string;
+  description?: string;
+  info_url?: string;
+}
+
+export interface TaxonomyIndustryDetail {
+  name: string;
+  skills?: string[];
+}
+
+export interface TaxonomyJobPosting {
+  job_id?: number;
+  median_salary?: number;
+  median_posting_duration?: number;
+  unique_postings?: number;
+  unique_companies?: number;
+}
+
 export interface TaxonomyResult {
-  id: string;
-  title: string;
-  description: string;
-  skills: {
-    name: string;
-    typeName?: string;
-    significance?: number;
-  }[];
-  industries: string[];
-  similarJobs: string[];
-  jobSources: string[];
-  marketData?: {
-    medianSalary?: number;
-    uniquePostings?: number;
-  };
-  reasoning?: string;
+  id?: string | number;
+  objectID?: string;
+
+  // Primary display fields from Algolia taxonomy index
+  name: string;
+  description?: string;
+  external_id?: string;
+
+  // Facetable/filterable raw fields
+  industry_names?: string[];
+  job_sources?: string[];
+  similar_jobs?: string[];
+  b2c_opt_in?: boolean;
+
+  // Nested data
+  skills?: TaxonomySkill[];
+  industries?: TaxonomyIndustryDetail[];
+  job_postings?: TaxonomyJobPosting[];
+
+  // Optional debug / explainability fields sometimes returned by Algolia
+  _highlightResult?: Record<string, unknown>;
+  _snippetResult?: Record<string, unknown>;
+  _rankingInfo?: Record<string, unknown>;
 }
 
 /**
@@ -138,6 +221,7 @@ export interface TaxonomyFacetBootstrap {
   'skills.name': { items: FacetOption[] };
   'industry_names': { items: FacetOption[] };
   'job_sources': { items: FacetOption[] };
+  'name': { items: FacetOption[] };
 }
 
 /**
@@ -167,46 +251,36 @@ export interface PathwayFilters {
   sortOrder: 'asc' | 'desc';
 }
 
+export interface StageMetrics {
+  durationMs: number;
+  success: boolean;
+  error?: string;
+}
+
 /**
  * AIPathwaysResponseModel represents the complete staged state of a pathway generation.
  */
 export interface AIPathwaysResponseModel {
-  intake: {
-    rawQuery: string;
-    condensedQuery: string;
-  };
-  initialDiscovery: {
-    hits: TaxonomyResult[];
-    totalHits: number;
-    availableFacets: TaxonomyFacetBootstrap;
-    inferredCareer?: string;
-    topSkills?: string[];
-    topIndustries?: string[];
-    similarJobs?: string[];
-    firstRequest: {
-      query: string;
-      filters: string;
-      facets: string[];
-      hitsPerPage: number;
-      maxValuesPerFacet: number;
-      page: number;
+  requestId: string;
+  stages: {
+    facetBootstrap: StageMetrics;
+    intentExtraction: StageMetrics & {
+      systemPrompt: string;
+      rawResponse: string;
+      parsedResponse: any;
+      validationErrors: string[];
+      repairPromptUsed: boolean;
     };
-  };
-  intent: SearchIntent;
-  scopedFacetUniverse: TaxonomyFacetBootstrap;
-  matchedFacetSelections: {
-    'skills.name': string[];
-    'industry_names': string[];
-    'job_sources': string[];
-  };
-  refinedDiscovery: {
-    hits: TaxonomyResult[];
-    totalHits: number;
-  };
-  learnerProfile: LearnerProfile;
-  pathwayInputs: {
-    candidateContent: TaxonomyResult[];
-    matchedTaxonomySignals: string[];
+    careerRetrieval: StageMetrics & {
+      resultCount: number;
+    };
+    courseRetrieval: StageMetrics & {
+      resultCount: number;
+    };
+    pathwayEnrichment: StageMetrics & {
+      systemPrompt: string;
+      rawResponse: string;
+    };
   };
 }
 

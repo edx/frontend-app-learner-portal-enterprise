@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { PathwayCourse, CourseStatus } from '../services/pathways.types';
+import type { PathwayCourse, CourseStatus } from '../types';
 
 export type SortKey = 'order' | 'title' | 'status' | 'level';
 export type SortOrder = 'asc' | 'desc';

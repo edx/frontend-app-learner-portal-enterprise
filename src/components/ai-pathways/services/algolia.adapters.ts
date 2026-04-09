@@ -106,6 +106,7 @@ export function adaptAlgoliaFacetsToRefinementItems(
     'skills.name': normalize('skills.name'),
     industry_names: normalize('industry_names'),
     job_sources: normalize('job_sources'),
+    name: normalize('name'),
   };
 }
 

@@ -1,19 +1,13 @@
 import React, { useMemo } from 'react';
-import { getConfig } from '@edx/frontend-platform';
 import { usePathways } from '../hooks/usePathways';
 import {
   LoadingState,
   ErrorState,
   IntakeForm,
   UserProfile,
-  InstantSearchWrapper,
-  TaxonomyResultList,
-  FacetBootstrapDebug,
+  PathwayList,
+  DebugConsole,
 } from '../components';
-import useAlgoliaSearch from '../../app/data/hooks/useAlgoliaSearch';
-import useEnterpriseCustomer from '../../app/data/hooks/useEnterpriseCustomer';
-import useSearchCatalogs from '../../app/data/hooks/useSearchCatalogs';
-import { getSupportedLocale } from '../../app/data/utils';
 
 /**
  * AiPathwaysPage is the top-level entry point for the AI Pathways feature.
@@ -26,10 +20,8 @@ export const AiPathwaysPage = () => {
   const {
     currentStep,
     learnerProfile,
-    searchIntent,
     selectedCareer,
-    taxonomyResults,
-    taxonomyFilters,
+    pathway,
     pathwayResponse,
     isLoading,
     error,
@@ -38,11 +30,6 @@ export const AiPathwaysPage = () => {
     generatePathway,
     setCurrentStep,
   } = usePathways();
-
-  const { searchClient } = useAlgoliaSearch();
-  const enterpriseCustomerResult = useEnterpriseCustomer();
-  const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string };
-  const searchCatalogs = useSearchCatalogs();
 
   const isDebug = useMemo(() => {
     if (typeof window === 'undefined') { return false; }
@@ -74,24 +61,12 @@ export const AiPathwaysPage = () => {
       case 'pathway':
         if (isLoading) { return <LoadingState />; }
         if (error) { return <ErrorState message={error.message} />; }
-        if (!searchIntent || !searchClient) { return <ErrorState message="No results data available" />; }
+        if (!pathway) { return <ErrorState message="No pathway data available" />; }
         return (
-          <InstantSearchWrapper
-            searchClient={searchClient}
-            indexName={getConfig().ALGOLIA_INDEX_NAME_JOBS}
-            initialIntent={searchIntent}
-            context={{
-              enterpriseCustomerUuid: enterpriseCustomer.uuid,
-              catalogQueryUuids: searchCatalogs,
-              locale: getSupportedLocale(),
-            }}
-          >
-            <TaxonomyResultList
-              results={taxonomyResults}
-              filters={taxonomyFilters}
-              onAdjustPathway={() => setCurrentStep('intake')}
-            />
-          </InstantSearchWrapper>
+          <PathwayList
+            pathway={pathway}
+            onAdjustPathway={() => setCurrentStep('intake')}
+          />
         );
       default:
         return <div>Not Found</div>;
@@ -99,19 +74,14 @@ export const AiPathwaysPage = () => {
   }, [
     currentStep,
     learnerProfile,
-    searchIntent,
+    pathway,
     selectedCareer,
-    taxonomyResults,
-    taxonomyFilters,
     isLoading,
     error,
     generateProfile,
     selectCareer,
     generatePathway,
     setCurrentStep,
-    searchClient,
-    enterpriseCustomer.uuid,
-    searchCatalogs,
   ]);
 
   return (
@@ -122,7 +92,7 @@ export const AiPathwaysPage = () => {
           <p className="text-muted">A personalized prototype for AI-generated learning roadmaps.</p>
         </header>
         <main>
-          {isDebug && <FacetBootstrapDebug filters={taxonomyFilters} response={pathwayResponse} />}
+          {isDebug && <DebugConsole response={pathwayResponse} />}
           {renderContent}
         </main>
       </div>

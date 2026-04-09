@@ -6,7 +6,7 @@ import {
   Card,
   Spinner,
 } from '@openedx/paragon';
-import type { CreateLearnerProfileArgs } from '../../services/pathways.types';
+import type { CreateLearnerProfileArgs } from '../../types';
 import { useIntakeForm } from '../../hooks/useIntakeForm';
 import {
   LEARNING_STYLE_OPTIONS,

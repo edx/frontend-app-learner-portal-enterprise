@@ -7,7 +7,7 @@ import {
   Button,
 } from '@openedx/paragon';
 import { Close } from '@openedx/paragon/icons';
-import type { CourseStatus } from '../../services/pathways.types';
+import type { CourseStatus } from '../../types';
 import type { SortKey, SortOrder } from '../../hooks/usePathwayFilters';
 
 interface PathwayFiltersProps {

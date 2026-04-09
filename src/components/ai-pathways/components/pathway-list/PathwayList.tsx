@@ -6,7 +6,7 @@ import {
   Col,
 } from '@openedx/paragon';
 import { Edit } from '@openedx/paragon/icons';
-import type { LearningPathway, CourseStatus } from '../../services/pathways.types';
+import type { LearningPathway, CourseStatus } from '../../types';
 import { PrototypeCard } from '../PrototypeCard';
 import { PathwayFilters } from '../pathway-filters/PathwayFilters';
 import { PathwayDetail } from '../pathway-detail/PathwayDetail';

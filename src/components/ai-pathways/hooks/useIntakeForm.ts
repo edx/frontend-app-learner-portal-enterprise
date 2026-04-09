@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { CreateLearnerProfileArgs } from '../services/pathways.types';
+import type { CreateLearnerProfileArgs } from '../types';
 
 export interface IntakePageInfo {
   title: string;

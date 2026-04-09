@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { PathwayCourse } from '../services/pathways.types';
+import type { PathwayCourse } from '../types';
 
 /**
  * Hook to manage the course detail visibility and state.

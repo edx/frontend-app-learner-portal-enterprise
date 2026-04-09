@@ -6,13 +6,13 @@ import {
   Col,
   Badge,
 } from '@openedx/paragon';
-import type { LearnerProfile, CareerOption } from '../../services/pathways.types';
+import type { LearnerProfile, CareerOption, CareerCardModel } from '../../types';
 
 interface UserProfileProps {
   /** The learner profile data to display */
   profile: LearnerProfile;
   /** The currently selected career match */
-  selectedCareer: CareerOption | null;
+  selectedCareer: CareerCardModel | null;
   /** Callback when a career match is selected */
   onSelectCareer: (career: CareerOption) => void;
   /** Callback to trigger pathway generation */

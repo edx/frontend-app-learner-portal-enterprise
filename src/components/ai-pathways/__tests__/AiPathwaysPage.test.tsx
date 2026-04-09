@@ -5,21 +5,13 @@ import {
 import '@testing-library/jest-dom';
 import { AiPathwaysPage } from '../routes/AiPathwaysPage';
 import { usePathways } from '../hooks/usePathways';
-import useAlgoliaSearch from '../../app/data/hooks/useAlgoliaSearch';
-import useEnterpriseCustomer from '../../app/data/hooks/useEnterpriseCustomer';
-import useSearchCatalogs from '../../app/data/hooks/useSearchCatalogs';
 import * as appUtils from '../../app/data/utils';
 import {
   mockLearnerProfile,
-  mockSearchIntent,
-  mockTaxonomyUniverse,
   mockPathwayResponse,
 } from './fixtures';
 
 jest.mock('../hooks/usePathways');
-jest.mock('../../app/data/hooks/useAlgoliaSearch');
-jest.mock('../../app/data/hooks/useEnterpriseCustomer');
-jest.mock('../../app/data/hooks/useSearchCatalogs');
 
 const mockUsePathways = usePathways as jest.Mock;
 
@@ -35,11 +27,8 @@ describe('AiPathwaysPage Full Flow Test', () => {
     mockUsePathways.mockReturnValue({
       currentStep: 'intake',
       learnerProfile: null,
-      searchIntent: null,
       selectedCareer: null,
       pathway: null,
-      taxonomyResults: [],
-      taxonomyFilters: mockTaxonomyUniverse,
       pathwayResponse: null,
       isLoading: false,
       error: null,
@@ -48,10 +37,6 @@ describe('AiPathwaysPage Full Flow Test', () => {
       generatePathway: mockGeneratePathway,
       setCurrentStep: mockSetCurrentStep,
     });
-
-    (useAlgoliaSearch as jest.Mock).mockReturnValue({ searchClient: {} });
-    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-123' } });
-    (useSearchCatalogs as jest.Mock).mockReturnValue(['cat-1']);
   });
 
   test('renders the main heading and the intake form by default', () => {
@@ -63,7 +48,7 @@ describe('AiPathwaysPage Full Flow Test', () => {
   test('shows debug component when ?debug=true is present', () => {
     window.history.pushState({}, '', '/?debug=true');
     render(<AiPathwaysPage />);
-    expect(screen.getByTestId('facet-bootstrap-debug')).toBeInTheDocument();
+    expect(screen.getByTestId('debug-console')).toBeInTheDocument();
   });
 
   test('transitions to Profile page when profile is generated', () => {
@@ -92,10 +77,12 @@ describe('AiPathwaysPage Full Flow Test', () => {
     mockUsePathways.mockReturnValue({
       currentStep: 'pathway',
       learnerProfile: mockLearnerProfile,
-      searchIntent: mockSearchIntent,
       selectedCareer: { title: 'Software Engineer', percentMatch: 0.9, skills: ['JS'] },
-      taxonomyResults: [{ id: 'course-1', title: 'Modern React' }],
-      taxonomyFilters: mockTaxonomyUniverse,
+      pathway: {
+        courses: [{
+          id: 'course-1', title: 'Modern React', status: 'not started', skills: ['React'],
+        }],
+      },
       pathwayResponse: mockPathwayResponse,
       isLoading: false,
       error: null,
@@ -106,7 +93,6 @@ describe('AiPathwaysPage Full Flow Test', () => {
     });
 
     render(<AiPathwaysPage />);
-    expect(screen.getByTestId('taxonomy-result-list')).toBeInTheDocument();
     expect(screen.getByText(/Modern React/i)).toBeInTheDocument();
   });
 });
@@ -114,10 +100,5 @@ describe('AiPathwaysPage Full Flow Test', () => {
 // Mock components that might be too complex for simple integration test
 jest.mock('../components', () => ({
   ...jest.requireActual('../components'),
-  FacetBootstrapDebug: () => <div data-testid="facet-bootstrap-debug">Debug</div>,
-  TaxonomyResultList: ({ results }: any) => (
-    <div data-testid="taxonomy-result-list">
-      {results.map((r: any) => <div key={r.id}>{r.title}</div>)}
-    </div>
-  ),
+  DebugConsole: () => <div data-testid="debug-console">Debug</div>,
 }));

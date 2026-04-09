@@ -1,6 +1,6 @@
 import React from 'react';
 import { ModalDialog, Button, Badge } from '@openedx/paragon';
-import type { PathwayCourse } from '../../services/pathways.types';
+import type { PathwayCourse } from '../../types';
 
 interface PathwayDetailProps {
   /** The course to display details for. */

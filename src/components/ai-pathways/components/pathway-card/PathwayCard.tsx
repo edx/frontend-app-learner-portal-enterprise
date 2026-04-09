@@ -3,7 +3,7 @@ import {
   Card, Badge, Button,
 } from '@openedx/paragon';
 import { ExpandMore } from '@openedx/paragon/icons';
-import type { PathwayCourse, CourseStatus } from '../../services/pathways.types';
+import type { PathwayCourse, CourseStatus } from '../../types';
 
 interface PathwayCardProps {
   /** The course data to display */
