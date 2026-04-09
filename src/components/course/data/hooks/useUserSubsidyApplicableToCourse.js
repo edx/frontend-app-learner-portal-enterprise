@@ -90,13 +90,24 @@ const useUserSubsidyApplicableToCourse = () => {
  * { can_request, reason, requestable_subsidy_access_policy }
  */
   const { data: canRequestData, isPending: isCanRequestPending } = useCourseCanRequestEligibility();
+  let filteredCatalogsWithCourse = [];
+  const hasLicensesByCatalog = licensesByCatalog && Object.keys(licensesByCatalog).length > 0;
+  if (licenseSchemaVersion === 'v1' && !hasLicensesByCatalog) {
+    // Single-license: only allow the catalog from the selected/active subscription license
+    if (subscriptionLicense && subscriptionLicense.subscriptionPlan && subscriptionLicense.subscriptionPlan.enterprise_catalog_uuid) {
+      filteredCatalogsWithCourse = [subscriptionLicense.subscriptionPlan.enterprise_catalog_uuid];
+    }
+  } else if (licenseSchemaVersion === 'v2' && hasLicensesByCatalog) {
+    // Multi-license: allow all catalogs in licensesByCatalog
+    filteredCatalogsWithCourse = Object.keys(licensesByCatalog);
+  }
 
   const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
     licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,
-    catalogsWithCourse,
+    catalogsWithCourse: filteredCatalogsWithCourse,
   });
 
   const userSubsidyApplicableToCourse = getSubsidyToApplyForCourse({
@@ -106,10 +117,10 @@ const useUserSubsidyApplicableToCourse = () => {
       redeemableSubsidyAccessPolicy,
       availableCourseRuns: availableCourseRunsForLearnerCredit,
     },
-    applicableCouponCode: findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse),
+    applicableCouponCode: findCouponCodeForCourse(couponCodeAssignments, filteredCatalogsWithCourse),
     applicableEnterpriseOffer: findEnterpriseOfferForCourse({
       enterpriseOffers: currentEnterpriseOffers,
-      catalogsWithCourse,
+      catalogsWithCourse: filteredCatalogsWithCourse,
       coursePrice: courseListPrice,
     }),
   });
@@ -129,6 +140,8 @@ const useUserSubsidyApplicableToCourse = () => {
       couponsOverview,
       customerAgreement,
       subscriptionLicense,
+      licensesByCatalog,
+      licenseSchemaVersion,
       containsContentItems,
       missingSubsidyAccessPolicyReason,
       enterpriseOffers,
@@ -143,6 +156,8 @@ const useUserSubsidyApplicableToCourse = () => {
     couponsOverview,
     customerAgreement,
     subscriptionLicense,
+    licensesByCatalog,
+    licenseSchemaVersion,
     containsContentItems,
     enterpriseOffers,
   ]);

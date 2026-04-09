@@ -8,7 +8,7 @@ import { features } from '../../../../../config';
 import { LICENSE_STATUS } from '../../../../enterprise-user-subsidy/data/constants';
 import { fetchPaginatedData } from '../utils';
 import { getBaseSubscriptionsData, SESSION_STORAGE_KEY_LICENSE_ACTIVATION_MESSAGE } from '../../constants';
-import { addLicenseToSubscriptionLicensesByStatus, buildCatalogIndex } from '../../utils';
+import { addLicenseToSubscriptionLicensesByStatus } from '../../utils';
 
 // Subscriptions
 
@@ -246,17 +246,10 @@ export function transformSubscriptionsData({ customerAgreement, subscriptionLice
     });
     subscriptionsData.subscriptionLicensesByStatus = updatedLicensesByStatus;
   });
-
-  subscriptionsData.licensesByCatalog = buildCatalogIndex(subscriptionsData.subscriptionLicenses);
-
-  // If any activated+current licenses were indexed into licensesByCatalog, upgrade to the v2
-  // schema so that resolveApplicableSubscriptionLicense uses the full multi-license catalog
-  // index instead of the single legacy subscriptionLicense field. Without this, a multi-license
-  // user whose "primary" subscriptionLicense belongs to a different catalog than the requested
-  // course would be incorrectly denied access.
-  if (Object.keys(subscriptionsData.licensesByCatalog).length > 0) {
-    subscriptionsData.licenseSchemaVersion = 'v2';
-  }
+  // Preserve old single-license behavior on the direct API path.
+  // Multi-license behavior is enabled only when the backend explicitly returns
+  // licenseSchemaVersion='v2' with populated licensesByCatalog.
+  subscriptionsData.licensesByCatalog = {};
 
   // Extracts a single subscription license for the user, from the ordered licenses by status.
   const applicableSubscriptionLicense = Object.values(subscriptionsData.subscriptionLicensesByStatus).flat()[0];

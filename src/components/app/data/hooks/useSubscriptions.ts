@@ -1,7 +1,6 @@
 import { querySubscriptions } from '../queries';
 import useEnterpriseCustomer from './useEnterpriseCustomer';
 import { useSuspenseBFF } from './useBFF';
-import { buildCatalogIndex } from '../utils';
 
 type UseSubscriptionsQueryOptionsSelectFnArgs = {
   original: unknown;
@@ -25,23 +24,20 @@ export default function useSubscriptions(queryOptions: UseSubscriptionsQueryOpti
     bffQueryOptions: {
       select: (data) => {
         const transformedData = data?.enterpriseCustomerUserSubsidies?.subscriptions;
-
-        // Only v2 / multi-license responses should rebuild a catalog index client-side.
-        // v1 / legacy responses must preserve single-license semantics.
         const normalizedData = (() => {
           if (!transformedData) { return transformedData; }
-          const { licenseSchemaVersion, licensesByCatalog, subscriptionLicenses } = transformedData;
-          if (
-            licenseSchemaVersion === 'v2'
-            && Object.keys(licensesByCatalog || {}).length === 0
-            && subscriptionLicenses?.length
-          ) {
-            const rebuilt = buildCatalogIndex(subscriptionLicenses);
-            // eslint-disable-next-line no-console
-            console.debug('[multi-license] useSubscriptions: rebuilt licensesByCatalog client-side:', rebuilt);
-            return { ...transformedData, licensesByCatalog: rebuilt };
+          const { licenseSchemaVersion, licensesByCatalog } = transformedData;
+          const hasLicensesByCatalog = Object.keys(licensesByCatalog || {}).length > 0;
+
+          if (licenseSchemaVersion === 'v1') {
+            return { ...transformedData, licensesByCatalog: {} };
           }
-          return transformedData;
+
+          if (licenseSchemaVersion === 'v2' && hasLicensesByCatalog) {
+            return transformedData;
+          }
+
+          return { ...transformedData, licensesByCatalog: {} };
         })();
 
         // When custom `select` function is provided in `queryOptions`, call it with original and transformed data.
@@ -58,7 +54,34 @@ export default function useSubscriptions(queryOptions: UseSubscriptionsQueryOpti
     },
     fallbackQueryConfig: {
       ...querySubscriptions(enterpriseCustomer.uuid),
-      select,
+      select: (data) => {
+        const normalizedData = (() => {
+          if (!data) return data;
+          const { licenseSchemaVersion, licensesByCatalog } = data as {
+            licenseSchemaVersion?: string;
+            licensesByCatalog: Record<string, unknown[]>;
+          };
+          const hasLicensesByCatalog = licensesByCatalog && Object.keys(licensesByCatalog).length > 0;
+
+          if (licenseSchemaVersion === 'v1') {
+            return { ...data, licensesByCatalog: {} };
+          }
+
+          if (licenseSchemaVersion === 'v2' && hasLicensesByCatalog) {
+            return data;
+          }
+
+          return { ...data, licensesByCatalog: {} };
+        })();
+
+        if (select) {
+          return select({
+            original: data,
+            transformed: normalizedData,
+          });
+        }
+        return normalizedData;
+      },
     },
   });
 }

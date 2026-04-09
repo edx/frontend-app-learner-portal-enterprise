@@ -1,0 +1,53 @@
+Subscription Groups
+Project Brief
+
+Purpose
+Currently, the edX platform restricts learners to a single active license per enterprise, even when multiple licenses with different catalogs are assigned to them. This "one-size-fits-all" access model prevents Knotion from implementing Learning Pathways (this is Knotion’s vocabulary, this is not related to any of edX’s pathways), where a learner needs to access specific, restricted course sets (CLOSED catalogs) across multiple programs simultaneously. This project will modify the technical layers to allow a single learner to hold, activate, and navigate between multiple licenses and their associated catalogs within a single enterprise
+
+Personas 
+Something for Someone – The dedicated L&D person who curates specific content for specific departments and needs to control spending and access at a granular level.
+Something for Everyone – The administrator overseeing a workforce where learners may need to belong to multiple specialized training programs at once.
+
+User Scenarios
+An Admin at Knotion creates two Learning Pathways: "Data Science Essentials" and "Managerial Leadership". They assign a learner to both programs. Under the new system, the learner receives activation notifications for both. When he logs in, the platform recognizes both licenses, allowing them to view the 5 courses in his Data Science pathway and the 3 courses in his Leadership pathway without granting him access to the 500+ courses in the full enterprise catalog.
+
+Goal
+Enable multi-license support for individual learners to facilitate restricted, program-based learning pathways.
+
+How do we achieve the goal:
+Audit and refactor the enterprise-access BFF (Backend-for-Frontend) layer to identify and return all active licenses for a user rather than just the first one found.
+Modify the enrollment and notification logic to ensure activation emails are triggered for every new license assigned, regardless of existing active licenses.
+
+Scope
+In-Scope:
+Support for a single learner to activate multiple licenses under one Enterprise UUID.
+Ensuring the Support Tool accurately reflects the activation status of all assigned licenses.
+Backend validation to enforce "enrolled courses only" access for program-restricted licenses.
+Maintaining existing progress synchronization for all active licenses.
+
+Out-of-Scope:
+Merging different enterprise accounts (multi-enterprise access).
+
+Open Issues
+Determining the impact on "Bulk License Enrollment" API performance when processing multiple concurrent activations for the same user.
+
+
+Deliverables 
+Data/Backend: 
+Refactored BFF layer to fetch a collection of enterprise_customer_user records instead of a single object.
+Fix for the manual activation failure where subsequent licenses weren't updating the course access count.Implementation of the restrict_catalog_access logic at the platform level.
+Q&A
+Q: Besides Knotion's specific "Learning Pathways," what are other use cases for this feature?
+A: This feature serves any Enterprise customer requiring granular access control or multi-budget tracking. Key examples include:
+Departmental Cross-Training: A Software Engineer might have one license for a "Security Compliance" program (Required) and a second license for a "Management Essentials" program (Elective), each funded by different department budgets.
+Tiered Professional Development: Large organizations can offer a "Base Catalog" to all employees while simultaneously assigning "Premium/Specialized Catalogs" (e.g., Executive Leadership or AI Research) to specific high-potential cohorts.
+Stackable Credentials: Learners can be enrolled in multiple MicroMasters or Professional Certificates simultaneously, where each credential requires its own "CLOSED" catalog to ensure the learner stays focused on the specific curriculum.
+Q: Is this serving more than just one customer’s needs?
+A: Yes. This shifts the platform from a "one-license-per-user" model to a "multi-entitlement" model. Something for Someone customers shows a growing demand for "Restricted Access" configurations. As we move toward more curated, outcome-based learning, the ability to "stack" restricted catalogs is a foundational requirement for any enterprise client who values precision over broad, unguided access.
+Q: Can we implement this without breaking existing enrollments?
+A: Yes, the goal is to run the multi-license logic in parallel or as an upgrade to the existing single-license logic to ensure no disruption to current learners.
+Q: Will this affect license consumption tracking?
+A: Yes, each program-specific license will be tracked against that specific program’s seat count (e.g., 30 used / 50 total). This improves reporting accuracy for admins managing multiple budgets.
+
+Other Considerations
+[This is a catch-all for anything else, such as if you make a key decision to remove or add to the project’s scope.]

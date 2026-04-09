@@ -471,6 +471,8 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
   customerAgreement,
   catalogsWithCourse,
   subscriptionLicense,
+  licensesByCatalog,
+  licenseSchemaVersion,
   hasEnterpriseAdminUsers,
 }) => {
   // If customer does not have a subscription plan(s) containing the
@@ -486,10 +488,19 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
   // If customer has a subscription plan(s) containing the course being viewed that is not expired
   // nor exhausted but learner has no subscription license application to the course, change `reasonType`
   // to use the `SUBSCRIPTION_LICENSE_NOT_ASSIGNED` message.
-  const isLicenseApplicableToCourse = determineLicenseApplicableToCourse({
-    catalogsWithCourse,
-    subscriptionLicense,
-  });
+  let isLicenseApplicableToCourse;
+  const hasLicensesByCatalog = licensesByCatalog && Object.keys(licensesByCatalog).length > 0;
+  if (licenseSchemaVersion === 'v2' && hasLicensesByCatalog) {
+    // Multi-license (v2): check if any license in licensesByCatalog covers the course's catalog
+    isLicenseApplicableToCourse = Object.keys(licensesByCatalog).some(
+      catalogUuid => normalizedCatalogsWithCourse.has(normalizeCatalogUuid(catalogUuid)),
+    );
+  } else {
+    isLicenseApplicableToCourse = determineLicenseApplicableToCourse({
+      catalogsWithCourse,
+      subscriptionLicense,
+    });
+  }
   if (!isLicenseApplicableToCourse) {
     return parseReasonTypeBasedOnEnterpriseAdmins({
       hasEnterpriseAdminUsers,
@@ -650,6 +661,8 @@ export const getMissingApplicableSubsidyReason = ({
   couponsOverview,
   customerAgreement,
   subscriptionLicense,
+  licensesByCatalog,
+  licenseSchemaVersion,
   containsContentItems,
   missingSubsidyAccessPolicyReason,
   enterpriseOffers,
@@ -673,6 +686,8 @@ export const getMissingApplicableSubsidyReason = ({
     customerAgreement,
     catalogsWithCourse,
     subscriptionLicense,
+    licensesByCatalog,
+    licenseSchemaVersion,
     hasEnterpriseAdminUsers,
   });
   const enterpriseOffersDisabledEnrollmentReasonType = getEnterpriseOffersDisabledEnrollmentReasonType({

@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import type { AxiosResponse } from 'axios';
 import { CamelCasedPropertiesDeep } from 'type-fest';
 
@@ -24,7 +25,7 @@ export async function fetchBrowseAndRequestConfiguration(enterpriseUUID) {
     const response: AxiosResponse<BrowseAndRequestConfigurationResponseRaw> = await getAuthenticatedHttpClient().get(url);
     return camelCaseObject(response.data) as BrowseAndRequestConfigurationAxiosResponseData;
   } catch (error) {
-    if (error?.response?.status === 404) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
     throw error;
