@@ -80,6 +80,7 @@ const makeCourseLoader: MakeRouteLoaderFunctionWithQueryClient = function makeCo
       safeEnsureQueryDataSubscriptions({
         queryClient,
         enterpriseCustomer,
+        enterpriseSlug,
       }),
       safeEnsureQueryDataRedeemablePolicies({
         queryClient,

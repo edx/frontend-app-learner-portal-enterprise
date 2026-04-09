@@ -77,6 +77,7 @@ const makeExternalCourseEnrollmentLoader: MakeRouteLoaderFunctionWithQueryClient
           safeEnsureQueryDataSubscriptions({
             queryClient,
             enterpriseCustomer,
+            enterpriseSlug,
           }),
           safeEnsureQueryDataRedeemablePolicies({
             queryClient,

@@ -27,6 +27,7 @@ import {
   findHighestLevelSkuByEntityModeType,
   isEnrollmentUpgradeable,
   normalizeCatalogUuid,
+  resolveApplicableSubscriptionLicense,
   START_DATE_DEFAULT_TO_TODAY_THRESHOLD_DAYS,
 } from '../../app/data';
 
@@ -446,31 +447,11 @@ export const getCouponCodesDisabledEnrollmentReasonType = ({
   return undefined;
 };
 
-/**
- * Determines whether the learner's subscription license is applicable to the course being
- * viewed, based on the enterprise catalogs associated with the learner's subscription license.
- * @param {Object} args
- * @param {array} args.catalogsWithCourse List of catalogs that will be checked against the license.
- * @param {Object} args.subscriptionLicense Learner's subscription license.
- * @returns {boolean} True if the learner's subscription license is applicable to the course being viewed.
- */
-function determineLicenseApplicableToCourse({
-  catalogsWithCourse,
-  subscriptionLicense,
-}) {
-  if (!subscriptionLicense) {
-    return false;
-  }
-  const normalizedCatalogsWithCourse = new Set(catalogsWithCourse.map(normalizeCatalogUuid));
-  return normalizedCatalogsWithCourse.has(
-    normalizeCatalogUuid(subscriptionLicense.subscriptionPlan.enterpriseCatalogUuid),
-  );
-}
-
 export const getSubscriptionDisabledEnrollmentReasonType = ({
   customerAgreement,
   catalogsWithCourse,
   subscriptionLicense,
+  subscriptionLicenses = [],
   licensesByCatalog,
   licenseSchemaVersion,
   hasEnterpriseAdminUsers,
@@ -485,23 +466,18 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
     return undefined;
   }
 
+  const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
+    licenseSchemaVersion,
+    subscriptionLicense,
+    subscriptionLicenses,
+    licensesByCatalog,
+    catalogsWithCourse,
+  });
+
   // If customer has a subscription plan(s) containing the course being viewed that is not expired
   // nor exhausted but learner has no subscription license application to the course, change `reasonType`
   // to use the `SUBSCRIPTION_LICENSE_NOT_ASSIGNED` message.
-  let isLicenseApplicableToCourse;
-  const hasLicensesByCatalog = licensesByCatalog && Object.keys(licensesByCatalog).length > 0;
-  if (licenseSchemaVersion === 'v2' && hasLicensesByCatalog) {
-    // Multi-license (v2): check if any license in licensesByCatalog covers the course's catalog
-    isLicenseApplicableToCourse = Object.keys(licensesByCatalog).some(
-      catalogUuid => normalizedCatalogsWithCourse.has(normalizeCatalogUuid(catalogUuid)),
-    );
-  } else {
-    isLicenseApplicableToCourse = determineLicenseApplicableToCourse({
-      catalogsWithCourse,
-      subscriptionLicense,
-    });
-  }
-  if (!isLicenseApplicableToCourse) {
+  if (!applicableSubscriptionLicense) {
     return parseReasonTypeBasedOnEnterpriseAdmins({
       hasEnterpriseAdminUsers,
       reasonTypes: {
@@ -513,7 +489,7 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
 
   // If learner's subscription license is expired, change `reasonType` to use
   // the `SUBSCRIPTION_EXPIRED` message.
-  const hasExpiredSubscriptionLicense = !subscriptionLicense.subscriptionPlan.isCurrent;
+  const hasExpiredSubscriptionLicense = !applicableSubscriptionLicense.subscriptionPlan?.isCurrent;
   if (hasExpiredSubscriptionLicense) {
     return parseReasonTypeBasedOnEnterpriseAdmins({
       hasEnterpriseAdminUsers,
@@ -526,7 +502,7 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
 
   // If learner's subscription license is revoked/deactivated, change `reasonType` to use
   // the `SUBSCRIPTION_DEACTIVATED` message.
-  if (subscriptionLicense.status === LICENSE_STATUS.REVOKED) {
+  if (applicableSubscriptionLicense.status === LICENSE_STATUS.REVOKED) {
     return DISABLED_ENROLL_REASON_TYPES.SUBSCRIPTION_DEACTIVATED;
   }
 
@@ -661,6 +637,7 @@ export const getMissingApplicableSubsidyReason = ({
   couponsOverview,
   customerAgreement,
   subscriptionLicense,
+  subscriptionLicenses,
   licensesByCatalog,
   licenseSchemaVersion,
   containsContentItems,
@@ -686,6 +663,7 @@ export const getMissingApplicableSubsidyReason = ({
     customerAgreement,
     catalogsWithCourse,
     subscriptionLicense,
+    subscriptionLicenses,
     licensesByCatalog,
     licenseSchemaVersion,
     hasEnterpriseAdminUsers,

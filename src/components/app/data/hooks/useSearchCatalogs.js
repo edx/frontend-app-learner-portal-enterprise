@@ -14,7 +14,6 @@ import useCouponCodes from './useCouponCodes';
  * excluded. Ensures no duplicate catalog UUIDs are returned.
  */
 export default function useSearchCatalogs() {
-  console.log('[useSearchCatalogs] HOOK CALLED');
   const { data: { subscriptionLicense, subscriptionLicenses, licenseSchemaVersion, licensesByCatalog = {} } } = useSubscriptions();
   const { data: { redeemablePolicies } } = useRedeemablePolicies();
   const { data: { couponCodeAssignments } } = useCouponCodes();
@@ -23,24 +22,18 @@ export default function useSearchCatalogs() {
 
   // Strict v2: use only the catalogs in licensesByCatalog
   const searchCatalogs = useMemo(() => {
-    let result;
     if (licenseSchemaVersion === 'v2' && Object.keys(licensesByCatalog).length > 0) {
-      result = Object.keys(licensesByCatalog);
-    } else {
-      // fallback to old logic for v1 or if no licensesByCatalog
-      result = getSearchCatalogs({
-        redeemablePolicies,
-        catalogsForSubsidyRequests,
-        couponCodeAssignments,
-        currentEnterpriseOffers,
-        subscriptionLicense,
-        subscriptionLicenses,
-      });
+      return Object.keys(licensesByCatalog);
     }
-    // Debug log for troubleshooting (always visible)
-    // eslint-disable-next-line no-console
-    console.log('[useSearchCatalogs] schema:', licenseSchemaVersion, 'licensesByCatalog:', licensesByCatalog, 'searchCatalogs:', result);
-    return result;
+
+    return getSearchCatalogs({
+      redeemablePolicies,
+      catalogsForSubsidyRequests,
+      couponCodeAssignments,
+      currentEnterpriseOffers,
+      subscriptionLicense,
+      subscriptionLicenses,
+    });
   }, [
     licenseSchemaVersion,
     licensesByCatalog,

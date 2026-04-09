@@ -51,6 +51,7 @@ export async function ensureEnterpriseAppData({
       safeEnsureQueryDataSubscriptions({
         queryClient,
         enterpriseCustomer,
+        enterpriseSlug: enterpriseCustomer.slug,
       })
         .then(async (subscriptionsData) => {
           // Auto-activate the user's subscription license, if applicable.
