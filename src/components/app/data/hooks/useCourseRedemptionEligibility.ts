@@ -104,7 +104,6 @@ export default function useCourseRedemptionEligibility() {
 
   const {
     data: {
-      licenseSchemaVersion,
       subscriptionLicense,
       subscriptionLicenses = [],
       licensesByCatalog = {},
@@ -126,7 +125,6 @@ export default function useCourseRedemptionEligibility() {
   const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
 
   const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
-    licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,

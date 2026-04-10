@@ -1161,13 +1161,15 @@ export function findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse = []
 }
 
 export function resolveApplicableSubscriptionLicense({
-  licenseSchemaVersion = 'v1',
   subscriptionLicense = null,
   subscriptionLicenses = [],
   licensesByCatalog = {},
   catalogsWithCourse = [],
 }) {
-  const indexedLicense = licenseSchemaVersion === 'v2'
+  const hasCatalogIndex = Object.keys(licensesByCatalog || {}).length > 0;
+  const isMultiLicenseMode = hasCatalogIndex;
+
+  const indexedLicense = isMultiLicenseMode
     ? findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog)
     : null;
   if (indexedLicense) {
@@ -1176,7 +1178,7 @@ export function resolveApplicableSubscriptionLicense({
     return indexedLicense;
   }
 
-  const licensesToEvaluate = licenseSchemaVersion === 'v2'
+  const licensesToEvaluate = isMultiLicenseMode
     ? (subscriptionLicenses.length > 0
       ? subscriptionLicenses
       : [subscriptionLicense].filter(Boolean))
@@ -1193,10 +1195,8 @@ export function determineSubscriptionLicenseApplicable(
   catalogsWithCourse = [],
   licensesByCatalog = {},
   subscriptionLicenses = [],
-  licenseSchemaVersion = 'v1',
 ) {
   return !!resolveApplicableSubscriptionLicense({
-    licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,

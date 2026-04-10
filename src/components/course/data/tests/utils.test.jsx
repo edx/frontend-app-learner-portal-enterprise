@@ -513,7 +513,6 @@ describe('getSubscriptionDisabledEnrollmentReasonType', () => {
           },
         }],
       },
-      licenseSchemaVersion: 'v2',
       hasEnterpriseAdminUsers: true,
       expectedReasonType: DISABLED_ENROLL_REASON_TYPES.SUBSCRIPTION_LICENSE_NOT_ASSIGNED,
     },
@@ -522,7 +521,6 @@ describe('getSubscriptionDisabledEnrollmentReasonType', () => {
     catalogsWithCourse,
     subscriptionLicense,
     licensesByCatalog,
-    licenseSchemaVersion,
     hasEnterpriseAdminUsers,
     expectedReasonType,
   }) => {
@@ -531,7 +529,6 @@ describe('getSubscriptionDisabledEnrollmentReasonType', () => {
       catalogsWithCourse,
       subscriptionLicense,
       licensesByCatalog,
-      licenseSchemaVersion,
       hasEnterpriseAdminUsers,
     });
     expect(reasonType).toEqual(expectedReasonType);
@@ -579,7 +576,54 @@ describe('getSubscriptionDisabledEnrollmentReasonType', () => {
           },
         }],
       },
-      licenseSchemaVersion: 'v2',
+      hasEnterpriseAdminUsers: true,
+    });
+
+    expect(reasonType).toBeUndefined();
+  });
+
+  it('returns undefined when schema version is missing but licensesByCatalog has an applicable license', () => {
+    const reasonType = getSubscriptionDisabledEnrollmentReasonType({
+      customerAgreement: {
+        availableSubscriptionCatalogs: [mockCatalogUuid],
+      },
+      catalogsWithCourse: [mockCatalogUuid],
+      subscriptionLicense: {
+        uuid: 'primary-license',
+        status: LICENSE_STATUS.ACTIVATED,
+        subscriptionPlan: {
+          isCurrent: true,
+          enterpriseCatalogUuid: 'different-catalog-uuid',
+        },
+      },
+      subscriptionLicenses: [
+        {
+          uuid: 'primary-license',
+          status: LICENSE_STATUS.ACTIVATED,
+          subscriptionPlan: {
+            isCurrent: true,
+            enterpriseCatalogUuid: 'different-catalog-uuid',
+          },
+        },
+        {
+          uuid: 'applicable-license',
+          status: LICENSE_STATUS.ACTIVATED,
+          subscriptionPlan: {
+            isCurrent: true,
+            enterpriseCatalogUuid: mockCatalogUuid,
+          },
+        },
+      ],
+      licensesByCatalog: {
+        [mockCatalogUuid]: [{
+          uuid: 'applicable-license',
+          status: LICENSE_STATUS.ACTIVATED,
+          subscriptionPlan: {
+            isCurrent: true,
+            enterpriseCatalogUuid: mockCatalogUuid,
+          },
+        }],
+      },
       hasEnterpriseAdminUsers: true,
     });
 

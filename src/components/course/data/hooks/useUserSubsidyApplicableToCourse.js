@@ -50,7 +50,6 @@ const useUserSubsidyApplicableToCourse = () => {
   const {
     data: {
       customerAgreement,
-      licenseSchemaVersion,
       subscriptionLicense,
       subscriptionLicenses = [],
       licensesByCatalog = {},
@@ -92,7 +91,6 @@ const useUserSubsidyApplicableToCourse = () => {
   const { data: canRequestData, isPending: isCanRequestPending } = useCourseCanRequestEligibility();
 
   const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
-    licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,
@@ -131,7 +129,6 @@ const useUserSubsidyApplicableToCourse = () => {
       subscriptionLicense,
       subscriptionLicenses,
       licensesByCatalog,
-      licenseSchemaVersion,
       containsContentItems,
       missingSubsidyAccessPolicyReason,
       enterpriseOffers,
@@ -148,7 +145,6 @@ const useUserSubsidyApplicableToCourse = () => {
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,
-    licenseSchemaVersion,
     containsContentItems,
     enterpriseOffers,
   ]);

@@ -247,8 +247,8 @@ export function transformSubscriptionsData({ customerAgreement, subscriptionLice
     subscriptionsData.subscriptionLicensesByStatus = updatedLicensesByStatus;
   });
   // Preserve old single-license behavior on the direct API path.
-  // Multi-license behavior is enabled only when the backend explicitly returns
-  // licenseSchemaVersion='v2' with populated licensesByCatalog.
+  // Multi-license behavior is handled on the BFF path where licensesByCatalog
+  // may be populated for eligible customers.
   subscriptionsData.licensesByCatalog = {};
 
   // Extracts a single subscription license for the user, from the ordered licenses by status.

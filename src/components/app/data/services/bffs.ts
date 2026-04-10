@@ -29,7 +29,6 @@ export const baseLearnerBFFResponse: BFFResponse = {
       customerAgreement: null,
       subscriptionLicenses: [],
       licensesByCatalog: {},
-      licenseSchemaVersion: 'v1',
       subscriptionLicensesByStatus: {
         activated: [],
         assigned: [],

@@ -453,7 +453,6 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
   subscriptionLicense,
   subscriptionLicenses = [],
   licensesByCatalog,
-  licenseSchemaVersion,
   hasEnterpriseAdminUsers,
 }) => {
   // If customer does not have a subscription plan(s) containing the
@@ -467,7 +466,6 @@ export const getSubscriptionDisabledEnrollmentReasonType = ({
   }
 
   const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
-    licenseSchemaVersion,
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,
@@ -639,7 +637,6 @@ export const getMissingApplicableSubsidyReason = ({
   subscriptionLicense,
   subscriptionLicenses,
   licensesByCatalog,
-  licenseSchemaVersion,
   containsContentItems,
   missingSubsidyAccessPolicyReason,
   enterpriseOffers,
@@ -665,7 +662,6 @@ export const getMissingApplicableSubsidyReason = ({
     subscriptionLicense,
     subscriptionLicenses,
     licensesByCatalog,
-    licenseSchemaVersion,
     hasEnterpriseAdminUsers,
   });
   const enterpriseOffersDisabledEnrollmentReasonType = getEnterpriseOffersDisabledEnrollmentReasonType({

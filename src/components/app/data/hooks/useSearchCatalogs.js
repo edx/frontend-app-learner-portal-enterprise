@@ -14,15 +14,15 @@ import useCouponCodes from './useCouponCodes';
  * excluded. Ensures no duplicate catalog UUIDs are returned.
  */
 export default function useSearchCatalogs() {
-  const { data: { subscriptionLicense, subscriptionLicenses, licenseSchemaVersion, licensesByCatalog = {} } } = useSubscriptions();
+  const { data: { subscriptionLicense, subscriptionLicenses, licensesByCatalog = {} } } = useSubscriptions();
   const { data: { redeemablePolicies } } = useRedeemablePolicies();
   const { data: { couponCodeAssignments } } = useCouponCodes();
   const { data: { currentEnterpriseOffers } } = useEnterpriseOffers();
   const catalogsForSubsidyRequests = useCatalogsForSubsidyRequests();
 
-  // Strict v2: use only the catalogs in licensesByCatalog
+  // If catalog-indexed licenses are present, use those catalogs directly.
   const searchCatalogs = useMemo(() => {
-    if (licenseSchemaVersion === 'v2' && Object.keys(licensesByCatalog).length > 0) {
+    if (Object.keys(licensesByCatalog).length > 0) {
       return Object.keys(licensesByCatalog);
     }
 
@@ -35,7 +35,6 @@ export default function useSearchCatalogs() {
       subscriptionLicenses,
     });
   }, [
-    licenseSchemaVersion,
     licensesByCatalog,
     redeemablePolicies,
     catalogsForSubsidyRequests,

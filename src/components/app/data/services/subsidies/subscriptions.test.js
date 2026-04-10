@@ -176,7 +176,6 @@ describe('fetchSubscriptions', () => {
     const expectedResult = {
       customerAgreement: mockResponse.customerAgreement,
       licensesByCatalog: {},
-      licenseSchemaVersion: 'v1', // no enterpriseCatalogUuid on mock plan → index stays empty → v1
       subscriptionLicensesByStatus: expectedLicensesByStatus,
       subscriptionPlan: isValidLicenseStatus ? mockSubscriptionLicense.subscriptionPlan : null,
       subscriptionLicense: isValidLicenseStatus ? mockSubscriptionLicense : null,
@@ -242,7 +241,6 @@ describe('fetchSubscriptions', () => {
     const expectedResult = {
       customerAgreement: mockResponse.customerAgreement,
       licensesByCatalog: {},
-      licenseSchemaVersion: 'v1', // no enterpriseCatalogUuid on mock plans → index stays empty → v1
       subscriptionLicensesByStatus: expectedLicensesByStatus,
       subscriptionPlan: mockSubscriptionLicenseCurrent.subscriptionPlan,
       subscriptionLicense: mockSubscriptionLicenseCurrent,
@@ -252,7 +250,7 @@ describe('fetchSubscriptions', () => {
     expect(response).toEqual(expectedResult);
   });
 
-  it('upgrades licenseSchemaVersion to v2 when licenses have catalog UUIDs (multi-license scenario)', async () => {
+  it('keeps direct API path in single-license shape even when licenses include catalog UUIDs', async () => {
     const mockLicenseTech = {
       uuid: 'license-tech-uuid',
       status: LICENSE_STATUS.ACTIVATED,
@@ -293,11 +291,7 @@ describe('fetchSubscriptions', () => {
     axiosMock.onGet(SUBSCRIPTIONS_URL).reply(200, mockMultiResponse);
     const response = await fetchSubscriptions(mockEnterpriseId);
 
-    // Both licenses have catalog UUIDs → licensesByCatalog is populated → v2 schema
-    expect(response.licenseSchemaVersion).toBe('v2');
-    expect(Object.keys(response.licensesByCatalog)).toEqual(
-      expect.arrayContaining(['catalog-tech-uuid', 'catalog-leadership-uuid']),
-    );
+    expect(response.licensesByCatalog).toEqual({});
   });
 });
 

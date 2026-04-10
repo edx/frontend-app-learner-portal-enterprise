@@ -144,4 +144,123 @@ describe('useSubscriptions', () => {
       );
     });
   });
+
+  describe('enable_multi_license_entitlements_bff waffle flag handling (BFF path)', () => {
+    const mockCatalogUuid = 'mock-catalog-uuid';
+    const mockMultiLicense = {
+      uuid: 'mock-multi-license-uuid',
+      status: LICENSE_STATUS.ACTIVATED,
+      subscriptionPlan: {
+        uuid: 'mock-plan-uuid',
+        enterpriseCatalogUuid: mockCatalogUuid,
+      },
+    };
+    const multiLicenseSubscriptionsData = {
+      ...getBaseSubscriptionsData().baseSubscriptionsData,
+      subscriptionLicenses: [mockMultiLicense],
+      subscriptionLicense: mockMultiLicense,
+      subscriptionPlan: mockMultiLicense.subscriptionPlan,
+      licensesByCatalog: { [mockCatalogUuid]: [mockMultiLicense] },
+    };
+
+    beforeEach(() => {
+      resolveBFFQuery.mockReturnValue(queryEnterpriseLearnerDashboardBFF);
+    });
+
+    it('strips licensesByCatalog (single-license/master behaviour) when flag is OFF', async () => {
+      fetchEnterpriseLearnerDashboard.mockResolvedValue({
+        enterpriseFeatures: { enableMultiLicenseEntitlementsBff: false },
+        enterpriseCustomerUserSubsidies: {
+          subscriptions: multiLicenseSubscriptionsData,
+        },
+      });
+
+      const { result } = renderHook(() => useSubscriptions(), { wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient()}>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </QueryClientProvider>
+      ) });
+
+      await waitFor(() => {
+        // licensesByCatalog must be empty — old single-license master behaviour
+        expect(result.current.data).toEqual(
+          expect.objectContaining({ licensesByCatalog: {} }),
+        );
+        expect(Object.keys(result.current.data.licensesByCatalog)).toHaveLength(0);
+        expect(result.current.data.subscriptionLicenses).toEqual([mockMultiLicense]);
+      });
+    });
+
+    it('preserves licensesByCatalog (multi-license behaviour) when flag is ON', async () => {
+      fetchEnterpriseLearnerDashboard.mockResolvedValue({
+        enterpriseFeatures: { enableMultiLicenseEntitlementsBff: true },
+        enterpriseCustomerUserSubsidies: {
+          subscriptions: multiLicenseSubscriptionsData,
+        },
+      });
+
+      const { result } = renderHook(() => useSubscriptions(), { wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient()}>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </QueryClientProvider>
+      ) });
+
+      await waitFor(() => {
+        // licensesByCatalog must be populated — multi-license behaviour
+        expect(result.current.data).toEqual(
+          expect.objectContaining({
+            licensesByCatalog: { [mockCatalogUuid]: [mockMultiLicense] },
+          }),
+        );
+        expect(Object.keys(result.current.data.licensesByCatalog)).toHaveLength(1);
+      });
+    });
+
+    it('preserves licensesByCatalog when flag is missing and licensesByCatalog is populated', async () => {
+      fetchEnterpriseLearnerDashboard.mockResolvedValue({
+        enterpriseFeatures: {},
+        enterpriseCustomerUserSubsidies: {
+          subscriptions: multiLicenseSubscriptionsData,
+        },
+      });
+
+      const { result } = renderHook(() => useSubscriptions(), { wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient()}>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </QueryClientProvider>
+      ) });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(
+          expect.objectContaining({
+            licensesByCatalog: { [mockCatalogUuid]: [mockMultiLicense] },
+          }),
+        );
+      });
+    });
+
+    it('keeps single-license behavior when flag is missing and licensesByCatalog is empty', async () => {
+      fetchEnterpriseLearnerDashboard.mockResolvedValue({
+        enterpriseFeatures: {},
+        enterpriseCustomerUserSubsidies: {
+          subscriptions: {
+            ...multiLicenseSubscriptionsData,
+            licensesByCatalog: {},
+          },
+        },
+      });
+
+      const { result } = renderHook(() => useSubscriptions(), { wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient()}>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </QueryClientProvider>
+      ) });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(
+          expect.objectContaining({ licensesByCatalog: {} }),
+        );
+      });
+    });
+  });
 });

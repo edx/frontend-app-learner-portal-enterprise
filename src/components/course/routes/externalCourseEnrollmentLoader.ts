@@ -89,7 +89,6 @@ const makeExternalCourseEnrollmentLoader: MakeRouteLoaderFunctionWithQueryClient
           { catalogList: catalogsWithCourse },
           { couponCodeAssignments },
           {
-            licenseSchemaVersion,
             subscriptionLicense,
             subscriptionLicenses = [],
             licensesByCatalog = {},
@@ -100,7 +99,6 @@ const makeExternalCourseEnrollmentLoader: MakeRouteLoaderFunctionWithQueryClient
           redeemableLearnerCreditPolicies.redeemablePolicies,
         );
         const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
-          licenseSchemaVersion,
           subscriptionLicense,
           subscriptionLicenses,
           licensesByCatalog,
