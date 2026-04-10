@@ -24,6 +24,7 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
 } from '../types';
+import {catalogFacetService} from "../services/catalogFacetService";
 
 export type PathwayStep = 'intake' | 'profile' | 'pathway';
 
@@ -188,6 +189,7 @@ export const usePathways = () => {
     try {
       // 1. Course Retrieval (Deterministic)
       const courseStartTime = Date.now();
+      const catalogFacets = catalogFacetService.getFacetSnapshot(catalogIndex);
       const courses = await courseRetrievalService.fetchCoursesForCareer(
         catalogIndex,
         selectedCareer.skills,

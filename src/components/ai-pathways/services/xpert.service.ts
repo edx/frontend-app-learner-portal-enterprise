@@ -1,5 +1,6 @@
-import axios from 'axios';
 import { getConfig } from '@edx/frontend-platform';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import axios from 'axios';
 
 export interface XpertMessage {
   role: 'user' | 'assistant';

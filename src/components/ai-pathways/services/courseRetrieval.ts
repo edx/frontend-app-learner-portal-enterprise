@@ -12,7 +12,8 @@ const MIN_RESULTS = 3;
 
 const isNonEmptyString = (value?: string | null): value is string => Boolean((value || '').trim());
 
-const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
+const formatFacet = (attr: string, value: string) =>
+  `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
 const buildScopedFilters = (): string | undefined => {
   const builder = new AlgoliaFilterBuilder();
@@ -35,10 +36,15 @@ const buildStrictParams = (
     return { ...baseParams, hitsPerPage: 0 };
   }
 
+  const builder = new AlgoliaFilterBuilder();
+
+  builder.and('content_type', 'course');
+
+  builder.or('skill_names', translation.strictSkills, { stringify: true });
+
   return {
     ...baseParams,
-    // One OR group: match any of these skills.
-    facetFilters: [translation.strictSkills.map((skill) => `skill_names:${skill}`)],
+    filters: builder.build(),
   };
 };
 
@@ -52,7 +58,9 @@ const buildBoostParams = (
   const params: SearchOptions = { ...baseParams };
 
   if (translation.boostSkills.length) {
-    params.optionalFilters = translation.boostSkills.map((skill) => `skill_names:${quoteFacetValue(skill)}`);
+    params.optionalFilters = translation.boostSkills.map(
+      (skill) => formatFacet('skill_names', skill)
+    );
   }
 
   return params;
@@ -172,7 +180,6 @@ export const courseRetrievalService = {
   async fetchCoursesForCareer(
     index: SearchIndex,
     skills: string[],
-    context: FacetBootstrapContext,
   ): Promise<CourseCardModel[]> {
     const dummyTranslation: CatalogTranslation = {
       query: '',

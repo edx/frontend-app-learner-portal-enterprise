@@ -30,7 +30,7 @@ export const facetBootstrapService = {
       return Object.entries(values).map(([value, count]) => ({
         value,
         count,
-      }));
+      })).sort((a, b) => b.count - a.count);;
     };
 
     return {

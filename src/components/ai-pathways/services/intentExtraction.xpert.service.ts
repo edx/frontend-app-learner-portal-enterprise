@@ -101,75 +101,59 @@ You MUST respond with raw JSON only.`;
    * Builds the system prompt for Xpert intent extraction.
    */
   buildSystemPrompt(facets?: FacetReference | null): string {
-    const base = `You are a taxonomy-grounded intent extraction engine.
+    const base = `You are a precision intent extraction engine. Map user goals and background into a structured XpertIntent object.
 
-Your task is to map user goals and background into a structured XpertIntent object optimized for Algolia retrieval.
+Your objective is to produce output that is both semantically relevant and effective for retrieval.
 
-CRITICAL BEHAVIOR:
-- You MUST prioritize normalization using provided taxonomy facets.
-- You MUST prefer exact facet values over generating new terms.
-- You MUST select the most retrieval-effective role and skills.
-
-PRIORITY ORDER:
-1. Jobs (role/title)
-2. Skills
-3. Industries
-4. Job Sources
-
-CONDENSED QUERY RULES:
 You MUST generate a condensedQuery that is:
 - a single short phrase
 - 2-5 words
-- plain lowercase keywords only
+- plain keywords only
 - no punctuation
-- optimized for Algolia search
+- suitable for Algolia search
 
-CONDENSED QUERY STRATEGY:
-- Start with the normalized job/role (if available)
-- Add 1–2 high-signal skills if relevant
-- Avoid generic or motivational words
+Search behavior guidance:
+- The primary searchable fields are:
+  - name
+  - skills.name
+- condensedQuery should target broad, high-recall role or skill concepts from those searchable fields.
+- Prefer a query that returns several close matches over a highly specific query that returns zero results.
+- Do NOT overfit to the exact wording of the user's story, prior role, or transition phrasing.
+- When the user describes a transition, prioritize the destination role or the most transferable target skill area.
+- Normalize specific language into broader common searchable concepts.
 
-GOOD EXAMPLES:
-- "software engineer react"
-- "data analyst python sql"
-- "product manager agile"
+Facet guidance:
+- Use common facet values as anchors for retrieval.
+- Facet prevalence is a useful signal: more common values are generally better candidates.
+- Preserve nuance using structured facet outputs instead of forcing every detail into condensedQuery.
 
-BAD EXAMPLES:
-- "career transition tech"
-- "looking for better job"
-- "entry level opportunities"
+Output behavior:
+- condensedQuery should be broad enough to retrieve relevant results.
+- Return supporting facet selections that reflect the user's likely interests.
+- Prefer close, general matches over narrow exactness.
 
-ADDITIONAL RULES:
-- Do NOT output full sentences
-- Do NOT include explanations
-- Do NOT invent synonyms if a close facet exists
-- If user input is vague, infer the closest matching role from available facets
-
-You MUST respond with only a valid JSON object matching the schema.
-Return raw JSON only.
-
-OUTPUT EXPECTATIONS:
-- role: MUST match a Jobs facet if possible
-- skills: MUST be selected from Skills facets when possible
-- industry: MUST match Industries facet if relevant`;
+You MUST respond with only a valid JSON object matching the schema. Raw JSON only. No markdown.`;
 
     if (facets) {
       const facetContext = `
-AVAILABLE TAXONOMY FACETS (SOURCE OF TRUTH):
+Use the following available facet values to normalize your output.
 
-Use these values EXACTLY when possible.
+Primary searchable facet sources:
+- Jobs / Roles (name): ${facets.name.slice(0, 50).map(f => f.value).join(', ')}
+- Skills (skills.name): ${facets.skills.slice(0, 50).map(f => f.value).join(', ')}
 
-SELECTION RULES:
-- Prefer exact matches from these lists
-- If multiple matches exist, choose the most specific and relevant
-- If user input is broader, map it to the closest facet
-- Only infer values if no reasonable match exists
+Supporting facet sources:
+- Industries (industry_names): ${facets.industries.slice(0, 30).map(f => f.value).join(', ')}
+- Job Sources (job_sources): ${facets.jobSources.slice(0, 30).map(f => f.value).join(', ')}
 
-FACETS:
-- Jobs: ${facets.name.slice(0, 50).map(f => f.value).join(', ')}
-- Skills: ${facets.skills.slice(0, 50).map(f => f.value).join(', ')}
-- Industries: ${facets.industries.slice(0, 50).map(f => f.value).join(', ')}
-- Job Sources: ${facets.jobSources.slice(0, 50).map(f => f.value).join(', ')}
+Rules:
+- Build condensedQuery primarily from broad, common values in name and skills.name.
+- Use the sorted order as a signal of prevalence and retrievability.
+- Prefer broader high-signal facet values over niche or compound phrases.
+- Do not overfit to exact narrative wording.
+- If the user is transitioning fields, generalize toward the target role or adjacent transferable skill area.
+- Use supporting facets to preserve useful context that should not be forced into condensedQuery.
+- Return the closest relevant facet values, even when they are somewhat more general than the user's words.
 `;
       return `${base}\n\n${facetContext}`;
     }
