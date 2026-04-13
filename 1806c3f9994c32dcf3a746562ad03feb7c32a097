@@ -1,0 +1,24 @@
+CLAUDE.md
+  6269c188951f7c27 142,179,191,194,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "1806c3f9994c32dcf3a746562ad03feb7c32a097",
+  "prompts": {
+    "6269c188951f7c27": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "821ac722-15a4-48c5-85be-c50858d82504",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Alexander Dusenbery",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 3,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "messages_url": "https://usegitai.com/cas/0b28f831c0eb053553087a9d9ed8c6ca784ae483847007cf33b8c605302ea609"
+    }
+  }
+}
