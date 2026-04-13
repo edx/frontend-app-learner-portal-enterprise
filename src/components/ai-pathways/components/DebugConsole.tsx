@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Card,
   Badge,
+  Button,
   Stack,
   Alert,
 } from '@openedx/paragon';
@@ -12,6 +13,7 @@ import {
   CatalogTranslationTrace,
   RetrievalLadderTrace,
 } from '../types';
+import { exportResponseModel } from '../utils/exportResponseModel';
 
 interface DebugConsoleProps {
   response: AIPathwaysResponseModel | null;
@@ -90,11 +92,24 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
 
   const { stages } = response;
 
+  const handleExport = useCallback(() => {
+    exportResponseModel(response);
+  }, [response]);
+
   return (
     <Card className="mt-5 border-warning">
       <Card.Header
         title="AI Pathways Debug Console"
         subtitle={`Request ID: ${response.requestId}`}
+        actions={
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={handleExport}
+          >
+            Export JSON
+          </Button>
+        }
       />
       <Card.Body>
         <Stack gap={3}>
