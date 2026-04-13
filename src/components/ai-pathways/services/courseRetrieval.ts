@@ -1,4 +1,5 @@
-import { SearchIndex, SearchOptions } from 'algoliasearch/lite';
+import { SearchIndex } from 'algoliasearch/lite';
+import { SearchOptions } from '@algolia/client-search';
 import {
   CourseCardModel,
   CatalogTranslation,
@@ -54,15 +55,16 @@ const buildBoostParams = (
   translation: CatalogTranslation,
   baseParams: SearchOptions,
 ): SearchOptions => {
-  const params: SearchOptions = { ...baseParams };
-
   if (translation.boostSkills.length) {
-    params.optionalFilters = translation.boostSkills.map(
-      (skill) => formatFacet('skill_names', skill),
-    );
+    return {
+      ...baseParams,
+      optionalFilters: translation.boostSkills.map(
+        (skill) => formatFacet('skill_names', skill),
+      ),
+    };
   }
 
-  return params;
+  return { ...baseParams };
 };
 
 /**
@@ -197,7 +199,9 @@ export const courseRetrievalService = {
         ladderTrace: { attempts, winnerStep: 4 },
       };
     } catch (error) {
-      attempts.push({ step: 1, label: 'Error', hitCount: 0, winner: false });
+      attempts.push({
+        step: 1, label: 'Error', hitCount: 0, winner: false,
+      });
       return { courses: [], ladderTrace: { attempts, winnerStep: null } };
     }
   },

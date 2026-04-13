@@ -41,7 +41,9 @@ const mockUsePathways = usePathways as jest.Mock;
 const makeBundle = (label: PromptPartLabel): XpertPromptBundle => ({
   id: `test-bundle-${label}`,
   stage: 'intentExtraction',
-  parts: [{ label, content: `content for ${label}`, editable: true, required: true }],
+  parts: [{
+    label, content: `content for ${label}`, editable: true, required: true,
+  }],
   combined: `content for ${label}`,
 });
 

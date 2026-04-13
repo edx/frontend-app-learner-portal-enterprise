@@ -1,5 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import {
+  FacetBootstrapContext,
   FacetReference,
   FacetValue,
 } from '../types';
@@ -18,6 +19,8 @@ export const facetBootstrapService = {
    */
   async bootstrapFacets(
     index: SearchIndex,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _context?: FacetBootstrapContext,
   ): Promise<FacetReference> {
     // Use an empty query to get the broad universe of facets for this enterprise
     const response = await index.search('', {
@@ -30,7 +33,7 @@ export const facetBootstrapService = {
       return Object.entries(values).map(([value, count]) => ({
         value,
         count,
-      })).sort((a, b) => b.count - a.count);;
+      })).sort((a, b) => b.count - a.count);
     };
 
     return {

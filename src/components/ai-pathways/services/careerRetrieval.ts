@@ -3,6 +3,7 @@ import AlgoliaFilterBuilder from '../../AlgoliaFilterBuilder/AlgoliaFilterBuilde
 import {
   XpertIntent,
   CareerCardModel,
+  FacetBootstrapContext,
   TaxonomyResult,
 } from '../types';
 
@@ -119,6 +120,8 @@ export const careerRetrievalService = {
   async searchCareers(
     index: SearchIndex,
     intent: XpertIntent,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _context?: FacetBootstrapContext,
   ): Promise<CareerCardModel[]> {
     const query = buildCareerQuery(intent);
     const filters = buildFilters(intent);

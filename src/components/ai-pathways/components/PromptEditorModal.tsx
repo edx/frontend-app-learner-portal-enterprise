@@ -40,7 +40,10 @@ interface PromptPartEditorProps {
 
 const PromptPartEditor = ({ part, onChange }: PromptPartEditorProps) => (
   <div style={{ marginBottom: '1rem' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem',
+    }}
+    >
       <strong style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>{part.label}</strong>
       {part.required && <Badge variant="primary">required</Badge>}
       {!part.editable && <Badge variant="secondary">read-only</Badge>}

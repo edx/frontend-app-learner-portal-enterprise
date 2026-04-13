@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getConfig } from '@edx/frontend-platform';
-import { intentExtractionXpertService } from '../services/intentExtraction.xpert.service';
+import { intentExtractionXpertService, PromptInterceptFn } from '../services/intentExtraction.xpert.service';
 import { pathwayAssemblerXpertService } from '../services/pathwayAssembler.xpert.service';
 import { facetBootstrapService } from '../services/facetBootstrap';
 import { careerRetrievalService } from '../services/careerRetrieval';
@@ -25,7 +25,6 @@ import {
   AIPathwaysResponseModel,
   PromptDebugEntry,
 } from '../types';
-import { PromptInterceptFn } from '../services/intentExtraction.xpert.service';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
 import { catalogTranslationService } from '../services/catalogTranslationService';
@@ -167,7 +166,9 @@ export const usePathways = () => {
         : undefined;
 
       const extractionResult = await intentExtractionXpertService.extractIntent(
-        preprocessed, facets, profileInterceptor,
+        preprocessed,
+        facets,
+        profileInterceptor,
       );
       responseModel.stages.intentExtraction = extractionResult.debug;
       const { intent } = extractionResult;
@@ -253,9 +254,8 @@ export const usePathways = () => {
       // 1. Catalog Facet Snapshot (Deterministic, scoped by enterprise context)
       const courseStartTime = Date.now();
       const facetStartMs = Date.now();
-      const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService.getFacetSnapshot(
-        catalogIndex, {}, facetContext,
-      );
+      const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
+        .getFacetSnapshot(catalogIndex, {}, facetContext);
       updatedResponseModel.stages.catalogFacetSnapshot = {
         durationMs: Date.now() - facetStartMs,
         success: true,
@@ -279,7 +279,9 @@ export const usePathways = () => {
 
       // 3. Hybrid translation: run Xpert only when rules-first left unmatched terms
       let xpertRawResponse: string | undefined;
-      let xpertDebugPayload: { systemPrompt: string; rawResponse: string; durationMs: number; success: boolean } | undefined;
+      let xpertDebugPayload: {
+        systemPrompt: string; rawResponse: string; durationMs: number; success: boolean;
+      } | undefined;
       if (rulesFirst.unmatched.length > 0) {
         try {
           const xpertResult = await catalogTranslationXpertService.translateUnmatched(

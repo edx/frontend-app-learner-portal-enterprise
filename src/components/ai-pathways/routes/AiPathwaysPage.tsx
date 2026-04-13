@@ -44,7 +44,6 @@ export const AiPathwaysPage = () => {
   // interception layer is fully bypassed at runtime.
   const {
     interceptPrompt,
-    isPending,
     pendingInterception,
     accept,
     reject,

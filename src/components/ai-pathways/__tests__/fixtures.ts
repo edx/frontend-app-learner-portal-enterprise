@@ -64,6 +64,9 @@ export const mockTaxonomyUniverse: TaxonomyFacetBootstrap = {
       },
     ],
   },
+  name: {
+    items: [],
+  },
 };
 
 export const mockMatchedSelections = {

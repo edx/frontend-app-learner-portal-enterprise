@@ -13,6 +13,7 @@ import { intentExtractionXpertService } from '../../services/intentExtraction.xp
 import { catalogTranslationXpertService } from '../../services/catalogTranslation.xpert.service';
 import { xpertService } from '../../services/xpert.service';
 import { XpertPromptBundle } from '../../types';
+import * as xpertCatalogTranslationPromptModule from '../../services/xpertCatalogTranslationPrompt';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -53,13 +54,21 @@ jest.mock('../../services/promptValidation', () => ({
 // ---------------------------------------------------------------------------
 
 const makeBundle = (combined = 'test prompt'): XpertPromptBundle => ({
+  id: 'bundle-test',
+  stage: 'intentExtraction',
   combined,
-  parts: [{ label: 'base', content: combined, editable: true, required: true }],
+  parts: [{
+    label: 'base', content: combined, editable: true, required: true,
+  }],
 });
 
 const makeEditedBundle = (combined = 'edited prompt'): XpertPromptBundle => ({
+  id: 'bundle-edited',
+  stage: 'intentExtraction',
   combined,
-  parts: [{ label: 'base', content: combined, editable: true, required: true }],
+  parts: [{
+    label: 'base', content: combined, editable: true, required: true,
+  }],
 });
 
 const mockXpertResponse = (content = '{"result": "ok"}') => {
@@ -314,7 +323,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
 // ---------------------------------------------------------------------------
 
 describe('catalogTranslationXpertService.translateUnmatched — interception', () => {
-  const { xpertCatalogTranslationPrompt } = require('../../services/xpertCatalogTranslationPrompt');
+  const { xpertCatalogTranslationPrompt } = xpertCatalogTranslationPromptModule;
 
   const mockPayload = {
     careerTitle: 'Data Scientist',
@@ -343,7 +352,7 @@ describe('catalogTranslationXpertService.translateUnmatched — interception', (
   beforeEach(() => {
     jest.clearAllMocks();
     const originalBundle = makeBundle('translation system prompt');
-    xpertCatalogTranslationPrompt.buildTranslationPrompt.mockReturnValue({
+    (xpertCatalogTranslationPrompt.buildTranslationPrompt as jest.Mock).mockReturnValue({
       bundle: originalBundle,
       userPayload: { careerTitle: 'Data Scientist', skills: [] },
     });

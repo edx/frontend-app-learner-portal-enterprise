@@ -102,9 +102,15 @@ describe('usePathways hook', () => {
     };
 
     (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
-    (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({ snapshot: mockFacetSnapshot, trace: {} });
-    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({ result: mockRulesFirst, trace: {} });
-    (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({ translation: mockTranslation, trace: {} });
+    (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
+      snapshot: mockFacetSnapshot, trace: {},
+    });
+    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
+      result: mockRulesFirst, trace: {},
+    });
+    (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({
+      translation: mockTranslation, trace: {},
+    });
     (courseRetrievalService.fetchCourses as jest.Mock).mockResolvedValue({ courses: mockCourses, ladderTrace: {} });
     (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
       rawResponse: '',
@@ -323,23 +329,37 @@ describe('usePathways — prompt interception', () => {
       skill_names: [], 'skills.name': [], subjects: [], level_type: [], 'partners.name': [], enterprise_catalog_query_uuids: [],
     };
     const mockTranslation = {
-      query: 'Software Engineer', queryAlternates: [], strictSkills: [], boostSkills: [],
-      subjectHints: [], droppedTaxonomySkills: [], skillProvenance: [],
-      algoliaPrimaryRequest: {}, algoliaFallbackRequests: [],
+      query: 'Software Engineer',
+      queryAlternates: [],
+      strictSkills: [],
+      boostSkills: [],
+      subjectHints: [],
+      droppedTaxonomySkills: [],
+      skillProvenance: [],
+      algoliaPrimaryRequest: {},
+      algoliaFallbackRequests: [],
     };
-    (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({ snapshot: mockFacetSnapshot, trace: {} });
+    (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
+      snapshot: mockFacetSnapshot, trace: {},
+    });
     (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
       result: { exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'] }, trace: {},
     });
     (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
       rawResponse: '{}',
-      debug: { systemPrompt: '', rawResponse: '', durationMs: 0, success: true },
+      debug: {
+        systemPrompt: '', rawResponse: '', durationMs: 0, success: true,
+      },
     });
-    (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({ translation: mockTranslation, trace: {} });
+    (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({
+      translation: mockTranslation, trace: {},
+    });
     (courseRetrievalService.fetchCourses as jest.Mock).mockResolvedValue({ courses: mockCourses, ladderTrace: {} });
     (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mockResolvedValue({
       pathway: { courses: mockCourses },
-      debug: { durationMs: 200, success: true, systemPrompt: '', rawResponse: '' },
+      debug: {
+        durationMs: 200, success: true, systemPrompt: '', rawResponse: '',
+      },
     });
   });
 

@@ -56,21 +56,20 @@ export function adaptAlgoliaTaxonomyHit(hit: AlgoliaTaxonomyHit): TaxonomyResult
 
   return {
     id: hit.id || hit.objectID,
-    title: hit.name || 'Untitled Role',
+    name: hit.name || 'Untitled Role',
     description: hit.description || '',
     skills: (hit.skills || []).map(s => ({
       name: s.name,
-      typeName: s.type_name,
+      type_name: s.type_name,
       significance: s.significance,
     })),
-    industries: hit.industry_names || [],
-    similarJobs: hit.similar_jobs || [],
-    jobSources: hit.job_sources || [],
-    marketData: primaryPosting ? {
-      medianSalary: primaryPosting.median_salary,
-      uniquePostings: primaryPosting.unique_postings,
-    } : undefined,
-    reasoning: '', // Assigned by assembly/enrichment logic
+    industry_names: hit.industry_names || [],
+    similar_jobs: hit.similar_jobs || [],
+    job_sources: hit.job_sources || [],
+    job_postings: primaryPosting ? [{
+      median_salary: primaryPosting.median_salary,
+      unique_postings: primaryPosting.unique_postings,
+    }] : undefined,
   };
 }
 
@@ -123,8 +122,8 @@ export function adaptAlgoliaFacets(facets: Record<string, Record<string, number>
  */
 export function adaptTaxonomyResultsToCareerOptions(results: TaxonomyResult[]): CareerOption[] {
   return results.map(result => ({
-    title: result.title,
-    skills: result.skills.slice(0, 5).map(s => s.name),
+    title: result.name,
+    skills: (result.skills || []).slice(0, 5).map(s => s.name),
     percentMatch: 0.9, // Default match score for retrieval-based results
   }));
 }

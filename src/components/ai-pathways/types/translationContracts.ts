@@ -1,4 +1,4 @@
-import { SearchOptions } from 'algoliasearch/lite';
+import { SearchOptions } from '@algolia/client-search';
 import { CatalogFacetSnapshot } from './catalogFacet';
 
 /**
