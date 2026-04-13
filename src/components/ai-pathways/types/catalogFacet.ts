@@ -18,6 +18,9 @@ export interface CatalogFacetSnapshot {
 
   /** Partner/Content provider names. */
   'partners.name': string[];
+
+  /** Enterprise catalog query UUIDs used to scope facet retrieval. */
+  enterprise_catalog_query_uuids?: string[];
 }
 
 /**

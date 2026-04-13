@@ -2,8 +2,9 @@ import { SearchIndex, SearchOptions } from 'algoliasearch/lite';
 import {
   CourseCardModel,
   CatalogTranslation,
+  RetrievalLadderAttempt,
+  RetrievalLadderTrace,
 } from '../types';
-import { debugLogger } from '../utils/debugLogger';
 
 const DEFAULT_HITS_PER_PAGE = 5;
 const MIN_RESULTS = 3;
@@ -109,65 +110,95 @@ export const courseRetrievalService = {
   async fetchCourses(
     index: SearchIndex,
     translation: CatalogTranslation,
-  ): Promise<CourseCardModel[]> {
+  ): Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }> {
     const scopedFacetFilters = buildScopedFacetFilters();
     const baseParams: SearchOptions = {
       hitsPerPage: DEFAULT_HITS_PER_PAGE,
       facetFilters: scopedFacetFilters,
     };
 
+    const attempts: RetrievalLadderAttempt[] = [];
+
     try {
       // 1. Attempt Strict Facet Matching
       const strictParams = buildStrictParams(translation, baseParams);
-      debugLogger.log('Retrieval Ladder Step 1: Strict Facet Matching', {
-        query: translation.query,
-        facetFilters: strictParams.facetFilters,
-        hitsPerPage: strictParams.hitsPerPage,
-      });
-
       if ((strictParams.hitsPerPage ?? 1) > 0) {
         const strictResponse = await index.search(translation.query, strictParams);
-        if (strictResponse.hits?.length >= MIN_RESULTS) {
-          debugLogger.log('Success: Strict Facet Matching', { hitCount: strictResponse.hits.length });
-          return strictResponse.hits.map(mapCourseHitToCard);
+        const strictHits = strictResponse.hits?.length ?? 0;
+        attempts.push({
+          step: 1,
+          label: 'Strict Facet Matching',
+          query: translation.query,
+          facetFilters: strictParams.facetFilters,
+          hitCount: strictHits,
+          winner: strictHits >= MIN_RESULTS,
+        });
+        if (strictHits >= MIN_RESULTS) {
+          return {
+            courses: strictResponse.hits.map(mapCourseHitToCard),
+            ladderTrace: { attempts, winnerStep: 1 },
+          };
         }
       }
 
       // 2. Attempt Boosted Optional Filters
       const boostParams = buildBoostParams(translation, baseParams);
-      debugLogger.log('Retrieval Ladder Step 2: Boosted Optional Filters', {
+      const boostResponse = await index.search(translation.query, boostParams);
+      const boostHits = boostResponse.hits?.length ?? 0;
+      attempts.push({
+        step: 2,
+        label: 'Boosted Optional Filters',
         query: translation.query,
         optionalFilters: boostParams.optionalFilters,
+        hitCount: boostHits,
+        winner: boostHits >= MIN_RESULTS,
       });
-
-      const boostResponse = await index.search(translation.query, boostParams);
-      if (boostResponse.hits?.length >= MIN_RESULTS) {
-        debugLogger.log('Success: Boosted Optional Filters', { hitCount: boostResponse.hits.length });
-        return boostResponse.hits.map(mapCourseHitToCard);
+      if (boostHits >= MIN_RESULTS) {
+        return {
+          courses: boostResponse.hits.map(mapCourseHitToCard),
+          ladderTrace: { attempts, winnerStep: 2 },
+        };
       }
 
       // 3. Attempt Query Alternates
       const queries = [translation.query, ...translation.queryAlternates].filter(Boolean);
       for (const q of queries) {
         const queryParams = buildQueryFallbackParams(q, baseParams);
-        debugLogger.log('Retrieval Ladder Step 3: Query Alternate', { query: q });
         // eslint-disable-next-line no-await-in-loop
         const queryResponse = await index.search(q, queryParams);
-        if (queryResponse.hits?.length >= MIN_RESULTS) {
-          debugLogger.log('Success: Query Alternate', { query: q, hitCount: queryResponse.hits.length });
-          return queryResponse.hits.map(mapCourseHitToCard);
+        const queryHits = queryResponse.hits?.length ?? 0;
+        attempts.push({
+          step: 3,
+          label: `Query Alternate: ${q}`,
+          query: q,
+          hitCount: queryHits,
+          winner: queryHits >= MIN_RESULTS,
+        });
+        if (queryHits >= MIN_RESULTS) {
+          return {
+            courses: queryResponse.hits.map(mapCourseHitToCard),
+            ladderTrace: { attempts, winnerStep: 3 },
+          };
         }
       }
 
       // 4. Final Fallback: Scope Only
-      debugLogger.log('Retrieval Ladder Step 4: Final Fallback (Scope Only)');
       const fallbackResponse = await index.search('', baseParams);
-      debugLogger.log('Final Result: Scope Only', { hitCount: fallbackResponse.hits?.length || 0 });
-      return (fallbackResponse.hits || []).map(mapCourseHitToCard);
+      const fallbackHits = fallbackResponse.hits?.length ?? 0;
+      attempts.push({
+        step: 4,
+        label: 'Scope Only Fallback',
+        query: '',
+        hitCount: fallbackHits,
+        winner: true,
+      });
+      return {
+        courses: (fallbackResponse.hits || []).map(mapCourseHitToCard),
+        ladderTrace: { attempts, winnerStep: 4 },
+      };
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[courseRetrieval] Failed to execute retrieval ladder:', error);
-      return [];
+      attempts.push({ step: 1, label: 'Error', hitCount: 0, winner: false });
+      return { courses: [], ladderTrace: { attempts, winnerStep: null } };
     }
   },
 };

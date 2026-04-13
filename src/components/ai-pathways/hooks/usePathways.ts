@@ -160,8 +160,6 @@ export const usePathways = () => {
       setCurrentStep('profile');
       return profile;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to generate profile:', err);
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate profile');
       setError(errorInstance);
       throw errorInstance;
@@ -193,19 +191,34 @@ export const usePathways = () => {
     try {
       // 1. Catalog Facet Snapshot (Deterministic, scoped by enterprise context)
       const courseStartTime = Date.now();
-      const facetSnapshot = await catalogFacetService.getFacetSnapshot(catalogIndex, {}, facetContext);
+      const facetStartMs = Date.now();
+      const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService.getFacetSnapshot(
+        catalogIndex, {}, facetContext,
+      );
+      updatedResponseModel.stages.catalogFacetSnapshot = {
+        durationMs: Date.now() - facetStartMs,
+        success: true,
+        trace: facetSnapshotTrace,
+      };
 
       // 2. Rules-first taxonomy translation
-      const rulesFirst = catalogTranslationRules.translateTaxonomyToCatalog({
+      const rulesFirstMs = Date.now();
+      const { result: rulesFirst, trace: rulesFirstTrace } = catalogTranslationRules.translateTaxonomyToCatalog({
         careerTitle: selectedCareer.title,
         skills: selectedCareer.skills || [],
         industries: selectedCareer.industries || [],
         similarJobs: selectedCareer.similarJobs || [],
         facetSnapshot,
       });
+      updatedResponseModel.stages.rulesFirstMapping = {
+        durationMs: Date.now() - rulesFirstMs,
+        success: true,
+        trace: rulesFirstTrace,
+      };
 
       // 3. Hybrid translation: run Xpert only when rules-first left unmatched terms
       let xpertRawResponse: string | undefined;
+      let xpertDebugPayload: { systemPrompt: string; rawResponse: string; durationMs: number; success: boolean } | undefined;
       if (rulesFirst.unmatched.length > 0) {
         try {
           const xpertResult = await catalogTranslationXpertService.translateUnmatched({
@@ -216,25 +229,37 @@ export const usePathways = () => {
             facetSnapshot,
           });
           xpertRawResponse = xpertResult.rawResponse || undefined;
+          xpertDebugPayload = xpertResult.debug;
         } catch {
           // Xpert refinement failed — continue with rules-first output only
         }
       }
 
       // 4. Consolidate into final CatalogTranslation
-      const translation = catalogTranslationService.processTranslation(
+      const translationMs = Date.now();
+      const { translation, trace: translationTrace } = catalogTranslationService.processTranslation(
         selectedCareer.title,
         facetSnapshot,
         rulesFirst,
         xpertRawResponse,
+        xpertDebugPayload,
       );
+      updatedResponseModel.stages.catalogTranslation = {
+        durationMs: Date.now() - translationMs,
+        success: true,
+        trace: translationTrace,
+      };
 
       // 5. Course Retrieval using consolidated translation, scoped by enterprise context
-      const courses = await courseRetrievalService.fetchCourses(
+      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
         catalogIndex,
         translation,
-        facetContext,
       );
+      updatedResponseModel.stages.retrievalLadder = {
+        durationMs: 0,
+        success: true,
+        trace: ladderTrace,
+      };
       updatedResponseModel.stages.courseRetrieval = {
         durationMs: Date.now() - courseStartTime,
         success: true,
@@ -268,8 +293,6 @@ export const usePathways = () => {
       setCurrentStep('pathway');
       return courses;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to generate pathway:', err);
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate pathway');
       setError(errorInstance);
       throw errorInstance;

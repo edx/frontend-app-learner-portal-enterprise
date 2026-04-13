@@ -82,8 +82,6 @@ export const pathwayAssemblerXpertService = {
         },
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to enrich pathway with Xpert reasoning:', error);
       return {
         pathway,
         debug: {

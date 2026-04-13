@@ -80,8 +80,6 @@ You MUST respond with raw JSON only.`;
         },
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to extract intent via Xpert:', error);
       return {
         intent: DEFAULT_INTENT,
         debug: {
@@ -191,16 +189,12 @@ You MUST respond with only a valid JSON array of objects matching the CareerOpti
       let parsed: CareerOption[];
       try {
         parsed = JSON.parse(response.content);
-      } catch (parseError) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to parse Xpert sample careers:', response.content);
+      } catch {
         return [];
       }
 
       return parsed;
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to generate sample careers via Xpert:', error);
+    } catch {
       return [];
     }
   },

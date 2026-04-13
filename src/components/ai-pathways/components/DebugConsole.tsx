@@ -5,11 +5,83 @@ import {
   Stack,
   Alert,
 } from '@openedx/paragon';
-import { AIPathwaysResponseModel } from '../types';
+import {
+  AIPathwaysResponseModel,
+  FacetSnapshotTrace,
+  RulesFirstMappingTrace,
+  CatalogTranslationTrace,
+  RetrievalLadderTrace,
+} from '../types';
 
 interface DebugConsoleProps {
   response: AIPathwaysResponseModel | null;
 }
+
+const FacetSnapshotSection = ({ trace }: { trace: FacetSnapshotTrace }) => (
+  <div>
+    <p className="mb-1"><strong>skill_names:</strong> {trace.skillNamesCount} values — sample: {trace.sampleSkillNames.join(', ')}</p>
+    <p className="mb-1"><strong>skills.name:</strong> {trace.skillsDotNameCount} values</p>
+    <p className="mb-1"><strong>subjects:</strong> {trace.subjectsCount} values — sample: {trace.sampleSubjects.join(', ')}</p>
+    <p className="mb-1"><strong>level_type:</strong> {trace.levelTypeCount} values</p>
+    <p className="mb-0"><strong>partners.name:</strong> {trace.partnersNameCount} values</p>
+  </div>
+);
+
+const RulesFirstSection = ({ trace }: { trace: RulesFirstMappingTrace }) => (
+  <div>
+    <p className="mb-1"><strong>Terms considered:</strong> {trace.termsConsidered}</p>
+    <p className="mb-1"><strong>Exact matches ({trace.exactMatchCount}):</strong> {trace.exactMatches.join(', ') || '—'}</p>
+    <p className="mb-1"><strong>Alias matches ({trace.aliasMatchCount}):</strong> {trace.aliasMatches.join(', ') || '—'}</p>
+    <p className="mb-0"><strong>Unmatched ({trace.unmatchedCount}):</strong> {trace.unmatched.join(', ') || '—'}</p>
+  </div>
+);
+
+const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }) => (
+  <Stack gap={2}>
+    <p className="mb-1"><strong>Query:</strong> {trace.query}</p>
+    {trace.queryAlternates.length > 0 && (
+      <p className="mb-1"><strong>Alternates:</strong> {trace.queryAlternates.join(', ')}</p>
+    )}
+    <p className="mb-1">
+      <strong>Strict skills ({trace.strictSkillCount}):</strong> {trace.strictSkills.join(', ') || '—'}
+    </p>
+    <p className="mb-1">
+      <strong>Boost skills ({trace.boostSkillCount}):</strong> {trace.boostSkills.join(', ') || '—'}
+    </p>
+    <p className="mb-1">
+      <strong>Subject hints ({trace.subjectHintCount}):</strong> {trace.subjectHints.join(', ') || '—'}
+    </p>
+    <p className="mb-1"><strong>Dropped skills ({trace.droppedSkillCount})</strong></p>
+    <p className="mb-1"><strong>Xpert used:</strong> {trace.xpertUsed ? 'Yes' : 'No'}</p>
+    {trace.xpertUsed && (
+      <>
+        <p className="mb-1"><strong>Xpert duration:</strong> {trace.xpertDurationMs}ms — {trace.xpertSuccess ? 'success' : 'failed'}</p>
+        <div>
+          <strong>Xpert system prompt:</strong>
+          <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertSystemPrompt}</pre>
+        </div>
+        <div>
+          <strong>Xpert raw response:</strong>
+          <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertRawResponse}</pre>
+        </div>
+      </>
+    )}
+  </Stack>
+);
+
+const RetrievalLadderSection = ({ trace }: { trace: RetrievalLadderTrace }) => (
+  <Stack gap={2}>
+    <p className="mb-1"><strong>Winner step:</strong> {trace.winnerStep ?? 'none'}</p>
+    {trace.attempts.map((attempt) => (
+      <div key={`${attempt.step}-${attempt.label}`} className="border rounded p-2">
+        <Badge variant={attempt.winner ? 'success' : 'secondary'} className="mr-2">Step {attempt.step}</Badge>
+        <strong>{attempt.label}</strong>
+        <span className="ml-2 text-muted">— {attempt.hitCount} hits</span>
+        {attempt.query && <p className="mb-0 mt-1 small"><strong>Query:</strong> {attempt.query}</p>}
+      </div>
+    ))}
+  </Stack>
+);
 
 export const DebugConsole = ({ response }: DebugConsoleProps) => {
   if (!response) {
@@ -105,6 +177,66 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               </pre>
             </div>
           </details>
+
+          {/* Facet Snapshot */}
+          {stages.catalogFacetSnapshot && (
+            <details>
+              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span>Stage 3b: Catalog Facet Snapshot</span>
+                <Badge variant={stages.catalogFacetSnapshot.success ? 'success' : 'danger'}>
+                  {stages.catalogFacetSnapshot.durationMs}ms
+                </Badge>
+              </summary>
+              <div className="py-2">
+                <FacetSnapshotSection trace={stages.catalogFacetSnapshot.trace} />
+              </div>
+            </details>
+          )}
+
+          {/* Rules-First Mapping */}
+          {stages.rulesFirstMapping && (
+            <details>
+              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span>Stage 3c: Rules-First Taxonomy Mapping</span>
+                <Badge variant={stages.rulesFirstMapping.success ? 'success' : 'danger'}>
+                  {stages.rulesFirstMapping.durationMs}ms
+                </Badge>
+              </summary>
+              <div className="py-2">
+                <RulesFirstSection trace={stages.rulesFirstMapping.trace} />
+              </div>
+            </details>
+          )}
+
+          {/* Catalog Translation */}
+          {stages.catalogTranslation && (
+            <details>
+              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span>Stage 3d: Catalog Translation</span>
+                <Badge variant={stages.catalogTranslation.success ? 'success' : 'danger'}>
+                  {stages.catalogTranslation.durationMs}ms
+                </Badge>
+              </summary>
+              <div className="py-2">
+                <CatalogTranslationSection trace={stages.catalogTranslation.trace} />
+              </div>
+            </details>
+          )}
+
+          {/* Retrieval Ladder */}
+          {stages.retrievalLadder && (
+            <details>
+              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span>Stage 4a: Course Retrieval Ladder</span>
+                <Badge variant={stages.retrievalLadder.success ? 'success' : 'danger'}>
+                  {stages.retrievalLadder.trace.attempts.length} attempts
+                </Badge>
+              </summary>
+              <div className="py-2">
+                <RetrievalLadderSection trace={stages.retrievalLadder.trace} />
+              </div>
+            </details>
+          )}
 
           {/* Course Retrieval */}
           <details>

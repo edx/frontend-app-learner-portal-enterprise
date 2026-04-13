@@ -1,7 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
-import { FacetBootstrapContext } from '../types';
-import { debugLogger } from '../utils/debugLogger';
+import { FacetBootstrapContext, FacetSnapshotTrace } from '../types';
 
 /**
  * Validation helper that safely reads missing facets as empty arrays.
@@ -38,7 +37,7 @@ export const catalogFacetService = {
     index: SearchIndex,
     config: FacetRetrievalConfig = {},
     context?: FacetBootstrapContext,
-  ): Promise<CatalogFacetSnapshot> {
+  ): Promise<{ snapshot: CatalogFacetSnapshot; trace: FacetSnapshotTrace }> {
     const { maxValuesPerFacet = 1000 } = config;
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.
@@ -72,14 +71,16 @@ export const catalogFacetService = {
       'partners.name': safeReadFacet(facets, 'partners.name'),
     };
 
-    debugLogger.log('Facet Snapshot Summary', {
-      skill_names: debugLogger.summarizeList(snapshot.skill_names),
-      'skills.name': debugLogger.summarizeList(snapshot['skills.name']),
-      subjects: debugLogger.summarizeList(snapshot.subjects),
-      level_type: debugLogger.summarizeList(snapshot.level_type),
-      'partners.name': debugLogger.summarizeList(snapshot['partners.name']),
-    });
+    const trace: FacetSnapshotTrace = {
+      skillNamesCount: snapshot.skill_names.length,
+      skillsDotNameCount: snapshot['skills.name'].length,
+      subjectsCount: snapshot.subjects.length,
+      levelTypeCount: snapshot.level_type.length,
+      partnersNameCount: snapshot['partners.name'].length,
+      sampleSkillNames: snapshot.skill_names.slice(0, 5),
+      sampleSubjects: snapshot.subjects.slice(0, 5),
+    };
 
-    return snapshot;
+    return { snapshot, trace };
   },
 };

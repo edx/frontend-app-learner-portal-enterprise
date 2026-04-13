@@ -4,8 +4,8 @@ import {
   CatalogTranslation,
   CatalogSearchIntent,
   SkillProvenance,
+  CatalogTranslationTrace,
 } from '../types';
-import { debugLogger } from '../utils/debugLogger';
 
 const MAX_STRICT_SKILLS = 8;
 const MAX_BOOST_SKILLS = 12;
@@ -51,7 +51,8 @@ export const catalogTranslationService = {
     facetSnapshot: CatalogFacetSnapshot,
     rulesFirst: RulesFirstCandidates,
     xpertRawResponse?: string,
-  ): CatalogTranslation {
+    xpertDebug?: { systemPrompt: string; rawResponse: string; durationMs: number; success: boolean },
+  ): { translation: CatalogTranslation; trace: CatalogTranslationTrace } {
     const validCatalogValues = this.buildValidFacetSet(facetSnapshot);
 
     // 1. Build initial intent from RulesFirst
@@ -88,9 +89,8 @@ export const catalogTranslationService = {
 
           xpertProvenance = xpertData.skillProvenance || [];
         }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('[catalogTranslationService] Failed to parse Xpert response, falling back to rules-first.', error);
+      } catch {
+        // Xpert parse failed — silently fall back to rules-first; error captured in xpertDebug
       }
     }
 
@@ -101,24 +101,33 @@ export const catalogTranslationService = {
     // 4. Construct Skill Provenance
     const skillProvenance = this.buildSkillProvenance(rulesFirst, xpertProvenance);
 
-    debugLogger.log('Validated Translation Summary', {
+    const trace: CatalogTranslationTrace = {
       query: finalIntent.query,
-      strictSkills: debugLogger.summarizeList(finalIntent.strictSkills),
-      boostSkills: debugLogger.summarizeList(finalIntent.boostSkills),
-      subjectHints: debugLogger.summarizeList(finalIntent.subjectHints),
-      droppedTaxonomySkills: debugLogger.summarizeList(finalIntent.droppedTaxonomySkills),
-      skillProvenanceCount: skillProvenance.length,
+      queryAlternates: finalIntent.queryAlternates,
+      strictSkillCount: finalIntent.strictSkills.length,
+      boostSkillCount: finalIntent.boostSkills.length,
+      subjectHintCount: finalIntent.subjectHints.length,
+      droppedSkillCount: finalIntent.droppedTaxonomySkills.length,
+      strictSkills: finalIntent.strictSkills,
+      boostSkills: finalIntent.boostSkills,
+      subjectHints: finalIntent.subjectHints,
       xpertUsed: !!xpertRawResponse,
-    });
+      xpertSystemPrompt: xpertDebug?.systemPrompt,
+      xpertRawResponse: xpertDebug?.rawResponse,
+      xpertDurationMs: xpertDebug?.durationMs,
+      xpertSuccess: xpertDebug?.success,
+    };
 
     // 5. Construct Algolia Request (Placeholder - logic to be added in next step: Course Retrieval)
     // For now, we return empty request objects to satisfy the type contract.
-    return {
+    const translation: CatalogTranslation = {
       ...finalIntent,
       skillProvenance,
       algoliaPrimaryRequest: {},
       algoliaFallbackRequests: [],
     };
+
+    return { translation, trace };
   },
 
   /**

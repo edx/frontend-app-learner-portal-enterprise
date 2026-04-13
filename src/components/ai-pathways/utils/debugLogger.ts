@@ -1,33 +1,19 @@
 /**
- * Simple debug logger for the MVP flow.
- * Logs are only output if localStorage.getItem('DEBUG_MVP_FLOW') === 'true'.
+ * debugLogger — no-op stub.
+ * All debugging has been migrated to responseModel instrumentation.
+ * This file is kept to avoid breaking any external references.
  */
 export const debugLogger = {
   isEnabled(): boolean {
-    try {
-      return typeof window !== 'undefined' && localStorage.getItem('DEBUG_MVP_FLOW') === 'true';
-    } catch {
-      return false;
-    }
+    return false;
   },
 
-  log(message: string, data?: any) {
-    if (this.isEnabled()) {
-      // eslint-disable-next-line no-console
-      console.log(`[MVP_DEBUG] ${message}`, data || '');
-    }
-  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  log(_message: string, _data?: any) {},
 
-  warn(message: string, data?: any) {
-    if (this.isEnabled()) {
-      // eslint-disable-next-line no-console
-      console.warn(`[MVP_DEBUG] ${message}`, data || '');
-    }
-  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  warn(_message: string, _data?: any) {},
 
-  /**
-   * Summarizes a list of strings by providing count and first few items.
-   */
   summarizeList(list: string[], limit = 5): string {
     if (!list || list.length === 0) {
       return '0 items';

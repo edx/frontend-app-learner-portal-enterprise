@@ -19,7 +19,7 @@ describe('catalogTranslationService', () => {
 
   describe('processTranslation', () => {
     it('returns valid CatalogTranslation using rules-first matches when Xpert is absent', () => {
-      const result = catalogTranslationService.processTranslation(
+      const { translation: result } = catalogTranslationService.processTranslation(
         'Data Scientist',
         mockFacetSnapshot,
         mockRulesFirst,
@@ -48,7 +48,7 @@ describe('catalogTranslationService', () => {
         ],
       });
 
-      const result = catalogTranslationService.processTranslation(
+      const { translation: result } = catalogTranslationService.processTranslation(
         'Data Scientist',
         mockFacetSnapshot,
         mockRulesFirst,
@@ -68,7 +68,7 @@ describe('catalogTranslationService', () => {
     });
 
     it('falls back to rules-first if Xpert JSON is invalid', () => {
-      const result = catalogTranslationService.processTranslation(
+      const { translation: result } = catalogTranslationService.processTranslation(
         'Data Scientist',
         mockFacetSnapshot,
         mockRulesFirst,
@@ -90,7 +90,7 @@ describe('catalogTranslationService', () => {
         strictSkills: manySkills,
       });
 
-      const result = catalogTranslationService.processTranslation(
+      const { translation: result } = catalogTranslationService.processTranslation(
         'Title',
         snapshot,
         { exactMatches: [], aliasMatches: [], unmatched: [] },
@@ -102,7 +102,7 @@ describe('catalogTranslationService', () => {
 
     it('handles markdown fences in Xpert response', () => {
       const xpertResponse = '```json\n{"query": "Markdown Query"}\n```';
-      const result = catalogTranslationService.processTranslation(
+      const { translation: result } = catalogTranslationService.processTranslation(
         'Title',
         mockFacetSnapshot,
         mockRulesFirst,

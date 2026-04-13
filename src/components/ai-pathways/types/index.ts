@@ -258,6 +258,73 @@ export interface StageMetrics {
 }
 
 /**
+ * FacetSnapshotTrace captures the catalog facet retrieval summary for debugging.
+ */
+export interface FacetSnapshotTrace {
+  skillNamesCount: number;
+  skillsDotNameCount: number;
+  subjectsCount: number;
+  levelTypeCount: number;
+  partnersNameCount: number;
+  sampleSkillNames: string[];
+  sampleSubjects: string[];
+}
+
+/**
+ * RulesFirstMappingTrace captures the outcome of the deterministic taxonomy-to-catalog mapping.
+ */
+export interface RulesFirstMappingTrace {
+  termsConsidered: number;
+  exactMatchCount: number;
+  aliasMatchCount: number;
+  unmatchedCount: number;
+  exactMatches: string[];
+  aliasMatches: string[];
+  unmatched: string[];
+}
+
+/**
+ * CatalogTranslationTrace captures the final consolidated translation output.
+ */
+export interface CatalogTranslationTrace {
+  query: string;
+  queryAlternates: string[];
+  strictSkillCount: number;
+  boostSkillCount: number;
+  subjectHintCount: number;
+  droppedSkillCount: number;
+  strictSkills: string[];
+  boostSkills: string[];
+  subjectHints: string[];
+  xpertUsed: boolean;
+  xpertSystemPrompt?: string;
+  xpertRawResponse?: string;
+  xpertDurationMs?: number;
+  xpertSuccess?: boolean;
+}
+
+/**
+ * RetrievalLadderAttempt captures a single step in the course retrieval ladder.
+ */
+export interface RetrievalLadderAttempt {
+  step: 1 | 2 | 3 | 4;
+  label: string;
+  query?: string;
+  facetFilters?: unknown;
+  optionalFilters?: unknown;
+  hitCount: number;
+  winner: boolean;
+}
+
+/**
+ * RetrievalLadderTrace captures all attempts in the course retrieval ladder.
+ */
+export interface RetrievalLadderTrace {
+  attempts: RetrievalLadderAttempt[];
+  winnerStep: number | null;
+}
+
+/**
  * AIPathwaysResponseModel represents the complete staged state of a pathway generation.
  */
 export interface AIPathwaysResponseModel {
@@ -273,6 +340,18 @@ export interface AIPathwaysResponseModel {
     };
     careerRetrieval: StageMetrics & {
       resultCount: number;
+    };
+    catalogFacetSnapshot?: StageMetrics & {
+      trace: FacetSnapshotTrace;
+    };
+    rulesFirstMapping?: StageMetrics & {
+      trace: RulesFirstMappingTrace;
+    };
+    catalogTranslation?: StageMetrics & {
+      trace: CatalogTranslationTrace;
+    };
+    retrievalLadder?: StageMetrics & {
+      trace: RetrievalLadderTrace;
     };
     courseRetrieval: StageMetrics & {
       resultCount: number;

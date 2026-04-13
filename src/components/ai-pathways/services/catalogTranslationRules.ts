@@ -1,5 +1,5 @@
 import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalogTranslation';
-import { debugLogger } from '../utils/debugLogger';
+import { RulesFirstMappingTrace } from '../types';
 
 /**
  * Curated list of aliases to map common taxonomy terms to their catalog-valid equivalents.
@@ -30,7 +30,7 @@ export const catalogTranslationRules = {
    */
   translateTaxonomyToCatalog(
     input: TaxonomyTranslationInput,
-  ): RulesFirstCandidates {
+  ): { result: RulesFirstCandidates; trace: RulesFirstMappingTrace } {
     const {
       careerTitle,
       skills,
@@ -88,18 +88,22 @@ export const catalogTranslationRules = {
       unmatchedSet.add(term);
     });
 
-    const result = {
+    const result: RulesFirstCandidates = {
       exactMatches: Array.from(exactMatchesSet).sort(),
       aliasMatches: Array.from(aliasMatchesSet).sort(),
       unmatched: Array.from(unmatchedSet).sort(),
     };
 
-    debugLogger.log('Rules-First Translation Summary', {
-      exactMatches: debugLogger.summarizeList(result.exactMatches),
-      aliasMatches: debugLogger.summarizeList(result.aliasMatches),
-      unmatched: debugLogger.summarizeList(result.unmatched),
-    });
+    const trace: RulesFirstMappingTrace = {
+      termsConsidered: termsToTranslate.length,
+      exactMatchCount: result.exactMatches.length,
+      aliasMatchCount: result.aliasMatches.length,
+      unmatchedCount: result.unmatched.length,
+      exactMatches: result.exactMatches,
+      aliasMatches: result.aliasMatches,
+      unmatched: result.unmatched,
+    };
 
-    return result;
+    return { result, trace };
   },
 };

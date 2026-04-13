@@ -59,9 +59,7 @@ export const catalogTranslationXpertService = {
           success: true,
         },
       };
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[catalogTranslationXpertService] Failed to execute catalog translation via Xpert:', error);
+    } catch {
       return {
         rawResponse: '',
         debug: {

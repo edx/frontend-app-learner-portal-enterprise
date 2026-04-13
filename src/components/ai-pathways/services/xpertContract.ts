@@ -34,9 +34,7 @@ export const xpertContractService = {
       const jsonString = rawResponse.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
       const parsed = JSON.parse(jsonString);
       return this.normalizeIntent(parsed);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[xpertContract] Failed to parse raw intent:', e);
+    } catch {
       return null;
     }
   },
@@ -113,9 +111,7 @@ export const xpertContractService = {
           reasoning: String(r.reasoning || ''),
         })),
       };
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[xpertContract] Failed to parse reasoning:', e);
+    } catch {
       return null;
     }
   },

@@ -26,7 +26,7 @@ describe('catalogTranslationRules', () => {
       industries: ['Data Science'], // Match subject
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.exactMatches).toContain('Java');
     expect(result.exactMatches).toContain('Machine Learning');
@@ -40,7 +40,7 @@ describe('catalogTranslationRules', () => {
       skills: ['Python', 'SQL'],
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     // Python -> Python (Programming Language)
     // SQL -> SQL (Programming Language)
@@ -66,8 +66,8 @@ describe('catalogTranslationRules', () => {
       facetSnapshot: snapshotWithFrontEnd,
     };
 
-    const result1 = catalogTranslationRules.translateTaxonomyToCatalog(input1);
-    const result2 = catalogTranslationRules.translateTaxonomyToCatalog(input2);
+    const { result: result1 } = catalogTranslationRules.translateTaxonomyToCatalog(input1);
+    const { result: result2 } = catalogTranslationRules.translateTaxonomyToCatalog(input2);
 
     expect(result1.aliasMatches).toContain('Front End (Software Engineering)');
     expect(result2.aliasMatches).toContain('Front End (Software Engineering)');
@@ -80,7 +80,7 @@ describe('catalogTranslationRules', () => {
       industries: ['Magic'],
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.unmatched).toContain('Creative Writing');
     expect(result.unmatched).toContain('Underwater Basket Weaving');
@@ -96,7 +96,7 @@ describe('catalogTranslationRules', () => {
       similarJobs: [],
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.exactMatches).toEqual(['Java']);
     expect(result.exactMatches).toHaveLength(1);
@@ -112,7 +112,7 @@ describe('catalogTranslationRules', () => {
       },
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.aliasMatches).toHaveLength(0);
     expect(result.unmatched).toContain('Python');
@@ -124,7 +124,7 @@ describe('catalogTranslationRules', () => {
       skills: ['SQL', 'Python', 'Java'],
     };
 
-    const result = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.exactMatches).toEqual(['Java']);
     expect(result.aliasMatches).toEqual(['Python (Programming Language)', 'SQL (Programming Language)']);
