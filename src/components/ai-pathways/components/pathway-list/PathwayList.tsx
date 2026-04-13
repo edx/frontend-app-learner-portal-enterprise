@@ -200,7 +200,6 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
         isOpen={isDetailOpen}
         onClose={closeDetail}
         onAction={() => {
-          // console.log('Action performed on course:', course.title);
           // In a real app, this might navigate to the course or open a registration flow.
         }}
       />

@@ -1,6 +1,8 @@
-import { xpertService } from './xpert.service';
+import { xpertService, XpertMessage } from './xpert.service';
 import { xpertCatalogTranslationPrompt } from './xpertCatalogTranslationPrompt';
 import { XpertCatalogTranslationPayload } from '../types';
+import { InterceptContext } from '../hooks/usePromptInterceptor';
+import { PromptInterceptFn } from './intentExtraction.xpert.service';
 
 /**
  * Lightweight debug metadata returned alongside the raw Xpert response.
@@ -35,9 +37,32 @@ export const catalogTranslationXpertService = {
    */
   async translateUnmatched(
     payload: XpertCatalogTranslationPayload,
+    interceptPrompt?: PromptInterceptFn,
   ): Promise<CatalogTranslationXpertResult> {
     const startTime = Date.now();
-    const { systemPrompt, userPayload } = xpertCatalogTranslationPrompt.buildTranslationPrompt(payload);
+    const { bundle: originalBundle, userPayload } = xpertCatalogTranslationPrompt.buildTranslationPrompt(payload);
+
+    // --- interception ---
+    let activeBundle = originalBundle;
+    if (interceptPrompt) {
+      const userMessages: XpertMessage[] = [{ role: 'user', content: JSON.stringify(userPayload) }];
+      const context: InterceptContext = {
+        label: 'Catalog Translation',
+        messages: userMessages,
+        meta: { stage: 'catalogTranslation', careerTitle: payload.careerTitle },
+      };
+      const result = await interceptPrompt(originalBundle, context);
+      if (result.decision === 'cancelled') {
+        throw new Error('PromptInterceptor: catalog translation cancelled by user');
+      }
+      if (result.decision === 'accepted') {
+        activeBundle = result.bundle ?? originalBundle;
+      }
+      // 'rejected' → keep originalBundle
+    }
+    // --- end interception ---
+
+    const systemPrompt = activeBundle.combined;
 
     try {
       const response = await xpertService.sendMessage({

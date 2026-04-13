@@ -1,10 +1,17 @@
 import { intakePreprocessor, PreprocessedInput } from './intakePreprocessor';
-import { xpertService } from './xpert.service';
+import { xpertService, XpertMessage } from './xpert.service';
 import { xpertContractService, DEFAULT_INTENT } from './xpertContract';
 import {
-  FacetReference, CareerOption,
+  FacetReference, CareerOption, XpertPromptBundle, PromptPart,
 } from '../types';
 import { XpertExtractionResult } from './xpertDebug';
+import { InterceptContext, InterceptResult } from '../hooks/usePromptInterceptor';
+
+/** Subset of the interceptor hook needed by this service. */
+export type PromptInterceptFn = (
+  bundle: XpertPromptBundle,
+  context: InterceptContext,
+) => Promise<InterceptResult>;
 
 /**
  * Service for extracting semantic user intent using Xpert API.
@@ -20,9 +27,32 @@ export const intentExtractionXpertService = {
   async extractIntent(
     input: PreprocessedInput,
     facets?: FacetReference | null,
+    interceptPrompt?: PromptInterceptFn,
   ): Promise<XpertExtractionResult> {
     const startTime = Date.now();
-    const systemPrompt = this.buildSystemPrompt(facets);
+    const originalBundle = this.buildSystemPrompt(facets);
+
+    // --- interception ---
+    let activeBundle = originalBundle;
+    if (interceptPrompt) {
+      const userMessages: XpertMessage[] = [{ role: 'user', content: JSON.stringify(input) }];
+      const context: InterceptContext = {
+        label: 'Intent Extraction',
+        messages: userMessages,
+        meta: { stage: 'intentExtraction' },
+      };
+      const result = await interceptPrompt(originalBundle, context);
+      if (result.decision === 'cancelled') {
+        throw new Error('PromptInterceptor: intent extraction cancelled by user');
+      }
+      if (result.decision === 'accepted') {
+        activeBundle = result.bundle ?? originalBundle;
+      }
+      // 'rejected' → keep originalBundle (activeBundle already set)
+    }
+    // --- end interception ---
+
+    const systemPrompt = activeBundle.combined;
     let repairPromptUsed = false;
     let rawResponse = '';
     let validationErrors: string[] = [];
@@ -96,10 +126,11 @@ You MUST respond with raw JSON only.`;
   },
 
   /**
-   * Builds the system prompt for Xpert intent extraction.
+   * Builds the structured prompt bundle for Xpert intent extraction.
+   * The `combined` field is byte-for-byte identical to the previous raw string return value.
    */
-  buildSystemPrompt(facets?: FacetReference | null): string {
-    const base = `You are a precision intent extraction engine. Map user goals and background into a structured XpertIntent object.
+  buildSystemPrompt(facets?: FacetReference | null): XpertPromptBundle {
+    const baseContent = `You are a precision intent extraction engine. Map user goals and background into a structured XpertIntent object.
 
 Your objective is to produce output that is both semantically relevant and effective for retrieval.
 
@@ -132,8 +163,15 @@ Output behavior:
 
 You MUST respond with only a valid JSON object matching the schema. Raw JSON only. No markdown.`;
 
+    const basePart: PromptPart = {
+      label: 'base',
+      content: baseContent,
+      editable: true,
+      required: true,
+    };
+
     if (facets) {
-      const facetContext = `
+      const facetContextContent = `
 Use the following available facet values to normalize your output.
 
 Primary searchable facet sources:
@@ -153,10 +191,28 @@ Rules:
 - Use supporting facets to preserve useful context that should not be forced into condensedQuery.
 - Return the closest relevant facet values, even when they are somewhat more general than the user's words.
 `;
-      return `${base}\n\n${facetContext}`;
+
+      const facetContextPart: PromptPart = {
+        label: 'facetContext',
+        content: facetContextContent,
+        editable: true,
+        required: false,
+      };
+
+      return {
+        id: 'intentExtraction',
+        stage: 'intentExtraction',
+        parts: [basePart, facetContextPart],
+        combined: `${baseContent}\n\n${facetContextContent}`,
+      };
     }
 
-    return base;
+    return {
+      id: 'intentExtraction',
+      stage: 'intentExtraction',
+      parts: [basePart],
+      combined: baseContent,
+    };
   },
 
   /**

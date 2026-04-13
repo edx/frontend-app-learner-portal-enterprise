@@ -1,5 +1,5 @@
 import {
-  useState, useCallback, useMemo,
+  useState, useCallback, useMemo, useRef,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getConfig } from '@edx/frontend-platform';
@@ -23,7 +23,9 @@ import {
   XpertIntent,
   CareerCardModel,
   AIPathwaysResponseModel,
+  PromptDebugEntry,
 } from '../types';
+import { PromptInterceptFn } from '../services/intentExtraction.xpert.service';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
 import { catalogTranslationService } from '../services/catalogTranslationService';
@@ -41,6 +43,35 @@ export type PathwayStep = 'intake' | 'profile' | 'pathway';
  *    -> Optional Xpert Refinement -> Course Retrieval (Algolia Catalog Index)
  * 5. Pathway Enrichment (Xpert)
  */
+/**
+ * Creates a wrapped interceptPrompt function that, in addition to delegating
+ * to the real interceptor, records a PromptDebugEntry into the provided array.
+ */
+function makeCapturingInterceptor(
+  interceptPrompt: PromptInterceptFn,
+  debugLog: PromptDebugEntry[],
+): PromptInterceptFn {
+  return async (bundle, context) => {
+    const result = await interceptPrompt(bundle, context);
+    const entry: PromptDebugEntry = {
+      label: context.label,
+      original: bundle,
+      decision: result.decision,
+      timestamp: new Date().toISOString(),
+    };
+    // Only attach `edited` when the user actually accepted a (potentially modified) bundle
+    if (result.decision === 'accepted' && result.bundle && result.bundle !== bundle) {
+      entry.edited = result.bundle;
+    }
+    // Persist any validation issues surfaced before the decision.
+    if (result.validationWarnings && result.validationWarnings.length > 0) {
+      entry.validationWarnings = result.validationWarnings;
+    }
+    debugLog.push(entry);
+    return result;
+  };
+}
+
 export const usePathways = () => {
   const [currentStep, setCurrentStep] = useState<PathwayStep>('intake');
   const [learnerProfile, setLearnerProfile] = useState<LearnerProfile | null>(null);
@@ -50,6 +81,14 @@ export const usePathways = () => {
   const [pathwayResponse, setPathwayResponse] = useState<AIPathwaysResponseModel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Holds the optional interceptor supplied by the caller of generateProfile.
+  // Stored in a ref so generatePathway (a separate callback) can access the
+  // same instance without needing it threaded through its own parameter list.
+  const interceptPromptRef = useRef<PromptInterceptFn | undefined>(undefined);
+
+  // The shared debug log for the current request; reset on each generateProfile call.
+  const promptDebugLogRef = useRef<PromptDebugEntry[]>([]);
 
   // External context for Algolia and API calls
   const config = getConfig();
@@ -85,8 +124,16 @@ export const usePathways = () => {
 
   /**
    * Generates a learner profile and extracts search intent from intake form data.
+   * @param args Intake form responses.
+   * @param interceptPrompt Optional interceptor to review/edit prompts before execution.
    */
-  const generateProfile = useCallback(async (args: CreateLearnerProfileArgs) => {
+  const generateProfile = useCallback(async (
+    args: CreateLearnerProfileArgs,
+    interceptPrompt?: PromptInterceptFn,
+  ) => {
+    // Persist interceptor + reset debug log for this request
+    interceptPromptRef.current = interceptPrompt;
+    promptDebugLogRef.current = [];
     if (!jobIndex) {
       throw new Error('Search index not initialized');
     }
@@ -112,7 +159,16 @@ export const usePathways = () => {
       const preprocessed = intakePreprocessor.preprocessInput(args);
 
       // 3. Intent Extraction (Xpert + Facets)
-      const extractionResult = await intentExtractionXpertService.extractIntent(preprocessed, facets);
+      // Wire the shared debug log into the response model (live reference — entries
+      // added during generatePathway will also be captured here).
+      responseModel.promptDebug = promptDebugLogRef.current;
+      const profileInterceptor = interceptPromptRef.current
+        ? makeCapturingInterceptor(interceptPromptRef.current, promptDebugLogRef.current)
+        : undefined;
+
+      const extractionResult = await intentExtractionXpertService.extractIntent(
+        preprocessed, facets, profileInterceptor,
+      );
       responseModel.stages.intentExtraction = extractionResult.debug;
       const { intent } = extractionResult;
       setSearchIntent(intent);
@@ -180,6 +236,8 @@ export const usePathways = () => {
    * Generates a new learning pathway by discovering content and assembling it.
    */
   const generatePathway = useCallback(async () => {
+    // Build a capturing interceptor for this pathway phase (reuses the same
+    // debug log as generateProfile so all entries accumulate on one responseModel).
     if (!selectedCareer || !searchIntent || !catalogIndex || !pathwayResponse) {
       throw new Error('Missing data or search index to generate pathway');
     }
@@ -187,6 +245,9 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     const updatedResponseModel = { ...pathwayResponse };
+    const pathwayInterceptor = interceptPromptRef.current
+      ? makeCapturingInterceptor(interceptPromptRef.current, promptDebugLogRef.current)
+      : undefined;
 
     try {
       // 1. Catalog Facet Snapshot (Deterministic, scoped by enterprise context)
@@ -221,13 +282,16 @@ export const usePathways = () => {
       let xpertDebugPayload: { systemPrompt: string; rawResponse: string; durationMs: number; success: boolean } | undefined;
       if (rulesFirst.unmatched.length > 0) {
         try {
-          const xpertResult = await catalogTranslationXpertService.translateUnmatched({
-            careerTitle: selectedCareer.title,
-            unmatchedSkills: rulesFirst.unmatched,
-            unmatchedIndustries: selectedCareer.industries || [],
-            unmatchedSimilarJobs: selectedCareer.similarJobs || [],
-            facetSnapshot,
-          });
+          const xpertResult = await catalogTranslationXpertService.translateUnmatched(
+            {
+              careerTitle: selectedCareer.title,
+              unmatchedSkills: rulesFirst.unmatched,
+              unmatchedIndustries: selectedCareer.industries || [],
+              unmatchedSimilarJobs: selectedCareer.similarJobs || [],
+              facetSnapshot,
+            },
+            pathwayInterceptor,
+          );
           xpertRawResponse = xpertResult.rawResponse || undefined;
           xpertDebugPayload = xpertResult.debug;
         } catch {

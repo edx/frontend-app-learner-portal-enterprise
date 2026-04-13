@@ -20,14 +20,34 @@ describe('xpertCatalogTranslationPrompt', () => {
   };
 
   it('builds a system prompt containing strict rules and grounding instructions', () => {
-    const { systemPrompt } = xpertCatalogTranslationPrompt.buildTranslationPrompt(mockPayload);
+    const { bundle } = xpertCatalogTranslationPrompt.buildTranslationPrompt(mockPayload);
+    const systemPrompt = bundle.combined;
 
     expect(systemPrompt).toContain('career-to-catalog translation engine');
-    expect(systemPrompt).toContain('ONLY use facet values that exist in the provided catalog facet snapshot');
-    expect(systemPrompt).toContain('Return a strict JSON object only');
+    expect(systemPrompt).toContain('ONLY use values from "facetSnapshot.skill_names"');
+    expect(systemPrompt).toContain('Return strict JSON only');
     expect(systemPrompt).toContain('Expected Output Shape');
     expect(systemPrompt).toContain('droppedTaxonomySkills');
     expect(systemPrompt).toContain('skillProvenance');
+  });
+
+  it('exposes prompt parts with correct labels and editability', () => {
+    const { bundle } = xpertCatalogTranslationPrompt.buildTranslationPrompt(mockPayload);
+
+    expect(bundle.stage).toBe('catalogTranslation');
+    expect(bundle.parts).toHaveLength(2);
+    expect(bundle.parts[0].label).toBe('base');
+    expect(bundle.parts[0].required).toBe(true);
+    expect(bundle.parts[1].label).toBe('schema');
+    expect(bundle.parts[1].editable).toBe(false);
+    expect(bundle.parts[1].required).toBe(true);
+  });
+
+  it('combined string equals concatenation of all parts', () => {
+    const { bundle } = xpertCatalogTranslationPrompt.buildTranslationPrompt(mockPayload);
+    const fromParts = bundle.parts.map(p => p.content).join('');
+
+    expect(bundle.combined).toBe(fromParts);
   });
 
   it('builds a user payload containing all necessary grounding context', () => {

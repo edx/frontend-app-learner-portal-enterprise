@@ -12,6 +12,7 @@ import {
   RulesFirstMappingTrace,
   CatalogTranslationTrace,
   RetrievalLadderTrace,
+  PromptDebugEntry,
 } from '../types';
 import { exportResponseModel } from '../utils/exportResponseModel';
 
@@ -68,6 +69,58 @@ const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }
         </div>
       </>
     )}
+  </Stack>
+);
+
+const decisionBadgeVariant = (decision: PromptDebugEntry['decision']) => {
+  if (decision === 'accepted') { return 'success'; }
+  if (decision === 'rejected') { return 'warning'; }
+  return 'danger';
+};
+
+const PromptDebugSection = ({ entries }: { entries: PromptDebugEntry[] }) => (
+  <Stack gap={3}>
+    {entries.map((entry, idx) => (
+      // eslint-disable-next-line react/no-array-index-key
+      <div key={`${entry.label}-${idx}`} className="border rounded p-2">
+        <div className="d-flex align-items-center justify-content-between mb-2">
+          <strong>{entry.label}</strong>
+          <div>
+            <Badge variant={decisionBadgeVariant(entry.decision)} className="mr-2">
+              {entry.decision}
+            </Badge>
+            <span className="small text-muted">{entry.timestamp}</span>
+          </div>
+        </div>
+        <details>
+          <summary className="small cursor-pointer">Original prompt ({entry.original.stage})</summary>
+          <pre className="small bg-light p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
+            {entry.original.combined}
+          </pre>
+        </details>
+        {entry.edited && (
+          <details className="mt-1">
+            <summary className="small cursor-pointer text-warning">Edited prompt (sent to Xpert)</summary>
+            <pre className="small bg-light p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
+              {entry.edited.combined}
+            </pre>
+          </details>
+        )}
+        {entry.validationWarnings && entry.validationWarnings.length > 0 && (
+          <div className="mt-2">
+            <strong className="small">Validation issues:</strong>
+            <ul className="mb-0 mt-1 small">
+              {entry.validationWarnings.map((w) => (
+                <li key={`${w.code}-${w.severity}`} className={w.severity === 'error' ? 'text-danger' : 'text-warning'}>
+                  <Badge variant={w.severity === 'error' ? 'danger' : 'warning'} className="mr-1">{w.severity}</Badge>
+                  [{w.code}] {w.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    ))}
   </Stack>
 );
 
@@ -270,6 +323,19 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               </pre>
             </div>
           </details>
+
+          {/* Prompt Debug */}
+          {response.promptDebug && response.promptDebug.length > 0 && (
+            <details>
+              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span>Prompt Interceptions ({response.promptDebug.length})</span>
+                <Badge variant="info">{response.promptDebug.length} recorded</Badge>
+              </summary>
+              <div className="py-2">
+                <PromptDebugSection entries={response.promptDebug} />
+              </div>
+            </details>
+          )}
 
           {/* Pathway Enrichment */}
           <details>

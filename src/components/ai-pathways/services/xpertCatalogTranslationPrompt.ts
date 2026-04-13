@@ -1,4 +1,4 @@
-import { XpertCatalogTranslationPayload } from '../types';
+import { XpertCatalogTranslationPayload, XpertPromptBundle, PromptPart } from '../types';
 
 /**
  * Prompt builder for translating taxonomy career data
@@ -6,13 +6,23 @@ import { XpertCatalogTranslationPayload } from '../types';
  */
 export const xpertCatalogTranslationPrompt = {
   /**
-   * Builds the system prompt and the structured user payload for the translation task.
+   * Builds the structured prompt bundle and user payload for the catalog translation task.
+   * The `bundle.combined` field is byte-for-byte identical to the previous raw systemPrompt string.
    *
    * @param payload The structured data for the translation stage.
-   * @returns An object containing the system prompt string and the user payload.
+   * @returns An object containing the XpertPromptBundle and the structured user payload.
    */
-  buildTranslationPrompt(payload: XpertCatalogTranslationPayload) {
-    const systemPrompt = `You are a career-to-catalog translation engine.
+  buildTranslationPrompt(payload: XpertCatalogTranslationPayload): {
+    bundle: XpertPromptBundle;
+    userPayload: {
+      careerTitle: string;
+      unmatchedSkills: string[];
+      unmatchedIndustries: string[];
+      unmatchedSimilarJobs: string[];
+      facetSnapshot: XpertCatalogTranslationPayload['facetSnapshot'];
+    };
+  } {
+    const baseContent = `You are a career-to-catalog translation engine.
 Translate the provided taxonomy career data into catalog-valid search parameters for a course search.
 
 Your objective is to produce output that is both:
@@ -68,8 +78,9 @@ Query construction rules:
    - based on the user's likely learning direction, not just exact prior-job wording
 13. Do NOT force the query to exactly mirror a career title if a broader educational or skill-based phrase will retrieve better.
 14. Prefer broad subject / domain / skill phrasing when appropriate.
-15. Use subjectHints to preserve useful topical intent that may help downstream retrieval or ranking.
+15. Use subjectHints to preserve useful topical intent that may help downstream retrieval or ranking.`;
 
+    const schemaContent = `
 Output requirements:
 16. Return strict JSON only. Do not include any text outside the JSON.
 17. The output must be deterministic and grounded only in the provided snapshot data and user payload.
@@ -87,6 +98,27 @@ Expected Output Shape:
   ]
 }`;
 
+    const basePart: PromptPart = {
+      label: 'base',
+      content: baseContent,
+      editable: true,
+      required: true,
+    };
+
+    const schemaPart: PromptPart = {
+      label: 'schema',
+      content: schemaContent,
+      editable: false,
+      required: true,
+    };
+
+    const bundle: XpertPromptBundle = {
+      id: 'catalogTranslation',
+      stage: 'catalogTranslation',
+      parts: [basePart, schemaPart],
+      combined: `${baseContent}${schemaContent}`,
+    };
+
     const userPayload = {
       careerTitle: payload.careerTitle,
       unmatchedSkills: payload.unmatchedSkills,
@@ -96,7 +128,7 @@ Expected Output Shape:
     };
 
     return {
-      systemPrompt,
+      bundle,
       userPayload,
     };
   },

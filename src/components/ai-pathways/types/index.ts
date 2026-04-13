@@ -325,10 +325,39 @@ export interface RetrievalLadderTrace {
 }
 
 /**
+ * PromptDebugEntry records the interception outcome for a single Xpert call.
+ * Stored in AIPathwaysResponseModel.promptDebug so the DebugConsole can surface
+ * what was originally built, what was sent, and what the user decided.
+ */
+export interface PromptDebugEntry {
+  /** Human-readable label matching InterceptContext.label, e.g. "Intent Extraction". */
+  label: string;
+  /** The prompt bundle as it was built, before any user edits. */
+  original: XpertPromptBundle;
+  /** The bundle that was actually sent; present only when the decision was `accepted` and the user made edits. */
+  edited?: XpertPromptBundle;
+  /** The user's interception decision. */
+  decision: 'accepted' | 'rejected' | 'cancelled';
+  /** ISO-8601 timestamp of when the decision was recorded. */
+  timestamp: string;
+  /**
+   * Validation issues surfaced before the decision was recorded.
+   * Includes both errors and warnings.  Absent when validation produced no issues.
+   */
+  validationWarnings?: Array<{ severity: 'error' | 'warning'; code: string; message: string }>;
+}
+
+/**
  * AIPathwaysResponseModel represents the complete staged state of a pathway generation.
  */
 export interface AIPathwaysResponseModel {
   requestId: string;
+  /**
+   * Ordered list of prompt interception outcomes for this request.
+   * Each entry corresponds to one Xpert call that passed through the interceptor.
+   * Empty when debug / interception mode is disabled.
+   */
+  promptDebug?: PromptDebugEntry[];
   stages: {
     facetBootstrap: StageMetrics;
     intentExtraction: StageMetrics & {
@@ -361,6 +390,31 @@ export interface AIPathwaysResponseModel {
       rawResponse: string;
     };
   };
+}
+
+/**
+ * PromptPart represents a single named, labelled segment of a system prompt.
+ * Parts are composed into a full prompt via XpertPromptBundle.
+ */
+export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair';
+
+export interface PromptPart {
+  label: PromptPartLabel;
+  content: string;
+  editable: boolean;
+  required: boolean;
+}
+
+/**
+ * XpertPromptBundle is the structured representation of a system prompt.
+ * `combined` is the exact string that must be sent to Xpert — it is always
+ * derived from `parts` and must never diverge from legacy behaviour.
+ */
+export interface XpertPromptBundle {
+  id: string;
+  stage: 'intentExtraction' | 'catalogTranslation';
+  parts: PromptPart[];
+  combined: string;
 }
 
 export interface XpertMessage {

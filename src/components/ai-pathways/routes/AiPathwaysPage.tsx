@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { usePathways } from '../hooks/usePathways';
+import { usePromptInterceptor } from '../hooks';
 import {
   LoadingState,
   ErrorState,
@@ -7,6 +8,7 @@ import {
   UserProfile,
   PathwayList,
   DebugConsole,
+  PromptEditorModal,
 } from '../components';
 
 /**
@@ -36,12 +38,27 @@ export const AiPathwaysPage = () => {
     return new URLSearchParams(window.location.search).get('debug') === 'true';
   }, []);
 
+  // Instantiate the interceptor only when debug mode is active.
+  // When isDebug is false the hook is still called (Rules of Hooks) but
+  // interceptPrompt will never be passed to generateProfile, so the
+  // interception layer is fully bypassed at runtime.
+  const {
+    interceptPrompt,
+    isPending,
+    pendingInterception,
+    accept,
+    reject,
+    cancel,
+  } = usePromptInterceptor();
+
   const renderContent = useMemo(() => {
     switch (currentStep) {
       case 'intake':
         return (
           <IntakeForm
-            onSubmit={async (args) => { await generateProfile(args); }}
+            onSubmit={async (args) => {
+              await generateProfile(args, isDebug ? interceptPrompt : undefined);
+            }}
             isSubmitting={isLoading}
           />
         );
@@ -82,6 +99,8 @@ export const AiPathwaysPage = () => {
     selectCareer,
     generatePathway,
     setCurrentStep,
+    isDebug,
+    interceptPrompt,
   ]);
 
   return (
@@ -93,6 +112,15 @@ export const AiPathwaysPage = () => {
         </header>
         <main>
           {isDebug && <DebugConsole response={pathwayResponse} />}
+          {isDebug && (
+            <PromptEditorModal
+              bundle={pendingInterception?.bundle ?? null}
+              context={pendingInterception?.context ?? null}
+              onAccept={accept}
+              onReject={reject}
+              onCancel={cancel}
+            />
+          )}
           {renderContent}
         </main>
       </div>
