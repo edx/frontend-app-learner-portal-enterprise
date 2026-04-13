@@ -23,10 +23,10 @@ describe('careerRetrievalService', () => {
       hits: [
         {
           id: '1',
-          title: 'Software Engineer',
+          name: 'Software Engineer',
           description: 'Build things',
           skills: [{ name: 'React' }],
-          industries: ['Tech'],
+          industry_names: ['Tech'],
         },
       ],
     });

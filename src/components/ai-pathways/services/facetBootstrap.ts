@@ -19,14 +19,23 @@ export const facetBootstrapService = {
    */
   async bootstrapFacets(
     index: SearchIndex,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _context?: FacetBootstrapContext,
+    context?: FacetBootstrapContext,
   ): Promise<FacetReference> {
+    const facetFields = ['skills.name', 'industry_names', 'job_sources'];
+    const filters = context?.enterpriseCustomerUuid
+      ? `enterprise_customer_uuids:${context.enterpriseCustomerUuid}`
+      : undefined;
+
     // Use an empty query to get the broad universe of facets for this enterprise
-    const response = await index.search('', {
-      facets: ['*'],
+    const searchParams: Record<string, unknown> = {
+      facets: facetFields,
+      hitsPerPage: 0,
       maxValuesPerFacet: 500,
-    });
+    };
+    if (filters) {
+      searchParams.filters = filters;
+    }
+    const response = await index.search('', searchParams);
     const facets = response.facets || {};
     const mapFacet = (facetName: string): FacetValue[] => {
       const values = facets[facetName] || {};
