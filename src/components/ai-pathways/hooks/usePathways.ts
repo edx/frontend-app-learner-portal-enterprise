@@ -190,6 +190,7 @@ export const usePathways = () => {
       // 1. Course Retrieval (Deterministic)
       const courseStartTime = Date.now();
       const catalogFacets = catalogFacetService.getFacetSnapshot(catalogIndex);
+
       const courses = await courseRetrievalService.fetchCoursesForCareer(
         catalogIndex,
         selectedCareer.skills,

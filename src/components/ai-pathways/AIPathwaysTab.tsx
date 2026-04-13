@@ -1,9 +1,10 @@
-import React from 'react';
+import React, {useCallback} from 'react';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { getConfig } from '@edx/frontend-platform';
 import { useAlgoliaSearch } from '../app/data';
 import { AiPathwaysPage } from './routes/AiPathwaysPage';
 import FacetDebugger from './components/debug/FacetDebugger';
+import {catalogFacetService} from "./services/catalogFacetService";
 
 /**
  * AIPathwaysTab is the dashboard integration point for the AI Pathways feature.
@@ -22,7 +23,7 @@ export const AIPathwaysTab = () => {
           indexName={searchIndex.indexName}
         >
           <Configure facets={['*']} hitsPerPage={0} />
-          <FacetDebugger />
+          {/*<FacetDebugger />*/}
         </InstantSearch>
       )}
     </>
