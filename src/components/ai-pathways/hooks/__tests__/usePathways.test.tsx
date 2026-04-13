@@ -18,7 +18,7 @@ import {
   mockIntakeInput,
   mockSearchIntent,
   mockTaxonomyUniverse,
-} from '../../__tests__/fixtures';
+} from '../../fixtures';
 
 jest.mock('@edx/frontend-platform', () => ({
   getConfig: jest.fn(() => ({

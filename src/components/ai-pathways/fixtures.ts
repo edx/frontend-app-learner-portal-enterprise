@@ -4,7 +4,7 @@ import {
   AIPathwaysResponseModel,
   CareerOption,
   LearnerProfile,
-} from '../types';
+} from './types';
 
 export const mockIntakeInput = {
   bringsYouHereRes: 'I want to transition into software engineering',

@@ -10,7 +10,7 @@ import * as appUtils from '../../app/data/utils';
 import {
   mockLearnerProfile,
   mockPathwayResponse,
-} from './fixtures';
+} from '../fixtures';
 import type { XpertPromptBundle, PromptPartLabel } from '../types';
 import type { InterceptContext } from '../hooks/usePromptInterceptor';
 
