@@ -1,5 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
+import { FacetBootstrapContext } from '../types';
 import { debugLogger } from '../utils/debugLogger';
 
 /**
@@ -36,8 +37,22 @@ export const catalogFacetService = {
   async getFacetSnapshot(
     index: SearchIndex,
     config: FacetRetrievalConfig = {},
+    context?: FacetBootstrapContext,
   ): Promise<CatalogFacetSnapshot> {
-    const { maxValuesPerFacet = 1000, filters } = config;
+    const { maxValuesPerFacet = 1000 } = config;
+
+    // Build facetFilters to scope the snapshot to the enterprise catalog.
+    // content_type:course scopes to courses; catalog query UUIDs restrict to the enterprise catalog.
+    const facetFilters: string[][] = [['content_type:course']];
+
+    if (context?.searchCatalogs?.length && context?.catalogUuidsToCatalogQueryUuids) {
+      const queryUuids = context.searchCatalogs
+        .map(cat => context.catalogUuidsToCatalogQueryUuids![cat])
+        .filter(Boolean);
+      if (queryUuids.length) {
+        facetFilters.push(queryUuids.map(uuid => `enterprise_catalog_query_uuids:${uuid}`));
+      }
+    }
 
     // Query Algolia for facets only (hitsPerPage: 0)
     // We use an empty query ('') to get the full universe of available values within the scope.
@@ -45,8 +60,7 @@ export const catalogFacetService = {
       facets: ['*'],
       hitsPerPage: 0,
       maxValuesPerFacet,
-      // Apply scoped filters (e.g. content_type:course AND customer_uuid:...)
-      ...(filters ? { filters } : {}),
+      facetFilters,
     });
 
     const { facets } = response;
@@ -56,7 +70,6 @@ export const catalogFacetService = {
       subjects: safeReadFacet(facets, 'subjects'),
       level_type: safeReadFacet(facets, 'level_type'),
       'partners.name': safeReadFacet(facets, 'partners.name'),
-      enterprise_catalog_query_uuids: safeReadFacet(facets, 'enterprise_catalog_query_uuids'),
     };
 
     debugLogger.log('Facet Snapshot Summary', {

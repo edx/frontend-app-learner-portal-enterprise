@@ -5,6 +5,10 @@ import { intakePreprocessor } from '../../services/intakePreprocessor';
 import { intentExtractionXpertService } from '../../services/intentExtraction.xpert.service';
 import { careerRetrievalService } from '../../services/careerRetrieval';
 import { courseRetrievalService } from '../../services/courseRetrieval';
+import { catalogFacetService } from '../../services/catalogFacetService';
+import { catalogTranslationRules } from '../../services/catalogTranslationRules';
+import { catalogTranslationService } from '../../services/catalogTranslationService';
+import { catalogTranslationXpertService } from '../../services/catalogTranslation.xpert.service';
 import { pathwayAssemblerXpertService } from '../../services/pathwayAssembler.xpert.service';
 import useAlgoliaSearch from '../../../app/data/hooks/useAlgoliaSearch';
 import useEnterpriseCustomer from '../../../app/data/hooks/useEnterpriseCustomer';
@@ -31,6 +35,10 @@ jest.mock('../../services/intakePreprocessor');
 jest.mock('../../services/intentExtraction.xpert.service');
 jest.mock('../../services/careerRetrieval');
 jest.mock('../../services/courseRetrieval');
+jest.mock('../../services/catalogFacetService');
+jest.mock('../../services/catalogTranslationRules');
+jest.mock('../../services/catalogTranslationService');
+jest.mock('../../services/catalogTranslation.xpert.service');
 jest.mock('../../services/pathwayAssembler.xpert.service');
 
 describe('usePathways hook', () => {
@@ -75,8 +83,35 @@ describe('usePathways hook', () => {
         durationMs: 100, success: true, systemPrompt: '', rawResponse: '', parsedResponse: {}, validationErrors: [], repairPromptUsed: false,
       },
     });
+    const mockFacetSnapshot = {
+      skill_names: [], 'skills.name': [], subjects: [], level_type: [], 'partners.name': [], enterprise_catalog_query_uuids: [],
+    };
+    const mockRulesFirst = {
+      exactMatches: ['JavaScript'], aliasMatches: [], unmatched: [],
+    };
+    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
+      rawResponse: '',
+      debug: {
+        systemPrompt: '', rawResponse: '', durationMs: 0, success: false,
+      },
+    });
+    const mockTranslation = {
+      query: 'Software Engineer',
+      queryAlternates: [],
+      strictSkills: [],
+      boostSkills: [],
+      subjectHints: [],
+      droppedTaxonomySkills: [],
+      skillProvenance: [],
+      algoliaPrimaryRequest: {},
+      algoliaFallbackRequests: [],
+    };
+
     (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
-    (courseRetrievalService.fetchCoursesForCareer as jest.Mock).mockResolvedValue(mockCourses);
+    (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue(mockFacetSnapshot);
+    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue(mockRulesFirst);
+    (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue(mockTranslation);
+    (courseRetrievalService.fetchCourses as jest.Mock).mockResolvedValue(mockCourses);
     (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mockResolvedValue({
       pathway: { courses: mockCourses },
       debug: {
@@ -116,11 +151,85 @@ describe('usePathways hook', () => {
       await result.current.generatePathway();
     });
 
-    expect(courseRetrievalService.fetchCoursesForCareer).toHaveBeenCalled();
+    expect(catalogFacetService.getFacetSnapshot).toHaveBeenCalledWith(
+      mockCatalogIndex,
+      {},
+      expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
+    );
+    expect(catalogTranslationRules.translateTaxonomyToCatalog).toHaveBeenCalled();
+    // no unmatched terms — Xpert should be skipped
+    expect(catalogTranslationXpertService.translateUnmatched).not.toHaveBeenCalled();
+    expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
+      'Software Engineer',
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+    expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(
+      mockCatalogIndex,
+      expect.anything(),
+      expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
+    );
     expect(pathwayAssemblerXpertService.enrichWithReasoning).toHaveBeenCalled();
 
     expect(result.current.currentStep).toBe('pathway');
     expect(result.current.pathway?.courses).toHaveLength(1);
+  });
+
+  it('calls Xpert translation when unmatched terms are present', async () => {
+    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
+      exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'],
+    });
+    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
+      rawResponse: '{"strictSkills":["Python"]}',
+      debug: {
+        systemPrompt: '', rawResponse: '', durationMs: 50, success: true,
+      },
+    });
+
+    const { result } = renderHook(() => usePathways());
+
+    await act(async () => {
+      await result.current.generateProfile(mockIntakeInput);
+    });
+    await act(async () => {
+      await result.current.generatePathway();
+    });
+
+    expect(catalogTranslationXpertService.translateUnmatched).toHaveBeenCalledWith(
+      expect.objectContaining({ careerTitle: 'Software Engineer', unmatchedSkills: ['UnknownSkill'] }),
+    );
+    expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
+      'Software Engineer',
+      expect.anything(),
+      expect.anything(),
+      '{"strictSkills":["Python"]}',
+    );
+  });
+
+  it('falls back to rules-first when Xpert translation fails', async () => {
+    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
+      exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'],
+    });
+    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockRejectedValue(new Error('Xpert unavailable'));
+
+    const { result } = renderHook(() => usePathways());
+
+    await act(async () => {
+      await result.current.generateProfile(mockIntakeInput);
+    });
+    await act(async () => {
+      await result.current.generatePathway();
+    });
+
+    // Should still complete with rules-first-only (xpertRawResponse = undefined)
+    expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
+      'Software Engineer',
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+    expect(result.current.currentStep).toBe('pathway');
   });
 
   it('handles errors gracefully', async () => {

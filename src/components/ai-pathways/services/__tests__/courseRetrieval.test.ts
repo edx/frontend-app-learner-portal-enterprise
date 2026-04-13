@@ -38,8 +38,14 @@ describe('courseRetrievalService', () => {
     const result = await courseRetrievalService.fetchCourses(mockIndex, mockTranslation, mockContext);
 
     expect(mockIndex.search).toHaveBeenCalledTimes(1);
+    // Level 1: scoped groups (content_type, locale, catalog UUID) + skill OR group appended
     expect(mockIndex.search).toHaveBeenCalledWith('Software Engineer', expect.objectContaining({
-      facetFilters: [['skill_names:Python', 'skill_names:SQL']],
+      facetFilters: [
+        ['content_type:course'],
+        ['language:en'],
+        ['enterprise_catalog_query_uuids:query-abc'],
+        ['skill_names:Python', 'skill_names:SQL'],
+      ],
     }));
     expect(result).toHaveLength(3);
   });
@@ -107,24 +113,32 @@ describe('courseRetrievalService', () => {
     expect(result).toEqual([]);
   });
 
-  it('applies scoped filters correctly', async () => {
+  it('applies scoped facetFilters correctly when falling through to boosted step', async () => {
+    // Strict step returns 0 so we reach the boost step, which uses baseParams (with scoped facetFilters)
+    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] }); // strict: 0
     (mockIndex.search as jest.Mock).mockResolvedValueOnce({
       hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
-    });
+    }); // boost: 3
 
     await courseRetrievalService.fetchCourses(mockIndex, mockTranslation, mockContext);
 
-    expect(mockIndex.search).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      filters: expect.stringContaining('enterprise_customer_uuids:ent-123'),
+    expect(mockIndex.search).toHaveBeenCalledTimes(2);
+    // Strict step (call 1): scoped groups + skill OR group appended
+    expect(mockIndex.search).toHaveBeenNthCalledWith(1, 'Software Engineer', expect.objectContaining({
+      facetFilters: [
+        ['content_type:course'],
+        ['language:en'],
+        ['enterprise_catalog_query_uuids:query-abc'],
+        ['skill_names:Python', 'skill_names:SQL'],
+      ],
     }));
-    expect(mockIndex.search).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      filters: expect.stringContaining('metadata_language:en'),
-    }));
-    expect(mockIndex.search).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      filters: expect.stringContaining('enterprise_catalog_query_uuids:query-abc'),
-    }));
-    expect(mockIndex.search).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      filters: expect.stringContaining('content_type:course'),
+    // Boost step (call 2): baseParams facetFilters only (scoped, no skill group)
+    expect(mockIndex.search).toHaveBeenNthCalledWith(2, 'Software Engineer', expect.objectContaining({
+      facetFilters: [
+        ['content_type:course'],
+        ['language:en'],
+        ['enterprise_catalog_query_uuids:query-abc'],
+      ],
     }));
   });
 });

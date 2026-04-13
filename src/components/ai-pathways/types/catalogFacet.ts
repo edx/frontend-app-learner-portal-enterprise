@@ -18,9 +18,6 @@ export interface CatalogFacetSnapshot {
 
   /** Partner/Content provider names. */
   'partners.name': string[];
-
-  /** Customer-specific catalog identifiers. */
-  enterprise_catalog_query_uuids: string[];
 }
 
 /**

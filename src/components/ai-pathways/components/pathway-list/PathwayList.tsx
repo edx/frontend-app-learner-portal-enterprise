@@ -61,7 +61,7 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
       totalCompleted,
       totalInProgress,
       totalUpcoming,
-      totalCourses: courses.length + 1, // Preserving source app's +1 logic
+      totalCourses: courses.length, // Preserving source app's +1 logic
     };
   }, [courses]);
 

@@ -24,18 +24,22 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
 } from '../types';
-import {catalogFacetService} from "../services/catalogFacetService";
+import { catalogFacetService } from '../services/catalogFacetService';
+import { catalogTranslationRules } from '../services/catalogTranslationRules';
+import { catalogTranslationService } from '../services/catalogTranslationService';
+import { catalogTranslationXpertService } from '../services/catalogTranslation.xpert.service';
 
 export type PathwayStep = 'intake' | 'profile' | 'pathway';
 
 /**
  * Hook to manage AI Learning Pathways.
  * Coordinates the multi-stage deterministic data flow:
- * 1. Intake -> Facet Bootstrap (Algolia)
+ * 1. Intake -> Facet Bootstrap (Algolia Jobs Index)
  * 2. Intent Extraction (Xpert + Facets)
- * 3. Career Retrieval (Algolia Job Index)
- * 4. Selection -> Course Retrieval (Algolia Catalog Index)
- * 5. Assembly -> Pathway Enrichment (Xpert)
+ * 3. Career Retrieval (Algolia Jobs Index)
+ * 4. Selection -> Catalog Facet Grounding -> Rules-First Translation
+ *    -> Optional Xpert Refinement -> Course Retrieval (Algolia Catalog Index)
+ * 5. Pathway Enrichment (Xpert)
  */
 export const usePathways = () => {
   const [currentStep, setCurrentStep] = useState<PathwayStep>('intake');
@@ -187,13 +191,48 @@ export const usePathways = () => {
     const updatedResponseModel = { ...pathwayResponse };
 
     try {
-      // 1. Course Retrieval (Deterministic)
+      // 1. Catalog Facet Snapshot (Deterministic, scoped by enterprise context)
       const courseStartTime = Date.now();
-      const catalogFacets = catalogFacetService.getFacetSnapshot(catalogIndex);
+      const facetSnapshot = await catalogFacetService.getFacetSnapshot(catalogIndex, {}, facetContext);
 
-      const courses = await courseRetrievalService.fetchCoursesForCareer(
+      // 2. Rules-first taxonomy translation
+      const rulesFirst = catalogTranslationRules.translateTaxonomyToCatalog({
+        careerTitle: selectedCareer.title,
+        skills: selectedCareer.skills || [],
+        industries: selectedCareer.industries || [],
+        similarJobs: selectedCareer.similarJobs || [],
+        facetSnapshot,
+      });
+
+      // 3. Hybrid translation: run Xpert only when rules-first left unmatched terms
+      let xpertRawResponse: string | undefined;
+      if (rulesFirst.unmatched.length > 0) {
+        try {
+          const xpertResult = await catalogTranslationXpertService.translateUnmatched({
+            careerTitle: selectedCareer.title,
+            unmatchedSkills: rulesFirst.unmatched,
+            unmatchedIndustries: selectedCareer.industries || [],
+            unmatchedSimilarJobs: selectedCareer.similarJobs || [],
+            facetSnapshot,
+          });
+          xpertRawResponse = xpertResult.rawResponse || undefined;
+        } catch {
+          // Xpert refinement failed — continue with rules-first output only
+        }
+      }
+
+      // 4. Consolidate into final CatalogTranslation
+      const translation = catalogTranslationService.processTranslation(
+        selectedCareer.title,
+        facetSnapshot,
+        rulesFirst,
+        xpertRawResponse,
+      );
+
+      // 5. Course Retrieval using consolidated translation, scoped by enterprise context
+      const courses = await courseRetrievalService.fetchCourses(
         catalogIndex,
-        selectedCareer.skills,
+        translation,
         facetContext,
       );
       updatedResponseModel.stages.courseRetrieval = {
@@ -202,7 +241,7 @@ export const usePathways = () => {
         resultCount: courses.length,
       };
 
-      // 2. Map to LearningPathway
+      // 6. Map to LearningPathway
       const initialPathway: LearningPathway = {
         courses: courses.map(c => ({
           id: c.id,
@@ -217,7 +256,7 @@ export const usePathways = () => {
         })),
       };
 
-      // 3. Enrichment (Xpert)
+      // 7. Enrichment (Xpert)
       const enrichmentResult = await pathwayAssemblerXpertService.enrichWithReasoning(
         initialPathway,
         searchIntent,
@@ -237,7 +276,7 @@ export const usePathways = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCareer, searchIntent, catalogIndex, facetContext, pathwayResponse]);
+  }, [selectedCareer, searchIntent, catalogIndex, pathwayResponse, facetContext]);
 
   /**
    * Resets the entire flow state.

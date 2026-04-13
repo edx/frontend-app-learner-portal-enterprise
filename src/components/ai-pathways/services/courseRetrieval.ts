@@ -1,7 +1,5 @@
 import { SearchIndex, SearchOptions } from 'algoliasearch/lite';
-import AlgoliaFilterBuilder from '../../AlgoliaFilterBuilder/AlgoliaFilterBuilder';
 import {
-  FacetBootstrapContext,
   CourseCardModel,
   CatalogTranslation,
 } from '../types';
@@ -10,23 +8,22 @@ import { debugLogger } from '../utils/debugLogger';
 const DEFAULT_HITS_PER_PAGE = 5;
 const MIN_RESULTS = 3;
 
-const isNonEmptyString = (value?: string | null): value is string => Boolean((value || '').trim());
+const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
-const formatFacet = (attr: string, value: string) =>
-  `${attr}:"${value.replace(/"/g, '\\"')}"`;
+/**
+ * Build scoped facetFilters entries from context.
+ * Each entry is an AND group (single-value array) per Algolia facetFilters semantics.
+ * Always includes ["content_type:course"]; adds locale and catalog query UUIDs when available.
+ */
+const buildScopedFacetFilters = (): string[][] => {
+  const groups: string[][] = [['content_type:course']];
 
-const buildScopedFilters = (): string | undefined => {
-  const builder = new AlgoliaFilterBuilder();
-
-  builder.and('content_type', 'course');
-
-  const builtFilters = builder.build();
-
-  return isNonEmptyString(builtFilters) ? builtFilters : undefined;
+  return groups;
 };
 
 /**
  * Build parameters for Attempt 1: Strict skill facet matching.
+ * Merges scoped facetFilters from baseParams with an OR group for strict skills.
  */
 const buildStrictParams = (
   translation: CatalogTranslation,
@@ -36,15 +33,16 @@ const buildStrictParams = (
     return { ...baseParams, hitsPerPage: 0 };
   }
 
-  const builder = new AlgoliaFilterBuilder();
-
-  builder.and('content_type', 'course');
-
-  builder.or('skill_names', translation.strictSkills, { stringify: true });
+  // Append skill OR group to any existing scoped facetFilters
+  const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
+  const facetFilters = [
+    ...baseFacetFilters,
+    translation.strictSkills.map((skill) => `skill_names:${skill}`),
+  ];
 
   return {
     ...baseParams,
-    filters: builder.build(),
+    facetFilters,
   };
 };
 
@@ -59,7 +57,7 @@ const buildBoostParams = (
 
   if (translation.boostSkills.length) {
     params.optionalFilters = translation.boostSkills.map(
-      (skill) => formatFacet('skill_names', skill)
+      (skill) => formatFacet('skill_names', skill),
     );
   }
 
@@ -94,10 +92,10 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
  * Service for fetching courses from the scoped catalog index based on CatalogTranslation.
  *
  * Retrieval ladder:
- * 1. Hard scoped filters + strict skill facetFilters
- * 2. Hard scoped filters + boost skill optionalFilters
- * 3. Hard scoped filters + query / queryAlternates
- * 4. Hard scoped filters only (MVP fallback)
+ * 1. Scoped `facetFilters` (content_type, locale, catalog UUIDs) + strict skill OR group
+ * 2. Scoped `facetFilters` + boost skill `optionalFilters`
+ * 3. Scoped `facetFilters` + query / queryAlternates
+ * 4. Scoped `facetFilters` only (scope-only fallback)
  */
 export const courseRetrievalService = {
   /**
@@ -112,10 +110,10 @@ export const courseRetrievalService = {
     index: SearchIndex,
     translation: CatalogTranslation,
   ): Promise<CourseCardModel[]> {
-    const filters = buildScopedFilters();
+    const scopedFacetFilters = buildScopedFacetFilters();
     const baseParams: SearchOptions = {
       hitsPerPage: DEFAULT_HITS_PER_PAGE,
-      ...(filters ? { filters } : {}),
+      facetFilters: scopedFacetFilters,
     };
 
     try {
@@ -171,28 +169,5 @@ export const courseRetrievalService = {
       console.error('[courseRetrieval] Failed to execute retrieval ladder:', error);
       return [];
     }
-  },
-
-  /**
-   * DEPRECATED: Use fetchCourses instead.
-   * Maintains compatibility while the translation flow is being wired up.
-   */
-  async fetchCoursesForCareer(
-    index: SearchIndex,
-    skills: string[],
-  ): Promise<CourseCardModel[]> {
-    const dummyTranslation: CatalogTranslation = {
-      query: '',
-      queryAlternates: [],
-      strictSkills: skills.slice(0, 8),
-      boostSkills: skills.slice(0, 12),
-      subjectHints: [],
-      droppedTaxonomySkills: [],
-      skillProvenance: [],
-      algoliaPrimaryRequest: {},
-      algoliaFallbackRequests: [],
-    };
-
-    return this.fetchCourses(index, dummyTranslation);
   },
 };
