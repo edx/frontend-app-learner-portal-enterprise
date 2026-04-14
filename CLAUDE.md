@@ -139,7 +139,7 @@ Routes are organized around enterprise customer slugs:
 - **Moving Away from Redux**: ADR-0005 documents migration away from Redux
 
 ### Styling Approach
-- **Design System**: Paragon components as primary building blocks
+- **Design System**: Paragon components and utility classes as primary building blocks
 - **SCSS Modules**: Feature-specific styles in component folders
 - **Responsive Design**: Mobile-first approach
 - **Theme Support**: Configurable via paragon theme installation
@@ -176,7 +176,7 @@ Routes are organized around enterprise customer slugs:
 - Various feature flags and service URLs (see src/index.tsx)
 
 ### Local Development Setup
-1. Clone repo and run `npm i`
+1. Clone repo, run `nvm install` and `nvm use` to ensure the correct Node version is installed, then `npm i` to install dependencies
 2. Set up devstack with enterprise integration enabled
 3. Create test enterprise customer via Django admin
 4. Navigate to `http://localhost:8734/{enterprise-slug}`
@@ -188,9 +188,10 @@ Routes are organized around enterprise customer slugs:
 - Mock API calls with axios-mock-adapter
 - Test user interactions, not implementation details
 - Use jest-when for conditional mocking
+- Leverage axe-core to conduct accessibility checks for every component
 
 ### Data Hook Testing
-- Test both loading and success states
+- Test loading, success, and error states
 - Mock query client and API responses
 - Verify proper error handling
 - Test cache invalidation scenarios
@@ -199,3 +200,4 @@ Routes are organized around enterprise customer slugs:
 - Focus on user workflows across components
 - Test route transitions and data loading
 - Verify enterprise-specific functionality
+- Conduct visual review of components
