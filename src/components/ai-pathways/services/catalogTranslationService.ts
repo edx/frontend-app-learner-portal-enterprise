@@ -11,11 +11,26 @@ const MAX_STRICT_SKILLS = 8;
 const MAX_BOOST_SKILLS = 12;
 
 /**
+ * @typedef {Object} SkillProvenance
+ * @property {string} taxonomySkill - Original skill name from taxonomy
+ * @property {string} [catalogMatch] - Matching skill name in catalog
+ * @property {string} matchMethod - Method used for matching ('exact', 'alias', 'xpert', 'none')
+ */
+
+/**
+ * @typedef {Object} CatalogTranslation
+ * @property {string} query - Primary search query
+ * @property {string[]} strictSkills - Skills for strict filtering
+ * @property {string[]} boostSkills - Skills for boosting
+ * @property {SkillProvenance[]} skillProvenance - Mapping history for skills
+ */
+
+/**
  * Validates that a list of values exists in the provided catalog facet snapshot.
  *
- * @param values The values to validate.
- * @param allowedValues A set of all valid values from the snapshot.
- * @returns An array of only the valid values.
+ * @param {string[]} values - The values to validate.
+ * @param {Set<string>} allowedValues - A set of all valid values from the snapshot.
+ * @returns {string[]} An array of only the valid values.
  */
 export const validateAllowedFacetValues = (
   values: string[],
@@ -25,26 +40,40 @@ export const validateAllowedFacetValues = (
 /**
  * Caps the number of skills to a reasonable maximum to avoid overly complex Algolia queries.
  *
- * @param skills The skills to cap.
- * @param limit The maximum number of skills allowed.
- * @returns A capped array of skills.
+ * @param {string[]} skills - The skills to cap.
+ * @param {number} limit - The maximum number of skills allowed.
+ * @returns {string[]} A capped array of skills.
  */
 export const capSkillCounts = (skills: string[], limit: number): string[] => skills.slice(0, limit);
 
 /**
  * Service for combining rules-first translation with Xpert-driven refinement
  * to produce the final CatalogTranslation object.
+ *
+ * @remarks
+ * Pipeline: translation (rules) → translation (Xpert) → retrieval
+ *
+ * Dependencies:
+ * - catalogTranslationRules (rules-first stage)
+ * - Xpert AI (refinement stage)
+ * - catalog facet snapshot (grounding)
+ *
+ * Notes:
+ * - Performs grounding to ensure only valid facets from the snapshot are used.
+ * - Caps skill counts to keep Algolia queries performant.
  */
 export const catalogTranslationService = {
   /**
    * Consolidates rules-first matches and Xpert output into a final search intent.
    * Grounding and validation are performed here to ensure only valid facets are used.
    *
-   * @param careerTitle The selected career title.
-   * @param facetSnapshot The scoped catalog facets for grounding.
-   * @param rulesFirst The results from the deterministic rules-first mapper.
-   * @param xpertRawResponse The raw (and potentially untrusted) JSON response from Xpert.
-   * @returns A CatalogTranslation object.
+   * @param {string} careerTitle - The selected career title.
+   * @param {CatalogFacetSnapshot} facetSnapshot - The scoped catalog facets for grounding.
+   * @param {RulesFirstCandidates} rulesFirst - The results from the deterministic rules-first mapper.
+   * @param {string} [xpertRawResponse] - The raw (and potentially untrusted) JSON response from Xpert.
+   * @param {Object} [xpertDebug] - Debug information from the Xpert call.
+   * @returns {{ translation: CatalogTranslation; trace: CatalogTranslationTrace }}
+   * A CatalogTranslation object and trace.
    */
   processTranslation(
     careerTitle: string,

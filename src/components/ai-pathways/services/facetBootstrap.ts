@@ -6,16 +6,40 @@ import {
 } from '../types';
 
 /**
+ * @typedef {Object} FacetValue
+ * @property {string} value - The facet value string
+ * @property {number} count - Frequency count in the index
+ */
+
+/**
+ * @typedef {Object} FacetReference
+ * @property {FacetValue[]} skills - Available skills
+ * @property {FacetValue[]} industries - Available industries
+ * @property {FacetValue[]} jobSources - Available job sources
+ * @property {FacetValue[]} name - Available career/job names
+ */
+
+/**
  * Utility for bootstrapping taxonomy-like facets from Algolia.
- * Mimics Skills Quiz behavior by retrieving available facets for the current context.
+ *
+ * @remarks
+ * Pipeline: intake (initialization)
+ *
+ * Dependencies:
+ * - Algolia SearchIndex.search()
+ * - FacetBootstrapContext (scoping)
+ *
+ * Notes:
+ * - Mimics Skills Quiz behavior by retrieving available facets for the current context.
+ * - Used to populate the intake form with valid options.
  */
 export const facetBootstrapService = {
   /**
    * Retrieves the facet universe for the given enterprise context.
    *
-   * @param index The Algolia search index instance (Job/Career index).
-   * @param context The context required for building the base scoped request.
-   * @returns A promise resolving to the FacetReference object.
+   * @param {SearchIndex} index - The Algolia search index instance (Job/Career index).
+   * @param {FacetBootstrapContext} [context] - The context required for building the base scoped request.
+   * @returns {Promise<FacetReference>} Promise resolving to the FacetReference object.
    */
   async bootstrapFacets(
     index: SearchIndex,

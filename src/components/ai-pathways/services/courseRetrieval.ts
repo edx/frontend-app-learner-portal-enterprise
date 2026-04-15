@@ -11,12 +11,39 @@ import {
 const DEFAULT_HITS_PER_PAGE = 5;
 const MIN_RESULTS = 3;
 
+/**
+ * @typedef {Object} CourseCardModel
+ * @property {string} id - Unique identifier
+ * @property {string} title - Course title
+ * @property {string|null} level - Course difficulty level
+ * @property {string[]} skills - List of associated skills
+ * @property {string|null} marketingUrl - URL to course marketing page
+ * @property {string|null} imageUrl - URL to course card image
+ * @property {string} status - Recommendation status ('recommended', 'optional', 'unavailable')
+ */
+
+/**
+ * @typedef {Object} RetrievalLadderTrace
+ * @property {RetrievalLadderAttempt[]} attempts - History of retrieval attempts
+ * @property {number|null} winnerStep - The successful step in the ladder (1-4)
+ */
+
+/**
+ * Formats a facet attribute and value for Algolia filtering.
+ *
+ * @param {string} attr - Facet attribute name
+ * @param {string} value - Facet value
+ * @returns {string} Formatted Algolia facet string
+ */
 const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
 /**
  * Build scoped facetFilters entries from context.
- * Each entry is an AND group (single-value array) per Algolia facetFilters semantics.
- * Always includes ["content_type:course"]; adds locale and catalog query UUIDs when available.
+ *
+ * @returns {string[][]} Array of Algolia facet filter groups
+ *
+ * @remarks
+ * Always includes ["content_type:course"].
  */
 const buildScopedFacetFilters = (): string[][] => {
   const groups: string[][] = [['content_type:course']];
@@ -26,7 +53,10 @@ const buildScopedFacetFilters = (): string[][] => {
 
 /**
  * Build parameters for Attempt 1: Strict skill facet matching.
- * Merges scoped facetFilters from baseParams with an OR group for strict skills.
+ *
+ * @param {CatalogTranslation} translation - Grounded search intent
+ * @param {SearchOptions} baseParams - Base Algolia search options
+ * @returns {SearchOptions} Updated search options
  */
 const buildStrictParams = (
   translation: CatalogTranslation,
@@ -51,6 +81,10 @@ const buildStrictParams = (
 
 /**
  * Build parameters for Attempt 2: Optional skill boosting with text query.
+ *
+ * @param {CatalogTranslation} translation - Grounded search intent
+ * @param {SearchOptions} baseParams - Base Algolia search options
+ * @returns {SearchOptions} Updated search options
  */
 const buildBoostParams = (
   translation: CatalogTranslation,
@@ -70,6 +104,10 @@ const buildBoostParams = (
 
 /**
  * Build parameters for Attempt 3: Text query / Alternates fallback.
+ *
+ * @param {string} query - Search query string
+ * @param {SearchOptions} baseParams - Base Algolia search options
+ * @returns {SearchOptions} Updated search options
  */
 const buildQueryFallbackParams = (
   query: string,
@@ -79,6 +117,13 @@ const buildQueryFallbackParams = (
   query,
 });
 
+/**
+ * Maps a raw Algolia hit to a CourseCardModel.
+ *
+ * @param {any} hit - Raw Algolia search result
+ * @param {number} idx - Index of the hit in the results
+ * @returns {CourseCardModel} Normalized course card data
+ */
 const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
   id: hit.id || hit.objectID,
   title: hit.title || hit.name || '',
@@ -95,20 +140,32 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
 /**
  * Service for fetching courses from the scoped catalog index based on CatalogTranslation.
  *
+ * @remarks
+ * Pipeline: translation → retrieval → mapping
+ *
+ * Dependencies:
+ * - Algolia SearchIndex.search()
+ * - CatalogTranslation contract
+ * - CourseCardModel UI contract
+ *
  * Retrieval ladder:
- * 1. Scoped `facetFilters` (content_type, locale, catalog UUIDs) + strict skill OR group
+ * 1. Scoped `facetFilters` + strict skill OR group
  * 2. Scoped `facetFilters` + boost skill `optionalFilters`
  * 3. Scoped `facetFilters` + query / queryAlternates
  * 4. Scoped `facetFilters` only (scope-only fallback)
+ *
+ * Notes:
+ * - Ensures all results are scoped to the enterprise catalog (content_type:course, etc).
+ * - Implements a "fail-soft" ladder to ensure the user always gets results.
  */
 export const courseRetrievalService = {
   /**
    * Executes the course retrieval ladder grounded in the provided CatalogTranslation.
    *
-   * @param index The Algolia search index for the course catalog.
-   * @param translation The grounded translation results (query, skills, etc.).
-   * @param context The enterprise search context.
-   * @returns A promise resolving to 3-5 normalized CourseCardModel objects.
+   * @param {SearchIndex} index - The Algolia search index for the course catalog.
+   * @param {CatalogTranslation} translation - The grounded translation results (query, skills, etc.).
+   * @returns {Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }>}
+   * Promise resolving to course cards and trace.
    */
   async fetchCourses(
     index: SearchIndex,

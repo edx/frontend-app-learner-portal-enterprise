@@ -13,19 +13,19 @@ import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
 import {
+  DASHBOARD_AI_PATHWAYS_TAB,
   DASHBOARD_COURSES_TAB,
   DASHBOARD_MY_CAREER_TAB,
   DASHBOARD_PATHWAYS_TAB,
   DASHBOARD_PROGRAMS_TAB,
   DASHBOARD_TABS_SEGMENT_KEY,
-  DASHBOARD_AI_PATHWAYS_TAB,
 } from './constants';
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
+  queryLearnerSkillLevels,
   useEnterpriseCustomer,
   useEnterprisePathwaysList,
   useEnterpriseProgramsList,
-  queryLearnerSkillLevels,
 } from '../../app/data';
 import { extractCurrentJobID } from '../../my-career/data/utils';
 

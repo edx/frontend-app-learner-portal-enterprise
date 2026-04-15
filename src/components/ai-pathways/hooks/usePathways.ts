@@ -34,13 +34,20 @@ import { catalogTranslationXpertService } from '../services/catalogTranslation.x
 export type PathwayStep = 'intake' | 'profile' | 'pathway';
 
 /**
- * Hook to manage AI Learning Pathways.
- * Coordinates the multi-stage deterministic data flow:
- * 1. Intake -> Facet Bootstrap (Algolia Jobs Index)
+ * Hook to manage the AI Learning Pathways state and orchestration.
+ *
+ * Pipeline: intake → intent → translation → retrieval → enrichment → UI
+ *
+ * Contract:
+ * - Orchestrates multi-stage flow across specialized services.
+ * - Manages state for intake form, learner profile, and the final pathway.
+ *
+ * Flow:
+ * 1. Intake -> Facet Bootstrap (Job Index)
  * 2. Intent Extraction (Xpert + Facets)
- * 3. Career Retrieval (Algolia Jobs Index)
- * 4. Selection -> Catalog Facet Grounding -> Rules-First Translation
- *    -> Optional Xpert Refinement -> Course Retrieval (Algolia Catalog Index)
+ * 3. Career Retrieval (Job Index)
+ * 4. Selection -> Catalog Facet Snapshot -> Rules-First Translation
+ *    -> Optional Xpert Refinement -> Course Retrieval (Catalog Index)
  * 5. Pathway Enrichment (Xpert)
  */
 /**
@@ -72,6 +79,38 @@ function makeCapturingInterceptor(
   };
 }
 
+/**
+ * @typedef {string} PathwayStep
+ */
+
+/**
+ * Orchestrator hook for the AI Pathways generation pipeline.
+ *
+ * @returns {Object} AI Pathways state and actions
+ * @property {PathwayStep} currentStep - Current UI stage ('intake', 'selection', 'pathway')
+ * @property {LearnerProfile|null} learnerProfile - Refined user profile summarizing inputs
+ * @property {XpertIntent|null} searchIntent - Extracted search intent from intake
+ * @property {CareerCardModel|null} selectedCareer - User-selected target career
+ * @property {LearningPathway|null} pathway - Final generated course recommendations
+ * @property {AIPathwaysResponseModel|null} pathwayResponse - Full debug response model
+ * @property {boolean} isLoading - Global loading state for pipeline operations
+ * @property {Error|null} error - Error state
+ * @property {Function} generateProfile - Action to start pipeline from intake form
+ * @property {Function} selectCareer - Action to select a career from recommendations
+ * @property {Function} generatePathway - Action to generate the final course pathway
+ * @property {Function} reset - Action to reset state and return to intake
+ *
+ * @remarks
+ * Pipeline Orchestration:
+ * 1. Intake → generateProfile() → Intent Extraction (Xpert) → Career Retrieval (Algolia)
+ * 2. Selection → selectCareer()
+ * 3. Generation → generatePathway() → Translation (Rules/Xpert) → Retrieval (Algolia) → Assembly (Xpert) → Mapping (UI)
+ *
+ * Dependencies:
+ * - Algolia search indices (Jobs & Content)
+ * - Xpert AI services (Intent, Translation, Assembly)
+ * - Shared services (facetBootstrap, catalogTranslation, courseRetrieval)
+ */
 export const usePathways = () => {
   const [currentStep, setCurrentStep] = useState<PathwayStep>('intake');
   const [learnerProfile, setLearnerProfile] = useState<LearnerProfile | null>(null);

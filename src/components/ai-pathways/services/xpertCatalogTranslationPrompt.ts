@@ -1,16 +1,31 @@
 import { XpertCatalogTranslationPayload, XpertPromptBundle, PromptPart } from '../types';
 
 /**
- * Prompt builder for translating taxonomy career data
- * into catalog-valid search parameters for the course catalog index.
+ * @typedef {Object} XpertCatalogTranslationPayload
+ * @property {string} careerTitle - User's target career title
+ * @property {string[]} unmatchedSkills - Skills that need translation
+ * @property {Object} facetSnapshot - Authoritative catalog facets for grounding
+ */
+
+/**
+ * Prompt builder for translating taxonomy career data into catalog-valid search parameters.
+ *
+ * @remarks
+ * Pipeline: translation (Xpert)
+ *
+ * Dependencies:
+ * - XpertCatalogTranslationPayload contract
+ * - XpertPromptBundle type
+ *
+ * Notes:
+ * - The system prompt is highly structured to ensure the LLM stays grounded in the catalog facets.
  */
 export const xpertCatalogTranslationPrompt = {
   /**
    * Builds the structured prompt bundle and user payload for the catalog translation task.
-   * The `bundle.combined` field is byte-for-byte identical to the previous raw systemPrompt string.
    *
-   * @param payload The structured data for the translation stage.
-   * @returns An object containing the XpertPromptBundle and the structured user payload.
+   * @param {XpertCatalogTranslationPayload} payload - The structured data for the translation stage.
+   * @returns {Object} Object containing the XpertPromptBundle and the structured user payload.
    */
   buildTranslationPrompt(payload: XpertCatalogTranslationPayload): {
     bundle: XpertPromptBundle;
@@ -30,60 +45,38 @@ Your objective is to produce output that is both:
 - effective for broad, high-recall catalog retrieval
 
 Catalog facet metadata (from Algolia):
-The user payload includes a "facetSnapshot" object with the following fields extracted directly from the Algolia index:
-- "skill_names": valid skill facet values in the catalog (use for strictSkills and boostSkills)
-- "subjects": valid subject facet values in the catalog (use for subjectHints)
-- "level_type": valid course difficulty levels in the catalog
-- "partners.name": valid partner/institution names in the catalog
-- "enterprise_catalog_query_uuids": catalog scope identifiers (informational only, do not output)
-You MUST treat these as the authoritative vocabulary. Do not output values that are not present in the snapshot.
-
-Catalog search behavior guidance:
-- The catalog index supports broad text search across these searchable attributes:
-  - title
-  - full_description
-  - short_description
-  - additional_information
-  - aggregation_key
-  - partners
-  - skill_names
-  - skills
-  - transcript_summary
-- Therefore, the search query does NOT need to exactly match one facet value.
-- The search query should be a broad, high-signal phrase likely to retrieve relevant catalog content across those searchable attributes.
-- Prefer a query that returns several relevant results over a highly specific phrase that returns zero results.
-- When the career input is narrative, transitional, or overly specific, generalize toward broad role, subject, or skill language that fits the catalog.
+The user payload includes a "facetSnapshot" object with authoritative vocabulary extracted from the Algolia index.
+- "skill_names": valid skill facet values (use for strictSkills and boostSkills)
+- "subjects": valid subject facet values (use for subjectHints)
+- "level_type": valid course difficulty levels
+- "partners.name": valid partner/institution names
 
 Facet grounding rules:
-1. ONLY use values from "facetSnapshot.skill_names" for strictSkills and boostSkills.
-2. ONLY use values from "facetSnapshot.subjects" for subjectHints.
-3. Do not invent new skills, subjects, or partners — every value must appear in the snapshot.
+1. ONLY use values present in "facetSnapshot". Do not invent skills, subjects, or partners.
+2. Use "skill_names" for strictSkills and boostSkills.
+3. Use "subjects" for subjectHints.
 4. Separate core skills (strictSkills) from broader or nice-to-have skills (boostSkills).
 5. Use strictSkills only for high-confidence, close matches from the taxonomy input.
-6. Use boostSkills for broader, related, adjacent, or lower-confidence matches that still align to the user's interest.
-7. Prefer more common, broadly useful catalog facet values when multiple valid matches exist.
-8. If a taxonomy skill has no close match in the catalog facet snapshot, move it to droppedTaxonomySkills and set matchMethod to "none".
-9. Document each mapping in skillProvenance using:
-   - taxonomySkill
-   - catalogMatch
-   - matchMethod: "xpert" | "none"
+6. Use boostSkills for broader, related, adjacent, or lower-confidence matches.
+7. If a taxonomy skill has no match in the snapshot, move it to droppedTaxonomySkills.
+8. Document each mapping in skillProvenance (matchMethod: "xpert" | "none").
+
+Catalog search behavior guidance:
+- The catalog supports broad text search across multiple attributes (title, description, skills, etc.).
+- The "query" does NOT need to be a facet value; it should be a broad, high-signal phrase.
+- Prefer high-recall queries that return several relevant results over hyper-specific ones.
+- Generalize narrative or overly specific inputs toward broad role/subject language.
 
 Query construction rules:
-10. Provide a broad catalog search query in "query".
-11. Provide alternative broader or adjacent fallback searches in "queryAlternates".
-12. The query should be:
-   - short
-   - plain language
-   - broad enough to retrieve relevant courses
-   - based on the user's likely learning direction, not just exact prior-job wording
-13. Do NOT force the query to exactly mirror a career title if a broader educational or skill-based phrase will retrieve better.
-14. Prefer broad subject / domain / skill phrasing when appropriate.
-15. Use subjectHints to preserve useful topical intent that may help downstream retrieval or ranking.`;
+9. Provide a broad search query in "query" and alternative fallbacks in "queryAlternates".
+10. The query should be short, plain language, and educational/skill-based.
+11. Use subjectHints to preserve topical intent for downstream retrieval.
+12. Do NOT force the query to mirror exact prior-job wording.`;
 
     const schemaContent = `
 Output requirements:
-16. Return strict JSON only. Do not include any text outside the JSON.
-17. The output must be deterministic and grounded only in the provided snapshot data and user payload.
+13. Return strict JSON only. Do not include any text outside the JSON.
+14. The output must be deterministic and grounded only in the provided snapshot data and user payload.
 
 Expected Output Shape:
 {

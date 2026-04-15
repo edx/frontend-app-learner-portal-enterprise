@@ -2,31 +2,81 @@ import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalog
 import { RulesFirstMappingTrace } from '../types';
 
 /**
- * Curated list of aliases to map common taxonomy terms to their catalog-valid equivalents.
+ * @typedef {Object} TaxonomyTranslationInput
+ * @property {string} careerTitle - User's target career title
+ * @property {string[]} skills - Extracted skills from taxonomy
+ * @property {string[]} industries - Extracted industries from taxonomy
+ * @property {string[]} similarJobs - Similar job titles from taxonomy
+ * @property {Object} facetSnapshot - Snapshot of available catalog facets
  */
-const ALIAS_MAP: Record<string, string> = {
+
+/**
+ * @typedef {Object} RulesFirstCandidates
+ * @property {string[]} exactMatches - Terms that matched exactly (case-insensitive)
+ * @property {string[]} aliasMatches - Terms that matched via curated alias list
+ * @property {string[]} unmatched - Terms that could not be mapped
+ */
+
+/**
+ * Normalizes a term for catalog alias matching and comparison.
+ *
+ * @param {string} term - Raw taxonomy term or catalog facet value
+ * @returns {string} Normalized string (trimmed, lowercase)
+ *
+ * @remarks
+ * Pipeline: translation (rules-first)
+ */
+export const normalizeCatalogTerm = (term: string): string => term.trim().toLowerCase();
+
+/**
+ * CATALOG_ALIAS_MAP provides a curated translation layer between taxonomy terms
+ * (often coming from Xpert or user intent) and their canonical catalog facet equivalents.
+ *
+ * @remarks
+ * Why this exists:
+ * 1. Taxonomy mismatch: A term like 'python' is common in taxonomy, but the catalog
+ *    specifically uses 'Python (Programming Language)'.
+ * 2. Normalization: Ensuring different variations (e.g. 'frontend', 'front end')
+ *    map to the same catalog-valid facet.
+ *
+ * Guidelines for adding new entries:
+ * - Use lowercase keys (normalized).
+ * - Ensure the value matches exactly one of the catalog's facets (e.g., in `skill_names`).
+ * - Group by category (Skills, Industries, etc.) for maintainability.
+ *
+ * This map is expected to grow over time as new taxonomy/catalog mismatches are identified.
+ */
+export const CATALOG_ALIAS_MAP: Record<string, string> = {
+  // --- Skills: Programming Languages & Tech ---
   python: 'Python (Programming Language)',
   javascript: 'JavaScript (Programming Language)',
   sql: 'SQL (Programming Language)',
+
+  // --- Skills: Software Engineering Domains ---
   'front end': 'Front End (Software Engineering)',
   frontend: 'Front End (Software Engineering)',
 };
 
 /**
- * Normalizes a string for comparison.
- */
-const normalize = (value: string): string => value.trim().toLowerCase();
-
-/**
  * Rules-first mapper that translates taxonomy terms into catalog-valid search parameters.
- * This module is deterministic and does not use AI/Xpert yet.
+ *
+ * @remarks
+ * Pipeline: intake → intent → translation (rules) → retrieval
+ *
+ * Dependencies:
+ * - CATALOG_ALIAS_MAP (curated aliases)
+ * - catalog facet snapshot (ground truth)
+ *
+ * Notes:
+ * - This module is deterministic and does not use AI/Xpert.
+ * - Results are used to ground the search and provide context for Xpert refinement.
  */
 export const catalogTranslationRules = {
   /**
    * Translates taxonomy terms into catalog-valid candidates using exact matches and aliases.
    *
-   * @param input Taxonomy translation input including career title, skills, industries, and similar jobs.
-   * @returns A RulesFirstCandidates object.
+   * @param {TaxonomyTranslationInput} input - Taxonomy translation input
+   * @returns {{ result: RulesFirstCandidates; trace: RulesFirstMappingTrace }} Resulting candidates and trace
    */
   translateTaxonomyToCatalog(
     input: TaxonomyTranslationInput,
@@ -48,7 +98,7 @@ export const catalogTranslationRules = {
     // Create a normalized lookup map (normalizedValue -> originalCatalogValue)
     const normalizedLookup = new Map<string, string>();
     validCatalogValues.forEach((val) => {
-      normalizedLookup.set(normalize(val), val);
+      normalizedLookup.set(normalizeCatalogTerm(val), val);
     });
 
     const exactMatchesSet = new Set<string>();
@@ -65,7 +115,7 @@ export const catalogTranslationRules = {
     );
 
     termsToTranslate.forEach((term) => {
-      const normTerm = normalize(term);
+      const normTerm = normalizeCatalogTerm(term);
 
       // 1. Check Exact Match (Case-insensitive)
       if (normalizedLookup.has(normTerm)) {
@@ -74,7 +124,7 @@ export const catalogTranslationRules = {
       }
 
       // 2. Check Alias Map
-      const aliasTarget = ALIAS_MAP[normTerm];
+      const aliasTarget = CATALOG_ALIAS_MAP[normTerm];
       if (aliasTarget) {
         // Only count as alias match if the target exists in the catalog
         if (validCatalogValues.has(aliasTarget)) {
