@@ -21,7 +21,6 @@ export const AIPathwaysTab = () => {
           indexName={searchIndex.indexName}
         >
           <Configure facets={['*']} hitsPerPage={0} />
-          {/* <FacetDebugger /> */}
         </InstantSearch>
       )}
     </>

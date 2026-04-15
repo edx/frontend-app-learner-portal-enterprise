@@ -27,9 +27,9 @@ export const intakePreprocessor = {
     // 2. Map fixed-choice UI strings to concise keywords (Local Normalization)
     const mapTime = (time: string) => {
       const t = (time || '').toLowerCase();
-      if (t.includes('0-2') || t.includes('short')) { return 'short'; }
-      if (t.includes('2-5') || t.includes('medium')) { return 'medium'; }
-      if (t.includes('5+') || t.includes('long')) { return 'long'; }
+      if (t.includes('up to 3') || t.includes('short')) { return 'short'; }
+      if (t.includes('4-6') || t.includes('medium')) { return 'medium'; }
+      if (t.includes('7 or more') || t.includes('long')) { return 'long'; }
       return t;
     };
 

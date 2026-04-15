@@ -113,36 +113,6 @@ export interface LearnerProfile {
 }
 
 /**
- * SearchIntent represents the normalized output of the intent extraction stage.
- * It is used to drive content discovery (Algolia) and pathway assembly.
- */
-export interface SearchIntent {
-  /** Condensed, query-safe search phrase (2–5 words) for first Algolia retrieval. */
-  condensedQuery: string;
-
-  /** Target roles or career titles extracted from user goals. */
-  roles: string[];
-
-  /** Must-have skills identified for the target role/goal. */
-  skillsRequired: string[];
-
-  /** Nice-to-have skills that align with user interests but aren't strictly required. */
-  skillsPreferred: string[];
-
-  /** Normalized proficiency level of the learner. */
-  learnerLevel?: 'beginner' | 'intermediate' | 'advanced';
-
-  /** Raw search terms to be used in broad text matching. */
-  queryTerms?: string[];
-
-  /** Estimated duration preference for the learning journey. */
-  timeCommitment?: 'short' | 'medium' | 'long';
-
-  /** Topics or keywords to explicitly exclude from results. */
-  excludeTags?: string[];
-}
-
-/**
  * CreateLearnerProfileArgs captures raw intake form responses.
  */
 export interface CreateLearnerProfileArgs {
