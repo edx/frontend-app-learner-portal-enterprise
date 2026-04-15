@@ -5,6 +5,7 @@ import {
   CatalogTranslation,
   RetrievalLadderAttempt,
   RetrievalLadderTrace,
+  CourseRetrievalHit,
 } from '../types';
 
 const DEFAULT_HITS_PER_PAGE = 5;
@@ -134,6 +135,7 @@ export const courseRetrievalService = {
           facetFilters: strictParams.facetFilters,
           hitCount: strictHits,
           winner: strictHits >= MIN_RESULTS,
+          hits: (strictResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
         if (strictHits >= MIN_RESULTS) {
           return {
@@ -154,6 +156,7 @@ export const courseRetrievalService = {
         optionalFilters: boostParams.optionalFilters,
         hitCount: boostHits,
         winner: boostHits >= MIN_RESULTS,
+        hits: (boostResponse.hits || []) as unknown as CourseRetrievalHit[],
       });
       if (boostHits >= MIN_RESULTS) {
         return {
@@ -175,6 +178,7 @@ export const courseRetrievalService = {
           query: q,
           hitCount: queryHits,
           winner: queryHits >= MIN_RESULTS,
+          hits: (queryResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
         if (queryHits >= MIN_RESULTS) {
           return {
@@ -193,6 +197,7 @@ export const courseRetrievalService = {
         query: '',
         hitCount: fallbackHits,
         winner: true,
+        hits: (fallbackResponse.hits || []) as unknown as CourseRetrievalHit[],
       });
       return {
         courses: (fallbackResponse.hits || []).map(mapCourseHitToCard),

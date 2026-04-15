@@ -24,6 +24,7 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
   PromptDebugEntry,
+  CourseRetrievalHit,
 } from '../types';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
@@ -330,6 +331,7 @@ export const usePathways = () => {
         durationMs: Date.now() - courseStartTime,
         success: true,
         resultCount: courses.length,
+        hits: courses.map(c => c.raw as CourseRetrievalHit),
       };
 
       // 6. Map to LearningPathway

@@ -5,6 +5,7 @@ import {
   Button,
   Stack,
   Alert,
+  CardCarousel,
 } from '@openedx/paragon';
 import {
   AIPathwaysResponseModel,
@@ -13,8 +14,54 @@ import {
   CatalogTranslationTrace,
   RetrievalLadderTrace,
   PromptDebugEntry,
+  CourseRetrievalHit,
 } from '../types';
 import { exportResponseModel } from '../utils/exportResponseModel';
+import SearchCourseCard from '../../search/SearchCourseCard';
+import { mapRetrievalHitToSearchCard } from '../utils/courseMapper';
+import { CARDGRID_COLUMN_SIZES } from '../../search/constants';
+
+const CourseRetrievalSection = ({ hits }: { hits: CourseRetrievalHit[] }) => {
+  if (hits.length === 0) {
+    return <p className="text-muted font-italic small">No courses returned for the winning step.</p>;
+  }
+  return (
+    <div className="d-flex flex-wrap mt-3">
+      {hits.map((hit) => (
+        <div key={hit.objectID} style={{ width: '300px' }} className="mr-3 mb-3">
+          <SearchCourseCard
+            hit={mapRetrievalHitToSearchCard(hit)}
+            parentRoute={{ label: 'AI Pathways Debug', to: '#' }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const StepCarousel = ({ hits, label }: { hits: CourseRetrievalHit[], label: string }) => {
+  if (hits.length === 0) { return null; }
+
+  return (
+    <div className="mt-2 border-top pt-2">
+      <p className="small text-muted mb-2">Returned Courses:</p>
+      <CardCarousel
+        ariaLabel={`${label} courses carousel`}
+        columnSizes={CARDGRID_COLUMN_SIZES}
+        hasInteractiveChildren
+      >
+        {hits.map((hit) => (
+          <div key={hit.objectID} className="h-100 pb-3">
+            <SearchCourseCard
+              hit={mapRetrievalHitToSearchCard(hit)}
+              parentRoute={{ label: 'AI Pathways Debug', to: '#' }}
+            />
+          </div>
+        ))}
+      </CardCarousel>
+    </div>
+  );
+};
 
 interface DebugConsoleProps {
   response: AIPathwaysResponseModel | null;
@@ -129,10 +176,15 @@ const RetrievalLadderSection = ({ trace }: { trace: RetrievalLadderTrace }) => (
     <p className="mb-1"><strong>Winner step:</strong> {trace.winnerStep ?? 'none'}</p>
     {trace.attempts.map((attempt) => (
       <div key={`${attempt.step}-${attempt.label}`} className="border rounded p-2">
-        <Badge variant={attempt.winner ? 'success' : 'secondary'} className="mr-2">Step {attempt.step}</Badge>
-        <strong>{attempt.label}</strong>
-        <span className="ml-2 text-muted">— {attempt.hitCount} hits</span>
-        {attempt.query && <p className="mb-0 mt-1 small"><strong>Query:</strong> {attempt.query}</p>}
+        <div className="d-flex align-items-center mb-1">
+          <Badge variant={attempt.winner ? 'success' : 'secondary'} className="mr-2">Step {attempt.step}</Badge>
+          <strong>{attempt.label}</strong>
+          <span className="ml-2 text-muted">— {attempt.hitCount} hits</span>
+        </div>
+        {attempt.query && <p className="mb-0 small text-truncate"><strong>Query:</strong> {attempt.query}</p>}
+        {attempt.hits && attempt.hits.length > 0 && (
+          <StepCarousel hits={attempt.hits} label={attempt.label} />
+        )}
       </div>
     ))}
   </Stack>
@@ -309,7 +361,7 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
           )}
 
           {/* Course Retrieval */}
-          <details>
+          <details open>
             <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
               <span>Stage 4: Course Retrieval (Algolia)</span>
               <div>
@@ -320,9 +372,7 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               </div>
             </summary>
             <div className="py-2">
-              <pre className="small bg-light p-2">
-                {JSON.stringify(stages.courseRetrieval, null, 2)}
-              </pre>
+              <CourseRetrievalSection hits={stages.courseRetrieval?.hits || []} />
             </div>
           </details>
 

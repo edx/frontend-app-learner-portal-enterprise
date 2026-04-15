@@ -314,6 +314,7 @@ export interface RetrievalLadderAttempt {
   optionalFilters?: unknown;
   hitCount: number;
   winner: boolean;
+  hits?: CourseRetrievalHit[];
 }
 
 /**
@@ -322,6 +323,58 @@ export interface RetrievalLadderAttempt {
 export interface RetrievalLadderTrace {
   attempts: RetrievalLadderAttempt[];
   winnerStep: number | null;
+}
+
+export interface Partner {
+  name?: string;
+  logo_image_url?: string;
+}
+
+export interface Entitlement {
+  mode?: string;
+  price?: string;
+  currency?: string;
+  sku?: string;
+  expires?: string | null;
+}
+
+export interface AdvertisedCourseRun {
+  key?: string;
+  pacing_type?: string;
+  availability?: string;
+  start?: string | null;
+  end?: string | null;
+  min_effort?: number | null;
+  max_effort?: number | null;
+  weeks_to_complete?: number | null;
+  content_price?: number | null;
+  is_active?: boolean;
+}
+
+export interface CourseRetrievalHit {
+  objectID: string;
+  key?: string;
+  uuid?: string;
+  title: string;
+  short_description?: string;
+  marketing_url?: string;
+  card_image_url?: string;
+  image_url?: string;
+  original_image_url?: string;
+  availability?: string[];
+  level_type?: string;
+  language?: string;
+  skill_names?: string[];
+  subjects?: string[];
+  partners?: Partner[];
+  programs?: string[];
+  program_titles?: string[];
+  content_type?: string;
+  learning_type?: string;
+  learning_type_v2?: string;
+  course_type?: string;
+  entitlements?: Entitlement[];
+  advertised_course_run?: AdvertisedCourseRun;
 }
 
 /**
@@ -384,6 +437,7 @@ export interface AIPathwaysResponseModel {
     };
     courseRetrieval: StageMetrics & {
       resultCount: number;
+      hits?: CourseRetrievalHit[];
     };
     pathwayEnrichment: StageMetrics & {
       systemPrompt: string;
