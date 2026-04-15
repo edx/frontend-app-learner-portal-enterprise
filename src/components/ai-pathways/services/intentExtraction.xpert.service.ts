@@ -8,22 +8,32 @@ import { XpertExtractionResult } from './xpertDebug';
 import { InterceptContext, InterceptResult } from '../hooks/usePromptInterceptor';
 import { DEFAULT_INTENT, INTENT_EXTRACTION_PROMPT } from '../constants';
 
-/** Subset of the interceptor hook needed by this service. */
+/**
+ * Type definition for the prompt interception function.
+ * Allows the UI (DebugConsole) to inspect and modify prompts before they are sent to Xpert.
+ */
 export type PromptInterceptFn = (
   bundle: XpertPromptBundle,
   context: InterceptContext,
 ) => Promise<InterceptResult>;
 
 /**
- * Service for extracting semantic user intent using Xpert API.
+ * Service for extracting structured user intent using the Xpert AI API.
+ *
+ * Pipeline context: This is the second stage of the generation process. It takes the
+ * preprocessed user input and translates it into a structured `XpertIntent` object.
+ * This intent then drives the Career Retrieval stage.
  */
 export const intentExtractionXpertService = {
   /**
-   * Main entry point for converting user input into intent via Xpert.
+   * Main entry point for converting preprocessed user data into a structured search intent.
+   * Includes logic for prompt interception, AI execution, and automatic response repair.
    *
-   * @param input The preprocessed user data.
-   * @param facets Optional taxonomy facets to help normalize the extraction.
-   * @returns A validated and normalized XpertExtractionResult object.
+   * @param input The cleaned user narrative and preferences from the intake form.
+   * @param facets Optional taxonomy facet values to guide the AI toward valid search terms.
+   * @param interceptPrompt Optional hook to allow manual prompt editing in debug mode.
+   * @returns A result object containing the normalized intent and detailed execution metrics.
+   * @throws Error if the user cancels the generation during prompt interception.
    */
   async extractIntent(
     input: PreprocessedInput,
@@ -33,7 +43,7 @@ export const intentExtractionXpertService = {
     const startTime = Date.now();
     const originalBundle = this.buildSystemPrompt(facets);
 
-    // --- interception ---
+    // --- Interception Logic ---
     let activeBundle = originalBundle;
     if (interceptPrompt) {
       const userMessages: XpertMessage[] = [{ role: 'user', content: JSON.stringify(input) }];
@@ -49,9 +59,9 @@ export const intentExtractionXpertService = {
       if (result.decision === 'accepted') {
         activeBundle = result.bundle ?? originalBundle;
       }
-      // 'rejected' → keep originalBundle (activeBundle already set)
+      // If rejected, we proceed with the original untampered bundle.
     }
-    // --- end interception ---
+    // --- End Interception ---
 
     const systemPrompt = activeBundle.combined;
     let repairPromptUsed = false;
@@ -74,6 +84,8 @@ export const intentExtractionXpertService = {
       const validation = intent ? xpertContractService.validateIntent(intent) : { isValid: false, errors: ['Parse failed'] };
       validationErrors = validation.errors;
 
+      // --- Automatic Repair Logic ---
+      // If the first response is invalid, we send the errors back to the AI for correction.
       if (!validation.isValid) {
         repairPromptUsed = true;
         const repairPrompt = INTENT_EXTRACTION_PROMPT.REPAIR_PROMPT.replace(
@@ -127,8 +139,10 @@ export const intentExtractionXpertService = {
   },
 
   /**
-   * Builds the structured prompt bundle for Xpert intent extraction.
-   * The `combined` field is byte-for-byte identical to the previous raw string return value.
+   * Constructs the multi-part system prompt used for intent extraction.
+   *
+   * @param facets Optional facet data to inject into the "facetContext" segment of the prompt.
+   * @returns A structured XpertPromptBundle containing all prompt segments.
    */
   buildSystemPrompt(facets?: FacetReference | null): XpertPromptBundle {
     const baseContent = INTENT_EXTRACTION_PROMPT.BASE_CONTENT;
@@ -186,10 +200,11 @@ Rules:
   },
 
   /**
-   * Generates sample careers if the discovery service returns no results.
+   * Generates a list of suggested career paths based on the learner's profile.
+   * This is typically used as a fallback or starting point when direct discovery returns limited results.
    *
    * @param input The preprocessed user data.
-   * @returns A list of relevant career matches.
+   * @returns A promise resolving to an array of CareerOption objects.
    */
   async generateSampleCareers(input: PreprocessedInput): Promise<CareerOption[]> {
     const systemMessage = INTENT_EXTRACTION_PROMPT.SAMPLE_CAREERS_SYSTEM_MESSAGE;
@@ -219,7 +234,7 @@ Rules:
   },
 
   /**
-   * Re-export preprocessInput from original service for consistency.
+   * Exposes the preprocessing logic for use by consumers.
    */
   preprocessInput: intakePreprocessor.preprocessInput,
 };

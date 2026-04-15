@@ -42,6 +42,7 @@ declare global {
     userId: number;
     username: string;
     email: string;
+    name?: string;
     roles: string[];
     administrator: boolean;
     extendedProfile?: Record<string, any>;

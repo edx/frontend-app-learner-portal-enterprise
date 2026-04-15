@@ -34,9 +34,14 @@ interface UserProfileProps {
 }
 
 /**
- * UserProfile component displays the generated learner profile and allows
- * the user to select a career match and trigger pathway generation.
- * Converted from Ionic to Paragon.
+ * UserProfile component displays the AI-generated learner profile summary.
+ *
+ * It provides:
+ * - A summary of the learner's goals, background, and motivation.
+ * - Inline editing capabilities for profile refinement.
+ * - A selection interface for AI-matched career paths.
+ * - An overview of skills required for the selected career.
+ * - A primary action to trigger the final pathway generation.
  */
 export const UserProfile = ({
   profile,
@@ -57,7 +62,19 @@ export const UserProfile = ({
     timeAvailable,
     certificate,
     careerMatches,
+    name,
   } = profile;
+
+  const initials = useMemo(() => {
+    if (!name) { return 'U'; }
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }, [name]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState({
@@ -173,10 +190,10 @@ export const UserProfile = ({
           className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mr-3"
           style={{ width: '64px', height: '64px', fontSize: '24px' }}
         >
-          MB
+          {initials}
         </div>
         <div>
-          <h2 className="h3 font-weight-bold mb-0">Mike Brown</h2>
+          <h2 className="h3 font-weight-bold mb-0">{name || 'Learner'}</h2>
           <p className="text-muted mb-0">Learner Profile</p>
         </div>
       </header>

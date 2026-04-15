@@ -32,10 +32,13 @@ const getStatusVariant = (status: CourseStatus): 'success' | 'warning' | 'info' 
 };
 
 /**
- * PathwayList component renders the course roadmap for a generated learning pathway.
+ * PathwayList component renders the personalized course roadmap for the learner.
  *
- * It provides a header with summary statistics and a detailed table of recommended courses.
- * This component is a Paragon-based migration of the source app's Pathway component.
+ * It provides:
+ * - A summary dashboard with pathway statistics (Completed, In Progress, Upcoming).
+ * - A filterable and sortable list of recommended courses.
+ * - Personalized AI reasoning for each recommendation.
+ * - Quick actions for registration or continuing coursework.
  */
 export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
   const { courses } = pathway;

@@ -1,3 +1,10 @@
+/**
+ * Service for validating Xpert prompt bundles before execution.
+ *
+ * It enforces structural integrity (required parts), content presence, and
+ * character count thresholds to ensure prompts are safe, effective, and
+ * within reasonable token limits.
+ */
 import { XpertPromptBundle, PromptPartLabel } from '../types';
 
 // ---------------------------------------------------------------------------

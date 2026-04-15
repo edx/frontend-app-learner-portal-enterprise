@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import type { PathwayCourse } from '../types';
 
 /**
- * Hook to manage the course detail visibility and state.
+ * Hook to manage the visibility and data state for the course detail view.
  *
- * This hook provides state and handlers for opening and closing a detailed view
- * of a specific course within a pathway.
+ * This hook handles the logic for selecting a specific course from the pathway
+ * and managing its detailed display (typically within a modal or drawer).
  */
 export const usePathwayDetail = () => {
   const [selectedCourse, setSelectedCourse] = useState<PathwayCourse | null>(null);

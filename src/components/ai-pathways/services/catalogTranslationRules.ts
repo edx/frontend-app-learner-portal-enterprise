@@ -3,52 +3,30 @@ import { RulesFirstMappingTrace } from '../types';
 import { CATALOG_ALIAS_MAP } from '../constants';
 
 /**
- * @typedef {Object} TaxonomyTranslationInput
- * @property {string} careerTitle - User's target career title
- * @property {string[]} skills - Extracted skills from taxonomy
- * @property {string[]} industries - Extracted industries from taxonomy
- * @property {string[]} similarJobs - Similar job titles from taxonomy
- * @property {Object} facetSnapshot - Snapshot of available catalog facets
- */
-
-/**
- * @typedef {Object} RulesFirstCandidates
- * @property {string[]} exactMatches - Terms that matched exactly (case-insensitive)
- * @property {string[]} aliasMatches - Terms that matched via curated alias list
- * @property {string[]} unmatched - Terms that could not be mapped
- */
-
-/**
  * Normalizes a term for catalog alias matching and comparison.
+ * Trims whitespace and converts to lowercase for consistent case-insensitive lookup.
  *
- * @param {string} term - Raw taxonomy term or catalog facet value
- * @returns {string} Normalized string (trimmed, lowercase)
- *
- * @remarks
- * Pipeline: translation (rules-first)
+ * @param term The raw taxonomy term or catalog facet value.
+ * @returns A normalized string.
  */
 export const normalizeCatalogTerm = (term: string): string => term.trim().toLowerCase();
 
 /**
- * Rules-first mapper that translates taxonomy terms into catalog-valid search parameters.
+ * Deterministic mapper that translates taxonomy terms into catalog-valid search parameters.
  *
- * @remarks
- * Pipeline: intake → intent → translation (rules) → retrieval
+ * Pipeline context: This is the first sub-stage of the 'catalogTranslation' phase.
+ * It uses high-confidence rules (exact matches and a curated alias map) to ground
+ * taxonomy data into the specific course catalog.
  *
- * Dependencies:
- * - CATALOG_ALIAS_MAP (curated aliases)
- * - catalog facet snapshot (ground truth)
- *
- * Notes:
- * - This module is deterministic and does not use AI/Xpert.
- * - Results are used to ground the search and provide context for Xpert refinement.
+ * Because this module is deterministic, it provides a reliable baseline before
+ * any AI-driven translation is attempted.
  */
 export const catalogTranslationRules = {
   /**
    * Translates taxonomy terms into catalog-valid candidates using exact matches and aliases.
    *
-   * @param {TaxonomyTranslationInput} input - Taxonomy translation input
-   * @returns {{ result: RulesFirstCandidates; trace: RulesFirstMappingTrace }} Resulting candidates and trace
+   * @param input Structured taxonomy data and the current catalog facet snapshot.
+   * @returns An object containing the successfully mapped candidates and a detailed trace.
    */
   translateTaxonomyToCatalog(
     input: TaxonomyTranslationInput,
@@ -61,13 +39,14 @@ export const catalogTranslationRules = {
       facetSnapshot,
     } = input;
 
-    // Build a set of all valid catalog skills/subjects for O(1) lookup
+    // Build a set of all valid catalog skills/subjects for O(1) lookup.
     const validCatalogValues = new Set<string>();
     facetSnapshot.skill_names.forEach((s) => validCatalogValues.add(s));
     facetSnapshot['skills.name'].forEach((s) => validCatalogValues.add(s));
     facetSnapshot.subjects.forEach((s) => validCatalogValues.add(s));
 
-    // Create a normalized lookup map (normalizedValue -> originalCatalogValue)
+    // Create a normalized lookup map (normalizedValue -> originalCatalogValue).
+    // This allows case-insensitive exact matching while preserving the catalog's casing.
     const normalizedLookup = new Map<string, string>();
     validCatalogValues.forEach((val) => {
       normalizedLookup.set(normalizeCatalogTerm(val), val);
@@ -77,7 +56,7 @@ export const catalogTranslationRules = {
     const aliasMatchesSet = new Set<string>();
     const unmatchedSet = new Set<string>();
 
-    // Combine all inputs to be translated
+    // Combine all inputs to be translated into a unique list.
     const termsToTranslate = Array.from(
       new Set(
         [careerTitle, ...skills, ...industries, ...similarJobs]
@@ -89,24 +68,23 @@ export const catalogTranslationRules = {
     termsToTranslate.forEach((term) => {
       const normTerm = normalizeCatalogTerm(term);
 
-      // 1. Check Exact Match (Case-insensitive)
+      // 1. Check Exact Match (Case-insensitive).
       if (normalizedLookup.has(normTerm)) {
         exactMatchesSet.add(normalizedLookup.get(normTerm)!);
         return;
       }
 
-      // 2. Check Alias Map
+      // 2. Check Curated Alias Map.
       const aliasTarget = CATALOG_ALIAS_MAP[normTerm];
       if (aliasTarget) {
-        // Only count as alias match if the target exists in the catalog
+        // Only count as an alias match if the target actually exists in the current catalog.
         if (validCatalogValues.has(aliasTarget)) {
           aliasMatchesSet.add(aliasTarget);
           return;
         }
-        // If the alias target isn't in this specific catalog, it's still unmatched
       }
 
-      // 3. Unmatched
+      // 3. Mark as unmatched for later stages (e.g., AI Mapping).
       unmatchedSet.add(term);
     });
 

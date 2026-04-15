@@ -24,7 +24,7 @@ describe('xpertCatalogTranslationPrompt', () => {
     const systemPrompt = bundle.combined;
 
     expect(systemPrompt).toContain('career-to-catalog translation engine');
-    expect(systemPrompt).toContain('ONLY use values from "facetSnapshot.skill_names"');
+    expect(systemPrompt).toContain('ONLY use values present in "facetSnapshot".');
     expect(systemPrompt).toContain('Return strict JSON only');
     expect(systemPrompt).toContain('Expected Output Shape');
     expect(systemPrompt).toContain('droppedTaxonomySkills');

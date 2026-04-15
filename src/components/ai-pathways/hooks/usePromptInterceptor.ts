@@ -1,3 +1,17 @@
+/**
+ * Custom hook providing a self-contained interception layer for Xpert AI prompts.
+ *
+ * It allows the UI (DebugConsole) to asynchronously intercept outbound AI
+ * requests, permitting developers to review, edit, or cancel prompts before
+ * they are sent to the backend.
+ *
+ * Lifecycle:
+ * 1. Stage service calls interceptPrompt() and awaits the result.
+ * 2. Hook sets 'isPending' to true and exposes 'pendingInterception' data.
+ * 3. UI renders an editor (PromptEditorModal) based on this state.
+ * 4. User actions (Accept/Reject/Cancel) resolve the original promise.
+ * 5. Stage service receives the decision and optionally modified bundle.
+ */
 import { useCallback, useRef, useState } from 'react';
 import { XpertPromptBundle } from '../types';
 import { XpertMessage } from '../services/xpert.service';

@@ -1,18 +1,11 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { careerRetrievalService } from '../careerRetrieval';
-import { DEFAULT_INTENT } from '../xpertContract';
+import { DEFAULT_INTENT } from '../../constants';
 
 describe('careerRetrievalService', () => {
   const mockIndex = {
     search: jest.fn(),
   } as unknown as SearchIndex;
-
-  const mockContext = {
-    enterpriseCustomerUuid: 'ent-123',
-    searchCatalogs: ['cat-abc'],
-    catalogUuidsToCatalogQueryUuids: { 'cat-abc': 'query-abc' },
-    locale: 'en',
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +31,7 @@ describe('careerRetrievalService', () => {
       skillsRequired: ['React'],
     };
 
-    const result = await careerRetrievalService.searchCareers(mockIndex, intent, mockContext);
+    const result = await careerRetrievalService.searchCareers(mockIndex, intent);
 
     expect(mockIndex.search).toHaveBeenCalledWith('engineer', expect.objectContaining({
       filters: expect.stringContaining('industry_names:"Tech"'),
@@ -58,7 +51,7 @@ describe('careerRetrievalService', () => {
       excludeTags: ['PHP', 'Ruby'],
     };
 
-    await careerRetrievalService.searchCareers(mockIndex, intent, mockContext);
+    await careerRetrievalService.searchCareers(mockIndex, intent);
 
     expect(mockIndex.search).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
       filters: expect.stringContaining('NOT skills.name:"PHP"'),

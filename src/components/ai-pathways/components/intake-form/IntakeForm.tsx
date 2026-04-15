@@ -24,7 +24,13 @@ interface IntakeFormProps {
 
 /**
  * IntakeForm component manages the multi-step questionnaire for generating
- * a learner profile. It is converted from Ionic to Paragon.
+ * a personalized learner profile.
+ *
+ * It guides the user through four stages:
+ * 1. Goals: "What brings you here" and primary career objective.
+ * 2. Background: Professional history and target industry.
+ * 3. Preferences: Learning modality, weekly availability, and credential interest.
+ * 4. Processing: A loading state shown while the AI extracts intent and matches careers.
  */
 export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) => {
   const {

@@ -1,5 +1,4 @@
 import {
-  SearchIntent,
   TaxonomyFacetBootstrap,
   AIPathwaysResponseModel,
   CareerOption,
@@ -16,7 +15,7 @@ export const mockIntakeInput = {
   certificateRes: 'Yes',
 };
 
-export const mockSearchIntent: SearchIntent = {
+export const mockSearchIntent = {
   condensedQuery: 'software engineering',
   roles: ['Software Engineer', 'Full Stack Developer'],
   skillsRequired: ['JavaScript', 'React', 'Node.js'],

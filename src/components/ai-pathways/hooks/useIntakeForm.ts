@@ -7,7 +7,17 @@ interface UseIntakeFormArgs {
 }
 
 /**
- * Hook to manage the state and logic of the intake form.
+ * Hook to manage the state and multi-step navigation logic of the AI Pathways intake form.
+ *
+ * It handles:
+ * - Tracking the current form page index.
+ * - Managing raw form response data.
+ * - Calculating progress percentage.
+ * - Navigating between steps (Back/Next).
+ * - Triggering the final submission to the generation pipeline.
+ *
+ * @param onSubmit Callback to execute when the form is submitted.
+ * @returns An object containing form state and interaction handlers.
  */
 export const useIntakeForm = ({ onSubmit }: UseIntakeFormArgs) => {
   const [pageIndex, setPageIndex] = useState(0);

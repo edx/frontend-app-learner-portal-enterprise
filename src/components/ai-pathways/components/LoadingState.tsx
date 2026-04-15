@@ -9,8 +9,10 @@ interface LoadingStateProps {
 }
 
 /**
- * LoadingState displays a centered spinner with an optional message.
- * Use this during API calls and initial data loading.
+ * LoadingState displays a centered spinner and informative message.
+ *
+ * It is used globally across the AI Pathways feature during asynchronous
+ * operations like intent extraction, career retrieval, and pathway generation.
  */
 export const LoadingState = ({
   message = 'Loading...',

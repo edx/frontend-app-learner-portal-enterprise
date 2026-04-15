@@ -1,35 +1,27 @@
 /**
- * exportResponseModel — utilities for exporting the full AI Pathways responseModel
- * as a downloadable JSON file.
- *
- * No console logging. No backend persistence. Browser-only download.
+ * Utility for exporting the full AI Pathways response model as a downloadable JSON file.
+ * This is primarily used for debugging and sharing generation traces between developers
+ * and prompt engineers.
  */
 import { AIPathwaysResponseModel } from '../types';
 import { formatExportTimestamp } from './dateUtils';
 
 /**
- * @typedef {Object} AIPathwaysResponseModel
- * @property {string} requestId - Unique ID for the request
- * @property {Object} stages - Metadata for each pipeline stage
- * @property {Array} [promptDebug] - Recorded Xpert prompt interceptions
- */
-
-/**
- * Builds the export filename with the required prefix and timestamp.
+ * Builds a standardized export filename with a timestamp.
  *
- * @param {Date} [date=new Date()] - Date to use for the timestamp
- * @returns {string} Formatted filename (e.g., learner-rec-output-2026-04-13_16-42-09.json)
+ * @param date The date to include in the filename (defaults to now).
+ * @returns A string in the format 'learner-rec-output-YYYY-MM-DD_HH-mm-ss.json'.
  */
 export function buildExportFilename(date: Date = new Date()): string {
   return `learner-rec-output-${formatExportTimestamp(date)}.json`;
 }
 
 /**
- * Safely serializes a value to a JSON string, normalizing any
- * non-serializable values (e.g. undefined, circular refs).
+ * Safely serializes a value to a JSON string, handling circular references
+ * and normalizing undefined values to null for consistent JSON output.
  *
- * @param {unknown} value - Value to serialize
- * @returns {string} 2-space indented JSON string
+ * @param value The object to serialize.
+ * @returns A 2-space indented JSON string.
  */
 export function safeSerialize(value: unknown): string {
   const seen = new WeakSet();
@@ -52,11 +44,11 @@ export function safeSerialize(value: unknown): string {
 }
 
 /**
- * Triggers a browser file download for the given text content.
+ * Triggers a programmatic browser download of the provided text content.
  *
- * @param {string} filename - The name for the downloaded file
- * @param {string} content - UTF-8 text content to include in the file
- * @param {string} [mimeType='application/json'] - MIME type
+ * @param filename The desired name for the downloaded file.
+ * @param content The string content to be included in the file.
+ * @param mimeType The MIME type of the file (defaults to application/json).
  */
 export function triggerDownload(
   filename: string,
@@ -76,15 +68,10 @@ export function triggerDownload(
 }
 
 /**
- * Exports the full responseModel as a timestamped JSON file download.
+ * Exports the complete AIPathwaysResponseModel as a timestamped JSON file.
  *
- * @param {AIPathwaysResponseModel} responseModel - The complete model to export
- * @param {Date} [date=new Date()] - Optional Date override (useful for testing)
- *
- * @remarks
- * Dependencies:
- * - formatExportTimestamp utility
- * - Browser DOM (for anchor-click download)
+ * @param responseModel The complete staged state and trace of a pathway generation.
+ * @param date Optional date override for the filename timestamp.
  */
 export function exportResponseModel(
   responseModel: AIPathwaysResponseModel,

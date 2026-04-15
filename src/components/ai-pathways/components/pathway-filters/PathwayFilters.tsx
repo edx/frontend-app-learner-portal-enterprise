@@ -25,9 +25,14 @@ interface PathwayFiltersProps {
 }
 
 /**
- * PathwayFilters component provides UI controls for filtering and sorting the pathway course list.
+ * PathwayFilters component provides a collection of input controls for
+ * navigating the generated course pathway.
  *
- * It uses Paragon's SearchField and Form components for consistent design.
+ * It supports:
+ * - Real-time keyword filtering.
+ * - Multi-select facet filtering (Status, Level).
+ * - Multi-column sorting.
+ * - State reset functionality.
  */
 export const PathwayFilters = ({
   searchQuery,

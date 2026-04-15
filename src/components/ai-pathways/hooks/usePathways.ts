@@ -1,8 +1,9 @@
 import {
-  useState, useCallback, useMemo, useRef,
+  useState, useCallback, useMemo, useRef, useContext,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getConfig } from '@edx/frontend-platform';
+import { AppContext } from '@edx/frontend-platform/react';
 import { intentExtractionXpertService, PromptInterceptFn } from '../services/intentExtraction.xpert.service';
 import { pathwayAssemblerXpertService } from '../services/pathwayAssembler.xpert.service';
 import { facetBootstrapService } from '../services/facetBootstrap';
@@ -32,28 +33,18 @@ import { catalogTranslationService } from '../services/catalogTranslationService
 import { catalogTranslationXpertService } from '../services/catalogTranslation.xpert.service';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 
+/**
+ * Union type representing the possible steps in the AI Pathways generation flow.
+ */
 export type PathwayStep = typeof FEATURE_STEPS[keyof typeof FEATURE_STEPS];
 
 /**
- * Hook to manage the AI Learning Pathways state and orchestration.
+ * Creates a wrapped interceptPrompt function that records the interaction outcome
+ * into a debug log. This allows the DebugConsole to surface prompt history.
  *
- * Pipeline: intake → intent → translation → retrieval → enrichment → UI
- *
- * Contract:
- * - Orchestrates multi-stage flow across specialized services.
- * - Manages state for intake form, learner profile, and the final pathway.
- *
- * Flow:
- * 1. Intake -> Facet Bootstrap (Job Index)
- * 2. Intent Extraction (Xpert + Facets)
- * 3. Career Retrieval (Job Index)
- * 4. Selection -> Catalog Facet Snapshot -> Rules-First Translation
- *    -> Optional Xpert Refinement -> Course Retrieval (Catalog Index)
- * 5. Pathway Enrichment (Xpert)
- */
-/**
- * Creates a wrapped interceptPrompt function that, in addition to delegating
- * to the real interceptor, records a PromptDebugEntry into the provided array.
+ * @param interceptPrompt The original prompt interceptor function.
+ * @param debugLog The mutable array to store the capture entries.
+ * @returns A wrapped PromptInterceptFn.
  */
 function makeCapturingInterceptor(
   interceptPrompt: PromptInterceptFn,
@@ -67,11 +58,11 @@ function makeCapturingInterceptor(
       decision: result.decision,
       timestamp: new Date().toISOString(),
     };
-    // Only attach `edited` when the user actually accepted a (potentially modified) bundle
+    // Attach the edited bundle only if the user modified it before accepting.
     if (result.decision === 'accepted' && result.bundle && result.bundle !== bundle) {
       entry.edited = result.bundle;
     }
-    // Persist any validation issues surfaced before the decision.
+    // Surface any validation issues produced by the validator.
     if (result.validationWarnings && result.validationWarnings.length > 0) {
       entry.validationWarnings = result.validationWarnings;
     }
@@ -81,36 +72,23 @@ function makeCapturingInterceptor(
 }
 
 /**
- * @typedef {string} PathwayStep
- */
-
-/**
- * Orchestrator hook for the AI Pathways generation pipeline.
+ * Central orchestrator hook for the AI Learning Pathways feature.
  *
- * @returns {Object} AI Pathways state and actions
- * @property {PathwayStep} currentStep - Current UI stage ('intake', 'selection', 'pathway')
- * @property {LearnerProfile|null} learnerProfile - Refined user profile summarizing inputs
- * @property {XpertIntent|null} searchIntent - Extracted search intent from intake
- * @property {CareerCardModel|null} selectedCareer - User-selected target career
- * @property {LearningPathway|null} pathway - Final generated course recommendations
- * @property {AIPathwaysResponseModel|null} pathwayResponse - Full debug response model
- * @property {boolean} isLoading - Global loading state for pipeline operations
- * @property {Error|null} error - Error state
- * @property {Function} generateProfile - Action to start pipeline from intake form
- * @property {Function} selectCareer - Action to select a career from recommendations
- * @property {Function} generatePathway - Action to generate the final course pathway
- * @property {Function} reset - Action to reset state and return to intake
+ * This hook manages the end-to-end state and lifecycle of a personalized pathway
+ * generation request. It coordinates multiple asynchronous AI and search services,
+ * providing a unified interface for the UI.
  *
- * @remarks
- * Pipeline Orchestration:
- * 1. Intake → generateProfile() → Intent Extraction (Xpert) → Career Retrieval (Algolia)
- * 2. Selection → selectCareer()
- * 3. Generation → generatePathway() → Translation (Rules/Xpert) → Retrieval (Algolia) → Assembly (Xpert) → Mapping (UI)
+ * Pipeline Flow:
+ * 1. Intake: User submits form → generateProfile()
+ * 2. Intent Extraction: AI processes narrative into structured intent.
+ * 3. Career Discovery: Search taxonomy for matching professional roles.
+ * 4. Selection: User chooses a target career → selectCareer()
+ * 5. Translation: Taxonomy terms mapped to valid catalog facets (Rules + AI).
+ * 6. Course Discovery: Progressive search "ladder" to find courses → generatePathway()
+ * 7. Enrichment: AI generates personalized reasoning for recommendations.
+ * 8. UI Rendering: Final pathway displayed to learner.
  *
- * Dependencies:
- * - Algolia search indices (Jobs & Content)
- * - Xpert AI services (Intent, Translation, Assembly)
- * - Shared services (facetBootstrap, catalogTranslation, courseRetrieval)
+ * @returns An object containing the current pipeline state and action handlers.
  */
 export const usePathways = () => {
   const [currentStep, setCurrentStep] = useState<PathwayStep>(FEATURE_STEPS.INTAKE);
@@ -122,23 +100,31 @@ export const usePathways = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Holds the optional interceptor supplied by the caller of generateProfile.
-  // Stored in a ref so generatePathway (a separate callback) can access the
-  // same instance without needing it threaded through its own parameter list.
+  /**
+   * Optional interceptor supplied during the 'generateProfile' call.
+   * Stored in a ref to persist across multiple pipeline actions.
+   */
   const interceptPromptRef = useRef<PromptInterceptFn | undefined>(undefined);
 
-  // The shared debug log for the current request; reset on each generateProfile call.
+  /**
+   * Cumulative debug log for the current request.
+   */
   const promptDebugLogRef = useRef<PromptDebugEntry[]>([]);
 
   // External context for Algolia and API calls
   const config = getConfig();
+  const { authenticatedUser }: AppContextValue = useContext(AppContext);
 
-  // Job/Career Index
+  /**
+   * Algolia index for professional roles and taxonomy skills.
+   */
   const {
     searchIndex: jobIndex,
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME_JOBS);
 
-  // Content/Catalog Index
+  /**
+   * Algolia index for the actual course catalog.
+   */
   const {
     searchIndex: catalogIndex,
     catalogUuidsToCatalogQueryUuids,
@@ -149,6 +135,9 @@ export const usePathways = () => {
   const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string, slug?: string };
   const searchCatalogs = useSearchCatalogs();
 
+  /**
+   * Derived context used to scope all catalog-specific operations (facets, retrieval).
+   */
   const facetContext = useMemo(() => ({
     enterpriseCustomerUuid: enterpriseCustomer.uuid,
     searchCatalogs,
@@ -163,15 +152,17 @@ export const usePathways = () => {
   ]);
 
   /**
-   * Generates a learner profile and extracts search intent from intake form data.
-   * @param args Intake form responses.
-   * @param interceptPrompt Optional interceptor to review/edit prompts before execution.
+   * Starts the generation process from the raw intake form data.
+   * Executes Preprocessing, Intent Extraction, and Career Discovery.
+   *
+   * @param args Raw form responses from the learner.
+   * @param interceptPrompt Optional hook for reviewing prompts in debug mode.
+   * @returns The generated LearnerProfile containing suggested career paths.
    */
   const generateProfile = useCallback(async (
     args: CreateLearnerProfileArgs,
     interceptPrompt?: PromptInterceptFn,
   ) => {
-    // Persist interceptor + reset debug log for this request
     interceptPromptRef.current = interceptPrompt;
     promptDebugLogRef.current = [];
     if (!jobIndex) {
@@ -187,7 +178,7 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Facet Bootstrap (Deterministic)
+      // 1. Facet Bootstrap (Fetch common taxonomy values for normalization)
       const facetStartTime = Date.now();
       const facets = await facetBootstrapService.bootstrapFacets(jobIndex);
       responseModel.stages.facetBootstrap = {
@@ -195,12 +186,10 @@ export const usePathways = () => {
         success: true,
       };
 
-      // 2. Preprocess Input
+      // 2. Preprocess Input (Clean narrative and normalize choices)
       const preprocessed = intakePreprocessor.preprocessInput(args);
 
-      // 3. Intent Extraction (Xpert + Facets)
-      // Wire the shared debug log into the response model (live reference — entries
-      // added during generatePathway will also be captured here).
+      // 3. Intent Extraction (AI stage)
       responseModel.promptDebug = promptDebugLogRef.current;
       const profileInterceptor = interceptPromptRef.current
         ? makeCapturingInterceptor(interceptPromptRef.current, promptDebugLogRef.current)
@@ -215,7 +204,7 @@ export const usePathways = () => {
       const { intent } = extractionResult;
       setSearchIntent(intent);
 
-      // 4. Career Retrieval (Algolia)
+      // 4. Career Retrieval (Deterministic search based on intent)
       const careerStartTime = Date.now();
       const careers = await careerRetrievalService.searchCareers(jobIndex, intent);
       responseModel.stages.careerRetrieval = {
@@ -224,12 +213,13 @@ export const usePathways = () => {
         resultCount: careers.length,
       };
 
-      // 5. Construct the UI-facing LearnerProfile
+      // 5. Build the UI-facing profile summary
       const overview = careers.length > 0
         ? `Found ${careers.length} career matches for your goals.`
         : `We couldn't find exact matches for "${intent.condensedQuery}", but here are some recommended career paths.`;
 
       const profile: LearnerProfile = {
+        name: authenticatedUser?.name || authenticatedUser?.username,
         overview,
         careerGoal: args.careerGoalRes,
         targetIndustry: args.industryRes,
@@ -240,18 +230,19 @@ export const usePathways = () => {
         certificate: args.certificateRes,
         careerMatches: careers.map(c => ({
           title: c.title,
-          percentMatch: 95, // Placeholder
+          percentMatch: 95, // Default similarity placeholder
           skills: c.skills,
           industries: c.industries,
         })),
       };
 
-      // Store the full CareerCardModel for later retrieval
+      // Persist original careers for the selection phase.
       (profile as any).rawCareers = careers;
 
       setPathwayResponse(responseModel);
       setLearnerProfile(profile);
 
+      // Auto-select the first match as the default.
       if (careers.length > 0) {
         setSelectedCareer(careers[0]);
       }
@@ -264,10 +255,12 @@ export const usePathways = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [jobIndex]);
+  }, [jobIndex, authenticatedUser?.name, authenticatedUser?.username]);
 
   /**
    * Selects a career option from the match list.
+   *
+   * @param career The career option chosen by the user.
    */
   const selectCareer = useCallback((career: CareerOption) => {
     const fullCareer = (learnerProfile as any)?.rawCareers?.find((c: CareerCardModel) => c.title === career.title);
@@ -275,11 +268,12 @@ export const usePathways = () => {
   }, [learnerProfile]);
 
   /**
-   * Generates a new learning pathway by discovering content and assembling it.
+   * Finalizes the pathway by discovering courses and generating reasoning.
+   * Executes Translation (Rules/AI), Discovery (Ladder), and Enrichment stages.
+   *
+   * @returns The list of discovered courses.
    */
   const generatePathway = useCallback(async () => {
-    // Build a capturing interceptor for this pathway phase (reuses the same
-    // debug log as generateProfile so all entries accumulate on one responseModel).
     if (!selectedCareer || !searchIntent || !catalogIndex || !pathwayResponse) {
       throw new Error('Missing data or search index to generate pathway');
     }
@@ -292,7 +286,7 @@ export const usePathways = () => {
       : undefined;
 
     try {
-      // 1. Catalog Facet Snapshot (Deterministic, scoped by enterprise context)
+      // 1. Catalog Facet Snapshot (Ensures grounded search terms)
       const courseStartTime = Date.now();
       const facetStartMs = Date.now();
       const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
@@ -303,7 +297,7 @@ export const usePathways = () => {
         trace: facetSnapshotTrace,
       };
 
-      // 2. Rules-first taxonomy translation
+      // 2. Rules-first Mapping (Deterministic stage)
       const rulesFirstMs = Date.now();
       const { result: rulesFirst, trace: rulesFirstTrace } = catalogTranslationRules.translateTaxonomyToCatalog({
         careerTitle: selectedCareer.title,
@@ -318,7 +312,7 @@ export const usePathways = () => {
         trace: rulesFirstTrace,
       };
 
-      // 3. Hybrid translation: run Xpert only when rules-first left unmatched terms
+      // 3. AI Mapping (Optional fallback for unmatched terms)
       let xpertRawResponse: string | undefined;
       let xpertDebugPayload: {
         systemPrompt: string; rawResponse: string; durationMs: number; success: boolean;
@@ -338,11 +332,11 @@ export const usePathways = () => {
           xpertRawResponse = xpertResult.rawResponse || undefined;
           xpertDebugPayload = xpertResult.debug;
         } catch {
-          // Xpert refinement failed — continue with rules-first output only
+          // Continue with deterministic results if AI fails.
         }
       }
 
-      // 4. Consolidate into final CatalogTranslation
+      // 4. Consolidation (Merge rules-first and AI mapping)
       const translationMs = Date.now();
       const { translation, trace: translationTrace } = catalogTranslationService.processTranslation(
         selectedCareer.title,
@@ -357,7 +351,7 @@ export const usePathways = () => {
         trace: translationTrace,
       };
 
-      // 5. Course Retrieval using consolidated translation, scoped by enterprise context
+      // 5. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
         catalogIndex,
         translation,
@@ -374,7 +368,7 @@ export const usePathways = () => {
         hits: courses.map(c => c.raw as CourseRetrievalHit),
       };
 
-      // 6. Map to LearningPathway
+      // 6. Assembly (Map to LearningPathway shape)
       const initialPathway: LearningPathway = {
         courses: courses.map(c => ({
           id: c.id,
@@ -389,7 +383,7 @@ export const usePathways = () => {
         })),
       };
 
-      // 7. Enrichment (Xpert)
+      // 7. Enrichment (AI stage for personalized reasoning)
       const enrichmentResult = await pathwayAssemblerXpertService.enrichWithReasoning(
         initialPathway,
         searchIntent,
@@ -410,7 +404,7 @@ export const usePathways = () => {
   }, [selectedCareer, searchIntent, catalogIndex, pathwayResponse, facetContext]);
 
   /**
-   * Resets the entire flow state.
+   * Resets the entire feature state, returning the user to the intake form.
    */
   const reset = useCallback(() => {
     setCurrentStep(FEATURE_STEPS.INTAKE);

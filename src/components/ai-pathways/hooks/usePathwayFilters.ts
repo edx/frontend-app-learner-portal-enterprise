@@ -9,10 +9,16 @@ export interface UsePathwayFiltersProps {
 }
 
 /**
- * Custom hook to manage searching, filtering, and sorting for pathway courses.
+ * Custom hook to manage the presentation-layer state for pathway courses.
  *
- * @param {UsePathwayFiltersProps} props - The initial set of courses to filter.
- * @returns {Object} - An object containing filtered/sorted courses and handlers.
+ * It provides local state and logic for:
+ * - Text-based searching across course titles and AI reasoning.
+ * - Filtering by course completion status.
+ * - Filtering by difficulty level.
+ * - Multi-column sorting (Order, Title, Status, Level).
+ *
+ * @param props Input properties including the raw course list.
+ * @returns Filtered/sorted courses and state management handlers.
  */
 export const usePathwayFilters = ({ courses }: UsePathwayFiltersProps) => {
   const [searchQuery, setSearchQuery] = useState('');

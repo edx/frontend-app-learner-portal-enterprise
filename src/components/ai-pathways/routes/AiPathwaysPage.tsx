@@ -13,11 +13,16 @@ import {
 } from '../components';
 
 /**
- * AiPathwaysPage is the top-level entry point for the AI Pathways feature.
+ * AiPathwaysPage is the top-level entry point and router for the AI Pathways feature.
  *
- * It manages the high-level state of the feature slice and coordinates
- * rendering of its sub-pages (Intake, Profile, and Learning Pathway)
- * using the usePathways hook to drive the interaction flow.
+ * It manages the high-level UI state and coordinates the transitions between
+ * the different functional stages:
+ * 1. Intake: Collecting learner goals and background.
+ * 2. Profile: Displaying AI-matched careers and refining preferences.
+ * 3. Results: Presenting the final personalized learning pathway.
+ *
+ * It also hosts the Debug Console and Prompt Interceptor layer when the
+ * '?debug=true' query parameter is present.
  */
 export const AiPathwaysPage = () => {
   const {

@@ -7,23 +7,39 @@ import {
   TIME_COMMITMENTS,
 } from '../constants';
 
+/**
+ * Expected shape of the AI response for course reasoning/enrichment.
+ */
 export interface ReasoningResponse {
+  /** List of reasoning entries mapped by course ID. */
   reasonings: Array<{
+    /** Unique course identifier. */
     id: string;
+    /** Personalised reasoning for why this course belongs in the pathway. */
     reasoning: string;
   }>;
 }
 
+/**
+ * Service for enforcing structural and semantic contracts for Xpert AI interactions.
+ *
+ * This service centralizes the logic for parsing raw AI strings, normalizing
+ * inconsistent outputs (e.g., missing fields or invalid enums), and validating
+ * the quality of the extracted intent against feature requirements.
+ */
 export const xpertContractService = {
   /**
-   * Parses, validates, and normalizes Xpert response into XpertIntent.
+   * Parses and normalizes a raw Xpert response string into a structured XpertIntent.
+   * Handles common LLM output issues like markdown code fences.
    *
-   * @param rawResponse Raw string from Xpert assistant message.
-   * @returns Validated XpertIntent or null if parsing fails entirely.
+   * @param rawResponse The raw assistant message content from Xpert.
+   * @returns A normalized XpertIntent object, or null if parsing fails.
    */
   parseIntent(rawResponse: string): XpertIntent | null {
     try {
-      // Handle potential markdown fences if Xpert ignores instructions
+      /**
+       * Strip potential markdown fences (e.g., ```json ... ```) to isolate the raw JSON.
+       */
       const jsonString = rawResponse.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
       const parsed = JSON.parse(jsonString);
       return this.normalizeIntent(parsed);
@@ -33,20 +49,26 @@ export const xpertContractService = {
   },
 
   /**
-   * Normalizes a raw object into a strict XpertIntent.
-   * Coerces unknown enum values to defaults and ensures all arrays exist.
+   * Coerces a raw object into a strictly-typed XpertIntent.
+   * Ensures all required fields exist and enum values are valid, falling back to defaults if necessary.
+   *
+   * @param raw The unvalidated object from JSON.parse.
+   * @returns A strict XpertIntent object.
    */
   normalizeIntent(raw: any): XpertIntent {
+    /** Maps raw difficulty levels to valid LearnerLevel enums. */
     const normalizeLevel = (level: any): LearnerLevel => {
       const valid = LEARNER_LEVELS as unknown as any[];
       return valid.includes(level) ? level : DEFAULT_INTENT.learnerLevel;
     };
 
+    /** Maps raw commitment options to valid TimeCommitment enums. */
     const normalizeCommitment = (commitment: any): TimeCommitment => {
       const valid = TIME_COMMITMENTS as unknown as any[];
       return valid.includes(commitment) ? commitment : DEFAULT_INTENT.timeCommitment;
     };
 
+    /** Ensures a value is a valid array of strings. */
     const ensureArray = (val: any): string[] => (Array.isArray(val) ? val.filter(v => typeof v === 'string') : []);
 
     return {
@@ -65,17 +87,22 @@ export const xpertContractService = {
   },
 
   /**
-   * Validates if the intent meets critical quality rules.
+   * Validates whether a normalized intent meets the quality standards for retrieval.
+   *
+   * @param intent The structured intent to validate.
+   * @returns An object indicating validity and a list of specific errors.
    */
   validateIntent(intent: XpertIntent): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
+    // condensedQuery is essential for Algolia retrieval.
     if (!intent.condensedQuery || intent.condensedQuery === DEFAULT_INTENT.condensedQuery) {
       if (!intent.condensedQuery || intent.condensedQuery.trim() === '') {
         errors.push('condensedQuery is empty');
       }
     }
 
+    // At least one role or skill must be present to drive a meaningful search.
     if (intent.roles.length === 0 && intent.skillsRequired.length === 0) {
       errors.push('Neither roles nor skillsRequired are present');
     }
@@ -87,7 +114,10 @@ export const xpertContractService = {
   },
 
   /**
-   * Parses and normalizes the reasoning response.
+   * Parses and normalizes the AI response for pathway enrichment.
+   *
+   * @param rawResponse The raw JSON string from Xpert.
+   * @returns A ReasoningResponse object, or null if parsing fails.
    */
   parseReasoning(rawResponse: string): ReasoningResponse | null {
     try {

@@ -6,40 +6,23 @@ import {
 } from '../types';
 
 /**
- * @typedef {Object} FacetValue
- * @property {string} value - The facet value string
- * @property {number} count - Frequency count in the index
- */
-
-/**
- * @typedef {Object} FacetReference
- * @property {FacetValue[]} skills - Available skills
- * @property {FacetValue[]} industries - Available industries
- * @property {FacetValue[]} jobSources - Available job sources
- * @property {FacetValue[]} name - Available career/job names
- */
-
-/**
- * Utility for bootstrapping taxonomy-like facets from Algolia.
+ * Service for bootstrapping common taxonomy facet values from Algolia.
  *
- * @remarks
- * Pipeline: intake (initialization)
+ * Pipeline context: This is an auxiliary stage executed during the initial
+ * 'facetBootstrap' phase. It fetches the top values for skills, industries,
+ * and job roles from the taxonomy index.
  *
- * Dependencies:
- * - Algolia SearchIndex.search()
- * - FacetBootstrapContext (scoping)
- *
- * Notes:
- * - Mimics Skills Quiz behavior by retrieving available facets for the current context.
- * - Used to populate the intake form with valid options.
+ * These values are injected into the Intent Extraction prompt to provide the AI
+ * with a "vocabulary" of valid search terms, improving the quality of the
+ * generated condensedQuery.
  */
 export const facetBootstrapService = {
   /**
-   * Retrieves the facet universe for the given enterprise context.
+   * Fetches and normalizes the top facet values from the provided Algolia index.
    *
-   * @param {SearchIndex} index - The Algolia search index instance (Job/Career index).
-   * @param {FacetBootstrapContext} [context] - The context required for building the base scoped request.
-   * @returns {Promise<FacetReference>} Promise resolving to the FacetReference object.
+   * @param index The Algolia SearchIndex instance (typically the taxonomy/job index).
+   * @param context Optional context for enterprise-specific scoping.
+   * @returns A promise resolving to a structured FacetReference object.
    */
   async bootstrapFacets(
     index: SearchIndex,

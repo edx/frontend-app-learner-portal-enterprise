@@ -22,21 +22,23 @@ const safeReadFacet = (facets: Record<string, Record<string, number>> | undefine
 
 /**
  * Service for retrieving scoped catalog facets from Algolia.
- * These facets are used to ground the taxonomy-to-catalog translation process,
- * ensuring that we only attempt to search for courses using valid catalog vocabulary.
  *
- * This service will be used by later translation steps to:
- * 1. Prune taxonomy skills that don't exist in the catalog.
- * 2. Map taxonomy skills to their nearest catalog equivalent.
- * 3. Provide valid subjects and levels for Xpert-driven refinement.
+ * Pipeline context: This stage is executed at the beginning of the 'catalogTranslation'
+ * phase. It captures the authoritative vocabulary currently available in the
+ * learner's specific course catalog.
+ *
+ * These facets are used to ground the taxonomy-to-catalog translation process,
+ * ensuring that we only search for courses using valid catalog terms.
+ * This prevents the AI from suggesting skills or subjects that return zero results.
  */
 export const catalogFacetService = {
   /**
    * Fetches a snapshot of all relevant facets for the scoped course catalog.
    *
-   * @param index The Algolia search index for courses.
-   * @param config Optional configuration for the facet retrieval.
-   * @returns A promise resolving to a normalized CatalogFacetSnapshot.
+   * @param index The Algolia SearchIndex for the course catalog.
+   * @param config Optional configuration for facet retrieval limits and filters.
+   * @param context Enterprise-specific context used to scope the search to the correct catalog.
+   * @returns A promise resolving to a normalized CatalogFacetSnapshot and a debug trace.
    */
   async getFacetSnapshot(
     index: SearchIndex,

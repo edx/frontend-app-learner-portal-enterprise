@@ -1,4 +1,5 @@
-import { xpertContractService, DEFAULT_INTENT } from '../xpertContract';
+import { xpertContractService } from '../xpertContract';
+import { DEFAULT_INTENT } from '../../constants';
 
 describe('xpertContractService', () => {
   describe('parseIntent', () => {

@@ -3,7 +3,6 @@ import AlgoliaFilterBuilder from '../../AlgoliaFilterBuilder/AlgoliaFilterBuilde
 import {
   XpertIntent,
   CareerCardModel,
-  FacetBootstrapContext,
   TaxonomyResult,
 } from '../types';
 
@@ -12,10 +11,23 @@ import {
   FACET_FIELDS,
 } from '../constants';
 
+/**
+ * Utility to clean and normalize search strings.
+ */
 const normalizeString = (value?: string | null): string => (value || '').trim();
 
+/**
+ * Escapes and quotes a facet value for use in Algolia filters.
+ */
 const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
 
+/**
+ * Builds an optional filter string with an optional relevance score (boosting).
+ *
+ * @param skill The skill name to filter/boost.
+ * @param score Optional boosting score.
+ * @returns A formatted Algolia optional filter string.
+ */
 const buildOptionalSkillFilter = (skill: string, score?: number): string => {
   const quotedSkill = `${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(skill)}`;
 
@@ -26,8 +38,14 @@ const buildOptionalSkillFilter = (skill: string, score?: number): string => {
   return `${quotedSkill}<score=${score}>`;
 };
 
+/**
+ * Checks if a value is a non-empty, trimmed string.
+ */
 const isNonEmptyString = (value?: string | null): value is string => Boolean(normalizeString(value));
 
+/**
+ * Removes duplicates and empty values from a string array.
+ */
 const dedupeStrings = (values: Array<string | undefined | null>): string[] => {
   const seen = new Set<string>();
 
@@ -44,6 +62,12 @@ const dedupeStrings = (values: Array<string | undefined | null>): string[] => {
     });
 };
 
+/**
+ * Normalizes a raw Algolia taxonomy hit into a UI-ready CareerCardModel.
+ *
+ * @param hit The raw record retrieved from the Algolia taxonomy index.
+ * @returns A structured model for the Career Match card.
+ */
 const mapTaxonomyResultToCareerCard = (hit: TaxonomyResult): CareerCardModel => ({
   id: String(hit.id || hit.objectID || ''),
   title: hit.name || '',
@@ -59,6 +83,12 @@ const mapTaxonomyResultToCareerCard = (hit: TaxonomyResult): CareerCardModel => 
   raw: hit,
 });
 
+/**
+ * Constructs the Algolia hard filters (must-match) based on the extracted intent.
+ *
+ * @param intent The structured search intent.
+ * @returns A string representing the Algolia filter expression, or undefined.
+ */
 const buildFilters = (intent: XpertIntent): string | undefined => {
   const builder = new AlgoliaFilterBuilder();
 
@@ -83,6 +113,13 @@ const buildFilters = (intent: XpertIntent): string | undefined => {
   return isNonEmptyString(builtFilters) ? builtFilters : undefined;
 };
 
+/**
+ * Constructs the Algolia optional filters (boosting) based on the extracted intent.
+ * Required skills are boosted more heavily than preferred skills.
+ *
+ * @param intent The structured search intent.
+ * @returns An array of Algolia optional filter strings, or undefined.
+ */
 const buildOptionalFilters = (intent: XpertIntent): string[] | undefined => {
   const requiredSkills = dedupeStrings(intent.skillsRequired || []);
   const preferredSkills = dedupeStrings(intent.skillsPreferred || []);
@@ -95,6 +132,13 @@ const buildOptionalFilters = (intent: XpertIntent): string[] | undefined => {
   return optionalFilters.length ? optionalFilters : undefined;
 };
 
+/**
+ * Derives the primary search query for the taxonomy search.
+ * Prioritizes the AI-generated condensedQuery, falling back to roles or required skills.
+ *
+ * @param intent The structured search intent.
+ * @returns The final query string.
+ */
 const buildCareerQuery = (intent: XpertIntent): string => {
   const condensedQuery = normalizeString(intent.condensedQuery);
 
@@ -111,20 +155,25 @@ const buildCareerQuery = (intent: XpertIntent): string => {
 };
 
 /**
- * Service for deterministic career retrieval from the taxonomy/job Algolia index.
+ * Service for deterministic career retrieval from the Algolia taxonomy index.
  *
- * Notes:
- * - This service is for career retrieval only.
- * - It maps taxonomy records using `name`, `industry_names`, and `skills[].name`.
- * - `filters` are used for hard constraints.
- * - `optionalFilters` are used only as ranking boosts.
+ * Pipeline context: This is the 'career retrieval' phase. It uses the structured
+ * `XpertIntent` to query the taxonomy index for professional roles that align
+ * with the user's background and goals.
+ *
+ * The results are presented to the user as "Career Matches" to choose from.
  */
 export const careerRetrievalService = {
+  /**
+   * Searches the taxonomy index for careers matching the provided intent.
+   *
+   * @param index The Algolia SearchIndex for the taxonomy catalog.
+   * @param intent The structured search intent extracted from user input.
+   * @returns A promise resolving to an array of normalized CareerCardModels.
+   */
   async searchCareers(
     index: SearchIndex,
     intent: XpertIntent,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _context?: FacetBootstrapContext,
   ): Promise<CareerCardModel[]> {
     const query = buildCareerQuery(intent);
     const filters = buildFilters(intent);

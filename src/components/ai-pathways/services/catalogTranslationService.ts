@@ -7,30 +7,18 @@ import {
   CatalogTranslationTrace,
 } from '../types';
 
+/** Maximum number of hard skill filters to include in an Algolia request. */
 const MAX_STRICT_SKILLS = 8;
+/** Maximum number of optional boosting filters to include. */
 const MAX_BOOST_SKILLS = 12;
 
 /**
- * @typedef {Object} SkillProvenance
- * @property {string} taxonomySkill - Original skill name from taxonomy
- * @property {string} [catalogMatch] - Matching skill name in catalog
- * @property {string} matchMethod - Method used for matching ('exact', 'alias', 'xpert', 'none')
- */
-
-/**
- * @typedef {Object} CatalogTranslation
- * @property {string} query - Primary search query
- * @property {string[]} strictSkills - Skills for strict filtering
- * @property {string[]} boostSkills - Skills for boosting
- * @property {SkillProvenance[]} skillProvenance - Mapping history for skills
- */
-
-/**
  * Validates that a list of values exists in the provided catalog facet snapshot.
+ * Ensures that terms suggested by the AI are actually present in the learner's catalog.
  *
- * @param {string[]} values - The values to validate.
- * @param {Set<string>} allowedValues - A set of all valid values from the snapshot.
- * @returns {string[]} An array of only the valid values.
+ * @param values The values to validate.
+ * @param allowedValues A set of all valid values from the snapshot for O(1) lookup.
+ * @returns An array of only the valid values.
  */
 export const validateAllowedFacetValues = (
   values: string[],
@@ -38,42 +26,36 @@ export const validateAllowedFacetValues = (
 ): string[] => values.filter((val) => allowedValues.has(val));
 
 /**
- * Caps the number of skills to a reasonable maximum to avoid overly complex Algolia queries.
+ * Caps the number of filters to a reasonable maximum to maintain search performance.
  *
- * @param {string[]} skills - The skills to cap.
- * @param {number} limit - The maximum number of skills allowed.
- * @returns {string[]} A capped array of skills.
+ * @param skills The skills to cap.
+ * @param limit The maximum number of skills allowed.
+ * @returns A capped array of skills.
  */
 export const capSkillCounts = (skills: string[], limit: number): string[] => skills.slice(0, limit);
 
 /**
- * Service for combining rules-first translation with Xpert-driven refinement
- * to produce the final CatalogTranslation object.
+ * Service for orchestrating the hybrid translation of taxonomy terms to catalog facets.
  *
- * @remarks
- * Pipeline: translation (rules) → translation (Xpert) → retrieval
+ * Pipeline context: This is the 'catalogTranslation' stage. It takes professional
+ * roles and skills from the taxonomy index and maps them to valid search filters
+ * in the specific course catalog assigned to the learner.
  *
- * Dependencies:
- * - catalogTranslationRules (rules-first stage)
- * - Xpert AI (refinement stage)
- * - catalog facet snapshot (grounding)
- *
- * Notes:
- * - Performs grounding to ensure only valid facets from the snapshot are used.
- * - Caps skill counts to keep Algolia queries performant.
+ * It follows a hybrid strategy:
+ * 1. Deterministic: Uses exact matches and curated aliases first (Reliable).
+ * 2. Probabilistic: Uses AI (Xpert) to map remaining unmatched terms (Flexible).
+ * 3. Grounding: Validates all final terms against a real-time facet snapshot (Accurate).
  */
 export const catalogTranslationService = {
   /**
-   * Consolidates rules-first matches and Xpert output into a final search intent.
-   * Grounding and validation are performed here to ensure only valid facets are used.
+   * Processes the full translation flow, merging rules-first and AI results.
    *
-   * @param {string} careerTitle - The selected career title.
-   * @param {CatalogFacetSnapshot} facetSnapshot - The scoped catalog facets for grounding.
-   * @param {RulesFirstCandidates} rulesFirst - The results from the deterministic rules-first mapper.
-   * @param {string} [xpertRawResponse] - The raw (and potentially untrusted) JSON response from Xpert.
-   * @param {Object} [xpertDebug] - Debug information from the Xpert call.
-   * @returns {{ translation: CatalogTranslation; trace: CatalogTranslationTrace }}
-   * A CatalogTranslation object and trace.
+   * @param careerTitle The professional title chosen by the user.
+   * @param facetSnapshot The authoritative list of valid catalog facets.
+   * @param rulesFirst The results from the deterministic mapping stage.
+   * @param xpertRawResponse The raw AI response string (if the AI stage was triggered).
+   * @param xpertDebug Optional performance and debug metrics from the AI stage.
+   * @returns A result object containing the final consolidated translation and a trace.
    */
   processTranslation(
     careerTitle: string,
@@ -84,7 +66,7 @@ export const catalogTranslationService = {
   ): { translation: CatalogTranslation; trace: CatalogTranslationTrace } {
     const validCatalogValues = this.buildValidFacetSet(facetSnapshot);
 
-    // 1. Build initial intent from RulesFirst
+    // 1. Initialize intent from deterministic rules-first matches.
     let finalIntent: CatalogSearchIntent = {
       query: careerTitle,
       queryAlternates: [],
@@ -96,17 +78,16 @@ export const catalogTranslationService = {
 
     let xpertProvenance: SkillProvenance[] = [];
 
-    // 2. Parse and Ground Xpert Response (if available)
+    // 2. Parse and ground the AI-suggested terms (if applicable).
     if (xpertRawResponse) {
       try {
         const xpertData = this.parseXpertJson(xpertRawResponse);
         if (xpertData) {
-          // Ground Xpert output: Only keep skills/subjects that exist in the snapshot
+          // Grounding: Discard any values suggested by the AI that aren't in the snapshot.
           const groundedStrict = validateAllowedFacetValues(xpertData.strictSkills || [], validCatalogValues);
           const groundedBoost = validateAllowedFacetValues(xpertData.boostSkills || [], validCatalogValues);
           const groundedSubjects = validateAllowedFacetValues(xpertData.subjectHints || [], validCatalogValues);
 
-          // Merge Xpert findings with rules-first candidates, giving Xpert data precedence for query refinement
           finalIntent = {
             query: xpertData.query || finalIntent.query,
             queryAlternates: xpertData.queryAlternates || [],
@@ -119,15 +100,15 @@ export const catalogTranslationService = {
           xpertProvenance = xpertData.skillProvenance || [];
         }
       } catch {
-        // Xpert parse failed — silently fall back to rules-first; error captured in xpertDebug
+        // AI parse failed: the pipeline continues using only deterministic results.
       }
     }
 
-    // 3. Final Validation & Capping
+    // 3. Apply safety caps to filter counts.
     finalIntent.strictSkills = capSkillCounts(finalIntent.strictSkills, MAX_STRICT_SKILLS);
     finalIntent.boostSkills = capSkillCounts(finalIntent.boostSkills, MAX_BOOST_SKILLS);
 
-    // 4. Construct Skill Provenance
+    // 4. Construct the consolidated mapping history.
     const skillProvenance = this.buildSkillProvenance(rulesFirst, xpertProvenance);
 
     const trace: CatalogTranslationTrace = {
@@ -147,8 +128,6 @@ export const catalogTranslationService = {
       xpertSuccess: xpertDebug?.success,
     };
 
-    // 5. Construct Algolia Request (Placeholder - logic to be added in next step: Course Retrieval)
-    // For now, we return empty request objects to satisfy the type contract.
     const translation: CatalogTranslation = {
       ...finalIntent,
       skillProvenance,
@@ -160,7 +139,10 @@ export const catalogTranslationService = {
   },
 
   /**
-   * Helper to build a unified set of all valid facet values for O(1) lookup.
+   * Flattens the catalog facet snapshot into a single set for fast lookup.
+   *
+   * @param facetSnapshot The structured facet data from Algolia.
+   * @returns A set containing all valid skill names and subjects.
    */
   buildValidFacetSet(facetSnapshot: CatalogFacetSnapshot): Set<string> {
     const valid = new Set<string>();
@@ -171,7 +153,10 @@ export const catalogTranslationService = {
   },
 
   /**
-   * Safely parses the Xpert JSON response, handling markdown fences if present.
+   * Safely parses the AI's JSON response, handling potential markdown markers.
+   *
+   * @param raw The raw string from Xpert.
+   * @returns A parsed object or null if parsing fails.
    */
   parseXpertJson(raw: string): any {
     let cleaned = raw.trim();
@@ -186,24 +171,26 @@ export const catalogTranslationService = {
   },
 
   /**
-   * Merges rules-first match history with Xpert mapping provenance.
+   * Merges deterministic and AI-driven mapping events into a single provenance list.
+   *
+   * @param rulesFirst History of exact and alias matches.
+   * @param xpertProvenance History of AI-driven matches.
+   * @returns A deduplicated list of skill provenance entries.
    */
   buildSkillProvenance(rulesFirst: RulesFirstCandidates, xpertProvenance: SkillProvenance[]): SkillProvenance[] {
     const provenance: SkillProvenance[] = [];
 
-    // Exact matches
+    // Process deterministic matches.
     rulesFirst.exactMatches.forEach((match) => {
       provenance.push({ taxonomySkill: match, catalogMatch: match, matchMethod: 'exact' });
     });
 
-    // Alias matches (note: RulesFirst only stores the target, but we'll approximate for now)
     rulesFirst.aliasMatches.forEach((match) => {
       provenance.push({ taxonomySkill: match, catalogMatch: match, matchMethod: 'alias' });
     });
 
-    // Merge Xpert provenance for unmatched items
+    // Merge AI mapping data, avoiding duplication of existing matches.
     xpertProvenance.forEach((xp) => {
-      // Avoid duplicates if Xpert re-reports an exact match
       if (!provenance.some((p) => p.taxonomySkill === xp.taxonomySkill)) {
         provenance.push(xp);
       }

@@ -9,8 +9,10 @@ interface StateLayoutProps {
 }
 
 /**
- * StateLayout is a local layout helper for feature states (loading, empty, error).
- * It ensures consistent centering and spacing across the AI Pathways prototype.
+ * StateLayout is a structural helper component for feature-level states.
+ *
+ * It provides a consistent, centered container for non-standard UI states
+ * like 'Loading', 'Empty', and 'Error'.
  */
 export const StateLayout = ({
   children,

@@ -1,30 +1,47 @@
 import { CreateLearnerProfileArgs } from '../types';
 
 /**
- * Preprocessed user data ready for LLM extraction.
+ * Represents the cleaned and structured user data ready for the AI Intent Extraction stage.
  */
 export interface PreprocessedInput {
-  freeText: string; // Cleaned primary user input
-  selectedGoals?: string[]; // Extracted from "Career Goal" and "Industry" fields
-  knownContext?: string[]; // Extracted from "Background" and "Skills" fields
-  preferences?: string[]; // Map of technical/style preferences (e.g., "practical", "certificate")
+  /** Cleaned primary narrative from the user (e.g., "What brings you here"). */
+  freeText: string;
+  /** Extracted objectives from "Career Goal" and "Industry" fields. */
+  selectedGoals?: string[];
+  /** Experience context from "Background" and "Skills" fields. */
+  knownContext?: string[];
+  /** Modality and commitment preferences (e.g., "async", "long-term"). */
+  preferences?: string[];
 }
 
 /**
- * Utility for preprocessing raw intake form arguments into a compact structure for the LLM.
+ * Utility for normalizing raw intake form responses.
+ *
+ * Pipeline context: This is the very first stage of the generation process. It
+ * transforms raw UI strings into a compact, noise-free structure that reduces
+ * token usage and improves intent extraction accuracy in later AI stages.
  */
 export const intakePreprocessor = {
   /**
-   * Preprocesses raw intake form arguments into a compact structure for the LLM.
+   * Preprocesses raw intake form arguments into a structured format for the AI.
    *
-   * @param args The raw intake form responses.
-   * @returns Preprocessed input.
+   * @param args The raw intake form responses captured from the UI.
+   * @returns A structured PreprocessedInput object.
    */
   preprocessInput(args: CreateLearnerProfileArgs): PreprocessedInput {
-    // 1. Clean noise and conversational fillers
-    const cleanText = (text: string) => (text || '').trim().replace(/^I want to learn |Please show me |Could you help me with /gi, '');
+    /**
+     * Removes common conversational fillers and trims whitespace to isolate the core intent.
+     */
+    const cleanText = (text: string) => (
+      text || ''
+    )
+      .trim()
+      .replace(/^I want to learn |Please show me |Could you help me with /gi, '');
 
-    // 2. Map fixed-choice UI strings to concise keywords (Local Normalization)
+    /**
+     * Maps human-readable time availability options to normalized internal keys.
+     * These keys ('short', 'medium', 'long') match the expected schema for the AI.
+     */
     const mapTime = (time: string) => {
       const t = (time || '').toLowerCase();
       if (t.includes('up to 3') || t.includes('short')) { return 'short'; }

@@ -2,31 +2,22 @@ import { XpertCatalogTranslationPayload, XpertPromptBundle, PromptPart } from '.
 import { CATALOG_TRANSLATION_PROMPT } from '../constants';
 
 /**
- * @typedef {Object} XpertCatalogTranslationPayload
- * @property {string} careerTitle - User's target career title
- * @property {string[]} unmatchedSkills - Skills that need translation
- * @property {Object} facetSnapshot - Authoritative catalog facets for grounding
- */
-
-/**
- * Prompt builder for translating taxonomy career data into catalog-valid search parameters.
+ * Prompt builder for the Catalog Translation stage.
  *
- * @remarks
- * Pipeline: translation (Xpert)
+ * Pipeline context: This is an internal helper for the 'catalogTranslation' stage.
+ * It constructs the multi-part system prompt and user payload required for Xpert
+ * to translate taxonomy terms into catalog-valid search parameters.
  *
- * Dependencies:
- * - XpertCatalogTranslationPayload contract
- * - XpertPromptBundle type
- *
- * Notes:
- * - The system prompt is highly structured to ensure the LLM stays grounded in the catalog facets.
+ * The builder ensures that the instructions (base), grounding data (snapshot),
+ * and output requirements (schema) are consistently composed into an
+ * 'XpertPromptBundle'.
  */
 export const xpertCatalogTranslationPrompt = {
   /**
-   * Builds the structured prompt bundle and user payload for the catalog translation task.
+   * Builds the multi-part prompt bundle and the structured user payload for Xpert.
    *
-   * @param {XpertCatalogTranslationPayload} payload - The structured data for the translation stage.
-   * @returns {Object} Object containing the XpertPromptBundle and the structured user payload.
+   * @param payload The structured data containing unmatched terms and the catalog facet snapshot.
+   * @returns An object containing the combined prompt bundle and the user-specific payload.
    */
   buildTranslationPrompt(payload: XpertCatalogTranslationPayload): {
     bundle: XpertPromptBundle;

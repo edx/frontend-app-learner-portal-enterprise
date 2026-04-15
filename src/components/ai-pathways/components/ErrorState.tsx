@@ -10,8 +10,11 @@ interface ErrorStateProps {
 }
 
 /**
- * ErrorState displays an error alert with an optional retry button.
- * Use this when API calls or data loads fail.
+ * ErrorState component displays a user-friendly error message and an optional
+ * recovery action (retry).
+ *
+ * It is used to handle failures at any stage of the AI pipeline, such as
+ * network errors during intent extraction or course retrieval.
  */
 export const ErrorState = ({
   message = 'An unexpected error occurred. Please try again later.',

@@ -14,10 +14,11 @@ interface PathwayDetailProps {
 }
 
 /**
- * PathwayDetail component displays a detailed view of a course in a learning pathway.
+ * PathwayDetail component displays an immersive detailed view of a recommended course.
  *
- * It uses a Paragon Modal to provide a focused experience for viewing skills,
- * reasoning, and other course metadata.
+ * It is presented as a modal and focuses on explaining the alignment between the
+ * course content and the learner's specific goals, surfaced through AI-generated
+ * reasoning and a clear skills breakdown.
  */
 export const PathwayDetail = ({
   course,

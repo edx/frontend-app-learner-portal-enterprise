@@ -1,30 +1,23 @@
 import { CourseRetrievalHit } from '../types';
 
 /**
- * @typedef {Object} CourseRetrievalHit
- * @property {string} title - Course title
- * @property {string} [card_image_url] - Primary card image URL
- * @property {string} [image_url] - Secondary image URL
- * @property {string} [original_image_url] - Fallback image URL
+ * Utility to map raw Algolia course hits into the format expected by UI components.
+ *
+ * Pipeline context: Executed during the mapping phase, immediately after retrieval
+ * and before rendering. It ensures consistent property naming for image URLs
+ * across different content types.
  */
 
 /**
- * Maps Algolia retrieval hits into UI-ready course cards.
+ * Normalizes image URL fields in an Algolia retrieval hit.
  *
- * @param {CourseRetrievalHit} hit - Raw Algolia search result (snake_case)
- * @returns {CourseRetrievalHit} UI-ready course card data with card_image_url set
+ * Downstream components (like SearchCourseCard) expect a 'card_image_url'.
+ * This mapper ensures that field is populated using the best available source.
  *
- * @remarks
- * Pipeline: retrieval → mapping → UI
- *
- * Dependencies:
- * - Algolia search results (CourseRetrievalHit)
- * - SearchCourseCard component contract
- *
- * Notes:
- * - We preserve snake_case because downstream SearchCourseCard applies camelCaseObject()
- * - Augments hit with card_image_url based on available image fields
- *   (preferring card_image_url, then image_url, then original_image_url)
+ * @param hit The raw record retrieved from the Algolia catalog index.
+ * @returns An augmented hit object with a guaranteed 'card_image_url' (if any image exists).
+ * @remarks We preserve snake_case keys here because the shared SearchCourseCard
+ * utility handles camel-casing internally.
  */
 export const mapRetrievalHitToSearchCard = (hit: CourseRetrievalHit) => ({
   ...hit,
