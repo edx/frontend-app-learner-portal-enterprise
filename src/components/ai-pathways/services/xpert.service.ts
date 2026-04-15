@@ -26,7 +26,7 @@ export const xpertService = {
       throw new Error('XPERT_AI_CLIENT_ID is not configured. Ensure it is set in the private environment file.');
     }
 
-    const baseUrl = getConfig().XPERT_API_URL || 'https://xpert-api-services.stg.ai.2u.com';
+    const baseUrl = getConfig().XPERT_API_BASE_URL;
     const url = `${baseUrl}/v1/message`;
 
     const body = {

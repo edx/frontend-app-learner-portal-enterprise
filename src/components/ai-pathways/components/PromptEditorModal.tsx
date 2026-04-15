@@ -174,7 +174,7 @@ export const PromptEditorModal = ({
                 // eslint-disable-next-line react/no-array-index-key
                 <div key={i}>
                   <Badge variant="secondary" style={{ marginRight: '0.25rem' }}>{m.role}</Badge>
-                  {m.content.length > 200 ? `${m.content.slice(0, 200)}…` : m.content}
+                  {m.content}
                 </div>
               ))}
             </div>

@@ -21,7 +21,7 @@ export const facetBootstrapService = {
     index: SearchIndex,
     context?: FacetBootstrapContext,
   ): Promise<FacetReference> {
-    const facetFields = ['skills.name', 'industry_names', 'job_sources'];
+    const facetFields = ['name', 'skills.name', 'industry_names', 'job_sources'];
     const filters = context?.enterpriseCustomerUuid
       ? `enterprise_customer_uuids:${context.enterpriseCustomerUuid}`
       : undefined;

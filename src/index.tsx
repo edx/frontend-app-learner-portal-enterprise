@@ -63,6 +63,7 @@ initialize({
         EXPERIMENT_2_VARIANT_2_ID: process.env.EXPERIMENT_2_VARIANT_2_ID || null,
         FEATURE_ENABLE_RESTRICTED_RUNS: process.env.FEATURE_ENABLE_RESTRICTED_RUNS || null,
         XPERT_AI_CLIENT_ID: process.env.XPERT_AI_CLIENT_ID || null,
+        XPERT_API_BASE_URL: process.env.XPERT_API_BASE_URL || null,
       });
     },
   },
