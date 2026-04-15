@@ -56,6 +56,10 @@ export const PathwayFilters = ({
           value={searchQuery}
           onChange={onSearchChange}
           onClear={() => onSearchChange('')}
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSearchChange(searchQuery);
+          }}
         />
       </Col>
 

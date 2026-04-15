@@ -96,10 +96,8 @@ export const xpertContractService = {
     const errors: string[] = [];
 
     // condensedQuery is essential for Algolia retrieval.
-    if (!intent.condensedQuery || intent.condensedQuery === DEFAULT_INTENT.condensedQuery) {
-      if (!intent.condensedQuery || intent.condensedQuery.trim() === '') {
-        errors.push('condensedQuery is empty');
-      }
+    if (!intent.condensedQuery || intent.condensedQuery === DEFAULT_INTENT.condensedQuery || intent.condensedQuery.trim() === '') {
+      errors.push('condensedQuery is empty');
     }
 
     // At least one role or skill must be present to drive a meaningful search.

@@ -54,6 +54,9 @@ export const PathwayDetail = ({
       hasCloseButton
       isOverflowVisible
     >
+      <ModalDialog.Header>
+        <ModalDialog.Title>{title}</ModalDialog.Title>
+      </ModalDialog.Header>
       <ModalDialog.Body>
         <div className="mb-4">
           <div className="d-flex align-items-center mb-3">
