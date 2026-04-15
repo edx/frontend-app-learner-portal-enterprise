@@ -1,29 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { CreateLearnerProfileArgs } from '../types';
-
-export interface IntakePageInfo {
-  title: string;
-  subtitle: string;
-}
-
-export const INTAKE_PAGES: IntakePageInfo[] = [
-  {
-    title: "Let's start with your goals",
-    subtitle: 'A few thoughtful answers now mean a faster, clearer path ahead.',
-  },
-  {
-    title: 'Tell us about your background',
-    subtitle: 'This helps us understand your starting point.',
-  },
-  {
-    title: 'How you like to learn',
-    subtitle: "We'll use this to build a learning pathway tailored to you.",
-  },
-  {
-    title: 'Building your learning profile',
-    subtitle: 'Please wait, this can take a few moments.',
-  },
-];
+import { INTAKE_PAGES, INTAKE_STEPS } from '../constants';
 
 interface UseIntakeFormArgs {
   onSubmit: (data: CreateLearnerProfileArgs) => Promise<void>;
@@ -51,8 +28,8 @@ export const useIntakeForm = ({ onSubmit }: UseIntakeFormArgs) => {
   }, []);
 
   const handleNext = useCallback(async () => {
-    if (pageIndex === 2) {
-      setPageIndex(3);
+    if (pageIndex === INTAKE_STEPS.PREFERENCES) {
+      setPageIndex(INTAKE_STEPS.PROCESSING);
       await onSubmit(formData);
     } else {
       setPageIndex(pageIndex + 1);

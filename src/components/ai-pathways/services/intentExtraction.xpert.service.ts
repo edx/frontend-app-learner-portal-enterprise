@@ -1,11 +1,12 @@
 import { intakePreprocessor, PreprocessedInput } from './intakePreprocessor';
 import { xpertService, XpertMessage } from './xpert.service';
-import { xpertContractService, DEFAULT_INTENT } from './xpertContract';
+import { xpertContractService } from './xpertContract';
 import {
   FacetReference, CareerOption, XpertPromptBundle, PromptPart,
 } from '../types';
 import { XpertExtractionResult } from './xpertDebug';
 import { InterceptContext, InterceptResult } from '../hooks/usePromptInterceptor';
+import { DEFAULT_INTENT, INTENT_EXTRACTION_PROMPT } from '../constants';
 
 /** Subset of the interceptor hook needed by this service. */
 export type PromptInterceptFn = (
@@ -75,10 +76,10 @@ export const intentExtractionXpertService = {
 
       if (!validation.isValid) {
         repairPromptUsed = true;
-        const repairPrompt = `The previous response was invalid JSON or failed validation.
-Errors: ${validation.errors.join(', ')}.
-Please correct the JSON and ensure it strictly follows the schema.
-You MUST respond with raw JSON only.`;
+        const repairPrompt = INTENT_EXTRACTION_PROMPT.REPAIR_PROMPT.replace(
+          '{errors}',
+          validation.errors.join(', '),
+        );
 
         const repairResponse = await xpertService.sendMessage({
           systemMessage: systemPrompt,
@@ -130,38 +131,7 @@ You MUST respond with raw JSON only.`;
    * The `combined` field is byte-for-byte identical to the previous raw string return value.
    */
   buildSystemPrompt(facets?: FacetReference | null): XpertPromptBundle {
-    const baseContent = `You are a precision intent extraction engine. Map user goals and background into a structured XpertIntent object.
-
-Your objective is to produce output that is both semantically relevant and effective for retrieval.
-
-You MUST generate a condensedQuery that is:
-- a single short phrase
-- 2-5 words
-- plain keywords only
-- no punctuation
-- suitable for Algolia search
-
-Search behavior guidance:
-- The primary searchable fields are:
-  - name
-  - skills.name
-- condensedQuery should target broad, high-recall role or skill concepts from those searchable fields.
-- Prefer a query that returns several close matches over a highly specific query that returns zero results.
-- Do NOT overfit to the exact wording of the user's story, prior role, or transition phrasing.
-- When the user describes a transition, prioritize the destination role or the most transferable target skill area.
-- Normalize specific language into broader common searchable concepts.
-
-Facet guidance:
-- Use common facet values as anchors for retrieval.
-- Facet prevalence is a useful signal: more common values are generally better candidates.
-- Preserve nuance using structured facet outputs instead of forcing every detail into condensedQuery.
-
-Output behavior:
-- condensedQuery should be broad enough to retrieve relevant results.
-- Return supporting facet selections that reflect the user's likely interests.
-- Prefer close, general matches over narrow exactness.
-
-You MUST respond with only a valid JSON object matching the schema. Raw JSON only. No markdown.`;
+    const baseContent = INTENT_EXTRACTION_PROMPT.BASE_CONTENT;
 
     const basePart: PromptPart = {
       label: 'base',
@@ -222,14 +192,7 @@ Rules:
    * @returns A list of relevant career matches.
    */
   async generateSampleCareers(input: PreprocessedInput): Promise<CareerOption[]> {
-    const systemMessage = `You are a career advisor. Based on the user's background and goals, suggest 3 relevant career paths.
-For each career, provide:
-- title: The name of the career
-- percentMatch: A number between 0 and 100 representing how well it matches the user
-- skills: A list of 3-5 key skills required for this career
-- industries: A list of 1-2 relevant industries
-
-You MUST respond with only a valid JSON array of objects matching the CareerOption schema. No markdown fences, no explanation, no preamble. Raw JSON only.`;
+    const systemMessage = INTENT_EXTRACTION_PROMPT.SAMPLE_CAREERS_SYSTEM_MESSAGE;
 
     try {
       const response = await xpertService.sendMessage({

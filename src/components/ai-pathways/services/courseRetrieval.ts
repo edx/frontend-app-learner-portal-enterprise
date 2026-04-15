@@ -8,8 +8,13 @@ import {
   CourseRetrievalHit,
 } from '../types';
 
-const DEFAULT_HITS_PER_PAGE = 5;
-const MIN_RESULTS = 3;
+import {
+  COURSE_RETRIEVAL_LIMIT,
+  MIN_RESULTS_THRESHOLD,
+  CONTENT_TYPE_COURSE,
+  FACET_FIELDS,
+  RETRIEVAL_LADDER_STEPS,
+} from '../constants';
 
 /**
  * @typedef {Object} CourseCardModel
@@ -46,7 +51,7 @@ const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/
  * Always includes ["content_type:course"].
  */
 const buildScopedFacetFilters = (): string[][] => {
-  const groups: string[][] = [['content_type:course']];
+  const groups: string[][] = [[CONTENT_TYPE_COURSE]];
 
   return groups;
 };
@@ -70,7 +75,7 @@ const buildStrictParams = (
   const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
   const facetFilters = [
     ...baseFacetFilters,
-    translation.strictSkills.map((skill) => `skill_names:${skill}`),
+    translation.strictSkills.map((skill) => `${FACET_FIELDS.SKILL_NAMES}:${skill}`),
   ];
 
   return {
@@ -94,7 +99,7 @@ const buildBoostParams = (
     return {
       ...baseParams,
       optionalFilters: translation.boostSkills.map(
-        (skill) => formatFacet('skill_names', skill),
+        (skill) => formatFacet(FACET_FIELDS.SKILL_NAMES, skill),
       ),
     };
   }
@@ -173,7 +178,7 @@ export const courseRetrievalService = {
   ): Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }> {
     const scopedFacetFilters = buildScopedFacetFilters();
     const baseParams: SearchOptions = {
-      hitsPerPage: DEFAULT_HITS_PER_PAGE,
+      hitsPerPage: COURSE_RETRIEVAL_LIMIT,
       facetFilters: scopedFacetFilters,
     };
 
@@ -187,14 +192,14 @@ export const courseRetrievalService = {
         const strictHits = strictResponse.hits?.length ?? 0;
         attempts.push({
           step: 1,
-          label: 'Strict Facet Matching',
+          label: RETRIEVAL_LADDER_STEPS.STRICT,
           query: translation.query,
           facetFilters: strictParams.facetFilters,
           hitCount: strictHits,
-          winner: strictHits >= MIN_RESULTS,
+          winner: strictHits >= MIN_RESULTS_THRESHOLD,
           hits: (strictResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (strictHits >= MIN_RESULTS) {
+        if (strictHits >= MIN_RESULTS_THRESHOLD) {
           return {
             courses: strictResponse.hits.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 1 },
@@ -208,14 +213,14 @@ export const courseRetrievalService = {
       const boostHits = boostResponse.hits?.length ?? 0;
       attempts.push({
         step: 2,
-        label: 'Boosted Optional Filters',
+        label: RETRIEVAL_LADDER_STEPS.BOOST,
         query: translation.query,
         optionalFilters: boostParams.optionalFilters,
         hitCount: boostHits,
-        winner: boostHits >= MIN_RESULTS,
+        winner: boostHits >= MIN_RESULTS_THRESHOLD,
         hits: (boostResponse.hits || []) as unknown as CourseRetrievalHit[],
       });
-      if (boostHits >= MIN_RESULTS) {
+      if (boostHits >= MIN_RESULTS_THRESHOLD) {
         return {
           courses: boostResponse.hits.map(mapCourseHitToCard),
           ladderTrace: { attempts, winnerStep: 2 },
@@ -231,13 +236,13 @@ export const courseRetrievalService = {
         const queryHits = queryResponse.hits?.length ?? 0;
         attempts.push({
           step: 3,
-          label: `Query Alternate: ${q}`,
+          label: `${RETRIEVAL_LADDER_STEPS.QUERY_ALTERNATE}: ${q}`,
           query: q,
           hitCount: queryHits,
-          winner: queryHits >= MIN_RESULTS,
+          winner: queryHits >= MIN_RESULTS_THRESHOLD,
           hits: (queryResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (queryHits >= MIN_RESULTS) {
+        if (queryHits >= MIN_RESULTS_THRESHOLD) {
           return {
             courses: queryResponse.hits.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 3 },
@@ -250,7 +255,7 @@ export const courseRetrievalService = {
       const fallbackHits = fallbackResponse.hits?.length ?? 0;
       attempts.push({
         step: 4,
-        label: 'Scope Only Fallback',
+        label: RETRIEVAL_LADDER_STEPS.FALLBACK,
         query: '',
         hitCount: fallbackHits,
         winner: true,

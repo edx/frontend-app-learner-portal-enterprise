@@ -1,5 +1,6 @@
 import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalogTranslation';
 import { RulesFirstMappingTrace } from '../types';
+import { CATALOG_ALIAS_MAP } from '../constants';
 
 /**
  * @typedef {Object} TaxonomyTranslationInput
@@ -27,35 +28,6 @@ import { RulesFirstMappingTrace } from '../types';
  * Pipeline: translation (rules-first)
  */
 export const normalizeCatalogTerm = (term: string): string => term.trim().toLowerCase();
-
-/**
- * CATALOG_ALIAS_MAP provides a curated translation layer between taxonomy terms
- * (often coming from Xpert or user intent) and their canonical catalog facet equivalents.
- *
- * @remarks
- * Why this exists:
- * 1. Taxonomy mismatch: A term like 'python' is common in taxonomy, but the catalog
- *    specifically uses 'Python (Programming Language)'.
- * 2. Normalization: Ensuring different variations (e.g. 'frontend', 'front end')
- *    map to the same catalog-valid facet.
- *
- * Guidelines for adding new entries:
- * - Use lowercase keys (normalized).
- * - Ensure the value matches exactly one of the catalog's facets (e.g., in `skill_names`).
- * - Group by category (Skills, Industries, etc.) for maintainability.
- *
- * This map is expected to grow over time as new taxonomy/catalog mismatches are identified.
- */
-export const CATALOG_ALIAS_MAP: Record<string, string> = {
-  // --- Skills: Programming Languages & Tech ---
-  python: 'Python (Programming Language)',
-  javascript: 'JavaScript (Programming Language)',
-  sql: 'SQL (Programming Language)',
-
-  // --- Skills: Software Engineering Domains ---
-  'front end': 'Front End (Software Engineering)',
-  frontend: 'Front End (Software Engineering)',
-};
 
 /**
  * Rules-first mapper that translates taxonomy terms into catalog-valid search parameters.

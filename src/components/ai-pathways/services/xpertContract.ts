@@ -1,18 +1,11 @@
 import {
   XpertIntent, LearnerLevel, TimeCommitment,
 } from '../types';
-
-export const DEFAULT_INTENT: XpertIntent = {
-  condensedQuery: 'career development',
-  roles: [],
-  skillsRequired: [],
-  skillsPreferred: [],
-  industries: [],
-  jobSources: [],
-  learnerLevel: 'beginner',
-  timeCommitment: 'medium',
-  excludeTags: [],
-};
+import {
+  DEFAULT_INTENT,
+  LEARNER_LEVELS,
+  TIME_COMMITMENTS,
+} from '../constants';
 
 export interface ReasoningResponse {
   reasonings: Array<{
@@ -45,13 +38,13 @@ export const xpertContractService = {
    */
   normalizeIntent(raw: any): XpertIntent {
     const normalizeLevel = (level: any): LearnerLevel => {
-      const valid: LearnerLevel[] = ['beginner', 'intermediate', 'advanced'];
-      return valid.includes(level) ? level : 'beginner';
+      const valid = LEARNER_LEVELS as unknown as any[];
+      return valid.includes(level) ? level : DEFAULT_INTENT.learnerLevel;
     };
 
     const normalizeCommitment = (commitment: any): TimeCommitment => {
-      const valid: TimeCommitment[] = ['short', 'medium', 'long'];
-      return valid.includes(commitment) ? commitment : 'medium';
+      const valid = TIME_COMMITMENTS as unknown as any[];
+      return valid.includes(commitment) ? commitment : DEFAULT_INTENT.timeCommitment;
     };
 
     const ensureArray = (val: any): string[] => (Array.isArray(val) ? val.filter(v => typeof v === 'string') : []);

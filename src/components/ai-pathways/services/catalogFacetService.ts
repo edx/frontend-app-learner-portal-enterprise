@@ -1,6 +1,11 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
 import { FacetBootstrapContext, FacetSnapshotTrace } from '../types';
+import {
+  MAX_VALUES_PER_FACET,
+  CONTENT_TYPE_COURSE,
+  FACET_FIELDS,
+} from '../constants';
 
 /**
  * Validation helper that safely reads missing facets as empty arrays.
@@ -38,18 +43,18 @@ export const catalogFacetService = {
     config: FacetRetrievalConfig = {},
     context?: FacetBootstrapContext,
   ): Promise<{ snapshot: CatalogFacetSnapshot; trace: FacetSnapshotTrace }> {
-    const { maxValuesPerFacet = 1000 } = config;
+    const { maxValuesPerFacet = MAX_VALUES_PER_FACET } = config;
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.
     // content_type:course scopes to courses; catalog query UUIDs restrict to the enterprise catalog.
-    const facetFilters: string[][] = [['content_type:course']];
+    const facetFilters: string[][] = [[CONTENT_TYPE_COURSE]];
 
     if (context?.searchCatalogs?.length && context?.catalogUuidsToCatalogQueryUuids) {
       const queryUuids = context.searchCatalogs
         .map(cat => context.catalogUuidsToCatalogQueryUuids![cat])
         .filter(Boolean);
       if (queryUuids.length) {
-        facetFilters.push(queryUuids.map(uuid => `enterprise_catalog_query_uuids:${uuid}`));
+        facetFilters.push(queryUuids.map(uuid => `${FACET_FIELDS.ENTERPRISE_CATALOG_QUERY_UUIDS}:${uuid}`));
       }
     }
 
@@ -64,11 +69,11 @@ export const catalogFacetService = {
 
     const { facets } = response;
     const snapshot: CatalogFacetSnapshot = {
-      skill_names: safeReadFacet(facets, 'skill_names'),
-      'skills.name': safeReadFacet(facets, 'skills.name'),
-      subjects: safeReadFacet(facets, 'subjects'),
-      level_type: safeReadFacet(facets, 'level_type'),
-      'partners.name': safeReadFacet(facets, 'partners.name'),
+      skill_names: safeReadFacet(facets, FACET_FIELDS.SKILL_NAMES),
+      'skills.name': safeReadFacet(facets, FACET_FIELDS.SKILLS_DOT_NAME),
+      subjects: safeReadFacet(facets, FACET_FIELDS.SUBJECTS),
+      level_type: safeReadFacet(facets, FACET_FIELDS.LEVEL_TYPE),
+      'partners.name': safeReadFacet(facets, FACET_FIELDS.PARTNERS_NAME),
     };
 
     const trace: FacetSnapshotTrace = {

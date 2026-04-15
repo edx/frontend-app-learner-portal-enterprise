@@ -7,14 +7,17 @@ import {
   TaxonomyResult,
 } from '../types';
 
-const DEFAULT_HITS_PER_PAGE = 10;
+import {
+  CAREER_RETRIEVAL_LIMIT,
+  FACET_FIELDS,
+} from '../constants';
 
 const normalizeString = (value?: string | null): string => (value || '').trim();
 
 const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
 
 const buildOptionalSkillFilter = (skill: string, score?: number): string => {
-  const quotedSkill = `skills.name:${quoteFacetValue(skill)}`;
+  const quotedSkill = `${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(skill)}`;
 
   if (!score) {
     return quotedSkill;
@@ -64,15 +67,15 @@ const buildFilters = (intent: XpertIntent): string | undefined => {
   const excludeTags = dedupeStrings(intent.excludeTags || []);
 
   if (industries.length) {
-    builder.or('industry_names', industries, { stringify: true });
+    builder.or(FACET_FIELDS.INDUSTRY_NAMES, industries, { stringify: true });
   }
 
   if (jobSources.length) {
-    builder.or('job_sources', jobSources, { stringify: true });
+    builder.or(FACET_FIELDS.JOB_SOURCES, jobSources, { stringify: true });
   }
 
   excludeTags.forEach((tag) => {
-    builder.andRaw(`NOT skills.name:${quoteFacetValue(tag)}`);
+    builder.andRaw(`NOT ${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(tag)}`);
   });
 
   const builtFilters = builder.build();
@@ -128,7 +131,7 @@ export const careerRetrievalService = {
     const optionalFilters = buildOptionalFilters(intent);
 
     const searchParams: Record<string, unknown> = {
-      hitsPerPage: DEFAULT_HITS_PER_PAGE,
+      hitsPerPage: CAREER_RETRIEVAL_LIMIT,
     };
 
     if (filters) {

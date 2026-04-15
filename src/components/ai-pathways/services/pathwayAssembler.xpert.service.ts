@@ -2,6 +2,7 @@ import { xpertService } from './xpert.service';
 import { xpertContractService } from './xpertContract';
 import { LearningPathway, XpertIntent } from '../types';
 import { XpertEnrichmentResult } from './xpertDebug';
+import { PATHWAY_ENRICHMENT_PROMPT } from '../constants';
 
 /**
  * Service for enriching learning pathways with reasoning using Xpert API.
@@ -34,9 +35,7 @@ export const pathwayAssemblerXpertService = {
     const coursesSnippet = pathway.courses.map(c => `- ID: ${c.id}, Title: ${c.title}`).join('\n');
     const intentSnippet = `Goal: ${intent.roles.join(', ')}. Required Skills: ${intent.skillsRequired.join(', ')}.`;
 
-    const systemMessageBase = 'You are a career advisor and learning pathway architect. Your objective is to help the user understand why each course retrieved by the discovery service is essential for their chosen career path. For each course provided, write a short, one-sentence reasoning explaining why it is perfect for the user based on their goals and required skills. Be encouraging and specific, highlighting how the course content bridges their current background with their target role.';
-    const jsonInstruction = '\n\nYou MUST respond with only a valid JSON object matching the schema. Each reasoning item must include the "id" of the course it refers to. Raw JSON only.';
-    const systemPrompt = `${systemMessageBase}${jsonInstruction}`;
+    const systemPrompt = `${PATHWAY_ENRICHMENT_PROMPT.SYSTEM_MESSAGE_BASE}${PATHWAY_ENRICHMENT_PROMPT.JSON_INSTRUCTION}`;
 
     try {
       const response = await xpertService.sendMessage({

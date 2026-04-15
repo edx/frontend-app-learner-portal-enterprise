@@ -12,6 +12,7 @@ import { PathwayFilters } from '../pathway-filters/PathwayFilters';
 import { PathwayDetail } from '../pathway-detail/PathwayDetail';
 import { usePathwayFilters } from '../../hooks/usePathwayFilters';
 import { usePathwayDetail } from '../../hooks/usePathwayDetail';
+import { COURSE_STATUSES } from '../../constants';
 
 interface PathwayListProps {
   pathway: LearningPathway;
@@ -23,9 +24,9 @@ interface PathwayListProps {
  */
 const getStatusVariant = (status: CourseStatus): 'success' | 'warning' | 'info' | 'light' => {
   switch (status) {
-    case 'completed': return 'success';
-    case 'in progress': return 'warning';
-    case 'not started': return 'info';
+    case COURSE_STATUSES.COMPLETED: return 'success';
+    case COURSE_STATUSES.IN_PROGRESS: return 'warning';
+    case COURSE_STATUSES.NOT_STARTED: return 'info';
     default: return 'light';
   }
 };
@@ -53,9 +54,9 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
   } = usePathwayDetail();
 
   const stats = useMemo(() => {
-    const totalCompleted = courses.filter((c) => c.status === 'completed').length;
-    const totalInProgress = courses.filter((c) => c.status === 'in progress').length;
-    const totalUpcoming = courses.filter((c) => c.status === 'not started').length;
+    const totalCompleted = courses.filter((c) => c.status === COURSE_STATUSES.COMPLETED).length;
+    const totalInProgress = courses.filter((c) => c.status === COURSE_STATUSES.IN_PROGRESS).length;
+    const totalUpcoming = courses.filter((c) => c.status === COURSE_STATUSES.NOT_STARTED).length;
 
     return {
       totalCompleted,
@@ -136,9 +137,9 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
               <tbody>
                 {filteredAndSortedCourses.map((course) => {
                   let actionText = 'Register';
-                  if (course.status === 'completed') {
+                  if (course.status === COURSE_STATUSES.COMPLETED) {
                     actionText = 'View Certificate';
-                  } else if (course.status === 'in progress') {
+                  } else if (course.status === COURSE_STATUSES.IN_PROGRESS) {
                     actionText = 'Continue Course';
                   }
 
@@ -173,11 +174,11 @@ export const PathwayList = ({ pathway, onAdjustPathway }: PathwayListProps) => {
                       </td>
                       <td>
                         <Button
-                          variant={course.status === 'completed' ? 'success' : 'primary'}
+                          variant={course.status === COURSE_STATUSES.COMPLETED ? 'success' : 'primary'}
                           size="sm"
                           className="font-weight-bold text-nowrap"
                           style={{
-                            background: course.status !== 'completed'
+                            background: course.status !== COURSE_STATUSES.COMPLETED
                               ? 'linear-gradient(135deg, #3498DB, #9B59B6)'
                               : undefined,
                             border: 'none',

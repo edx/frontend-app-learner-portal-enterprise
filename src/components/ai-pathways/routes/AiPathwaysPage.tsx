@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { usePathways } from '../hooks/usePathways';
 import { usePromptInterceptor } from '../hooks';
+import { FEATURE_STEPS } from '../constants';
 import {
   LoadingState,
   ErrorState,
@@ -52,7 +53,7 @@ export const AiPathwaysPage = () => {
 
   const renderContent = useMemo(() => {
     switch (currentStep) {
-      case 'intake':
+      case FEATURE_STEPS.INTAKE:
         return (
           <IntakeForm
             onSubmit={async (args) => {
@@ -61,7 +62,7 @@ export const AiPathwaysPage = () => {
             isSubmitting={isLoading}
           />
         );
-      case 'profile':
+      case FEATURE_STEPS.PROFILE:
         if (isLoading && !learnerProfile) { return <LoadingState />; }
         if (error && !learnerProfile) { return <ErrorState message={error.message} />; }
         if (!learnerProfile && !isLoading) { return <ErrorState message="No profile found" />; }
@@ -87,14 +88,14 @@ export const AiPathwaysPage = () => {
             }}
           />
         );
-      case 'pathway':
+      case FEATURE_STEPS.PATHWAY:
         if (isLoading) { return <LoadingState />; }
         if (error) { return <ErrorState message={error.message} />; }
         if (!pathway) { return <ErrorState message="No pathway data available" />; }
         return (
           <PathwayList
             pathway={pathway}
-            onAdjustPathway={() => setCurrentStep('intake')}
+            onAdjustPathway={() => setCurrentStep(FEATURE_STEPS.INTAKE)}
           />
         );
       default:

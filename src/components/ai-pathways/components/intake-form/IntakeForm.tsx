@@ -12,6 +12,7 @@ import {
   LEARNING_STYLE_OPTIONS,
   TIME_AVAILABILITY_OPTIONS,
   CERTIFICATE_PREFERENCE_OPTIONS,
+  INTAKE_STEPS,
 } from '../../constants';
 
 interface IntakeFormProps {
@@ -38,7 +39,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
 
   const renderPageContent = () => {
     switch (pageIndex) {
-      case 0:
+      case INTAKE_STEPS.GOALS:
         return (
           <>
             <Form.Group className="mb-4">
@@ -63,7 +64,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
             </Form.Group>
           </>
         );
-      case 1:
+      case INTAKE_STEPS.BACKGROUND:
         return (
           <>
             <Form.Group className="mb-4">
@@ -90,7 +91,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
             </Form.Group>
           </>
         );
-      case 2:
+      case INTAKE_STEPS.PREFERENCES:
         return (
           <>
             <Form.Group className="mb-4">
@@ -139,7 +140,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
             </Form.Group>
           </>
         );
-      case 3:
+      case INTAKE_STEPS.PROCESSING:
         return (
           <div className="text-center py-5">
             <Spinner animation="border" variant="primary" style={{ width: '3rem', height: '3rem' }} />
@@ -174,12 +175,12 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
           <Form>
             {renderPageContent()}
 
-            {pageIndex < 3 && (
+            {pageIndex < INTAKE_STEPS.PROCESSING && (
               <div className="d-flex justify-content-between mt-4">
                 <Button
                   variant="outline-primary"
                   onClick={handleBack}
-                  disabled={pageIndex === 0 || isSubmitting}
+                  disabled={pageIndex === INTAKE_STEPS.GOALS || isSubmitting}
                 >
                   Back
                 </Button>
@@ -188,7 +189,7 @@ export const IntakeForm = ({ onSubmit, isSubmitting = false }: IntakeFormProps) 
                   onClick={handleNext}
                   disabled={isSubmitting}
                 >
-                  {pageIndex === 2 ? 'Submit' : 'Continue'}
+                  {pageIndex === INTAKE_STEPS.PREFERENCES ? 'Submit' : 'Continue'}
                 </Button>
               </div>
             )}

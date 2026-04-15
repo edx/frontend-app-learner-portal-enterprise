@@ -30,8 +30,9 @@ import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
 import { catalogTranslationService } from '../services/catalogTranslationService';
 import { catalogTranslationXpertService } from '../services/catalogTranslation.xpert.service';
+import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 
-export type PathwayStep = 'intake' | 'profile' | 'pathway';
+export type PathwayStep = typeof FEATURE_STEPS[keyof typeof FEATURE_STEPS];
 
 /**
  * Hook to manage the AI Learning Pathways state and orchestration.
@@ -112,7 +113,7 @@ function makeCapturingInterceptor(
  * - Shared services (facetBootstrap, catalogTranslation, courseRetrieval)
  */
 export const usePathways = () => {
-  const [currentStep, setCurrentStep] = useState<PathwayStep>('intake');
+  const [currentStep, setCurrentStep] = useState<PathwayStep>(FEATURE_STEPS.INTAKE);
   const [learnerProfile, setLearnerProfile] = useState<LearnerProfile | null>(null);
   const [searchIntent, setSearchIntent] = useState<XpertIntent | null>(null);
   const [selectedCareer, setSelectedCareer] = useState<CareerCardModel | null>(null);
@@ -254,7 +255,7 @@ export const usePathways = () => {
       if (careers.length > 0) {
         setSelectedCareer(careers[0]);
       }
-      setCurrentStep('profile');
+      setCurrentStep(FEATURE_STEPS.PROFILE);
       return profile;
     } catch (err) {
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate profile');
@@ -380,7 +381,7 @@ export const usePathways = () => {
           title: c.title,
           level: c.level || 'intermediate',
           skills: c.skills,
-          status: 'not started',
+          status: COURSE_STATUSES.NOT_STARTED,
           order: c.order,
           shortDescription: c.shortDescription || '',
           imageUrl: c.imageUrl || '',
@@ -397,7 +398,7 @@ export const usePathways = () => {
 
       setPathway(enrichmentResult.pathway);
       setPathwayResponse(updatedResponseModel);
-      setCurrentStep('pathway');
+      setCurrentStep(FEATURE_STEPS.PATHWAY);
       return courses;
     } catch (err) {
       const errorInstance = err instanceof Error ? err : new Error('Failed to generate pathway');
@@ -412,7 +413,7 @@ export const usePathways = () => {
    * Resets the entire flow state.
    */
   const reset = useCallback(() => {
-    setCurrentStep('intake');
+    setCurrentStep(FEATURE_STEPS.INTAKE);
     setLearnerProfile(null);
     setSearchIntent(null);
     setSelectedCareer(null);
