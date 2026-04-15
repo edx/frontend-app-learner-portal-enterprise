@@ -29,6 +29,7 @@ const CourseRetrievalSection = ({ hits }: { hits: CourseRetrievalHit[] }) => {
     <div className="d-flex flex-wrap mt-3">
       {hits.map((hit) => (
         <div key={hit.objectID} style={{ width: '300px' }} className="mr-3 mb-3">
+          {/* @ts-ignore */}
           <SearchCourseCard
             hit={mapRetrievalHitToSearchCard(hit)}
             parentRoute={{ label: 'AI Pathways Debug', to: '#' }}
@@ -52,6 +53,7 @@ const StepCarousel = ({ hits, label }: { hits: CourseRetrievalHit[], label: stri
       >
         {hits.map((hit) => (
           <div key={hit.objectID} className="h-100 pb-3">
+            {/* @ts-ignore */}
             <SearchCourseCard
               hit={mapRetrievalHitToSearchCard(hit)}
               parentRoute={{ label: 'AI Pathways Debug', to: '#' }}

@@ -62,16 +62,29 @@ export const AiPathwaysPage = () => {
           />
         );
       case 'profile':
-        if (isLoading) { return <LoadingState />; }
-        if (error) { return <ErrorState message={error.message} />; }
-        if (!learnerProfile) { return <ErrorState message="No profile found" />; }
+        if (isLoading && !learnerProfile) { return <LoadingState />; }
+        if (error && !learnerProfile) { return <ErrorState message={error.message} />; }
+        if (!learnerProfile && !isLoading) { return <ErrorState message="No profile found" />; }
         return (
           <UserProfile
-            profile={learnerProfile}
+            profile={learnerProfile!}
             selectedCareer={selectedCareer}
             onSelectCareer={selectCareer}
             onBuildPathway={generatePathway}
             isGenerating={isLoading}
+            error={error}
+            onUpdateProfile={async (updates) => {
+              const args = {
+                bringsYouHereRes: updates.motivation ?? learnerProfile!.motivation,
+                careerGoalRes: updates.careerGoal ?? learnerProfile!.careerGoal,
+                learningPrefRes: learnerProfile!.learningStyle,
+                backgroundRes: updates.background ?? learnerProfile!.background,
+                industryRes: updates.targetIndustry ?? learnerProfile!.targetIndustry,
+                timeAvailableRes: learnerProfile!.timeAvailable,
+                certificateRes: learnerProfile!.certificate,
+              };
+              await generateProfile(args, isDebug ? interceptPrompt : undefined);
+            }}
           />
         );
       case 'pathway':
