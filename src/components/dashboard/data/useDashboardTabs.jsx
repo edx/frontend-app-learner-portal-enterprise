@@ -13,6 +13,7 @@ import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
 import {
+  DASHBOARD_AI_PATHWAYS_TAB,
   DASHBOARD_COURSES_TAB,
   DASHBOARD_MY_CAREER_TAB,
   DASHBOARD_PATHWAYS_TAB,
@@ -21,10 +22,10 @@ import {
 } from './constants';
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
+  queryLearnerSkillLevels,
   useEnterpriseCustomer,
   useEnterprisePathwaysList,
   useEnterpriseProgramsList,
-  queryLearnerSkillLevels,
 } from '../../app/data';
 import { extractCurrentJobID } from '../../my-career/data/utils';
 
@@ -32,6 +33,12 @@ const MyCareerTab = loadable(() => import(
   '../../my-career/MyCareerTab'
 ), {
   fallback: <MyCareerTabSkeleton />,
+});
+
+const AIPathwaysTab = loadable(() => import(
+  '../../ai-pathways/AIPathwaysTab'
+), {
+  fallback: <div>Loading AI Pathways...</div>,
 });
 
 const useDashboardTabs = () => {
@@ -116,6 +123,18 @@ const useDashboardTabs = () => {
         })}
       >
         {activeTab === DASHBOARD_MY_CAREER_TAB && <MyCareerTab learnerCurrentJobID={learnerCurrentJobID} />}
+      </Tab>
+    ),
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS && (
+      <Tab
+        eventKey={DASHBOARD_AI_PATHWAYS_TAB}
+        title={intl.formatMessage({
+          id: 'enterprise.dashboard.tab.ai.pathways',
+          defaultMessage: 'AI Pathways',
+          description: 'Title for AI pathways tab on enterprise dashboard.',
+        })}
+      >
+        {activeTab === DASHBOARD_AI_PATHWAYS_TAB && <AIPathwaysTab />}
       </Tab>
     ),
   ].filter(tab => tab); // Filtering for truthy values
