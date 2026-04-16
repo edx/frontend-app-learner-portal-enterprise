@@ -137,6 +137,7 @@ declare global {
 
   type EnterpriseFeatures = {
     enterpriseLearnerBffEnabled?: boolean;
+    enableMultiLicenseEntitlementsBff?: boolean;
   };
 
   type EnterpriseCustomerUserRaw = enterpriseAccessOpenApi.components['schemas']['EnterpriseCustomerUser'];

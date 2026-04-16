@@ -154,17 +154,21 @@ export const intentExtractionXpertService = {
       required: true,
     };
 
+    const formatFacetValues = (values: Array<{ value: string }>) => values
+      .map(({ value }) => JSON.stringify(String(value).replace(/\r?\n/g, ' ')))
+      .join(', ');
+
     if (facets) {
       const facetContextContent = `
 Use the following available facet values to normalize your output.
 
 Primary searchable facet sources:
-- Jobs / Roles (name): ${facets.name.slice(0, 50).map(f => f.value).join(', ')}
-- Skills (skills.name): ${facets.skills.slice(0, 50).map(f => f.value).join(', ')}
+ - Jobs / Roles (name): ${formatFacetValues(facets.name)}
+ - Skills (skills.name): ${formatFacetValues(facets.skills)}
 
 Supporting facet sources:
-- Industries (industry_names): ${facets.industries.slice(0, 30).map(f => f.value).join(', ')}
-- Job Sources (job_sources): ${facets.jobSources.slice(0, 30).map(f => f.value).join(', ')}
+ - Industries (industry_names): ${formatFacetValues(facets.industries)}
+ - Job Sources (job_sources): ${formatFacetValues(facets.jobSources)}
 
 Rules:
 - Build condensedQuery primarily from broad, common values in name and skills.name.
