@@ -1350,6 +1350,18 @@ describe('resolveBFFQuery', () => {
       expectedRouteKey: 'dashboard',
     },
     {
+      currentPathname: `/${mockEnterpriseCustomer.slug}/course/course-v1:test+TST101+2026`,
+      expectedRouteKey: 'dashboard',
+    },
+    {
+      currentPathname: `/${mockEnterpriseCustomer.slug}/executive-education-2u/course/course-v1:test+TST101+2026`,
+      expectedRouteKey: 'dashboard',
+    },
+    {
+      currentPathname: `/${mockEnterpriseCustomer.slug}/course/course-v1:test+TST101+2026/enroll/course-v1:test+TST101+2026`,
+      expectedRouteKey: 'dashboard',
+    },
+    {
       currentPathname: `/${mockEnterpriseCustomer.slug}/search`,
       expectedRouteKey: 'search',
     },

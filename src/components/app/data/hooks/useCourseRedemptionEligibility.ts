@@ -6,7 +6,7 @@ import useCourseMetadata from './useCourseMetadata';
 import { queryCanRedeem } from '../queries';
 import useEnterpriseCustomer from './useEnterpriseCustomer';
 import useLateEnrollmentBufferDays from './useLateEnrollmentBufferDays';
-import { determineSubscriptionLicenseApplicable, findCouponCodeForCourse, getCourseRunsForRedemption } from '../utils';
+import { findCouponCodeForCourse, getCourseRunsForRedemption, resolveApplicableSubscriptionLicense } from '../utils';
 import useCourseRunKeyQueryParam from './useCourseRunKeyQueryParam';
 import useRedeemablePolicies from './useRedeemablePolicies';
 import useSubscriptions from './useSubscriptions';
@@ -102,57 +102,68 @@ export default function useCourseRedemptionEligibility() {
   const lateEnrollmentBufferDays = useLateEnrollmentBufferDays();
   const { data: courseMetadata } = useCourseMetadata();
 
-  const {
-    // @ts-expect-error
-    data: { subscriptionLicense },
-  } = useSubscriptions();
+type SubscriptionsData = {
+  subscriptionLicense?: SubscriptionLicense;
+  subscriptionLicenses?: SubscriptionLicense[];
+  licensesByCatalog?: Record<string, SubscriptionLicense[]>;
+};
 
-  const { courseKey } = useParams();
-  const {
-    data: {
-      catalogList: catalogsWithCourse,
-    },
-  } = useEnterpriseCustomerContainsContent([courseKey!]);
+const { data: subscriptionsData } = useSubscriptions();
 
-  const {
-    data: {
-      couponCodeAssignments,
-    },
-  } = useCouponCodes();
-  const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
+const {
+  subscriptionLicense,
+  subscriptionLicenses = [],
+  licensesByCatalog = {},
+} = (subscriptionsData ?? {}) as SubscriptionsData;
 
-  const isSubscriptionLicenseApplicable = determineSubscriptionLicenseApplicable(
-    subscriptionLicense,
-    catalogsWithCourse,
-  );
-  const hasSubsidyPrioritizedOverLearnerCredit = isSubscriptionLicenseApplicable
+const { courseKey } = useParams();
+const {
+  data: {
+    catalogList: catalogsWithCourse,
+  },
+} = useEnterpriseCustomerContainsContent([courseKey!]);
+
+const {
+  data: {
+    couponCodeAssignments,
+  },
+} = useCouponCodes();
+const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
+
+const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
+  subscriptionLicense: subscriptionLicense ?? null,
+  subscriptionLicenses,
+  licensesByCatalog,
+  catalogsWithCourse,
+} as any);
+const hasSubsidyPrioritizedOverLearnerCredit = !!applicableSubscriptionLicense
     || applicableCouponCode?.couponCodeRedemptionCount > 0;
 
-  const {
-    courseRuns: courseRunsForRedemption,
-    courseRunKeys: courseRunKeysForRedemption,
-  } = getCourseRunsForRedemption({
-    course: courseMetadata,
-    lateEnrollmentBufferDays,
-    courseRunKey,
-    redeemableLearnerCreditPolicies,
-    hasSubsidyPrioritizedOverLearnerCredit,
-  });
+const {
+  courseRuns: courseRunsForRedemption,
+  courseRunKeys: courseRunKeysForRedemption,
+} = getCourseRunsForRedemption({
+  course: courseMetadata,
+  lateEnrollmentBufferDays,
+  courseRunKey,
+  redeemableLearnerCreditPolicies,
+  hasSubsidyPrioritizedOverLearnerCredit,
+});
 
-  return useQuery(
-    queryOptions({
-      ...queryCanRedeem(enterpriseCustomer.uuid, courseMetadata.key, courseRunKeysForRedemption),
-      select: (data) => {
-        // Among other things, transformCourseRedemptionEligibility() removes
-        // restricted runs that fail the policy's can-redeem check.
-        const transformedData = transformCourseRedemptionEligibility({
-          courseMetadata,
-          canRedeemData: data,
-          courseRunKey,
-          courseRunsForRedemption,
-        });
-        return transformedData;
-      },
-    }),
-  );
+return useQuery(
+  queryOptions({
+    ...queryCanRedeem(enterpriseCustomer.uuid, courseMetadata.key, courseRunKeysForRedemption),
+    select: (data) => {
+      // Among other things, transformCourseRedemptionEligibility() removes
+      // restricted runs that fail the policy's can-redeem check.
+      const transformedData = transformCourseRedemptionEligibility({
+        courseMetadata,
+        canRedeemData: data,
+        courseRunKey,
+        courseRunsForRedemption,
+      });
+      return transformedData;
+    },
+  }),
+);
 }
