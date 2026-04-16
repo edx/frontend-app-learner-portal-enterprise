@@ -12,7 +12,7 @@ describe('catalogTranslationXpertService coverage gaps', () => {
     jest.clearAllMocks();
     (xpertCatalogTranslationPrompt.buildTranslationPrompt as jest.Mock).mockReturnValue({
       bundle: { combined: 'test', parts: [] },
-      userPayload: {}
+      userPayload: {},
     });
   });
 

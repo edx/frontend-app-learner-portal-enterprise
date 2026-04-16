@@ -74,7 +74,7 @@ describe('xpertContractService coverage gaps', () => {
         reasonings: [
           { id: 'c1' }, // missing reasoning
           { reasoning: 'why' }, // missing id
-        ]
+        ],
       });
       const result = xpertContractService.parseReasoning(raw);
       expect(result?.reasonings[0].reasoning).toBe('');
@@ -82,7 +82,7 @@ describe('xpertContractService coverage gaps', () => {
     });
 
     it('returns null on catch block (invalid JSON)', () => {
-       expect(xpertContractService.parseReasoning('!!!')).toBeNull();
+      expect(xpertContractService.parseReasoning('!!!')).toBeNull();
     });
   });
 });

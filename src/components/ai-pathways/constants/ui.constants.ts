@@ -37,8 +37,8 @@ export const INTAKE_STEPS = {
 
 export const COURSE_STATUSES = {
   COMPLETED: 'completed',
-  IN_PROGRESS: 'in progress',
-  NOT_STARTED: 'not started',
+  IN_PROGRESS: 'in_progress',
+  NOT_STARTED: 'not_started',
 } as const;
 
 export interface IntakePageInfo {

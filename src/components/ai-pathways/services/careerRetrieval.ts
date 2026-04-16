@@ -81,6 +81,7 @@ const mapTaxonomyResultToCareerCard = (hit: TaxonomyResult): CareerCardModel => 
     uniquePostings: hit.job_postings?.[0]?.unique_postings,
   },
   raw: hit,
+  percentMatch: 0.95,
 });
 
 /**

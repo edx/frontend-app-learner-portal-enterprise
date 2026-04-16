@@ -1,5 +1,4 @@
 import { careerRetrievalService } from '../careerRetrieval';
-import { SearchIndex } from 'algoliasearch/lite';
 
 describe('careerRetrieval coverage gaps', () => {
   const mockIndex = { search: jest.fn() } as any;
@@ -36,7 +35,7 @@ describe('careerRetrieval coverage gaps', () => {
     mockIndex.search.mockResolvedValue({ hits: [] });
 
     await careerRetrievalService.searchCareers(mockIndex, intent as any);
-    const filters = mockIndex.search.mock.calls[0][1].filters;
+    const { filters } = mockIndex.search.mock.calls[0][1];
     expect(filters).toContain('NOT skills.name:"tag1"');
     expect(filters).toContain('NOT skills.name:"tag\\"2"');
   });
@@ -51,18 +50,19 @@ describe('careerRetrieval coverage gaps', () => {
 
     const results = await careerRetrievalService.searchCareers(mockIndex, { condensedQuery: 'test' } as any);
     expect(results[0].id).toBe('obj-1');
+    // @ts-ignore
     expect(results[0].marketData.medianSalary).toBeUndefined();
   });
 
   it('dedupeStrings removes duplicates and empties', async () => {
-     const intent = {
+    const intent = {
       condensedQuery: 'test',
       industries: ['Tech', 'Tech', '  ', null],
     };
     mockIndex.search.mockResolvedValue({ hits: [] });
 
     await careerRetrievalService.searchCareers(mockIndex, intent as any);
-    const filters = mockIndex.search.mock.calls[0][1].filters;
+    const { filters } = mockIndex.search.mock.calls[0][1];
     expect(filters).toBe('(industry_names:"Tech")');
   });
 });

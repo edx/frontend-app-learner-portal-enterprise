@@ -1,5 +1,5 @@
-import { catalogFacetService } from '../catalogFacetService';
 import { SearchIndex } from 'algoliasearch/lite';
+import { catalogFacetService } from '../catalogFacetService';
 import { FACET_FIELDS } from '../../constants';
 
 describe('catalogFacetService', () => {
@@ -72,7 +72,7 @@ describe('catalogFacetService', () => {
       expect(mockIndex.search).toHaveBeenCalledWith('', expect.objectContaining({
         facetFilters: [
           ['content_type:course'],
-          ['enterprise_catalog_query_uuids:query-uuid-1']
+          ['enterprise_catalog_query_uuids:query-uuid-1'],
         ],
       }));
     });

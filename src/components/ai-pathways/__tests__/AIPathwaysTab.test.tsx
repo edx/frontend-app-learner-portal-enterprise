@@ -23,13 +23,11 @@ jest.mock('react-instantsearch-dom', () => ({
   Configure: () => <div data-testid="configure" />,
 }));
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('AIPathwaysTab', () => {
   it('renders AiPathwaysPage and InstantSearch when client is available', () => {

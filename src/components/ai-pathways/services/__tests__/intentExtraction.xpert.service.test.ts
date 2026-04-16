@@ -7,7 +7,9 @@ jest.mock('../xpert.service');
 jest.mock('../xpertContract');
 
 describe('intentExtractionXpertService', () => {
-  const mockInput = { freeText: 'software engineering', preferences: [], selectedGoals: [], knownContext: [] };
+  const mockInput = {
+    freeText: 'software engineering', preferences: [], selectedGoals: [], knownContext: [],
+  };
   const mockFacets = {
     name: [{ value: 'Dev', count: 1 }],
     skills: [{ value: 'JS', count: 1 }],
@@ -67,7 +69,7 @@ describe('intentExtractionXpertService', () => {
 
       expect(interceptPrompt).toHaveBeenCalled();
       expect(xpertService.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        systemMessage: 'edited prompt'
+        systemMessage: 'edited prompt',
       }));
     });
 
@@ -82,7 +84,7 @@ describe('intentExtractionXpertService', () => {
 
       // Should use original bundle
       expect(xpertService.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        systemMessage: expect.stringContaining('You are a precision intent extraction engine')
+        systemMessage: expect.stringContaining('You are a precision intent extraction engine'),
       }));
     });
 

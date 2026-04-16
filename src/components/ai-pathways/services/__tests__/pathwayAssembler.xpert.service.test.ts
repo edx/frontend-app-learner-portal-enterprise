@@ -8,10 +8,13 @@ jest.mock('../xpertContract');
 
 describe('pathwayAssemblerXpertService', () => {
   const mockPathway: LearningPathway = {
+    // @ts-ignore
     id: 'p1',
     title: 'Pathway 1',
     courses: [
-      { id: 'c1', title: 'Course 1', status: 'not started', level: 'Beginner', reasoning: '', order: 1, skills: [] },
+      {
+        id: 'c1', title: 'Course 1', status: 'not_started', level: 'Beginner', reasoning: '', order: 1, skills: [],
+      },
     ],
   };
 
@@ -33,7 +36,10 @@ describe('pathwayAssemblerXpertService', () => {
 
   describe('enrichWithReasoning', () => {
     it('returns early if no courses', async () => {
-      const result = await pathwayAssemblerXpertService.enrichWithReasoning({ ...mockPathway, courses: [] }, mockIntent);
+      const result = await pathwayAssemblerXpertService.enrichWithReasoning(
+        { ...mockPathway, courses: [] },
+        mockIntent,
+      );
       expect(result.debug.success).toBe(true);
       expect(result.debug.durationMs).toBe(0);
     });
@@ -41,7 +47,7 @@ describe('pathwayAssemblerXpertService', () => {
     it('enriches pathway successfully', async () => {
       (xpertService.sendMessage as jest.Mock).mockResolvedValue({ content: '{"reasonings": [{"id": "c1", "reasoning": "New reasoning"}]}' });
       (xpertContractService.parseReasoning as jest.Mock).mockReturnValue({
-        reasonings: [{ id: 'c1', reasoning: 'New reasoning' }]
+        reasonings: [{ id: 'c1', reasoning: 'New reasoning' }],
       });
 
       const result = await pathwayAssemblerXpertService.enrichWithReasoning(mockPathway, mockIntent);

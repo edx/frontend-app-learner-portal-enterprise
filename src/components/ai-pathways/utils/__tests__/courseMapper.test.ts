@@ -4,7 +4,7 @@ import { CourseRetrievalHit } from '../../types';
 describe('courseMapper', () => {
   describe('mapRetrievalHitToSearchCard', () => {
     const baseHit: Partial<CourseRetrievalHit> = {
-      id: 'course-1',
+      objectID: 'course-1',
       title: 'Test Course',
     };
 

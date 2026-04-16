@@ -41,7 +41,7 @@ export const PathwayDetail = ({
   let actionText = 'Register';
   if (status === 'completed') {
     actionText = 'View Certificate';
-  } else if (status === 'in progress') {
+  } else if (status === 'in_progress') {
     actionText = 'Continue Course';
   }
 

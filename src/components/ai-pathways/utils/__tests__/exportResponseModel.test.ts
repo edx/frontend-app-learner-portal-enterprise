@@ -1,4 +1,6 @@
-import { buildExportFilename, safeSerialize, triggerDownload, exportResponseModel } from '../exportResponseModel';
+import {
+  buildExportFilename, safeSerialize, triggerDownload, exportResponseModel,
+} from '../exportResponseModel';
 
 describe('exportResponseModel', () => {
   describe('buildExportFilename', () => {

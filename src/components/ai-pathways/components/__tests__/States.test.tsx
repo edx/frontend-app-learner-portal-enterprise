@@ -11,7 +11,7 @@ describe('AI Pathways State Components', () => {
       render(
         <StateLayout className="custom-class" minHeight="500px">
           <div data-testid="child">Child</div>
-        </StateLayout>
+        </StateLayout>,
       );
       const container = screen.getByTestId('child').parentElement;
       expect(container).toHaveClass('custom-class');

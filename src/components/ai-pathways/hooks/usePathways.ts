@@ -230,7 +230,7 @@ export const usePathways = () => {
         certificate: args.certificateRes,
         careerMatches: careers.map(c => ({
           title: c.title,
-          percentMatch: 95, // Default similarity placeholder
+          percentMatch: 0.95, // Default similarity placeholder
           skills: c.skills,
           industries: c.industries,
         })),

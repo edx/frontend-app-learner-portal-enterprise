@@ -1,4 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
+import { AppContext } from '@edx/frontend-platform/react';
+import React from 'react';
 import { usePathways } from '../usePathways';
 import { facetBootstrapService } from '../../services/facetBootstrap';
 import { intakePreprocessor } from '../../services/intakePreprocessor';
@@ -7,8 +9,6 @@ import { careerRetrievalService } from '../../services/careerRetrieval';
 import useAlgoliaSearch from '../../../app/data/hooks/useAlgoliaSearch';
 import * as appUtils from '../../../app/data/utils';
 import { mockIntakeInput, mockSearchIntent, mockTaxonomyUniverse } from '../../fixtures';
-import { AppContext } from '@edx/frontend-platform/react';
-import React from 'react';
 
 jest.mock('@edx/frontend-platform', () => ({
   getConfig: jest.fn(() => ({
@@ -85,7 +85,7 @@ describe('usePathways coverage gaps', () => {
         <AppContext.Provider value={{ authenticatedUser: { username: 'only-username' } } as any}>
           {children}
         </AppContext.Provider>
-      )
+      ),
     });
 
     await act(async () => {
@@ -124,7 +124,7 @@ describe('usePathways coverage gaps', () => {
     const mockInterceptPrompt = jest.fn().mockResolvedValue({
       decision: 'accepted',
       bundle: editedBundle,
-      validationWarnings: [{ message: 'warn' }]
+      validationWarnings: [{ message: 'warn' }],
     });
 
     const { result } = renderHook(() => usePathways());
@@ -141,7 +141,7 @@ describe('usePathways coverage gaps', () => {
       label: 'test',
       decision: 'accepted',
       edited: editedBundle,
-      validationWarnings: [{ message: 'warn' }]
+      validationWarnings: [{ message: 'warn' }],
     });
   });
 });

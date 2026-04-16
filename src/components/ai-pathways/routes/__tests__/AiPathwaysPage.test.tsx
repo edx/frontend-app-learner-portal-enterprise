@@ -21,9 +21,11 @@ jest.mock('../../components', () => ({
   LoadingState: () => <div data-testid="loading-state">Loading...</div>,
   ErrorState: ({ message }: { message: string }) => <div data-testid="error-state">{message}</div>,
   IntakeForm: ({ onSubmit }: { onSubmit: (args: any) => void }) => (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions
     <div data-testid="mock-intake-form" onClick={() => onSubmit({ bringsYouHereRes: 'test' })}>Intake Form</div>
   ),
   UserProfile: ({ onUpdateProfile, onBuildPathway, onSelectCareer }: any) => (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions
     <div
       data-testid="mock-user-profile"
       onClick={() => onUpdateProfile({ careerGoal: 'New Goal' })}
@@ -34,19 +36,18 @@ jest.mock('../../components', () => ({
     </div>
   ),
   PathwayList: ({ onAdjustPathway }: { onAdjustPathway: () => void }) => (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions
     <div data-testid="mock-pathway-list" onClick={onAdjustPathway}>Pathway List</div>
   ),
   DebugConsole: () => <div data-testid="debug-console">Debug Console</div>,
   PromptEditorModal: () => <div data-testid="prompt-editor">Prompt Editor</div>,
 }));
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('AiPathwaysPage', () => {
   const mockUsePathways = usePathways as jest.Mock;
@@ -111,7 +112,7 @@ describe('AiPathwaysPage', () => {
   });
 
   it('renders UserProfile when profile is available', () => {
-     mockUsePathways.mockReturnValue({
+    mockUsePathways.mockReturnValue({
       ...baseReturn,
       currentStep: FEATURE_STEPS.PROFILE,
       learnerProfile: { name: 'Test', careerMatches: [], skills: [] },
@@ -138,7 +139,7 @@ describe('AiPathwaysPage', () => {
     fireEvent.click(userProfile2);
     expect(baseReturn.generateProfile).toHaveBeenCalledWith(
       expect.any(Object),
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
@@ -207,12 +208,12 @@ describe('AiPathwaysPage', () => {
     fireEvent.click(screen.getByTestId('mock-intake-form'));
     expect(baseReturn.generateProfile).toHaveBeenCalledWith(
       expect.any(Object),
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
   it('handles default case in renderContent', () => {
-     mockUsePathways.mockReturnValue({
+    mockUsePathways.mockReturnValue({
       ...baseReturn,
       currentStep: 'UNKNOWN',
     });

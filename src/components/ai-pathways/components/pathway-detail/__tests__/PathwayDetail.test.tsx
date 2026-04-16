@@ -5,13 +5,11 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { PathwayDetail } from '../PathwayDetail';
 import { PathwayCourse } from '../../../types';
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('PathwayDetail', () => {
   const mockCourse: PathwayCourse = {
@@ -33,7 +31,7 @@ describe('PathwayDetail', () => {
 
   it('renders nothing if course is null', () => {
     const { container } = customRender(
-      <PathwayDetail course={null} isOpen={true} onClose={mockOnClose} />
+      <PathwayDetail course={null} isOpen onClose={mockOnClose} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -42,10 +40,10 @@ describe('PathwayDetail', () => {
     customRender(
       <PathwayDetail
         course={mockCourse}
-        isOpen={true}
+        isOpen
         onClose={mockOnClose}
         onAction={mockOnAction}
-      />
+      />,
     );
 
     expect(screen.getByRole('dialog', { name: 'React Course' })).toBeInTheDocument();
@@ -66,9 +64,9 @@ describe('PathwayDetail', () => {
     customRender(
       <PathwayDetail
         course={{ ...mockCourse, status: 'completed' }}
-        isOpen={true}
+        isOpen
         onClose={mockOnClose}
-      />
+      />,
     );
     expect(screen.getByText(/View Certificate/i)).toBeInTheDocument();
   });
@@ -76,10 +74,10 @@ describe('PathwayDetail', () => {
   it('renders "Continue Course" for in progress status', () => {
     customRender(
       <PathwayDetail
-        course={{ ...mockCourse, status: 'in progress' }}
-        isOpen={true}
+        course={{ ...mockCourse, status: 'in_progress' }}
+        isOpen
         onClose={mockOnClose}
-      />
+      />,
     );
     expect(screen.getByText(/Continue Course/i)).toBeInTheDocument();
   });
@@ -88,9 +86,9 @@ describe('PathwayDetail', () => {
     customRender(
       <PathwayDetail
         course={{ ...mockCourse, skills: [] }}
-        isOpen={true}
+        isOpen
         onClose={mockOnClose}
-      />
+      />,
     );
     expect(screen.getByText(/No skills listed for this course./i)).toBeInTheDocument();
   });
@@ -99,9 +97,9 @@ describe('PathwayDetail', () => {
     customRender(
       <PathwayDetail
         course={mockCourse}
-        isOpen={true}
+        isOpen
         onClose={mockOnClose}
-      />
+      />,
     );
     // There are two close buttons: the 'X' and the 'Close' text button.
     // Target the 'Close' text button specifically.

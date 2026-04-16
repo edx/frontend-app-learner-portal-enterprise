@@ -1,17 +1,17 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import {
+  render, screen, fireEvent, act,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { UserProfile } from '../UserProfile';
 import { LearnerProfile, CareerCardModel } from '../../../types';
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('UserProfile', () => {
   const mockProfile: LearnerProfile = {
@@ -25,12 +25,21 @@ describe('UserProfile', () => {
     timeAvailable: '10h/week',
     certificate: 'yes',
     careerMatches: [
-      { title: 'Software Engineer', percentMatch: 0.95, skills: ['JS'], industries: ['Tech'] },
-      { title: 'Data Scientist', percentMatch: 0.8, skills: ['Python'], industries: ['Tech'] }
+      {
+        title: 'Software Engineer', percentMatch: 0.95, skills: ['JS'], industries: ['Tech'],
+      },
+      {
+        title: 'Data Scientist', percentMatch: 0.8, skills: ['Python'], industries: ['Tech'],
+      },
     ],
   };
 
+  // @ts-ignore
   const mockSelectedCareer: CareerCardModel = {
+    description: '',
+    id: '',
+    jobSources: [],
+    similarJobs: [],
     title: 'Software Engineer',
     percentMatch: 0.95,
     skills: ['JS', 'React'],
@@ -52,7 +61,7 @@ describe('UserProfile', () => {
         selectedCareer={mockSelectedCareer}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-      />
+      />,
     );
 
     expect(screen.getByText('John Doe')).toBeInTheDocument();
@@ -69,7 +78,7 @@ describe('UserProfile', () => {
         selectedCareer={mockSelectedCareer}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-      />
+      />,
     );
     expect(screen.getByText('U')).toBeInTheDocument(); // Default 'U'
   });
@@ -81,7 +90,7 @@ describe('UserProfile', () => {
         selectedCareer={mockSelectedCareer}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-      />
+      />,
     );
 
     const dsBtn = screen.getByText(/Data Scientist/i);
@@ -97,7 +106,7 @@ describe('UserProfile', () => {
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
         onUpdateProfile={mockOnUpdateProfile}
-      />
+      />,
     );
 
     const editBtn = screen.getByText('Edit');
@@ -121,7 +130,7 @@ describe('UserProfile', () => {
     });
 
     expect(mockOnUpdateProfile).toHaveBeenCalledWith(expect.objectContaining({
-      careerGoal: 'Senior Dev'
+      careerGoal: 'Senior Dev',
     }));
     expect(screen.queryByText('Submit')).not.toBeInTheDocument(); // Mode closed
   });
@@ -133,7 +142,7 @@ describe('UserProfile', () => {
         selectedCareer={mockSelectedCareer}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -143,13 +152,13 @@ describe('UserProfile', () => {
   });
 
   it('can cancel editing with changes by clicking Cancel', () => {
-     customRender(
+    customRender(
       <UserProfile
         profile={mockProfile}
         selectedCareer={mockSelectedCareer}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Edit'));
@@ -168,7 +177,7 @@ describe('UserProfile', () => {
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
         error={error}
-      />
+      />,
     );
     expect(screen.getByText('Update failed')).toBeInTheDocument();
   });
@@ -180,8 +189,8 @@ describe('UserProfile', () => {
         selectedCareer={null}
         onSelectCareer={mockOnSelectCareer}
         onBuildPathway={mockOnBuildPathway}
-        isGenerating={true}
-      />
+        isGenerating
+      />,
     );
     const btn = screen.getByText('Building Pathway...');
     expect(btn).toBeDisabled();

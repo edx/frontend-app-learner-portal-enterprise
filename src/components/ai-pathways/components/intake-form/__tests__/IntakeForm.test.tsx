@@ -1,17 +1,16 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import {
+  render, screen, fireEvent, act,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { IntakeForm } from '../IntakeForm';
-import { INTAKE_STEPS } from '../../../constants';
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('IntakeForm', () => {
   const mockOnSubmit = jest.fn();
@@ -28,11 +27,11 @@ describe('IntakeForm', () => {
     expect(screen.getByLabelText(/What brings you here today\?/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/What brings you here today\?/i), {
-      target: { value: 'Learn coding' }
+      target: { value: 'Learn coding' },
     });
 
     fireEvent.change(screen.getByLabelText(/What career would you like us to help you achieve\?/i), {
-      target: { value: 'Software Engineer' }
+      target: { value: 'Software Engineer' },
     });
 
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
@@ -42,11 +41,11 @@ describe('IntakeForm', () => {
     expect(screen.getByLabelText(/What's your current background or role\?/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/What's your current background or role\?/i), {
-      target: { value: 'Manager' }
+      target: { value: 'Manager' },
     });
 
     fireEvent.change(screen.getByLabelText(/Which industry or field are you most interested in\?/i), {
-      target: { value: 'Tech' }
+      target: { value: 'Tech' },
     });
 
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
@@ -61,17 +60,17 @@ describe('IntakeForm', () => {
 
     // Select from dropdowns
     fireEvent.change(screen.getByLabelText(/How much time can you dedicate/i), {
-      target: { value: '4-6 hours per week' }
+      target: { value: '4-6 hours per week' },
     });
 
     fireEvent.change(screen.getByLabelText(/Are you interested in a certificate/i), {
-      target: { value: 'Yes, definitely' }
+      target: { value: 'Yes, definitely' },
     });
 
     // Select different options for coverage
     fireEvent.click(screen.getByLabelText(/Async \+ live sessions/i));
     fireEvent.change(screen.getByLabelText(/How much time can you dedicate/i), {
-      target: { value: '7 or more hours per week' }
+      target: { value: '7 or more hours per week' },
     });
 
     // Submit
@@ -96,7 +95,7 @@ describe('IntakeForm', () => {
   });
 
   it('disables buttons when isSubmitting is true', () => {
-    customRender(<IntakeForm onSubmit={mockOnSubmit} isSubmitting={true} />);
+    customRender(<IntakeForm onSubmit={mockOnSubmit} isSubmitting />);
 
     expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /back/i })).toBeDisabled();

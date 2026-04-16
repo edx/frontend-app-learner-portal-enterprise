@@ -34,7 +34,7 @@ describe('intakePreprocessor', () => {
     });
 
     it('handles empty input in cleanText', () => {
-       const args: CreateLearnerProfileArgs = {
+      const args: CreateLearnerProfileArgs = {
         bringsYouHereRes: undefined as any,
         careerGoalRes: '',
         backgroundRes: '',

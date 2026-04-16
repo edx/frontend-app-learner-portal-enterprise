@@ -28,7 +28,7 @@ export interface FacetReference {
 /**
  * Defines the lifecycle of a course within a learning pathway.
  */
-export type CourseStatus = 'completed' | 'in progress' | 'not started';
+export type CourseStatus = 'completed' | 'in_progress' | 'not_started';
 
 /**
  * Represents a single educational item in a personalized pathway.
@@ -145,6 +145,8 @@ export interface CareerCardModel {
   reasoning?: string;
   /** The original raw taxonomy record. */
   raw: TaxonomyResult;
+  /** Percentage match score between user input and career data. */
+  percentMatch: number;
 }
 
 /**

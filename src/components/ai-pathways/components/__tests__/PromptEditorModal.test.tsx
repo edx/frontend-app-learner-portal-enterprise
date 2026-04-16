@@ -6,12 +6,19 @@ import { XpertPromptBundle } from '../../types';
 import { InterceptContext } from '../../hooks/usePromptInterceptor';
 
 describe('PromptEditorModal', () => {
+  // @ts-ignore
   const mockBundle: XpertPromptBundle = {
     id: 'test-id',
     stage: 'intentExtraction',
     parts: [
-      { label: 'part1', content: 'content1', editable: true, required: true },
-      { label: 'part2', content: 'content2', editable: false, required: false },
+      {
+        // @ts-ignore
+        label: 'part1', content: 'content1', editable: true, required: true,
+      },
+      {
+        // @ts-ignore
+        label: 'part2', content: 'content2', editable: false, required: false,
+      },
     ],
     combined: 'content1content2',
   };
@@ -34,7 +41,7 @@ describe('PromptEditorModal', () => {
         onAccept={mockOnAccept}
         onReject={mockOnReject}
         onCancel={mockOnCancel}
-      />
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -47,7 +54,7 @@ describe('PromptEditorModal', () => {
         onAccept={mockOnAccept}
         onReject={mockOnReject}
         onCancel={mockOnCancel}
-      />
+      />,
     );
 
     expect(screen.getByText(/Prompt Editor — Test Interception/i)).toBeInTheDocument();
@@ -95,7 +102,7 @@ describe('PromptEditorModal', () => {
         onAccept={mockOnAccept}
         onReject={mockOnReject}
         onCancel={mockOnCancel}
-      />
+      />,
     );
     // Subtitle should be empty or not contain "Stage:"
     expect(screen.queryByText(/Stage:/i)).not.toBeInTheDocument();

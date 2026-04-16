@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { usePathwayFilters } from '../usePathwayFilters';
+import { usePathwayFilters, UsePathwayFiltersProps } from '../usePathwayFilters';
 import { PathwayCourse } from '../../types';
 
 describe('usePathwayFilters', () => {
@@ -111,10 +111,12 @@ describe('usePathwayFilters', () => {
 
   it('handles undefined values in sorting', () => {
     const coursesWithUndefined = [
-       ...mockCourses,
-       { id: '4', title: 'Test', order: undefined as any, status: 'not_started', level: 'Beginner', skills: [] }
+      ...mockCourses,
+      {
+        id: '4', title: 'Test', order: undefined as any, status: 'not_started', level: 'Beginner', skills: [],
+      },
     ];
-    const { result } = renderHook(() => usePathwayFilters({ courses: coursesWithUndefined }));
+    const { result } = renderHook(() => usePathwayFilters(<UsePathwayFiltersProps>{ courses: coursesWithUndefined }));
 
     act(() => {
       result.current.handlers.setSortKey('order');

@@ -6,16 +6,15 @@ import { PathwayList } from '../PathwayList';
 import { LearningPathway } from '../../../types';
 import { COURSE_STATUSES } from '../../../constants';
 
-const customRender = (ui: React.ReactElement) => {
-  return render(
-    <IntlProvider locale="en">
-      {ui}
-    </IntlProvider>
-  );
-};
+const customRender = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('PathwayList', () => {
   const mockPathway: LearningPathway = {
+    // @ts-ignore
     id: 'pathway-1',
     title: 'Test Pathway',
     courses: [
@@ -98,7 +97,7 @@ describe('PathwayList', () => {
   it('handles invalid status for badge variant (coverage)', () => {
     const pathwayWithInvalidStatus = {
       ...mockPathway,
-      courses: [{ ...mockPathway.courses[0], status: 'invalid' as any }]
+      courses: [{ ...mockPathway.courses[0], status: 'invalid' as any }],
     };
     customRender(<PathwayList pathway={pathwayWithInvalidStatus} />);
     // Should not crash and use default 'light' variant

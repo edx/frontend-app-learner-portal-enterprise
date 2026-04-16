@@ -7,7 +7,10 @@ import { AIPathwaysResponseModel } from '../../types';
 import { exportResponseModel } from '../../utils/exportResponseModel';
 
 jest.mock('../../utils/exportResponseModel');
-jest.mock('../../../search/SearchCourseCard', () => () => <div data-testid="course-card">Course Card</div>);
+// eslint-disable-next-line func-names
+jest.mock('../../../search/SearchCourseCard', () => function () {
+  return <div data-testid="course-card">Course Card</div>;
+});
 
 describe('DebugConsole', () => {
   const mockResponse: AIPathwaysResponseModel = {
@@ -105,21 +108,35 @@ describe('DebugConsole', () => {
         label: 'Prompt 1',
         decision: 'accepted',
         timestamp: '2023-01-01',
-        original: { stage: 'intentExtraction', combined: 'orig1', parts: [] },
-        edited: { stage: 'intentExtraction', combined: 'edit1', parts: [] },
+        original: {
+          id: '1',
+          stage: 'intentExtraction',
+          combined: 'orig1',
+          parts: [],
+        },
+        edited: {
+          id: '1',
+          stage: 'intentExtraction',
+          combined: 'edit1',
+          parts: [],
+        },
         validationWarnings: [{ code: 'W1', severity: 'warning', message: 'msg1' }],
       },
       {
         label: 'Prompt 2',
         decision: 'rejected',
         timestamp: '2023-01-02',
-        original: { stage: 'intentExtraction', combined: 'orig2', parts: [] },
+        original: {
+          id: '1', stage: 'intentExtraction', combined: 'orig2', parts: [],
+        },
       },
       {
         label: 'Prompt 3',
         decision: 'cancelled',
         timestamp: '2023-01-03',
-        original: { stage: 'intentExtraction', combined: 'orig3', parts: [] },
+        original: {
+          id: '1', stage: 'intentExtraction', combined: 'orig3', parts: [],
+        },
       },
     ],
   };
@@ -133,7 +150,7 @@ describe('DebugConsole', () => {
     render(
       <IntlProvider locale="en">
         <DebugConsole response={mockResponse} />
-      </IntlProvider>
+      </IntlProvider>,
     );
 
     expect(screen.getByText(/AI Pathways Debug Console/i)).toBeInTheDocument();
@@ -156,7 +173,7 @@ describe('DebugConsole', () => {
     expect(screen.getByText(/accepted/i)).toBeInTheDocument();
     expect(screen.getByText(/rejected/i)).toBeInTheDocument();
     expect(screen.getByText(/cancelled/i)).toBeInTheDocument();
-    expect(screen.getByText(/\[W1\] msg1/i)).toBeInTheDocument();
+    expect(screen.getByText(/\[W1] msg1/i)).toBeInTheDocument();
 
     // Check export button
     const exportBtn = screen.getByRole('button', { name: /export json/i });
@@ -169,13 +186,15 @@ describe('DebugConsole', () => {
       ...mockResponse,
       stages: {
         ...mockResponse.stages,
-        courseRetrieval: { durationMs: 0, success: true, resultCount: 0, hits: [] },
+        courseRetrieval: {
+          durationMs: 0, success: true, resultCount: 0, hits: [],
+        },
       },
     };
     render(
       <IntlProvider locale="en">
         <DebugConsole response={responseWithNoHits} />
-      </IntlProvider>
+      </IntlProvider>,
     );
     expect(screen.getByText(/No courses returned for the winning step./i)).toBeInTheDocument();
   });
