@@ -227,4 +227,38 @@ describe('useSearchCatalogs', () => {
       expect(result.current).toEqual([mockPolicyCatalog]);
     }
   });
+
+  it('should return catalog keys directly from licensesByCatalog when populated', () => {
+    useSubscriptions.mockReturnValue({
+      data: {
+        subscriptionLicense: null,
+        subscriptionLicenses: [],
+        licensesByCatalog: {
+          'cat-aaa': [{ uuid: 'l1' }],
+          'cat-bbb': [{ uuid: 'l2' }],
+        },
+      },
+    });
+    const { result } = renderHook(() => useSearchCatalogs(), { wrapper: Wrapper });
+    expect(result.current).toEqual(['cat-aaa', 'cat-bbb']);
+  });
+
+  it('should fall back to getSearchCatalogs when licensesByCatalog is empty', () => {
+    const mockSubscriptionLicense = {
+      status: LICENSE_STATUS.ACTIVATED,
+      subscriptionPlan: {
+        enterpriseCatalogUuid: mockSubscriptionCatalog,
+        isCurrent: true,
+      },
+    };
+    useSubscriptions.mockReturnValue({
+      data: {
+        subscriptionLicense: mockSubscriptionLicense,
+        subscriptionLicenses: [mockSubscriptionLicense],
+        licensesByCatalog: {},
+      },
+    });
+    const { result } = renderHook(() => useSearchCatalogs(), { wrapper: Wrapper });
+    expect(result.current).toEqual([mockSubscriptionCatalog]);
+  });
 });

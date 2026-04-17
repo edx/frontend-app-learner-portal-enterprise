@@ -19,7 +19,7 @@ Previously, the frontend picked **one license globally** (the first activated on
 
 ## Decision
 
-We updated the frontend to evaluate **all eligible licenses** and select the correct one based on the course being viewed. Rollout is controlled by the `FEATURE_MULTI_LICENSE_SUPPORT` frontend feature flag.
+We updated the frontend to evaluate **all eligible licenses** and select the correct one based on the course being viewed. Rollout is controlled by the the `enterpriseFeatures.enableMultiLicenseEntitlementsBff` capability returned by the BFF, so multi-license behavior is enabled only when the enableMultiLicenseEntitlementsBff flag is on by the backend signals support..
 
 ## Overall Flow
 
@@ -41,7 +41,7 @@ We updated the frontend to evaluate **all eligible licenses** and select the cor
 │  Frontend Data Layer                                        │
 │                                                             │
 │  transformSubscriptionsData()                               │
-│    - Builds licensesByCatalog from all activated licenses   │
+│    - Legacy path keeps licensesByCatalog empty              │
 │    - Still picks single subscriptionLicense (backward compat)│
 │                                                             │
 │  All hooks read from TanStack Query cache                   │
@@ -62,45 +62,38 @@ We updated the frontend to evaluate **all eligible licenses** and select the cor
 
 ## Feature Flag
 
+The feature is controlled by `enterpriseFeatures.enableMultiLicenseEntitlementsBff`, a **backend waffle flag** returned in the BFF response under `enterprise_features.enable_multi_license_entitlements_bff`. There is **no frontend env var or URL parameter** for this flag.
+
 ```
-FEATURE_MULTI_LICENSE_SUPPORT = false (default)
+enableMultiLicenseEntitlementsBff = false (default)
+  → useSubscriptions() strips licensesByCatalog to {}
   → All code paths use the OLD single-license behavior
   → Zero behavioral change from master
 
-FEATURE_MULTI_LICENSE_SUPPORT = true
+enableMultiLicenseEntitlementsBff = true
+  → useSubscriptions() passes licensesByCatalog through
   → resolveApplicableSubscriptionLicense() checks ALL licenses
   → getSearchCatalogs() includes ALL activated license catalogs
   → Course page picks the license whose catalog contains the course
 ```
 
+### How it works
+
+The flag is read in `src/components/app/data/hooks/useSubscriptions.ts`:
+
+```typescript
+const multiLicenseFlag = data?.enterpriseFeatures?.enableMultiLicenseEntitlementsBff;
+```
+
+When `false`, `useSubscriptions()` strips `licensesByCatalog` to `{}` and reduces `subscriptionLicenses` to a single-element array — exactly matching old master behavior. When `true`, it passes the full `licensesByCatalog` and `subscriptionLicenses` from the BFF response through to downstream consumers.
+
 ### How to Enable
 
-**Local development** — change `.env.development`:
-```dotenv
-FEATURE_MULTI_LICENSE_SUPPORT='true'
-```
+**In Django admin** — enable the waffle flag `enable_multi_license_entitlements_bff` in the enterprise-access service. The BFF will then include `enable_multi_license_entitlements_bff: true` in its `enterprise_features` response.
 
-**Testing without restart** — add URL query parameter:
-```
-http://localhost:8734/test-enterprise/search?feature=FEATURE_MULTI_LICENSE_SUPPORT
-```
-
-**Staging/production** — set environment variable in deployment config:
-```
-FEATURE_MULTI_LICENSE_SUPPORT=true
-```
-
-This is a **purely frontend flag**. It does not require any Django admin or backend waffle flag changes.
+**For testing** — the backend must return the flag as `true` in the BFF response. There is no frontend-only override.
 
 ## Files Changed
-
-### Feature Flag Setup (3 files)
-
-| File | Purpose |
-|------|---------|
-| `src/config/constants.js` | Defines `FEATURE_MULTI_LICENSE_SUPPORT` constant |
-| `src/config/index.js` | Registers the flag — reads from env var or URL param |
-| `.env.development` | Sets default to `'false'` for local dev |
 
 ### Data Layer — Store `licensesByCatalog` (3 files)
 
@@ -110,19 +103,18 @@ This is a **purely frontend flag**. It does not require any Django admin or back
 | `src/components/app/data/services/bffs.ts` | Adds `licensesByCatalog: {}` to BFF response base shape so `camelCaseObject()` maps `licenses_by_catalog` from the API |
 | `src/types/enterprise-access.openapi.d.ts` | Adds `licenses_by_catalog` TypeScript type to `Subscriptions` schema |
 
-### Transform — Build `licensesByCatalog` for legacy path (1 file)
+### Transform — Legacy path keeps single-license behavior (1 file)
 
 | File | Purpose |
 |------|---------|
-| `src/components/app/data/services/subsidies/subscriptions.js` | `transformSubscriptionsData()` now groups activated+current licenses by their catalog UUID into `licensesByCatalog`. This ensures the same data shape whether coming from BFF or legacy API. |
+| `src/components/app/data/services/subsidies/subscriptions.js` | `transformSubscriptionsData()` sets `licensesByCatalog` to `{}` on the legacy (direct API) path. Multi-license selection is only supported on the BFF path, where the backend provides a pre-built `licenses_by_catalog` mapping. The legacy API does not return this field, so the legacy path intentionally stays single-license. |
 
 ```javascript
-// After grouping by status, adds:
-licensesByCatalog = {
-  "catalog-1-uuid": [license1],
-  "catalog-2-uuid": [license2],
-  "catalog-3-uuid": [license3],
-}
+// Legacy path: no multi-license index built
+subscriptionsData.licensesByCatalog = {};
+
+// BFF path: licenses_by_catalog comes from the backend response
+// and is auto-mapped via camelCaseObject() to licensesByCatalog
 ```
 
 ### Core Selection Logic (1 file)
@@ -134,11 +126,11 @@ licensesByCatalog = {
 **`resolveApplicableSubscriptionLicense()`** — New function that replaces the old single-license check:
 
 ```
-Flag OFF:
-  → Calls determineSubscriptionLicenseApplicable(subscriptionLicense, catalogsWithCourse)
+enableMultiLicenseEntitlementsBff OFF (licensesByCatalog is empty):
+  → Falls back to determineSubscriptionLicenseApplicable(subscriptionLicense, catalogsWithCourse)
   → Returns subscriptionLicense or null (identical to master)
 
-Flag ON:
+enableMultiLicenseEntitlementsBff ON (licensesByCatalog is populated):
   → Gets all activated current licenses from subscriptionLicenses
   → Checks licensesByCatalog to find licenses matching catalogsWithCourse
   → Picks the one expiring latest (tie-breaking rule)
@@ -148,10 +140,10 @@ Flag ON:
 **`getSearchCatalogs()` updated** — Now accepts `licensesByCatalog`:
 
 ```
-Flag OFF:
+enableMultiLicenseEntitlementsBff OFF (licensesByCatalog is empty):
   → Adds single subscriptionLicense's catalog (identical to master)
 
-Flag ON:
+enableMultiLicenseEntitlementsBff ON (licensesByCatalog is populated):
   → Adds ALL catalog UUIDs from licensesByCatalog
   → Learner sees courses from ALL their licensed catalogs in search
 ```
@@ -171,7 +163,7 @@ Flag ON:
 
 | File | Purpose |
 |------|---------|
-| `src/components/app/data/hooks/useHasValidLicenseOrSubscriptionRequestsEnabled.js` | When flag ON, checks if ANY license in `licensesByCatalog` exists (instead of checking the single `subscriptionLicense`). Gates video catalog visibility and search page access. |
+| `src/components/app/data/hooks/useHasValidLicenseOrSubscriptionRequestsEnabled.js` | When `enableMultiLicenseEntitlementsBff` is ON and `licensesByCatalog` is populated, checks if ANY license exists (instead of checking the single `subscriptionLicense`). Gates video catalog visibility and search page access. |
 
 ### Course-Level License Selection (4 files)
 
@@ -204,7 +196,7 @@ Alice has 3 activated licenses:
 | Alice views a Technical course (catalog 22222222) | Uses License 807bbd3e (Compliance) → **wrong catalog → "no subsidy"** | Uses License 807bba77 (Technical) → **correct → can enroll** |
 | Alice searches for courses | Only sees Compliance catalog courses | Sees courses from **all 3 catalogs** |
 | Alice views a course in catalog 44444444 (no license) | No subsidy shown | No subsidy shown (correct) |
-| Flag is OFF | Uses License 807bbd3e for everything | Uses License 807bbd3e for everything (same as master) |
+| `enableMultiLicenseEntitlementsBff` is OFF | Uses License 807bbd3e for everything | Uses License 807bbd3e for everything (same as master) |
 
 ## Test Coverage
 
@@ -225,6 +217,6 @@ Alice has 3 activated licenses:
 - Learners with multiple licenses see the correct entitlement for each course
 - Search results include courses from all licensed catalogs
 - Legacy single-license users experience zero behavioral change
-- The feature flag allows independent frontend rollout regardless of backend readiness
-- When the flag is OFF and the backend returns `licenses_by_catalog`, the data is stored but unused
+- The feature is controlled entirely by the backend waffle flag `enable_multi_license_entitlements_bff` — no frontend env var needed
+- When the flag is OFF, `useSubscriptions()` strips `licensesByCatalog` to `{}` so downstream consumers fall back to single-license behavior
 - Tie-breaking rule (latest expiration) provides consistent, learner-favorable license selection

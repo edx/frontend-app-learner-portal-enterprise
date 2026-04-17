@@ -102,11 +102,28 @@ export default function useCourseRedemptionEligibility() {
   const lateEnrollmentBufferDays = useLateEnrollmentBufferDays();
   const { data: courseMetadata } = useCourseMetadata();
 
-type SubscriptionsData = {
-  subscriptionLicense?: SubscriptionLicense;
-  subscriptionLicenses?: SubscriptionLicense[];
-  licensesByCatalog?: Record<string, SubscriptionLicense[]>;
-};
+  interface SubscriptionsData {
+    subscriptionLicense?: SubscriptionLicense | null;
+    subscriptionLicenses?: SubscriptionLicense[];
+    licensesByCatalog?: Record<string, SubscriptionLicense[]>;
+  }
+
+  interface ResolveApplicableSubscriptionLicenseArgs {
+    subscriptionLicense: SubscriptionLicense | null;
+    subscriptionLicenses: SubscriptionLicense[];
+    licensesByCatalog: Record<string, SubscriptionLicense[]>;
+    catalogsWithCourse: string[];
+  }
+
+type ResolveApplicableSubscriptionLicenseFn = (
+  args: ResolveApplicableSubscriptionLicenseArgs,
+) => SubscriptionLicense | null;
+
+// Cast the JS function to its proper signature since utils.js default params
+// cause TS to infer overly narrow types (null, never[], {}).
+const typedResolveApplicableSubscriptionLicense = (
+  resolveApplicableSubscriptionLicense as ResolveApplicableSubscriptionLicenseFn
+);
 
 const { data: subscriptionsData } = useSubscriptions();
 
@@ -130,12 +147,13 @@ const {
 } = useCouponCodes();
 const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
 
-const applicableSubscriptionLicense = resolveApplicableSubscriptionLicense({
+const resolveArgs: ResolveApplicableSubscriptionLicenseArgs = {
   subscriptionLicense: subscriptionLicense ?? null,
   subscriptionLicenses,
   licensesByCatalog,
   catalogsWithCourse,
-} as any);
+};
+const applicableSubscriptionLicense = typedResolveApplicableSubscriptionLicense(resolveArgs);
 const hasSubsidyPrioritizedOverLearnerCredit = !!applicableSubscriptionLicense
     || applicableCouponCode?.couponCodeRedemptionCount > 0;
 

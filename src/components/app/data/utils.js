@@ -1090,18 +1090,18 @@ export function getActivatedCurrentSubscriptionLicenses(subscriptionLicenses = [
 }
 
 export function buildCatalogIndex(subscriptionLicenses = []) {
-  return getActivatedCurrentSubscriptionLicenses(subscriptionLicenses).reduce((acc, license) => {
+  const index = {};
+  getActivatedCurrentSubscriptionLicenses(subscriptionLicenses).forEach((license) => {
     const catalogUuid = license?.subscriptionPlan?.enterpriseCatalogUuid;
     if (!catalogUuid) {
-      return acc;
+      return;
     }
-    const updated = { ...acc };
-    if (!updated[catalogUuid]) {
-      updated[catalogUuid] = [];
+    if (!index[catalogUuid]) {
+      index[catalogUuid] = [];
     }
-    updated[catalogUuid].push(license);
-    return updated;
-  }, {});
+    index[catalogUuid].push(license);
+  });
+  return index;
 }
 
 export function getApplicableSubscriptionLicenses(subscriptionLicenses = [], catalogsWithCourse = []) {
@@ -1119,19 +1119,22 @@ export function selectBestLicense(applicableLicenses = []) {
     return applicableLicenses[0];
   }
 
+  // Primary: latest expiration date first (maximizes learner benefit).
+  // Secondary: earliest activation date (longest-held license wins ties).
+  // Tertiary: uuid descending (deterministic).
   return [...applicableLicenses].sort((a, b) => {
-    const activationA = a?.activationDate || '9999-12-31';
-    const activationB = b?.activationDate || '9999-12-31';
-    const activationDiff = activationA.localeCompare(activationB);
-    if (activationDiff !== 0) {
-      return activationDiff;
-    }
-
     const expirationA = a?.subscriptionPlan?.expirationDate || '0000-00-00';
     const expirationB = b?.subscriptionPlan?.expirationDate || '0000-00-00';
     const expirationDiff = expirationB.localeCompare(expirationA);
     if (expirationDiff !== 0) {
       return expirationDiff;
+    }
+
+    const activationA = a?.activationDate || '9999-12-31';
+    const activationB = b?.activationDate || '9999-12-31';
+    const activationDiff = activationA.localeCompare(activationB);
+    if (activationDiff !== 0) {
+      return activationDiff;
     }
 
     const uuidA = a?.uuid || '';
@@ -1164,7 +1167,7 @@ export function findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse = []
 
 export function resolveApplicableSubscriptionLicense({
   subscriptionLicense = null,
-  subscriptionLicenses = [],
+  subscriptionLicenses = [], // eslint-disable-line @typescript-eslint/no-unused-vars
   licensesByCatalog = {},
   catalogsWithCourse = [],
 }) {
@@ -1175,24 +1178,11 @@ export function resolveApplicableSubscriptionLicense({
     ? findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog)
     : null;
   if (indexedLicense) {
-    // eslint-disable-next-line no-console
-    console.debug('[multi-license] resolveApplicableSubscriptionLicense (indexed):', { catalogsWithCourse, licensesByCatalog, resolved: indexedLicense?.uuid });
     return indexedLicense;
   }
 
-  let licensesToEvaluate = [subscriptionLicense].filter(Boolean);
-  if (isMultiLicenseMode && subscriptionLicenses.length > 0) {
-    licensesToEvaluate = subscriptionLicenses;
-  }
-
+  const licensesToEvaluate = [subscriptionLicense].filter(Boolean);
   const resolved = selectBestLicense(getApplicableSubscriptionLicenses(licensesToEvaluate, catalogsWithCourse));
-  // eslint-disable-next-line no-console
-  console.debug('[multi-license] resolveApplicableSubscriptionLicense (fallback):', {
-    catalogsWithCourse,
-    licensesByCatalog,
-    licensesToEvaluate: licensesToEvaluate.map((l) => l?.uuid),
-    resolved: resolved?.uuid,
-  });
   return resolved;
 }
 
