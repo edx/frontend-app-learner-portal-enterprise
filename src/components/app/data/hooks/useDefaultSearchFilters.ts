@@ -7,6 +7,11 @@ import useAlgoliaSearch from './useAlgoliaSearch';
 import { getSupportedLocale } from '../utils';
 import { AlgoliaFilterBuilder } from '../../../AlgoliaFilterBuilder';
 
+// Refinement key used by the "New content" filter in the shared
+// catalog-search package. Mirrors NEW_CONTENT_REFINEMENT from that package.
+const NEW_CONTENT_REFINEMENT_KEY = 'new_content';
+const NEW_CONTENT_WINDOW_SECONDS = 365 * 24 * 60 * 60;
+
 interface SearchContextValue {
   refinements: Record<string, any>;
   dispatch: (action: any) => void;
@@ -19,6 +24,7 @@ type CommonQueryArgs = {
 
 interface QueryByCatalogQueryArgs extends CommonQueryArgs {
   catalogUuidsToCatalogQueryUuids: Record<string, string>;
+  isNewContentRefined: boolean;
 }
 
 /**
@@ -34,11 +40,24 @@ const queryByCatalogQuery = ({
   searchCatalogs,
   catalogUuidsToCatalogQueryUuids,
   showAllRefinement,
+  isNewContentRefined,
 }: QueryByCatalogQueryArgs) => {
   const builder = new AlgoliaFilterBuilder();
 
   if (!showAllRefinement && searchCatalogs.length > 0) {
     builder.filterByCatalogQueryUuids(searchCatalogs, catalogUuidsToCatalogQueryUuids);
+  }
+
+  if (isNewContentRefined) {
+    // 12-month window. The cutoff is captured when useDefaultSearchFilters
+    // recomputes (i.e. on first render after the refinement toggles or any
+    // other memo dependency changes), so it's fresh per-session but does
+    // not auto-advance if a tab is left open idle across day boundaries —
+    // an acceptable trade-off given typical search-page usage patterns.
+    // Requires `filterOnly(earliest_course_run_start)` in the course-discovery
+    // Algolia index settings.
+    const cutoff = Math.floor(Date.now() / 1000) - NEW_CONTENT_WINDOW_SECONDS;
+    builder.andRaw(`earliest_course_run_start >= ${cutoff}`);
   }
 
   return builder.excludeVideoContentIfFeatureDisabled().build();
@@ -55,6 +74,7 @@ const queryByCatalogQuery = ({
 export default function useDefaultSearchFilters(): string {
   const { refinements, dispatch } = useContext(SearchContext) as SearchContextValue;
   const showAllRefinement = !!refinements[SHOW_ALL_NAME];
+  const isNewContentRefined = !!refinements[NEW_CONTENT_REFINEMENT_KEY];
   const enterpriseCustomerResult = useEnterpriseCustomer();
   const enterpriseCustomer = enterpriseCustomerResult.data as EnterpriseCustomer;
   const searchCatalogs = useSearchCatalogs();
@@ -81,6 +101,7 @@ export default function useDefaultSearchFilters(): string {
             searchCatalogs,
             catalogUuidsToCatalogQueryUuids,
             showAllRefinement,
+            isNewContentRefined,
           }))
           .filterByMetadataLanguage(getSupportedLocale())
           .build();
@@ -102,6 +123,7 @@ export default function useDefaultSearchFilters(): string {
       searchCatalogs,
       shouldUseSecuredAlgoliaApiKey,
       showAllRefinement,
+      isNewContentRefined,
     ],
   );
 }

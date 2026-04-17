@@ -172,6 +172,60 @@ describe('useDefaultSearchFilters', () => {
       }
     }
   });
+  describe('new_content refinement', () => {
+    const NEW_CONTENT_CLAUSE_RE = /earliest_course_run_start >= (\d+)/;
+
+    it('injects a 12-month numeric filter when refinements.new_content is truthy', () => {
+      const mockDispatch = jest.fn();
+      useSearchCatalogs.mockReturnValue([]);
+      useAlgoliaSearch.mockReturnValue({
+        catalogUuidsToCatalogQueryUuids: {},
+        shouldUseSecuredAlgoliaApiKey: true,
+      });
+      features.FEATURE_ENABLE_VIDEO_CATALOG = true;
+
+      const { result } = renderHook(
+        () => useDefaultSearchFilters(),
+        {
+          wrapper: SearchWrapper({
+            refinements: { [SHOW_ALL_NAME]: 1, new_content: 1 },
+            dispatch: mockDispatch,
+          }),
+        },
+      );
+
+      const match = result.current.match(NEW_CONTENT_CLAUSE_RE);
+      expect(match).not.toBeNull();
+
+      // Verify the cutoff is ~365 days ago (±1 day tolerance for test runtime).
+      const cutoff = Number(match[1]);
+      const expected = Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60;
+      expect(Math.abs(cutoff - expected)).toBeLessThan(24 * 60 * 60);
+    });
+
+    it('does not inject the filter when refinements.new_content is absent', () => {
+      const mockDispatch = jest.fn();
+      useSearchCatalogs.mockReturnValue([]);
+      useAlgoliaSearch.mockReturnValue({
+        catalogUuidsToCatalogQueryUuids: {},
+        shouldUseSecuredAlgoliaApiKey: true,
+      });
+      features.FEATURE_ENABLE_VIDEO_CATALOG = true;
+
+      const { result } = renderHook(
+        () => useDefaultSearchFilters(),
+        {
+          wrapper: SearchWrapper({
+            refinements: { [SHOW_ALL_NAME]: 1 },
+            dispatch: mockDispatch,
+          }),
+        },
+      );
+
+      expect(result.current).not.toMatch(NEW_CONTENT_CLAUSE_RE);
+    });
+  });
+
   it('calls logInfo if shouldUseSecuredAlgoliaApiKey is false', () => {
     const mockDispatch = jest.fn();
     useSearchCatalogs.mockReturnValue([]);
