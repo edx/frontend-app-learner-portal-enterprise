@@ -37,7 +37,7 @@ export const facetBootstrapService = {
     const searchParams: Record<string, unknown> = {
       facets: facetFields,
       hitsPerPage: 0,
-      maxValuesPerFacet: 500,
+      maxValuesPerFacet: 1000,
     };
     if (filters) {
       searchParams.filters = filters;
