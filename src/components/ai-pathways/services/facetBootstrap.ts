@@ -4,6 +4,7 @@ import {
   FacetReference,
   FacetValue,
 } from '../types';
+import { MAX_VALUES_PER_FACET } from '../constants/retrieval.constants';
 
 /**
  * Service for bootstrapping common taxonomy facet values from Algolia.
@@ -37,7 +38,7 @@ export const facetBootstrapService = {
     const searchParams: Record<string, unknown> = {
       facets: facetFields,
       hitsPerPage: 0,
-      maxValuesPerFacet: 1000,
+      maxValuesPerFacet: MAX_VALUES_PER_FACET,
     };
     if (filters) {
       searchParams.filters = filters;
