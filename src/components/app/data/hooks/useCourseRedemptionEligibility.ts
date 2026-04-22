@@ -108,80 +108,71 @@ export default function useCourseRedemptionEligibility() {
     licensesByCatalog?: Record<string, SubscriptionLicense[]>;
   }
 
-  interface ResolveApplicableSubscriptionLicenseArgs {
+  const { data: subscriptionsData } = useSubscriptions();
+
+  const {
+    subscriptionLicense,
+    subscriptionLicenses = [],
+    licensesByCatalog = {},
+  }: Partial<SubscriptionsData> = subscriptionsData ?? {};
+
+  const { courseKey } = useParams();
+  if (!courseKey) {
+    throw new Error('courseKey is required but was not found in route params');
+  }
+  const {
+    data: {
+      catalogList: catalogsWithCourse,
+    },
+  } = useEnterpriseCustomerContainsContent([courseKey]);
+
+  const {
+    data: {
+      couponCodeAssignments,
+    },
+  } = useCouponCodes();
+  const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
+
+  const applicableSubscriptionLicense = (resolveApplicableSubscriptionLicense as (args: {
     subscriptionLicense: SubscriptionLicense | null;
     subscriptionLicenses: SubscriptionLicense[];
     licensesByCatalog: Record<string, SubscriptionLicense[]>;
     catalogsWithCourse: string[];
-  }
+  }) => SubscriptionLicense | null)({
+    subscriptionLicense: subscriptionLicense ?? null,
+    subscriptionLicenses,
+    licensesByCatalog,
+    catalogsWithCourse,
+  });
 
-type ResolveApplicableSubscriptionLicenseFn = (
-  args: ResolveApplicableSubscriptionLicenseArgs,
-) => SubscriptionLicense | null;
-
-// Cast the JS function to its proper signature since utils.js default params
-// cause TS to infer overly narrow types (null, never[], {}).
-const typedResolveApplicableSubscriptionLicense = (
-  resolveApplicableSubscriptionLicense as ResolveApplicableSubscriptionLicenseFn
-);
-
-const { data: subscriptionsData } = useSubscriptions();
-
-const {
-  subscriptionLicense,
-  subscriptionLicenses = [],
-  licensesByCatalog = {},
-} = (subscriptionsData ?? {}) as SubscriptionsData;
-
-const { courseKey } = useParams();
-const {
-  data: {
-    catalogList: catalogsWithCourse,
-  },
-} = useEnterpriseCustomerContainsContent([courseKey!]);
-
-const {
-  data: {
-    couponCodeAssignments,
-  },
-} = useCouponCodes();
-const applicableCouponCode = findCouponCodeForCourse(couponCodeAssignments, catalogsWithCourse);
-
-const resolveArgs: ResolveApplicableSubscriptionLicenseArgs = {
-  subscriptionLicense: subscriptionLicense ?? null,
-  subscriptionLicenses,
-  licensesByCatalog,
-  catalogsWithCourse,
-};
-const applicableSubscriptionLicense = typedResolveApplicableSubscriptionLicense(resolveArgs);
-const hasSubsidyPrioritizedOverLearnerCredit = !!applicableSubscriptionLicense
+  const hasSubsidyPrioritizedOverLearnerCredit = !!applicableSubscriptionLicense
     || applicableCouponCode?.couponCodeRedemptionCount > 0;
 
-const {
-  courseRuns: courseRunsForRedemption,
-  courseRunKeys: courseRunKeysForRedemption,
-} = getCourseRunsForRedemption({
-  course: courseMetadata,
-  lateEnrollmentBufferDays,
-  courseRunKey,
-  redeemableLearnerCreditPolicies,
-  hasSubsidyPrioritizedOverLearnerCredit,
-});
+  const {
+    courseRuns: courseRunsForRedemption,
+    courseRunKeys: courseRunKeysForRedemption,
+  } = getCourseRunsForRedemption({
+    course: courseMetadata,
+    lateEnrollmentBufferDays,
+    courseRunKey,
+    redeemableLearnerCreditPolicies,
+    hasSubsidyPrioritizedOverLearnerCredit,
+  });
 
-return useQuery(
-  queryOptions({
-    ...queryCanRedeem(enterpriseCustomer.uuid, courseMetadata.key, courseRunKeysForRedemption),
-    select: (data) => {
-      // Among other things, transformCourseRedemptionEligibility() removes
-      // restricted runs that fail the policy's can-redeem check.
-      const transformedData = transformCourseRedemptionEligibility({
-        courseMetadata,
-        canRedeemData: data,
-        courseRunKey,
-        courseRunsForRedemption,
-      });
-      return transformedData;
-    },
-  }),
-);
+  return useQuery(
+    queryOptions({
+      ...queryCanRedeem(enterpriseCustomer.uuid, courseMetadata.key, courseRunKeysForRedemption),
+      select: (data) => {
+        // Among other things, transformCourseRedemptionEligibility() removes
+        // restricted runs that fail the policy's can-redeem check.
+        const transformedData = transformCourseRedemptionEligibility({
+          courseMetadata,
+          canRedeemData: data,
+          courseRunKey,
+          courseRunsForRedemption,
+        });
+        return transformedData;
+      },
+    }),
+  );
 }

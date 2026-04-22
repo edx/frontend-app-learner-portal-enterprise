@@ -1669,7 +1669,7 @@ describe('resolveApplicableSubscriptionLicense', () => {
     expect(result.uuid).toEqual('indexed');
   });
 
-  it('falls back to subscriptionLicense when licensesByCatalog has no match for course catalog', () => {
+  it('returns null when licensesByCatalog has no match for course catalog (multi-license mode)', () => {
     const indexedLicense = makeLicense({
       uuid: 'indexed',
       subscriptionPlan: { ...makeLicense().subscriptionPlan, enterpriseCatalogUuid: 'cat-b' },
@@ -1683,7 +1683,8 @@ describe('resolveApplicableSubscriptionLicense', () => {
       licensesByCatalog: { 'cat-b': [indexedLicense] },
       catalogsWithCourse: ['cat-a'],
     });
-    expect(result.uuid).toEqual('single');
+    // In multi-license mode, no fallback to subscriptionLicense; returns null if no catalog match
+    expect(result).toBeNull();
   });
 
   it('returns null when all inputs are empty', () => {

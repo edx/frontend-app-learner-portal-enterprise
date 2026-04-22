@@ -419,7 +419,7 @@ export const validateAlgoliaValidUntil = async ({
     const invalidateQuery = () => queryClient.invalidateQueries({
       queryKey: matchedBFFQuery({ enterpriseSlug }).queryKey,
     });
-    if (algolia?.validUntil) {
+    if (algolia.validUntil) {
       await algoliaQueryCacheValidator(algolia.validUntil, ALGOLIA_QUERY_CACHE_EPSILON, invalidateQuery);
     }
   }

@@ -672,6 +672,13 @@ export function getCatalogsForSubsidyRequests({
   return catalogs;
 }
 
+export function getActivatedCurrentSubscriptionLicenses(subscriptionLicenses = []) {
+  return subscriptionLicenses.filter((subscriptionLicense) => (
+    subscriptionLicense?.status === LICENSE_STATUS.ACTIVATED
+    && subscriptionLicense?.subscriptionPlan?.isCurrent
+  ));
+}
+
 export function getSearchCatalogs({
   redeemablePolicies,
   subscriptionLicense,
@@ -690,7 +697,6 @@ export function getSearchCatalogs({
   const licensesForSearchCatalogs = subscriptionLicenses.length > 0
     ? subscriptionLicenses
     : [subscriptionLicense].filter(Boolean);
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   getActivatedCurrentSubscriptionLicenses(licensesForSearchCatalogs).forEach((license) => {
     catalogUUIDs.add(license.subscriptionPlan.enterpriseCatalogUuid);
   });
@@ -1082,13 +1088,6 @@ export function normalizeCatalogUuid(catalogUuid) {
   return (catalogUuid || '').toString().replace(/-/g, '').toLowerCase();
 }
 
-export function getActivatedCurrentSubscriptionLicenses(subscriptionLicenses = []) {
-  return subscriptionLicenses.filter((subscriptionLicense) => (
-    subscriptionLicense?.status === LICENSE_STATUS.ACTIVATED
-    && subscriptionLicense?.subscriptionPlan?.isCurrent
-  ));
-}
-
 export function buildCatalogIndex(subscriptionLicenses = []) {
   const index = {};
   getActivatedCurrentSubscriptionLicenses(subscriptionLicenses).forEach((license) => {
@@ -1171,19 +1170,17 @@ export function resolveApplicableSubscriptionLicense({
   licensesByCatalog = {},
   catalogsWithCourse = [],
 }) {
-  const hasCatalogIndex = Object.keys(licensesByCatalog || {}).length > 0;
-  const isMultiLicenseMode = hasCatalogIndex;
+  // Multi-license mode is active when the backend provides a catalog-to-license index
+  const isMultiLicenseMode = Object.keys(licensesByCatalog || {}).length > 0;
 
-  const indexedLicense = isMultiLicenseMode
-    ? findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog)
-    : null;
-  if (indexedLicense) {
-    return indexedLicense;
+  // When multi-license is enabled, find the best license matching the course's catalogs
+  if (isMultiLicenseMode) {
+    return findSubscriptionLicenseForCourseCatalogs(catalogsWithCourse, licensesByCatalog);
   }
 
+  // Fallback: evaluate only the single pre-selected subscription license (legacy path)
   const licensesToEvaluate = [subscriptionLicense].filter(Boolean);
-  const resolved = selectBestLicense(getApplicableSubscriptionLicenses(licensesToEvaluate, catalogsWithCourse));
-  return resolved;
+  return selectBestLicense(getApplicableSubscriptionLicenses(licensesToEvaluate, catalogsWithCourse));
 }
 
 export function determineSubscriptionLicenseApplicable(

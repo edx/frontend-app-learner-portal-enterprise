@@ -220,7 +220,7 @@ describe('useSubscriptions', () => {
       });
     });
 
-    it('preserves licensesByCatalog when flag is missing and licensesByCatalog is populated', async () => {
+    it('strips licensesByCatalog when flag is missing even if licensesByCatalog is populated', async () => {
       fetchEnterpriseLearnerDashboard.mockResolvedValue({
         enterpriseFeatures: {},
         enterpriseCustomerUserSubsidies: {
@@ -239,7 +239,7 @@ describe('useSubscriptions', () => {
       await waitFor(() => {
         expect(result.current.data).toEqual(
           expect.objectContaining({
-            licensesByCatalog: { [mockCatalogUuid]: [mockMultiLicense] },
+            licensesByCatalog: {},
           }),
         );
       });
