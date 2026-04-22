@@ -7,6 +7,7 @@
     "extends @edx/browserslist-config"
   ],
   "dependencies": {
+    "@algolia/client-search": "^4.24.0",
     "@edx/brand": "npm:@openedx/brand-openedx@^1.2.3",
     "@edx/frontend-component-footer": "^14.6.0",
     "@edx/frontend-enterprise-catalog-search": "^11.0.2",
@@ -22,7 +23,6 @@
     "@tanstack/react-query": "^5.74.9",
     "@tanstack/react-query-devtools": "^5.74.9",
     "accessible-nprogress": "^2.1.2",
-    "@algolia/client-search": "^4.24.0",
     "algoliasearch": "^4.24.0",
     "classnames": "^2.5.1",
     "color": "^3.2.1",
