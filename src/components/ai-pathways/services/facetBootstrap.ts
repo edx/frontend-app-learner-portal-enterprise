@@ -4,7 +4,7 @@ import {
   FacetReference,
   FacetValue,
 } from '../types';
-import { MAX_VALUES_PER_FACET } from '../constants/retrieval.constants';
+import { MAX_VALUES_PER_FACET } from '../constants';
 
 /**
  * Service for bootstrapping common taxonomy facet values from Algolia.

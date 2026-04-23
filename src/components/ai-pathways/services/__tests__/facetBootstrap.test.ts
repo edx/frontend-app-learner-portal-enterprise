@@ -1,6 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { facetBootstrapService } from '../facetBootstrap';
-import { MAX_VALUES_PER_FACET } from '../../constants/retrieval.constants';
+import { MAX_VALUES_PER_FACET } from '../../constants';
 
 describe('facetBootstrapService', () => {
   const mockIndex = {
