@@ -1,5 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { facetBootstrapService } from '../facetBootstrap';
+import { MAX_VALUES_PER_FACET } from '../../constants';
 
 describe('facetBootstrapService', () => {
   const mockIndex = {
@@ -33,7 +34,7 @@ describe('facetBootstrapService', () => {
       facets: ['name', 'skills.name', 'industry_names', 'job_sources'],
       filters: expect.stringContaining('enterprise_customer_uuids:ent-123'),
       hitsPerPage: 0,
-      maxValuesPerFacet: 500,
+      maxValuesPerFacet: MAX_VALUES_PER_FACET,
     }));
 
     expect(result.skills).toHaveLength(2);
