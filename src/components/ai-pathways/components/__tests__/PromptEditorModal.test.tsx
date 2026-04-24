@@ -65,19 +65,25 @@ describe('PromptEditorModal', () => {
 
     // Check parts
     const textareas = screen.getAllByRole('textbox');
-    expect(textareas).toHaveLength(2);
+    expect(textareas).toHaveLength(3); // 2 prompt parts + 1 tags input
     expect(textareas[0]).toHaveValue('content1');
     expect(textareas[1]).toHaveValue('content2');
     expect(textareas[1]).toHaveAttribute('readonly');
+    expect(textareas[2]).toHaveValue(''); // Tags input initial value
 
     // Edit part 1
     fireEvent.change(textareas[0], { target: { value: 'edited content' } });
     expect(textareas[0]).toHaveValue('edited content');
 
+    // Edit tags
+    fireEvent.change(textareas[2], { target: { value: 'tag1, tag2' } });
+    expect(textareas[2]).toHaveValue('tag1, tag2');
+
     // Click Accept
-    fireEvent.click(screen.getByText('Accept'));
+    fireEvent.click(screen.getByText('Accept & Execute'));
     expect(mockOnAccept).toHaveBeenCalledWith(expect.objectContaining({
       combined: 'edited contentcontent2',
+      tags: ['tag1', 'tag2'],
       parts: [
         expect.objectContaining({ label: 'part1', content: 'edited content' }),
         expect.objectContaining({ label: 'part2', content: 'content2' }),
@@ -85,11 +91,11 @@ describe('PromptEditorModal', () => {
     }));
 
     // Click Reject
-    fireEvent.click(screen.getByText('Reject (use original)'));
+    fireEvent.click(screen.getByText('Reset to Original'));
     expect(mockOnReject).toHaveBeenCalled();
 
     // Click Cancel
-    fireEvent.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByText('Cancel Request'));
     expect(mockOnCancel).toHaveBeenCalled();
   });
 

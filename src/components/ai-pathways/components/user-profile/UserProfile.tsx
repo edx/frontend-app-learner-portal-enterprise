@@ -345,17 +345,18 @@ export const UserProfile = ({
                 {careerMatches.map((match) => {
                   const isSelected = selectedCareer?.title === match.title;
                   return (
-                    <Button
+                    <button
+                      type="button"
                       key={match.title}
-                      variant={isSelected ? 'primary' : 'outline-primary'}
+                      className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 rounded ${isSelected ? 'active' : ''}`}
                       onClick={() => onSelectCareer(match)}
-                      className="mb-2 w-100 text-left d-flex justify-content-between align-items-center"
+                      disabled={isGenerating}
                     >
                       <span className="font-weight-bold">{match.title}</span>
-                      <Badge variant="info" className="ml-2">
+                      <Badge variant={isSelected ? 'light' : 'info'} className="ml-2">
                         {Math.round(match.percentMatch * 100)}% match
                       </Badge>
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
@@ -368,7 +369,7 @@ export const UserProfile = ({
             <Card.Body className="p-4">
               <h3 className="h5 font-weight-bold mb-3">Skills to Develop</h3>
               <p className="small text-muted mb-4">Key skills for your target roles.</p>
-              <div className="d-flex flex-wrap gap-2">
+              <div className="d-flex flex-wrap">
                 {selectedCareer?.skills.map((skill) => (
                   <Badge
                     key={skill}

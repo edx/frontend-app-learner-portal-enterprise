@@ -213,7 +213,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     // URL is '/' from beforeEach; no ?debug=true
     render(<AiPathwaysPage />);
     // PromptEditorModal is inside the isDebug guard — buttons are absent
-    expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accept & execute/i })).not.toBeInTheDocument();
   });
 
   test('passes interceptPrompt to generateProfile when debug is enabled', async () => {
@@ -257,9 +257,9 @@ describe('AiPathwaysPage — prompt interception', () => {
     window.history.pushState({}, '', '/?debug=true');
     render(<AiPathwaysPage />);
 
-    expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /reject/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /accept & execute/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset to original/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancel request/i })).toBeInTheDocument();
   });
 
   test('PromptEditorModal is NOT rendered when debug is off, even with pending interception', () => {
@@ -273,7 +273,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     }));
     // Non-debug URL
     render(<AiPathwaysPage />);
-    expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accept & execute/i })).not.toBeInTheDocument();
   });
 
   // ── modal callback wiring tests ───────────────────────────────────────────
@@ -291,7 +291,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     window.history.pushState({}, '', '/?debug=true');
     render(<AiPathwaysPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /accept/i }));
+    fireEvent.click(screen.getByRole('button', { name: /accept & execute/i }));
     expect(mockAccept).toHaveBeenCalledTimes(1);
     // Accept is called with the (possibly edited) bundle
     expect(mockAccept).toHaveBeenCalledWith(expect.objectContaining({ combined: bundle.combined }));
@@ -310,7 +310,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     window.history.pushState({}, '', '/?debug=true');
     render(<AiPathwaysPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset to original/i }));
     expect(mockReject).toHaveBeenCalledTimes(1);
   });
 
@@ -327,7 +327,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     window.history.pushState({}, '', '/?debug=true');
     render(<AiPathwaysPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel request/i }));
     expect(mockCancel).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Container } from '@openedx/paragon';
 import { usePathways } from '../hooks/usePathways';
 import { usePromptInterceptor } from '../hooks';
 import { FEATURE_STEPS } from '../constants';
@@ -122,7 +123,7 @@ export const AiPathwaysPage = () => {
   ]);
 
   return (
-    <div className="ai-pathways-page pb-5">
+    <Container className="ai-pathways-page pb-5">
       <div className="py-4">
         <header className="mb-4">
           <h2 className="h3 font-weight-bold">AI Learning Pathways</h2>
@@ -146,6 +147,6 @@ export const AiPathwaysPage = () => {
           {renderContent}
         </main>
       </div>
-    </div>
+    </Container>
   );
 };
