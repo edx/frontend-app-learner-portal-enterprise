@@ -22,6 +22,11 @@ const messages = defineMessages({
     defaultMessage: 'Type to find a program',
     description: 'Aria label for the programs typeahead input',
   },
+  newContentTitle: {
+    id: 'search.facetFilters.newContent.title',
+    defaultMessage: 'New content',
+    description: 'Title for the new content facet filter',
+  },
 });
 
 export function getSearchFacetFilters(intl) {
@@ -55,6 +60,14 @@ export function getSearchFacetFilters(intl) {
       return false;
     });
   });
+
+  if (features.NEW_CONTENT_FACET) {
+    searchFilters.push({
+      attribute: 'is_new_content',
+      title: intl.formatMessage(messages.newContentTitle),
+      isEndOfRow: true,
+    });
+  }
 
   return searchFilters;
 }
