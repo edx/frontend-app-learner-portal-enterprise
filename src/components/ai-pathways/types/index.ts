@@ -649,7 +649,7 @@ export interface AIPathwaysResponseModel {
 /**
  * Represents a single named segment of an AI system prompt.
  */
-export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair';
+export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair' | 'json_instruction';
 
 /**
  * A component part of a structured prompt.
@@ -673,7 +673,7 @@ export interface XpertPromptBundle {
   /** Unique identifier for the bundle instance. */
   id: string;
   /** The pipeline stage this prompt belongs to. */
-  stage: 'intentExtraction' | 'catalogTranslation';
+  stage: 'intentExtraction' | 'catalogTranslation' | 'pathwayEnrichment';
   /** Individual parts composing the prompt. */
   parts: PromptPart[];
   /** The final flattened string sent to the AI. */

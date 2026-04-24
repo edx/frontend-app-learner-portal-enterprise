@@ -70,7 +70,6 @@ export const intentExtractionXpertService = {
     let repairPromptUsed = false;
     let rawResponse = '';
     let validationErrors: string[] = [];
-    let discovery: any;
     let repairDiscovery: any;
 
     try {
@@ -112,7 +111,6 @@ export const intentExtractionXpertService = {
         });
 
         rawResponse = repairResponse.content;
-        const { discovery: repairDiscovery } = repairResponse;
         intent = xpertContractService.parseIntent(rawResponse);
         wasDiscoveryUsed = intent?.wasDiscoveryUsed ?? false;
         const secondValidation = intent ? xpertContractService.validateIntent(intent) : { isValid: false, errors: ['Parse failed'] };

@@ -400,9 +400,12 @@ export const usePathways = () => {
       const enrichmentResult = await pathwayAssemblerXpertService.enrichWithReasoning(
         initialPathway,
         searchIntent,
+        pathwayInterceptor,
         updatedResponseModel.tags || DEFAULT_XPERT_RAG_TAGS,
       );
       updatedResponseModel.stages.pathwayEnrichment = enrichmentResult.debug;
+      // Sync tags and discovery after enrichment (final stage)
+      updatedResponseModel.tags = enrichmentResult.debug.tags;
       updatedResponseModel.discovery = enrichmentResult.debug.discovery;
       updatedResponseModel.wasDiscoveryUsed = enrichmentResult.debug.wasDiscoveryUsed;
 
