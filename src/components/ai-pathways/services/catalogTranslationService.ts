@@ -62,7 +62,14 @@ export const catalogTranslationService = {
     facetSnapshot: CatalogFacetSnapshot,
     rulesFirst: RulesFirstCandidates,
     xpertRawResponse?: string,
-    xpertDebug?: { systemPrompt: string; rawResponse: string; durationMs: number; success: boolean },
+    xpertDebug?: {
+      systemPrompt: string;
+      rawResponse: string;
+      durationMs: number;
+      success: boolean;
+      discovery?: any;
+      wasDiscoveryUsed?: boolean;
+    },
   ): { translation: CatalogTranslation; trace: CatalogTranslationTrace } {
     const validCatalogValues = this.buildValidFacetSet(facetSnapshot);
 
@@ -77,12 +84,22 @@ export const catalogTranslationService = {
     };
 
     let xpertProvenance: SkillProvenance[] = [];
+    let xpertDiscovery: any = xpertDebug?.discovery;
+    let xpertWasDiscoveryUsed: boolean | undefined = xpertDebug?.wasDiscoveryUsed;
 
     // 2. Parse and ground the AI-suggested terms (if applicable).
     if (xpertRawResponse) {
       try {
         const xpertData = this.parseXpertJson(xpertRawResponse);
         if (xpertData) {
+          // Capture discovery data if returned by the AI
+          if (xpertData.discovery) {
+            xpertDiscovery = xpertData.discovery;
+          }
+          if (typeof xpertData.wasDiscoveryUsed === 'boolean') {
+            xpertWasDiscoveryUsed = xpertData.wasDiscoveryUsed;
+          }
+
           // Grounding: Discard any values suggested by the AI that aren't in the snapshot.
           const groundedStrict = validateAllowedFacetValues(xpertData.strictSkills || [], validCatalogValues);
           const groundedBoost = validateAllowedFacetValues(xpertData.boostSkills || [], validCatalogValues);
@@ -126,6 +143,8 @@ export const catalogTranslationService = {
       xpertRawResponse: xpertDebug?.rawResponse,
       xpertDurationMs: xpertDebug?.durationMs,
       xpertSuccess: xpertDebug?.success,
+      xpertDiscovery,
+      xpertWasDiscoveryUsed,
     };
 
     const translation: CatalogTranslation = {

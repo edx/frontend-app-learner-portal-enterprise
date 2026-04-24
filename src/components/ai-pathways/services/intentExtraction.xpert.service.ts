@@ -1,8 +1,8 @@
 import { intakePreprocessor, PreprocessedInput } from './intakePreprocessor';
-import { xpertService, XpertMessage } from './xpert.service';
+import { xpertService } from './xpert.service';
 import { xpertContractService } from './xpertContract';
 import {
-  FacetReference, CareerOption, XpertPromptBundle, PromptPart,
+  FacetReference, CareerOption, XpertPromptBundle, PromptPart, XpertMessage,
 } from '../types';
 import { XpertExtractionResult } from './xpertDebug';
 import { InterceptContext, InterceptResult } from '../hooks/usePromptInterceptor';
@@ -39,9 +39,11 @@ export const intentExtractionXpertService = {
     input: PreprocessedInput,
     facets?: FacetReference | null,
     interceptPrompt?: PromptInterceptFn,
+    tags?: string[],
   ): Promise<XpertExtractionResult> {
     const startTime = Date.now();
     const originalBundle = this.buildSystemPrompt(facets);
+    originalBundle.tags = tags;
 
     // --- Interception Logic ---
     let activeBundle = originalBundle;
@@ -64,9 +66,12 @@ export const intentExtractionXpertService = {
     // --- End Interception ---
 
     const systemPrompt = activeBundle.combined;
+    const activeTags = activeBundle.tags;
     let repairPromptUsed = false;
     let rawResponse = '';
     let validationErrors: string[] = [];
+    let discovery: any;
+    let repairDiscovery: any;
 
     try {
       const response = await xpertService.sendMessage({
@@ -77,10 +82,13 @@ export const intentExtractionXpertService = {
             content: JSON.stringify(input),
           },
         ],
+        tags: activeTags,
       });
 
       rawResponse = response.content;
+      const { discovery: responseDiscovery } = response;
       let intent = xpertContractService.parseIntent(rawResponse);
+      let wasDiscoveryUsed = intent?.wasDiscoveryUsed ?? false;
       const validation = intent ? xpertContractService.validateIntent(intent) : { isValid: false, errors: ['Parse failed'] };
       validationErrors = validation.errors;
 
@@ -100,10 +108,13 @@ export const intentExtractionXpertService = {
             { role: 'assistant', content: rawResponse },
             { role: 'user', content: repairPrompt },
           ],
+          tags: activeTags,
         });
 
         rawResponse = repairResponse.content;
+        const { discovery: repairDiscovery } = repairResponse;
         intent = xpertContractService.parseIntent(rawResponse);
+        wasDiscoveryUsed = intent?.wasDiscoveryUsed ?? false;
         const secondValidation = intent ? xpertContractService.validateIntent(intent) : { isValid: false, errors: ['Parse failed'] };
         validationErrors = secondValidation.errors;
       }
@@ -120,6 +131,9 @@ export const intentExtractionXpertService = {
           repairPromptUsed,
           durationMs: Date.now() - startTime,
           success: !!intent,
+          tags: activeTags,
+          discovery: intent?.discovery || (repairPromptUsed ? repairDiscovery : responseDiscovery),
+          wasDiscoveryUsed,
         },
       };
     } catch (error) {
@@ -133,6 +147,7 @@ export const intentExtractionXpertService = {
           repairPromptUsed,
           durationMs: Date.now() - startTime,
           success: false,
+          tags: activeTags,
         },
       };
     }
@@ -210,7 +225,7 @@ Rules:
    * @param input The preprocessed user data.
    * @returns A promise resolving to an array of CareerOption objects.
    */
-  async generateSampleCareers(input: PreprocessedInput): Promise<CareerOption[]> {
+  async generateSampleCareers(input: PreprocessedInput, tags?: string[]): Promise<CareerOption[]> {
     const systemMessage = INTENT_EXTRACTION_PROMPT.SAMPLE_CAREERS_SYSTEM_MESSAGE;
 
     try {
@@ -222,6 +237,7 @@ Rules:
             content: JSON.stringify(input),
           },
         ],
+        tags,
       });
 
       let parsed: CareerOption[];

@@ -22,6 +22,7 @@ export const pathwayAssemblerXpertService = {
   async enrichWithReasoning(
     pathway: LearningPathway,
     intent: XpertIntent,
+    tags?: string[],
   ): Promise<XpertEnrichmentResult> {
     const startTime = Date.now();
     if (!pathway.courses.length) {
@@ -32,6 +33,7 @@ export const pathwayAssemblerXpertService = {
           rawResponse: '',
           durationMs: 0,
           success: true,
+          tags,
         },
       };
     }
@@ -53,7 +55,7 @@ export const pathwayAssemblerXpertService = {
             content: `User Context: ${intentSnippet}\n\nCourses:\n${coursesSnippet}`,
           },
         ],
-        tags: ['enterprise-course-discovery'],
+        tags,
       });
 
       const parsed = xpertContractService.parseReasoning(response.content);
@@ -65,6 +67,8 @@ export const pathwayAssemblerXpertService = {
             rawResponse: response.content,
             durationMs: Date.now() - startTime,
             success: false,
+            tags,
+            discovery: response.discovery,
           },
         };
       }
@@ -87,6 +91,9 @@ export const pathwayAssemblerXpertService = {
           rawResponse: response.content,
           durationMs: Date.now() - startTime,
           success: true,
+          tags,
+          discovery: parsed.discovery || response.discovery,
+          wasDiscoveryUsed: parsed.wasDiscoveryUsed,
         },
       };
     } catch (error) {
@@ -97,6 +104,7 @@ export const pathwayAssemblerXpertService = {
           rawResponse: '',
           durationMs: Date.now() - startTime,
           success: false,
+          tags,
         },
       };
     }

@@ -33,6 +33,22 @@ describe('intentExtractionXpertService', () => {
       expect(result.intent).toEqual(mockSearchIntent);
       expect(result.debug.success).toBe(true);
       expect(result.debug.repairPromptUsed).toBe(false);
+      expect(result.debug.wasDiscoveryUsed).toBe(false);
+    });
+
+    it('captures discovery data from response', async () => {
+      const mockDiscovery = { used: true, details: 'rag used' };
+      (xpertService.sendMessage as jest.Mock).mockResolvedValue({
+        content: '{"condensedQuery": "test"}',
+        discovery: mockDiscovery,
+      });
+      (xpertContractService.parseIntent as jest.Mock).mockReturnValue(mockSearchIntent);
+      (xpertContractService.validateIntent as jest.Mock).mockReturnValue({ isValid: true, errors: [] });
+      (xpertContractService.normalizeIntent as jest.Mock).mockReturnValue(mockSearchIntent);
+
+      const result = await intentExtractionXpertService.extractIntent(mockInput);
+
+      expect(result.debug.discovery).toEqual(mockDiscovery);
     });
 
     it('uses repair logic if first response is invalid', async () => {

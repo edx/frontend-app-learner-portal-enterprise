@@ -108,6 +108,15 @@ const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }
     {trace.xpertUsed && (
       <>
         <p className="mb-1"><strong>Xpert duration:</strong> {trace.xpertDurationMs}ms — {trace.xpertSuccess ? 'success' : 'failed'}</p>
+        <p className="mb-1"><strong>Discovery RAG used:</strong> {trace.xpertWasDiscoveryUsed ? 'Yes' : 'No'}</p>
+        {trace.xpertDiscovery && (
+          <div>
+            <strong>Discovery Data (RAG):</strong>
+            <pre className="small bg-light p-2">
+              {JSON.stringify(trace.xpertDiscovery, null, 2)}
+            </pre>
+          </div>
+        )}
         <div>
           <strong>Xpert system prompt:</strong>
           <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertSystemPrompt}</pre>
@@ -192,25 +201,25 @@ const RetrievalLadderSection = ({ trace }: { trace: RetrievalLadderTrace }) => (
   </Stack>
 );
 
-export const DebugConsole = ({ response }: DebugConsoleProps) => {
+export const DebugConsole = ({
+  response,
+}: DebugConsoleProps) => {
   const handleExport = useCallback(() => {
     if (response) {
       exportResponseModel(response);
     }
   }, [response]);
 
-  if (!response) {
-    return null;
-  }
+  const hasResponse = !!response;
 
-  const { stages } = response;
+  const stages = response?.stages || {};
 
   return (
-    <Card className="mt-5 border-warning">
+    <Card className={`mt-5 border-warning ${!hasResponse ? 'mb-5' : ''}`}>
       <Card.Header
         title="AI Pathways Debug Console"
-        subtitle={`Request ID: ${response.requestId}`}
-        actions={(
+        subtitle={response ? `Request ID: ${response.requestId}` : 'View pipeline metrics and traces'}
+        actions={response ? (
           <Button
             variant="outline-primary"
             size="sm"
@@ -218,204 +227,242 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
           >
             Export JSON
           </Button>
-        )}
+        ) : null}
       />
       <Card.Body>
         <Stack gap={3}>
-          {/* Facet Bootstrap */}
-          <details open>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <span>Stage 1: Facet Bootstrap</span>
-              <Badge variant={stages.facetBootstrap?.success ? 'success' : 'danger'}>
-                {stages.facetBootstrap?.durationMs}ms
-              </Badge>
-            </summary>
-            <div className="py-2">
-              <pre className="small bg-light p-2">
-                {JSON.stringify(stages.facetBootstrap, null, 2)}
-              </pre>
-            </div>
-          </details>
+          {!response && (
+            <Alert variant="info" className="mb-0">
+              Submit the intake form to see pipeline metrics and traces.
+            </Alert>
+          )}
 
-          {/* Intent Extraction */}
-          <details>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center">
-                <span>Stage 2: Xpert Intent Extraction</span>
-                {stages.intentExtraction?.repairPromptUsed && (
-                  <Badge variant="warning" className="ml-2">Repaired</Badge>
+          {response && (
+            <>
+              {/* Request Tags Visibility */}
+              <div className="mb-3">
+                <strong>Tags used in this request:</strong>{' '}
+                {response.tags?.length ? (
+                  response.tags.map(tag => <Badge key={tag} variant="dark" className="mr-1">{tag}</Badge>)
+                ) : (
+                  <span className="text-muted font-italic">None (field omitted)</span>
                 )}
               </div>
-              <Badge variant={stages.intentExtraction?.success ? 'success' : 'danger'}>
-                {stages.intentExtraction?.durationMs}ms
-              </Badge>
-            </summary>
-            <div className="py-2">
-              <Stack gap={3}>
-                {stages.intentExtraction?.validationErrors?.length > 0 && (
-                  <Alert variant="danger">
-                    <strong>Validation Errors:</strong>
-                    <ul>
-                      {stages.intentExtraction.validationErrors.map((err) => (
-                        <li key={err}>{err}</li>
-                      ))}
-                    </ul>
-                  </Alert>
-                )}
-                <div>
-                  <strong>System Prompt:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
-                    {stages.intentExtraction?.systemPrompt}
-                  </pre>
-                </div>
-                <div>
-                  <strong>Raw Response:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
-                    {stages.intentExtraction?.rawResponse}
-                  </pre>
-                </div>
-                <div>
-                  <strong>Parsed Intent:</strong>
+
+              {/* Facet Bootstrap */}
+              <details open>
+                <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                  <span>Stage 1: Facet Bootstrap</span>
+                  <Badge variant={stages.facetBootstrap?.success ? 'success' : 'danger'}>
+                    {stages.facetBootstrap?.durationMs}ms
+                  </Badge>
+                </summary>
+                <div className="py-2">
                   <pre className="small bg-light p-2">
-                    {JSON.stringify(stages.intentExtraction?.parsedResponse, null, 2)}
+                    {JSON.stringify(stages.facetBootstrap, null, 2)}
                   </pre>
                 </div>
-              </Stack>
-            </div>
-          </details>
+              </details>
 
-          {/* Career Retrieval */}
-          <details>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <span>Stage 3: Career Retrieval (Algolia)</span>
-              <div>
-                <Badge variant="info" className="mr-2">{stages.careerRetrieval?.resultCount} hits</Badge>
-                <Badge variant={stages.careerRetrieval?.success ? 'success' : 'danger'}>
-                  {stages.careerRetrieval?.durationMs}ms
-                </Badge>
-              </div>
-            </summary>
-            <div className="py-2">
-              <pre className="small bg-light p-2">
-                {JSON.stringify(stages.careerRetrieval, null, 2)}
-              </pre>
-            </div>
-          </details>
+              {/* Intent Extraction */}
+              <details>
+                <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center">
+                    <span>Stage 2: Xpert Intent Extraction</span>
+                    {stages.intentExtraction?.repairPromptUsed && (
+                      <Badge variant="warning" className="ml-2">Repaired</Badge>
+                    )}
+                  </div>
+                  <Badge variant={stages.intentExtraction?.success ? 'success' : 'danger'}>
+                    {stages.intentExtraction?.durationMs}ms
+                  </Badge>
+                </summary>
+                <div className="py-2">
+                  <Stack gap={3}>
+                    {stages.intentExtraction?.validationErrors?.length > 0 && (
+                      <Alert variant="danger">
+                        <strong>Validation Errors:</strong>
+                        <ul>
+                          {stages.intentExtraction.validationErrors.map((err) => (
+                            <li key={err}>{err}</li>
+                          ))}
+                        </ul>
+                      </Alert>
+                    )}
+                    <div>
+                      <strong>System Prompt:</strong>
+                      <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                        {stages.intentExtraction?.systemPrompt}
+                      </pre>
+                    </div>
+                    <div>
+                      <strong>Raw Response:</strong>
+                      <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                        {stages.intentExtraction?.rawResponse}
+                      </pre>
+                    </div>
+                    <div>
+                      <strong>Parsed Intent:</strong>
+                      <pre className="small bg-light p-2">
+                        {JSON.stringify(stages.intentExtraction?.parsedResponse, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="mb-1"><strong>Discovery RAG used:</strong> {stages.intentExtraction?.wasDiscoveryUsed ? 'Yes' : 'No'}</p>
+                    {stages.intentExtraction?.discovery && (
+                      <div>
+                        <strong>Discovery Data (RAG):</strong>
+                        <pre className="small bg-light p-2">
+                          {JSON.stringify(stages.intentExtraction.discovery, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </Stack>
+                </div>
+              </details>
 
-          {/* Facet Snapshot */}
-          {stages.catalogFacetSnapshot && (
-            <details>
-              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-                <span>Stage 3b: Catalog Facet Snapshot</span>
-                <Badge variant={stages.catalogFacetSnapshot.success ? 'success' : 'danger'}>
-                  {stages.catalogFacetSnapshot.durationMs}ms
-                </Badge>
-              </summary>
-              <div className="py-2">
-                <FacetSnapshotSection trace={stages.catalogFacetSnapshot.trace} />
-              </div>
-            </details>
-          )}
-
-          {/* Rules-First Mapping */}
-          {stages.rulesFirstMapping && (
-            <details>
-              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-                <span>Stage 3c: Rules-First Taxonomy Mapping</span>
-                <Badge variant={stages.rulesFirstMapping.success ? 'success' : 'danger'}>
-                  {stages.rulesFirstMapping.durationMs}ms
-                </Badge>
-              </summary>
-              <div className="py-2">
-                <RulesFirstSection trace={stages.rulesFirstMapping.trace} />
-              </div>
-            </details>
-          )}
-
-          {/* Catalog Translation */}
-          {stages.catalogTranslation && (
-            <details>
-              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-                <span>Stage 3d: Catalog Translation</span>
-                <Badge variant={stages.catalogTranslation.success ? 'success' : 'danger'}>
-                  {stages.catalogTranslation.durationMs}ms
-                </Badge>
-              </summary>
-              <div className="py-2">
-                <CatalogTranslationSection trace={stages.catalogTranslation.trace} />
-              </div>
-            </details>
-          )}
-
-          {/* Retrieval Ladder */}
-          {stages.retrievalLadder && (
-            <details>
-              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-                <span>Stage 4a: Course Retrieval Ladder</span>
-                <Badge variant={stages.retrievalLadder.success ? 'success' : 'danger'}>
-                  {stages.retrievalLadder.trace.attempts.length} attempts
-                </Badge>
-              </summary>
-              <div className="py-2">
-                <RetrievalLadderSection trace={stages.retrievalLadder.trace} />
-              </div>
-            </details>
-          )}
-
-          {/* Course Retrieval */}
-          <details open>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <span>Stage 4: Course Retrieval (Algolia)</span>
-              <div>
-                <Badge variant="info" className="mr-2">{stages.courseRetrieval?.resultCount} hits</Badge>
-                <Badge variant={stages.courseRetrieval?.success ? 'success' : 'danger'}>
-                  {stages.courseRetrieval?.durationMs}ms
-                </Badge>
-              </div>
-            </summary>
-            <div className="py-2">
-              <CourseRetrievalSection hits={stages.courseRetrieval?.hits || []} />
-            </div>
-          </details>
-
-          {/* Prompt Debug */}
-          {response.promptDebug && response.promptDebug.length > 0 && (
-            <details>
-              <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-                <span>Prompt Interceptions ({response.promptDebug.length})</span>
-                <Badge variant="info">{response.promptDebug.length} recorded</Badge>
-              </summary>
-              <div className="py-2">
-                <PromptDebugSection entries={response.promptDebug} />
-              </div>
-            </details>
-          )}
-
-          {/* Pathway Enrichment */}
-          <details>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <span>Stage 5: Xpert Pathway Enrichment</span>
-              <Badge variant={stages.pathwayEnrichment?.success ? 'success' : 'danger'}>
-                {stages.pathwayEnrichment?.durationMs}ms
-              </Badge>
-            </summary>
-            <div className="py-2">
-              <Stack gap={3}>
-                <div>
-                  <strong>System Prompt:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
-                    {stages.pathwayEnrichment?.systemPrompt}
+              {/* Career Retrieval */}
+              <details>
+                <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                  <span>Stage 3: Career Retrieval (Algolia)</span>
+                  <div>
+                    <Badge variant="info" className="mr-2">{stages.careerRetrieval?.resultCount} hits</Badge>
+                    <Badge variant={stages.careerRetrieval?.success ? 'success' : 'danger'}>
+                      {stages.careerRetrieval?.durationMs}ms
+                    </Badge>
+                  </div>
+                </summary>
+                <div className="py-2">
+                  <pre className="small bg-light p-2">
+                    {JSON.stringify(stages.careerRetrieval, null, 2)}
                   </pre>
                 </div>
-                <div>
-                  <strong>Raw Response:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
-                    {stages.pathwayEnrichment?.rawResponse}
-                  </pre>
+              </details>
+
+              {/* Facet Snapshot */}
+              {stages.catalogFacetSnapshot && (
+                <details>
+                  <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span>Stage 3b: Catalog Facet Snapshot</span>
+                    <Badge variant={stages.catalogFacetSnapshot.success ? 'success' : 'danger'}>
+                      {stages.catalogFacetSnapshot.durationMs}ms
+                    </Badge>
+                  </summary>
+                  <div className="py-2">
+                    <FacetSnapshotSection trace={stages.catalogFacetSnapshot.trace} />
+                  </div>
+                </details>
+              )}
+
+              {/* Rules-First Mapping */}
+              {stages.rulesFirstMapping && (
+                <details>
+                  <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span>Stage 3c: Rules-First Taxonomy Mapping</span>
+                    <Badge variant={stages.rulesFirstMapping.success ? 'success' : 'danger'}>
+                      {stages.rulesFirstMapping.durationMs}ms
+                    </Badge>
+                  </summary>
+                  <div className="py-2">
+                    <RulesFirstSection trace={stages.rulesFirstMapping.trace} />
+                  </div>
+                </details>
+              )}
+
+              {/* Catalog Translation */}
+              {stages.catalogTranslation && (
+                <details>
+                  <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span>Stage 3d: Catalog Translation</span>
+                    <Badge variant={stages.catalogTranslation.success ? 'success' : 'danger'}>
+                      {stages.catalogTranslation.durationMs}ms
+                    </Badge>
+                  </summary>
+                  <div className="py-2">
+                    <CatalogTranslationSection trace={stages.catalogTranslation.trace} />
+                  </div>
+                </details>
+              )}
+
+              {/* Retrieval Ladder */}
+              {stages.retrievalLadder && (
+                <details>
+                  <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span>Stage 4a: Course Retrieval Ladder</span>
+                    <Badge variant={stages.retrievalLadder.success ? 'success' : 'danger'}>
+                      {stages.retrievalLadder.trace.attempts.length} attempts
+                    </Badge>
+                  </summary>
+                  <div className="py-2">
+                    <RetrievalLadderSection trace={stages.retrievalLadder.trace} />
+                  </div>
+                </details>
+              )}
+
+              {/* Course Retrieval */}
+              <details open>
+                <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                  <span>Stage 4: Course Retrieval (Algolia)</span>
+                  <div>
+                    <Badge variant="info" className="mr-2">{stages.courseRetrieval?.resultCount} hits</Badge>
+                    <Badge variant={stages.courseRetrieval?.success ? 'success' : 'danger'}>
+                      {stages.courseRetrieval?.durationMs}ms
+                    </Badge>
+                  </div>
+                </summary>
+                <div className="py-2">
+                  <CourseRetrievalSection hits={stages.courseRetrieval?.hits || []} />
                 </div>
-              </Stack>
-            </div>
-          </details>
+              </details>
+
+              {/* Prompt Debug */}
+              {response.promptDebug && response.promptDebug.length > 0 && (
+                <details>
+                  <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span>Prompt Interceptions ({response.promptDebug.length})</span>
+                    <Badge variant="info">{response.promptDebug.length} recorded</Badge>
+                  </summary>
+                  <div className="py-2">
+                    <PromptDebugSection entries={response.promptDebug} />
+                  </div>
+                </details>
+              )}
+
+              {/* Pathway Enrichment */}
+              <details>
+                <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
+                  <span>Stage 5: Xpert Pathway Enrichment</span>
+                  <Badge variant={stages.pathwayEnrichment?.success ? 'success' : 'danger'}>
+                    {stages.pathwayEnrichment?.durationMs}ms
+                  </Badge>
+                </summary>
+                <div className="py-2">
+                  <Stack gap={3}>
+                    <div>
+                      <strong>System Prompt:</strong>
+                      <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                        {stages.pathwayEnrichment?.systemPrompt}
+                      </pre>
+                    </div>
+                    <div>
+                      <strong>Raw Response:</strong>
+                      <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                        {stages.pathwayEnrichment?.rawResponse}
+                      </pre>
+                    </div>
+                    <p className="mb-1"><strong>Discovery RAG used:</strong> {stages.pathwayEnrichment?.wasDiscoveryUsed ? 'Yes' : 'No'}</p>
+                    {stages.pathwayEnrichment?.discovery && (
+                      <div>
+                        <strong>Discovery Data (RAG):</strong>
+                        <pre className="small bg-light p-2">
+                          {JSON.stringify(stages.pathwayEnrichment.discovery, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </Stack>
+                </div>
+              </details>
+            </>
+          )}
         </Stack>
       </Card.Body>
     </Card>

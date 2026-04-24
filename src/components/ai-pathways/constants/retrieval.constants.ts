@@ -8,6 +8,12 @@
 /** Maximum number of courses to include in a generated pathway. */
 export const COURSE_RETRIEVAL_LIMIT = 5;
 
+/**
+ * Default RAG tags for Xpert Platform requests.
+ * These tags scope the document retrieval to specific content domains.
+ */
+export const DEFAULT_XPERT_RAG_TAGS = ['discovery', 'edx-available-course'];
+
 /** Maximum number of career paths to suggest to the user during intake. */
 export const CAREER_RETRIEVAL_LIMIT = 10;
 

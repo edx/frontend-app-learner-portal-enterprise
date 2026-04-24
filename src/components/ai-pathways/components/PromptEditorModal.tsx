@@ -4,9 +4,11 @@ import {
   Card,
   Stack,
   Badge,
+  Form,
 } from '@openedx/paragon';
 import { XpertPromptBundle, PromptPart } from '../types';
 import { InterceptContext } from '../hooks/usePromptInterceptor';
+import { sanitizeTags } from '../utils/tagUtils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -90,11 +92,14 @@ export const PromptEditorModal = ({
 }: PromptEditorModalProps) => {
   // Local copy of parts so edits don't mutate the original bundle.
   const [editedParts, setEditedParts] = useState<PromptPart[]>([]);
+  // Local copy of tags input string.
+  const [editedTags, setEditedTags] = useState<string>('');
 
   // Sync local state whenever a new bundle is passed in.
   useEffect(() => {
     if (bundle) {
       setEditedParts(bundle.parts.map(p => ({ ...p })));
+      setEditedTags(bundle.tags?.join(', ') || '');
     }
   }, [bundle]);
 
@@ -109,10 +114,13 @@ export const PromptEditorModal = ({
 
   const handleAccept = () => {
     const combined = editedParts.map(p => p.content).join('');
+    const rawTags = editedTags.split(',');
+    const sanitized = sanitizeTags(rawTags);
     const editedBundle: XpertPromptBundle = {
       ...bundle,
       parts: editedParts,
       combined,
+      tags: sanitized,
     };
     onAccept(editedBundle);
   };
@@ -192,6 +200,23 @@ export const PromptEditorModal = ({
                 onChange={handlePartChange}
               />
             ))}
+          </div>
+
+          {/* Request-level configuration (Tags) */}
+          <div className="mt-4 pt-3 border-top">
+            <Form.Group controlId="request-tags">
+              <Form.Label className="font-weight-bold">Request Tags</Form.Label>
+              <Form.Control
+                type="text"
+                value={editedTags}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedTags(e.target.value)}
+                placeholder="discovery, edx-available-course"
+                style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}
+              />
+              <Form.Text className="text-muted">
+                Comma-separated tags used to scope RAG retrieval. Clearing this field will omit tags from the request.
+              </Form.Text>
+            </Form.Group>
           </div>
         </Card.Section>
 

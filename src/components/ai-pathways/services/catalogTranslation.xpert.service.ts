@@ -1,6 +1,6 @@
-import { xpertService, XpertMessage } from './xpert.service';
+import { xpertService } from './xpert.service';
 import { xpertCatalogTranslationPrompt } from './xpertCatalogTranslationPrompt';
-import { XpertCatalogTranslationPayload } from '../types';
+import { XpertCatalogTranslationPayload, XpertMessage } from '../types';
 import { InterceptContext } from '../hooks/usePromptInterceptor';
 import { PromptInterceptFn } from './intentExtraction.xpert.service';
 
@@ -16,6 +16,12 @@ export interface CatalogTranslationXpertDebug {
   durationMs: number;
   /** Whether the API call completed without network or service errors. */
   success: boolean;
+  /** Optional RAG control tags used for the request. */
+  tags?: string[];
+  /** Discovery data from Xpert RAG retrieval. */
+  discovery?: any;
+  /** Whether discovery RAG was used during the request. */
+  wasDiscoveryUsed?: boolean;
 }
 
 /**
@@ -51,9 +57,11 @@ export const catalogTranslationXpertService = {
   async translateUnmatched(
     payload: XpertCatalogTranslationPayload,
     interceptPrompt?: PromptInterceptFn,
+    tags?: string[],
   ): Promise<CatalogTranslationXpertResult> {
     const startTime = Date.now();
     const { bundle: originalBundle, userPayload } = xpertCatalogTranslationPrompt.buildTranslationPrompt(payload);
+    originalBundle.tags = tags;
 
     // --- Interception Logic ---
     let activeBundle = originalBundle;
@@ -76,6 +84,7 @@ export const catalogTranslationXpertService = {
     // --- End Interception ---
 
     const systemPrompt = activeBundle.combined;
+    const activeTags = activeBundle.tags;
 
     try {
       const response = await xpertService.sendMessage({
@@ -86,6 +95,7 @@ export const catalogTranslationXpertService = {
             content: JSON.stringify(userPayload),
           },
         ],
+        tags: activeTags,
       });
 
       return {
@@ -95,6 +105,8 @@ export const catalogTranslationXpertService = {
           rawResponse: response.content,
           durationMs: Date.now() - startTime,
           success: true,
+          tags: activeTags,
+          discovery: response.discovery,
         },
       };
     } catch {
@@ -105,6 +117,7 @@ export const catalogTranslationXpertService = {
           rawResponse: '',
           durationMs: Date.now() - startTime,
           success: false,
+          tags: activeTags,
         },
       };
     }

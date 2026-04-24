@@ -129,7 +129,11 @@ export const AiPathwaysPage = () => {
           <p className="text-muted">A personalized prototype for AI-generated learning roadmaps.</p>
         </header>
         <main>
-          {isDebug && <DebugConsole response={pathwayResponse} />}
+          {isDebug && (
+            <DebugConsole
+              response={pathwayResponse}
+            />
+          )}
           {isDebug && (
             <PromptEditorModal
               bundle={pendingInterception?.bundle ?? null}

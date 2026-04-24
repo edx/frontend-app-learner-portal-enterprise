@@ -85,8 +85,14 @@ Expected Output Shape:
   "droppedTaxonomySkills": ["string"],
   "skillProvenance": [
     { "taxonomySkill": "string", "catalogMatch": "string | null", "matchMethod": "xpert" | "none" }
-  ]
-}`,
+  ],
+  "discovery": object | null,
+  "wasDiscoveryUsed": boolean
+}
+
+Discovery RAG Guidance:
+- If discovery data was provided in the context, set wasDiscoveryUsed to true and include the full raw discovery RAG response in the "discovery" field.
+- If no discovery data was provided, set wasDiscoveryUsed to false and "discovery" to null.`,
 };
 
 /**
@@ -97,7 +103,7 @@ export const PATHWAY_ENRICHMENT_PROMPT = {
   /** The core persona and goal for the enrichment AI. */
   SYSTEM_MESSAGE_BASE: 'You are a career advisor and learning pathway architect. Your objective is to help the user understand why each course retrieved by the discovery service is essential for their chosen career path. For each course provided, write a short, one-sentence reasoning explaining why it is perfect for the user based on their goals and required skills. Be encouraging and specific, highlighting how the course content bridges their current background with their target role.',
   /** Structural constraints to ensure the output can be parsed by the assembler. */
-  JSON_INSTRUCTION: '\n\nYou MUST respond with only a valid JSON object matching the schema. Each reasoning item must include the "id" of the course it refers to. Raw JSON only.',
+  JSON_INSTRUCTION: '\n\nYou MUST respond with only a valid JSON object matching the schema. Each reasoning item must include the "id" of the course it refers to. Raw JSON only.\n\nExpected Output Shape:\n{\n  "reasonings": [\n    { "id": "string", "reasoning": "string" }\n  ],\n  "discovery": object | null,\n  "wasDiscoveryUsed": boolean\n}\n\nDiscovery RAG Guidance:\n- If discovery data was provided in the context, set wasDiscoveryUsed to true and include the full raw discovery RAG response in the "discovery" field.\n- If no discovery data was provided, set wasDiscoveryUsed to false and "discovery" to null.',
 } as const;
 
 /**
@@ -137,7 +143,26 @@ Output behavior:
 - Return supporting facet selections that reflect the user's likely interests.
 - Prefer close, general matches over narrow exactness.
 
-You MUST respond with only a valid JSON object matching the schema. Raw JSON only. No markdown.`,
+You MUST respond with only a valid JSON object matching the schema. Raw JSON only. No markdown.
+
+Expected Output Shape:
+{
+  "condensedQuery": "string",
+  "roles": ["string"],
+  "skillsRequired": ["string"],
+  "skillsPreferred": ["string"],
+  "industries": ["string"],
+  "jobSources": ["string"],
+  "learnerLevel": "beginner" | "intermediate" | "advanced",
+  "timeCommitment": "short" | "medium" | "long",
+  "excludeTags": ["string"],
+  "discovery": object | null,
+  "wasDiscoveryUsed": boolean
+}
+
+Discovery RAG Guidance:
+- If discovery data was provided in the context, set wasDiscoveryUsed to true and include the full raw discovery RAG response in the "discovery" field.
+- If no discovery data was provided, set wasDiscoveryUsed to false and "discovery" to null.`,
 
   /** Fallback prompt used when Xpert produces invalid JSON. */
   REPAIR_PROMPT: `The previous response was invalid JSON or failed validation.

@@ -32,6 +32,7 @@ import { catalogTranslationRules } from '../services/catalogTranslationRules';
 import { catalogTranslationService } from '../services/catalogTranslationService';
 import { catalogTranslationXpertService } from '../services/catalogTranslation.xpert.service';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
+import { DEFAULT_XPERT_RAG_TAGS } from '../constants/retrieval.constants';
 
 /**
  * Union type representing the possible steps in the AI Pathways generation flow.
@@ -135,9 +136,6 @@ export const usePathways = () => {
   const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string, slug?: string };
   const searchCatalogs = useSearchCatalogs();
 
-  /**
-   * Derived context used to scope all catalog-specific operations (facets, retrieval).
-   */
   const facetContext = useMemo(() => ({
     enterpriseCustomerUuid: enterpriseCustomer.uuid,
     searchCatalogs,
@@ -172,6 +170,7 @@ export const usePathways = () => {
     const requestId = uuidv4();
     const responseModel: AIPathwaysResponseModel = {
       requestId,
+      tags: DEFAULT_XPERT_RAG_TAGS,
       stages: {} as any,
     };
 
@@ -199,8 +198,14 @@ export const usePathways = () => {
         preprocessed,
         facets,
         profileInterceptor,
+        DEFAULT_XPERT_RAG_TAGS,
       );
       responseModel.stages.intentExtraction = extractionResult.debug;
+      // Sync the top-level tags and discovery with what was actually used
+      responseModel.tags = extractionResult.debug.tags;
+      responseModel.discovery = extractionResult.debug.discovery;
+      responseModel.wasDiscoveryUsed = extractionResult.debug.wasDiscoveryUsed;
+
       const { intent } = extractionResult;
       setSearchIntent(intent);
 
@@ -328,9 +333,14 @@ export const usePathways = () => {
               facetSnapshot,
             },
             pathwayInterceptor,
+            updatedResponseModel.tags || DEFAULT_XPERT_RAG_TAGS,
           );
           xpertRawResponse = xpertResult.rawResponse || undefined;
           xpertDebugPayload = xpertResult.debug;
+          // Sync tags and discovery if they were edited/used during translation
+          updatedResponseModel.tags = xpertResult.debug.tags;
+          updatedResponseModel.discovery = xpertResult.debug.discovery;
+          updatedResponseModel.wasDiscoveryUsed = xpertResult.debug.wasDiscoveryUsed;
         } catch {
           // Continue with deterministic results if AI fails.
         }
@@ -350,6 +360,9 @@ export const usePathways = () => {
         success: true,
         trace: translationTrace,
       };
+      // Final sync from the grounded/parsed translation result
+      updatedResponseModel.discovery = translationTrace.xpertDiscovery;
+      updatedResponseModel.wasDiscoveryUsed = translationTrace.xpertWasDiscoveryUsed;
 
       // 5. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
@@ -387,8 +400,11 @@ export const usePathways = () => {
       const enrichmentResult = await pathwayAssemblerXpertService.enrichWithReasoning(
         initialPathway,
         searchIntent,
+        updatedResponseModel.tags || DEFAULT_XPERT_RAG_TAGS,
       );
       updatedResponseModel.stages.pathwayEnrichment = enrichmentResult.debug;
+      updatedResponseModel.discovery = enrichmentResult.debug.discovery;
+      updatedResponseModel.wasDiscoveryUsed = enrichmentResult.debug.wasDiscoveryUsed;
 
       setPathway(enrichmentResult.pathway);
       setPathwayResponse(updatedResponseModel);
@@ -427,7 +443,7 @@ export const usePathways = () => {
     generateProfile,
     selectCareer,
     generatePathway,
-    reset,
     setCurrentStep,
+    reset,
   };
 };
