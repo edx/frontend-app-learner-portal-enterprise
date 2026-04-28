@@ -110,6 +110,7 @@ export const intentExtractionXpertService = {
           tags: activeTags,
         });
 
+        repairDiscovery = repairResponse.discovery;
         rawResponse = repairResponse.content;
         intent = xpertContractService.parseIntent(rawResponse);
         wasDiscoveryUsed = intent?.wasDiscoveryUsed ?? false;

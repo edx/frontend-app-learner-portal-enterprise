@@ -205,9 +205,8 @@ export const DebugConsole = ({
   response,
 }: DebugConsoleProps) => {
   const handleExport = useCallback(() => {
-    if (response) {
-      exportResponseModel(response);
-    }
+    if (!response) { return; }
+    exportResponseModel(response);
   }, [response]);
 
   if (!response) {
@@ -220,8 +219,8 @@ export const DebugConsole = ({
     <Card className="mt-5 border-warning">
       <Card.Header
         title="AI Pathways Debug Console"
-        subtitle={response ? `Request ID: ${response.requestId}` : 'View pipeline metrics and traces'}
-        actions={response ? (
+        subtitle={`Request ID: ${response.requestId}`}
+        actions={(
           <Button
             variant="outline-primary"
             size="sm"
@@ -229,7 +228,7 @@ export const DebugConsole = ({
           >
             Export JSON
           </Button>
-        ) : null}
+        )}
       />
       <Card.Body>
         <Stack gap={3}>
