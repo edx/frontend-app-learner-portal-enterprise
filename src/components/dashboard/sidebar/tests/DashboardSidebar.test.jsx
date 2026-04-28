@@ -441,6 +441,40 @@ describe('<DashboardSidebar />', () => {
     expect(screen.getByText('Go to Academy')).toBeInTheDocument();
   });
 
+  test('Learner credit summary card with explore academies cta when academies are enabled but not one academy', () => {
+    const policyExpirationDate = '2030-01-01 12:00:00Z';
+    useIsAssignmentsOnlyLearner.mockReturnValue(false);
+    useRedeemablePolicies.mockReturnValue({
+      data: {
+        redeemablePolicies: [{
+          uuid: 'policy-uuid',
+          subsidyExpirationDate: policyExpirationDate,
+          active: true,
+          policyType: POLICY_TYPES.ASSIGNED_CREDIT,
+          learnerContentAssignments: [
+            { state: ASSIGNMENT_TYPES.ALLOCATED },
+          ],
+        }],
+        learnerContentAssignments: {
+          ...emptyRedeemableLearnerCreditPolicies.learnerContentAssignments,
+          allocatedAssignments: [{ state: ASSIGNMENT_TYPES.ALLOCATED }],
+          hasAllocatedAssignments: true,
+          assignmentsForDisplay: [{ state: ASSIGNMENT_TYPES.ALLOCATED }],
+          hasAssignmentsForDisplay: true,
+        },
+      },
+    });
+    useHasAvailableSubsidiesOrRequests.mockReturnValue(useMockHasAvailableSubsidyOrRequests({
+      mockHasAvailableLearnerCreditPolicies: true,
+      mockLearnerCreditSummaryCardData: { expirationDate: dayjs().add(70, 'days').toISOString() },
+    }));
+    useEnterpriseCustomer.mockReturnValue({
+      data: enterpriseCustomerFactory({ enable_academies: true, enable_one_academy: false }),
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.getByText('Explore Academies')).toBeInTheDocument();
+  });
+
   test('Find a course button is not rendered when user has no coupon codes or license subsidy', () => {
     useHasAvailableSubsidiesOrRequests.mockReturnValue(
       useMockHasAvailableSubsidyOrRequests(mockUseActiveSubsidyOrRequestsData),
