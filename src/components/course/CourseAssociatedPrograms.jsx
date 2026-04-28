@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Hyperlink } from '@openedx/paragon';
-import { sendEnterpriseTrackEvent } from '@edx/frontend-enterprise-utils';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
 
 import { getProgramIcon, formatProgramType } from './data/utils';

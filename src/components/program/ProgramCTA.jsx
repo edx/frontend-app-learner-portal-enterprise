@@ -3,7 +3,7 @@ import { defineMessages, useIntl, FormattedMessage } from '@edx/frontend-platfor
 import classNames from 'classnames';
 import { Dropdown } from '@openedx/paragon';
 import { AppContext } from '@edx/frontend-platform/react';
-import { sendEnterpriseTrackEvent } from '@edx/frontend-enterprise-utils';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { useParams, Link } from 'react-router-dom';
 import { getProgramDuration } from './data/utils';
 import { getLinkToCourse } from '../course/data/utils';
