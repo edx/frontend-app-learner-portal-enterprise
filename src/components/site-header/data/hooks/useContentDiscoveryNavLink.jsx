@@ -5,6 +5,7 @@ import { useAcademies, useEnterpriseCustomer } from '../../../app/data';
 export default function useContentDiscoveryNavLink(mainMenuLinkClassName) {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { data: academies } = useAcademies();
+
   if (enterpriseCustomer.enableOneAcademy && academies.length === 1) {
     return (
       <NavLink to={`/${enterpriseCustomer.slug}/academies/${academies[0].uuid}`} className={mainMenuLinkClassName}>
@@ -12,6 +13,17 @@ export default function useContentDiscoveryNavLink(mainMenuLinkClassName) {
           id="enterprise.dashboard.nav.academy.title"
           defaultMessage="Go to Academy"
           description="Go to academy link in site header navigation."
+        />
+      </NavLink>
+    );
+  }
+  if (enterpriseCustomer.enableAcademies) {
+    return (
+      <NavLink to={`/${enterpriseCustomer.slug}/search`} className={mainMenuLinkClassName}>
+        <FormattedMessage
+          id="enterprise.dashboard.nav.academies.title"
+          defaultMessage="Academies"
+          description="Academies link in site header navigation for customers with academies enabled."
         />
       </NavLink>
     );
