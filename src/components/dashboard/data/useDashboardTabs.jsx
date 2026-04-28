@@ -4,7 +4,7 @@ import {
 import loadable from '@loadable/component';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tab } from '@openedx/paragon';
-import { sendEnterpriseTrackEvent } from '@edx/frontend-enterprise-utils';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 

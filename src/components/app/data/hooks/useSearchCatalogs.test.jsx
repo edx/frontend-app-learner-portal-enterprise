@@ -17,8 +17,8 @@ jest.mock('./useRedeemablePolicies');
 jest.mock('./useCouponCodes');
 jest.mock('./useEnterpriseOffers');
 
-jest.mock('@edx/frontend-enterprise-catalog-search', () => ({
-  ...jest.requireActual('@edx/frontend-enterprise-catalog-search'),
+jest.mock('@2uinc/frontend-enterprise-catalog-search', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-catalog-search'),
   setRefinementAction: jest.fn(() => ({ key: 'SET_REFINEMENT' })),
 }));
 const mockEnterpriseCustomer = enterpriseCustomerFactory();

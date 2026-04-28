@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { getConfig } from '@edx/frontend-platform/config';
-import { SearchContext, SearchHeader } from '@edx/frontend-enterprise-catalog-search';
+import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 

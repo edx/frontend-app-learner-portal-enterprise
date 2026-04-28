@@ -1,5 +1,5 @@
 import { defineMessages } from '@edx/frontend-platform/i18n';
-import { getSearchFacetFilters as getBaseSearchFacetFilters } from '@edx/frontend-enterprise-catalog-search';
+import { getSearchFacetFilters as getBaseSearchFacetFilters } from '@2uinc/frontend-enterprise-catalog-search';
 import { features } from '../../config';
 
 export function isShortCourse(course) {
