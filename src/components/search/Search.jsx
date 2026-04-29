@@ -13,6 +13,7 @@ import { NUM_RESULTS_PER_PAGE } from './constants';
 import SearchProgram from './SearchProgram';
 import SearchCourse from './SearchCourse';
 import { ContentHighlights } from './content-highlights';
+import CustomSearchFilters from './CustomSearchFilters';
 import { features } from '../../config';
 
 import { IntegrationWarningModal } from '../integration-warning-modal';
@@ -181,6 +182,7 @@ const Search = () => {
               index={searchIndex}
               filters={filters}
               enterpriseConfig={enterpriseCustomer}
+              filterComponents={<CustomSearchFilters />}
             />
           </div>
         )}
