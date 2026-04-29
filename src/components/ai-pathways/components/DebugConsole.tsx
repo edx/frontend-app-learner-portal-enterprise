@@ -23,12 +23,12 @@ import { CARDGRID_COLUMN_SIZES } from '../../search/constants';
 
 const CourseRetrievalSection = ({ hits }: { hits: CourseRetrievalHit[] }) => {
   if (hits.length === 0) {
-    return <p className="text-muted font-italic small">No courses returned for the winning step.</p>;
+    return <p className="text-muted font-italic small mb-0">No courses returned for the winning step.</p>;
   }
   return (
     <div className="d-flex flex-wrap mt-3">
       {hits.map((hit) => (
-        <div key={hit.objectID} style={{ width: '300px' }} className="mr-3 mb-3">
+        <div key={hit.objectID} className="mr-3 mb-3" style={{ width: '300px' }}>
           {/* @ts-ignore */}
           <SearchCourseCard
             hit={mapRetrievalHitToSearchCard(hit)}
@@ -108,13 +108,22 @@ const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }
     {trace.xpertUsed && (
       <>
         <p className="mb-1"><strong>Xpert duration:</strong> {trace.xpertDurationMs}ms — {trace.xpertSuccess ? 'success' : 'failed'}</p>
-        <div>
+        <p className="mb-1"><strong>Discovery RAG used:</strong> {trace.xpertWasDiscoveryUsed ? 'Yes' : 'No'}</p>
+        {trace.xpertDiscovery && (
+          <div className="mb-2">
+            <strong>Discovery Data (RAG):</strong>
+            <pre className="small bg-light border rounded p-2">
+              {JSON.stringify(trace.xpertDiscovery, null, 2)}
+            </pre>
+          </div>
+        )}
+        <div className="mb-2">
           <strong>Xpert system prompt:</strong>
-          <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertSystemPrompt}</pre>
+          <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertSystemPrompt}</pre>
         </div>
-        <div>
+        <div className="mb-0">
           <strong>Xpert raw response:</strong>
-          <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertRawResponse}</pre>
+          <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertRawResponse}</pre>
         </div>
       </>
     )}
@@ -143,14 +152,14 @@ const PromptDebugSection = ({ entries }: { entries: PromptDebugEntry[] }) => (
         </div>
         <details>
           <summary className="small cursor-pointer">Original prompt ({entry.original.stage})</summary>
-          <pre className="small bg-light p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
+          <pre className="small bg-light border rounded p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
             {entry.original.combined}
           </pre>
         </details>
         {entry.edited && (
           <details className="mt-1">
             <summary className="small cursor-pointer text-warning">Edited prompt (sent to Xpert)</summary>
-            <pre className="small bg-light p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
+            <pre className="small bg-light border rounded p-2 mt-1" style={{ whiteSpace: 'pre-wrap' }}>
               {entry.edited.combined}
             </pre>
           </details>
@@ -192,18 +201,19 @@ const RetrievalLadderSection = ({ trace }: { trace: RetrievalLadderTrace }) => (
   </Stack>
 );
 
-export const DebugConsole = ({ response }: DebugConsoleProps) => {
+export const DebugConsole = ({
+  response,
+}: DebugConsoleProps) => {
   const handleExport = useCallback(() => {
-    if (response) {
-      exportResponseModel(response);
-    }
+    if (!response) { return; }
+    exportResponseModel(response);
   }, [response]);
 
   if (!response) {
     return null;
   }
 
-  const { stages } = response;
+  const stages = response.stages || {};
 
   return (
     <Card className="mt-5 border-warning">
@@ -222,6 +232,16 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
       />
       <Card.Body>
         <Stack gap={3}>
+          {/* Request Tags Visibility */}
+          <div className="mb-3">
+            <strong>Tags used in this request:</strong>{' '}
+            {response.tags?.length ? (
+              response.tags.map(tag => <Badge key={tag} variant="dark" className="mr-1">{tag}</Badge>)
+            ) : (
+              <span className="text-muted font-italic">None (field omitted)</span>
+            )}
+          </div>
+
           {/* Facet Bootstrap */}
           <details open>
             <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
@@ -231,7 +251,7 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               </Badge>
             </summary>
             <div className="py-2">
-              <pre className="small bg-light p-2">
+              <pre className="small bg-light border rounded p-2">
                 {JSON.stringify(stages.facetBootstrap, null, 2)}
               </pre>
             </div>
@@ -264,22 +284,31 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
                 )}
                 <div>
                   <strong>System Prompt:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                  <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>
                     {stages.intentExtraction?.systemPrompt}
                   </pre>
                 </div>
                 <div>
                   <strong>Raw Response:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                  <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>
                     {stages.intentExtraction?.rawResponse}
                   </pre>
                 </div>
                 <div>
                   <strong>Parsed Intent:</strong>
-                  <pre className="small bg-light p-2">
+                  <pre className="small bg-light border rounded p-2">
                     {JSON.stringify(stages.intentExtraction?.parsedResponse, null, 2)}
                   </pre>
                 </div>
+                <p className="mb-1"><strong>Discovery RAG used:</strong> {stages.intentExtraction?.wasDiscoveryUsed ? 'Yes' : 'No'}</p>
+                {stages.intentExtraction?.discovery && (
+                  <div>
+                    <strong>Discovery Data (RAG):</strong>
+                    <pre className="small bg-light border rounded p-2">
+                      {JSON.stringify(stages.intentExtraction.discovery, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </Stack>
             </div>
           </details>
@@ -296,7 +325,7 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               </div>
             </summary>
             <div className="py-2">
-              <pre className="small bg-light p-2">
+              <pre className="small bg-light border rounded p-2">
                 {JSON.stringify(stages.careerRetrieval, null, 2)}
               </pre>
             </div>
@@ -403,16 +432,25 @@ export const DebugConsole = ({ response }: DebugConsoleProps) => {
               <Stack gap={3}>
                 <div>
                   <strong>System Prompt:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                  <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>
                     {stages.pathwayEnrichment?.systemPrompt}
                   </pre>
                 </div>
                 <div>
                   <strong>Raw Response:</strong>
-                  <pre className="small bg-light p-2" style={{ whiteSpace: 'pre-wrap' }}>
+                  <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>
                     {stages.pathwayEnrichment?.rawResponse}
                   </pre>
                 </div>
+                <p className="mb-1"><strong>Discovery RAG used:</strong> {stages.pathwayEnrichment?.wasDiscoveryUsed ? 'Yes' : 'No'}</p>
+                {stages.pathwayEnrichment?.discovery && (
+                  <div>
+                    <strong>Discovery Data (RAG):</strong>
+                    <pre className="small bg-light border rounded p-2">
+                      {JSON.stringify(stages.pathwayEnrichment.discovery, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </Stack>
             </div>
           </details>

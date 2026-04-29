@@ -18,6 +18,10 @@ export interface ReasoningResponse {
     /** Personalised reasoning for why this course belongs in the pathway. */
     reasoning: string;
   }>;
+  /** Discovery data from Xpert RAG retrieval. */
+  discovery?: any;
+  /** Whether discovery RAG was used during the request. */
+  wasDiscoveryUsed?: boolean;
 }
 
 /**
@@ -83,6 +87,8 @@ export const xpertContractService = {
       learnerLevel: normalizeLevel(raw.learnerLevel),
       timeCommitment: normalizeCommitment(raw.timeCommitment),
       excludeTags: ensureArray(raw.excludeTags),
+      discovery: raw.discovery || null,
+      wasDiscoveryUsed: Boolean(raw.wasDiscoveryUsed),
     };
   },
 
@@ -131,6 +137,8 @@ export const xpertContractService = {
           id: String(r.id || ''),
           reasoning: String(r.reasoning || ''),
         })),
+        discovery: parsed.discovery || null,
+        wasDiscoveryUsed: Boolean(parsed.wasDiscoveryUsed),
       };
     } catch {
       return null;

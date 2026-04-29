@@ -98,6 +98,10 @@ export interface XpertIntent {
   timeCommitment: TimeCommitment;
   /** List of tags or terms to explicitly exclude from results. */
   excludeTags: string[];
+  /** Discovery data from Xpert RAG retrieval. */
+  discovery?: any;
+  /** Whether discovery RAG was used during the request. */
+  wasDiscoveryUsed?: boolean;
 }
 
 /**
@@ -433,6 +437,10 @@ export interface CatalogTranslationTrace {
   xpertDurationMs?: number;
   /** Whether the Xpert call was successful. */
   xpertSuccess?: boolean;
+  /** Discovery data from Xpert RAG retrieval. */
+  xpertDiscovery?: any;
+  /** Whether discovery RAG was used during the request. */
+  xpertWasDiscoveryUsed?: boolean;
 }
 
 /**
@@ -579,6 +587,12 @@ export interface PromptDebugEntry {
 export interface AIPathwaysResponseModel {
   /** Unique ID for the generation session. */
   requestId: string;
+  /** Tags used in Xpert requests for RAG control. */
+  tags?: string[];
+  /** Discovery data from Xpert RAG retrieval. */
+  discovery?: any;
+  /** Whether discovery RAG was used during the request. */
+  wasDiscoveryUsed?: boolean;
   /** Ordered list of prompt interception events. */
   promptDebug?: PromptDebugEntry[];
   /** Metrics and data for each stage of the generation pipeline. */
@@ -592,6 +606,8 @@ export interface AIPathwaysResponseModel {
       parsedResponse: any;
       validationErrors: string[];
       repairPromptUsed: boolean;
+      discovery?: any;
+      wasDiscoveryUsed?: boolean;
     };
     /** Search for matching careers in the taxonomy index. */
     careerRetrieval: StageMetrics & {
@@ -608,6 +624,8 @@ export interface AIPathwaysResponseModel {
     /** AI-driven translation of remaining taxonomy terms. */
     catalogTranslation?: StageMetrics & {
       trace: CatalogTranslationTrace;
+      discovery?: any;
+      wasDiscoveryUsed?: boolean;
     };
     /** Progressive search logic to find relevant courses. */
     retrievalLadder?: StageMetrics & {
@@ -622,6 +640,8 @@ export interface AIPathwaysResponseModel {
     pathwayEnrichment: StageMetrics & {
       systemPrompt: string;
       rawResponse: string;
+      discovery?: any;
+      wasDiscoveryUsed?: boolean;
     };
   };
 }
@@ -629,7 +649,7 @@ export interface AIPathwaysResponseModel {
 /**
  * Represents a single named segment of an AI system prompt.
  */
-export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair';
+export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair' | 'json_instruction';
 
 /**
  * A component part of a structured prompt.
@@ -653,11 +673,13 @@ export interface XpertPromptBundle {
   /** Unique identifier for the bundle instance. */
   id: string;
   /** The pipeline stage this prompt belongs to. */
-  stage: 'intentExtraction' | 'catalogTranslation';
+  stage: 'intentExtraction' | 'catalogTranslation' | 'pathwayEnrichment';
   /** Individual parts composing the prompt. */
   parts: PromptPart[];
   /** The final flattened string sent to the AI. */
   combined: string;
+  /** Optional RAG control tags for the request. */
+  tags?: string[];
 }
 
 /**
@@ -665,9 +687,26 @@ export interface XpertPromptBundle {
  */
 export interface XpertMessage {
   /** The sender's role. */
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   /** The message text. */
   content: string;
+}
+
+/**
+ * Request shape for Xpert Platform message requests.
+ */
+export interface XpertMessageRequest {
+  messages: XpertMessage[];
+  systemMessage?: string;
+  conversationId?: string;
+  stream?: boolean;
+  tags?: string[];
+}
+
+export interface XpertMessageResponse {
+  content: string;
+  role: string;
+  discovery?: any;
 }
 
 /**

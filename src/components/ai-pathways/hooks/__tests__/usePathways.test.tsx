@@ -19,6 +19,7 @@ import {
   mockSearchIntent,
   mockTaxonomyUniverse,
 } from '../../fixtures';
+import { DEFAULT_XPERT_RAG_TAGS } from '../../constants/retrieval.constants';
 
 jest.mock('@edx/frontend-platform', () => ({
   getConfig: jest.fn(() => ({
@@ -205,6 +206,7 @@ describe('usePathways hook', () => {
     expect(catalogTranslationXpertService.translateUnmatched).toHaveBeenCalledWith(
       expect.objectContaining({ careerTitle: 'Software Engineer', unmatchedSkills: ['UnknownSkill'] }),
       undefined,
+      DEFAULT_XPERT_RAG_TAGS,
     );
     expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
       'Software Engineer',
@@ -373,6 +375,8 @@ describe('usePathways — prompt interception', () => {
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
     // Third argument (interceptPrompt) must be undefined
     expect(callArgs[2]).toBeUndefined();
+    // Fourth argument must be DEFAULT_XPERT_RAG_TAGS
+    expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
   it('forwards a capturing interceptor to extractIntent when one is provided', async () => {
@@ -386,6 +390,8 @@ describe('usePathways — prompt interception', () => {
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
     // Third argument must be a function (the capturing wrapper)
     expect(typeof callArgs[2]).toBe('function');
+    // Fourth argument must be DEFAULT_XPERT_RAG_TAGS
+    expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
   it('accept path — interceptor called and extractIntent completes successfully', async () => {
@@ -452,5 +458,28 @@ describe('usePathways — prompt interception', () => {
     const translateCallArgs = (catalogTranslationXpertService.translateUnmatched as jest.Mock).mock.calls[0];
     // Second argument to translateUnmatched must be a function (capturing interceptor wrapper)
     expect(typeof translateCallArgs[1]).toBe('function');
+    // Third argument must be DEFAULT_XPERT_RAG_TAGS
+    expect(translateCallArgs[2]).toEqual(DEFAULT_XPERT_RAG_TAGS);
+  });
+
+  it('enrichment stage — interceptor is forwarded to enrichWithReasoning via generatePathway', async () => {
+    const mockInterceptPrompt = jest.fn().mockResolvedValue({ decision: 'accepted', bundle: undefined });
+    const { result } = renderHook(() => usePathways());
+
+    // generateProfile stores the interceptor
+    await act(async () => {
+      await result.current.generateProfile(mockIntakeInput, mockInterceptPrompt);
+    });
+
+    // generatePathway reuses the stored interceptor and passes it to enrichWithReasoning
+    await act(async () => {
+      await result.current.generatePathway();
+    });
+
+    const enrichCallArgs = (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mock.calls[0];
+    // Third argument (interceptPrompt) must be a function
+    expect(typeof enrichCallArgs[2]).toBe('function');
+    // Fourth argument (tags) must be DEFAULT_XPERT_RAG_TAGS
+    expect(enrichCallArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 });

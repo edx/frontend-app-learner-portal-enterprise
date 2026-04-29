@@ -1,23 +1,7 @@
 import { getConfig } from '@edx/frontend-platform';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import axios from 'axios';
-
-export interface XpertMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-export interface XpertMessageRequest {
-  messages: XpertMessage[];
-  systemMessage: string;
-  tags?: string[];
-  conversationId?: string;
-}
-
-export interface XpertMessageResponse {
-  content: string;
-  role: string;
-}
+import { XpertMessageRequest, XpertMessageResponse } from '../types';
 
 export const xpertService = {
   async sendMessage(request: XpertMessageRequest): Promise<XpertMessageResponse> {
@@ -29,17 +13,20 @@ export const xpertService = {
     const baseUrl = getConfig().XPERT_API_BASE_URL;
     const url = `${baseUrl}/v1/message`;
 
-    const body = {
+    // Tags scope RAG document retrieval.
+    // If tags are empty or undefined, the field is omitted from the payload.
+    const payload = {
       client_id: clientId,
       messages: request.messages,
-      system_message: request.systemMessage,
       conversation_id: request.conversationId,
-      stream: false,
+      ...(request.systemMessage ? { system_message: request.systemMessage } : {}),
+      ...(typeof request.stream === 'boolean' ? { stream: request.stream } : { stream: false }),
+      ...(request.tags?.length ? { tags: request.tags } : {}),
     };
 
     // TODO: confirm auth header requirements with Xpert team —
     //  batch/dropzone endpoints require Authorization but /v1/message docs do not specify
-    const response = await axios.post(url, body);
+    const response = await axios.post(url, payload);
 
     return response.data[0];
   },
