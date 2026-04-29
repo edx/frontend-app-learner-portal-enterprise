@@ -9,7 +9,7 @@ import {
   WarningFilled,
 } from '@openedx/paragon/icons';
 import { AppContext } from '@edx/frontend-platform/react';
-import { sendEnterpriseTrackEvent } from '@edx/frontend-enterprise-utils';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { Link, useParams } from 'react-router-dom';
 
 import { PROGRAM_PACING_MAP } from './data/constants';

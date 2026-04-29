@@ -1,7 +1,7 @@
 import { generatePath, matchPath, redirect } from 'react-router-dom';
 import { getConfig } from '@edx/frontend-platform';
 import { fetchAuthenticatedUser, getLoginRedirectUrl } from '@edx/frontend-platform/auth';
-import { getProxyLoginUrl } from '@edx/frontend-enterprise-logistration';
+import { getProxyLoginUrl } from '@2uinc/frontend-enterprise-logistration';
 import Cookies from 'universal-cookie';
 import { logError } from '@edx/frontend-platform/logging';
 import dayjs from 'dayjs';

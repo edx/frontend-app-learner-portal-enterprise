@@ -3,7 +3,7 @@ import { screen, render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import dayjs from 'dayjs';
 
-import { sendEnterpriseTrackEvent } from '@edx/frontend-enterprise-utils';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import userEvent from '@testing-library/user-event';
 import ProgramCourses, { DATE_FORMAT } from '../ProgramCourses';
 import { useEnterpriseCustomer, useProgramDetails } from '../../app/data';
@@ -17,8 +17,8 @@ jest.mock('react-router-dom', () => ({
   useLocation: jest.fn(),
   useParams: jest.fn().mockReturnValue({ programUuid }),
 }));
-jest.mock('@edx/frontend-enterprise-utils', () => ({
-  ...jest.requireActual('@edx/frontend-enterprise-utils'),
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
   sendEnterpriseTrackEvent: jest.fn(),
 }));
 
