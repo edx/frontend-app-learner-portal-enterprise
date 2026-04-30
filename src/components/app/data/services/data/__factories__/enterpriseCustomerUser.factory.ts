@@ -30,7 +30,6 @@ Factory.define('enterpriseCustomer')
   .attr('disable_expiry_messaging_for_learner_credit', false)
   .attr('admin_users', [{ email: faker.internet.email() }])
   .attr('disable_search', false)
-  .attr('enable_academies', false)
   .attr('enable_one_academy', false)
   .attr('branding_configuration', {
     logo: faker.image.urlPlaceholder(),
