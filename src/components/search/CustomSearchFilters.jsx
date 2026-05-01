@@ -12,9 +12,11 @@ const identity = (items) => items;
 const NEW_CONTENT_ATTRIBUTE = 'is_new_content';
 const TRUE_VALUE = 'true';
 
-const newContentTransform = (items) => items
-  .filter(({ label }) => label === TRUE_VALUE)
-  .map((item) => ({ ...item, label: 'New content only' }));
+// Keeps only the `true` row from the boolean facet. The label is intentionally
+// preserved as-is — upstream `FacetListBase` uses `item.label` as the value
+// dispatched to the refinement reducer, so renaming would send a string that
+// does not match Algolia's stored `is_new_content: true` and break filtering.
+const newContentTransform = (items) => items.filter(({ label }) => label === TRUE_VALUE);
 
 // Extension point: add new `attribute -> transformItems` mappings here when a
 // facet needs custom item shaping (filter / rename / sort).
