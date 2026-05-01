@@ -3,13 +3,16 @@ import { SearchContext } from '@2uinc/frontend-enterprise-catalog-search';
 import '@testing-library/jest-dom';
 import CustomSearchFilters from '../CustomSearchFilters';
 
+const capturedTransforms = {};
+
 jest.mock('@2uinc/frontend-enterprise-catalog-search', () => {
   const actual = jest.requireActual('@2uinc/frontend-enterprise-catalog-search');
   return {
     ...actual,
-    FacetListRefinement: ({ attribute, title }) => (
-      <div data-testid={`facet-${attribute}`}>{title}</div>
-    ),
+    FacetListRefinement: ({ attribute, title, transformItems }) => {
+      capturedTransforms[attribute] = transformItems;
+      return <div data-testid={`facet-${attribute}`}>{title}</div>;
+    },
     LearningTypeRadioFacet: () => (
       <div data-testid="learning-type-facet">LearningType</div>
     ),
@@ -29,6 +32,9 @@ const renderWithContext = (searchFacetFilters, refinements = {}) => render(
 
 describe('CustomSearchFilters', () => {
   const originalLearningTypeFacet = process.env.LEARNING_TYPE_FACET;
+  beforeEach(() => {
+    Object.keys(capturedTransforms).forEach((key) => delete capturedTransforms[key]);
+  });
   afterEach(() => {
     if (originalLearningTypeFacet === undefined) {
       delete process.env.LEARNING_TYPE_FACET;
@@ -53,6 +59,21 @@ describe('CustomSearchFilters', () => {
     process.env.LEARNING_TYPE_FACET = '';
     renderWithContext(baseFacets);
     expect(screen.queryByTestId('learning-type-facet')).not.toBeInTheDocument();
+  });
+
+  it('transformItems for is_new_content keeps only the true row and renames it', () => {
+    const facets = [
+      { attribute: 'is_new_content', title: 'New content', isEndOfRow: true },
+    ];
+    renderWithContext(facets);
+    const transform = capturedTransforms.is_new_content;
+    const result = transform([
+      { label: 'true', count: 181, isRefined: false },
+      { label: 'false', count: 77, isRefined: false },
+    ]);
+    expect(result).toEqual([
+      { label: 'New content only', count: 181, isRefined: false },
+    ]);
   });
 
   it('renders end-of-row facets after LearningTypeRadioFacet', () => {
