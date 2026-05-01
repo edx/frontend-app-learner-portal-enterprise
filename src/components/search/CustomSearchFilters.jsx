@@ -10,15 +10,27 @@ const sortItemsByLabelAsc = (items) => [...items].sort((a, b) => a.label.localeC
 const identity = (items) => items;
 
 const NEW_CONTENT_ATTRIBUTE = 'is_new_content';
+const TRUE_VALUE = 'true';
+
 const newContentTransform = (items) => items
-  .filter((item) => item.label === 'true')
+  .filter(({ label }) => label === TRUE_VALUE)
   .map((item) => ({ ...item, label: 'New content only' }));
 
+// Extension point: add new `attribute -> transformItems` mappings here when a
+// facet needs custom item shaping (filter / rename / sort).
+const TRANSFORM_MAP = {
+  [NEW_CONTENT_ATTRIBUTE]: newContentTransform,
+};
+
 const getTransformItems = (facet) => {
-  if (facet.attribute === NEW_CONTENT_ATTRIBUTE) {
-    return newContentTransform;
+  const { attribute, isSortedAlphabetical } = facet;
+  if (TRANSFORM_MAP[attribute]) {
+    return TRANSFORM_MAP[attribute];
   }
-  return facet.isSortedAlphabetical ? sortItemsByLabelAsc : identity;
+  if (isSortedAlphabetical) {
+    return sortItemsByLabelAsc;
+  }
+  return identity;
 };
 
 /**
