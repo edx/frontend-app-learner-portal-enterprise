@@ -9,6 +9,18 @@ import {
 const sortItemsByLabelAsc = (items) => [...items].sort((a, b) => a.label.localeCompare(b.label));
 const identity = (items) => items;
 
+const NEW_CONTENT_ATTRIBUTE = 'is_new_content';
+const newContentTransform = (items) => items
+  .filter((item) => item.label === 'true')
+  .map((item) => ({ ...item, label: 'New content only' }));
+
+const getTransformItems = (facet) => {
+  if (facet.attribute === NEW_CONTENT_ATTRIBUTE) {
+    return newContentTransform;
+  }
+  return facet.isSortedAlphabetical ? sortItemsByLabelAsc : identity;
+};
+
 /**
  * Renders the filter row for the enterprise search page. Passed to
  * `<SearchHeader>` via its `filterComponents` prop so we control facet ordering.
@@ -34,7 +46,7 @@ const CustomSearchFilters = ({ enablePathways, variant }) => {
           title={facet.title}
           attribute={facet.attribute}
           limit={300}
-          transformItems={facet.isSortedAlphabetical ? sortItemsByLabelAsc : identity}
+          transformItems={getTransformItems(facet)}
           refinements={refinements}
           defaultRefinement={refinements[facet.attribute]}
           facetValueType="array"
