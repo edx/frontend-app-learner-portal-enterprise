@@ -61,7 +61,7 @@ describe('CustomSearchFilters', () => {
     expect(screen.queryByTestId('learning-type-facet')).not.toBeInTheDocument();
   });
 
-  it('transformItems for is_new_content keeps only the true row and renames it', () => {
+  it('transformItems for is_new_content keeps only the true row with original label preserved', () => {
     const facets = [
       { attribute: 'is_new_content', title: 'New content', isEndOfRow: true },
     ];
@@ -72,7 +72,7 @@ describe('CustomSearchFilters', () => {
       { label: 'false', count: 77, isRefined: false },
     ]);
     expect(result).toEqual([
-      { label: 'New content only', count: 181, isRefined: false },
+      { label: 'true', count: 181, isRefined: false },
     ]);
   });
 
