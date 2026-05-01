@@ -32,6 +32,9 @@ const renderWithContext = (searchFacetFilters, refinements = {}) => render(
 
 describe('CustomSearchFilters', () => {
   const originalLearningTypeFacet = process.env.LEARNING_TYPE_FACET;
+  beforeEach(() => {
+    Object.keys(capturedTransforms).forEach((key) => delete capturedTransforms[key]);
+  });
   afterEach(() => {
     if (originalLearningTypeFacet === undefined) {
       delete process.env.LEARNING_TYPE_FACET;
