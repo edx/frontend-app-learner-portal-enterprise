@@ -1,8 +1,10 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { getConfig } from '@edx/frontend-platform';
 import { useAlgoliaSearch } from '../app/data';
 import { AiPathwaysPage } from './routes/AiPathwaysPage';
+import {fetchSecuredAlgoliaKeyOverrideFromCatalog} from "./services/algoliaOverride";
+import useSecuredAlgoliaKeyOverrideFromCatalog from "./hooks/useSecuredAlgoliaKeyOverrideFromCatalog";
 
 /**
  * AIPathwaysTab is the primary entry point when AI Pathways is embedded as a tab
@@ -14,7 +16,8 @@ import { AiPathwaysPage } from './routes/AiPathwaysPage';
 export const AIPathwaysTab = () => {
   const config = getConfig();
   const { searchClient, searchIndex } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME);
-
+  const response = useSecuredAlgoliaKeyOverrideFromCatalog()
+  console.log(response)
   return (
     <>
       <AiPathwaysPage />

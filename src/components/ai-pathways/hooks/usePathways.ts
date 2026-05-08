@@ -34,6 +34,7 @@ import { catalogTranslationXpertService } from '../services/catalogTranslation.x
 import { mergeTags, mergeDiscovery } from '../utils/discoveryUtils';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 import { DEFAULT_XPERT_RAG_TAGS } from '../constants/retrieval.constants';
+import useAlgoliaSearchFromCatalogOverrideKey from "./useAlgoliaSearchFromCatalogOverrideKey";
 
 /**
  * Union type representing the possible steps in the AI Pathways generation flow.
@@ -132,6 +133,10 @@ export const usePathways = () => {
     catalogUuidsToCatalogQueryUuids,
     shouldUseSecuredAlgoliaApiKey,
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME);
+
+  const { searchIndex: overrideCatalogIndex, hasOverrideKey } = useAlgoliaSearchFromCatalogOverrideKey();
+
+  const currentCatalogIndex = hasOverrideKey ? overrideCatalogIndex : catalogIndex;
 
   const enterpriseCustomerResult = useEnterpriseCustomer();
   const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string, slug?: string };
@@ -280,7 +285,7 @@ export const usePathways = () => {
    * @returns The list of discovered courses.
    */
   const generatePathway = useCallback(async () => {
-    if (!selectedCareer || !searchIntent || !catalogIndex || !pathwayResponse) {
+    if (!selectedCareer || !searchIntent || !currentCatalogIndex || !pathwayResponse) {
       throw new Error('Missing data or search index to generate pathway');
     }
 
@@ -296,7 +301,7 @@ export const usePathways = () => {
       const courseStartTime = Date.now();
       const facetStartMs = Date.now();
       const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
-        .getFacetSnapshot(catalogIndex, {}, facetContext);
+        .getFacetSnapshot(currentCatalogIndex, {}, facetContext);
       updatedResponseModel.stages.catalogFacetSnapshot = {
         durationMs: Date.now() - facetStartMs,
         success: true,
@@ -375,7 +380,7 @@ export const usePathways = () => {
 
       // 5. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
-        catalogIndex,
+        currentCatalogIndex,
         translation,
       );
       updatedResponseModel.stages.retrievalLadder = {
@@ -433,7 +438,7 @@ export const usePathways = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCareer, searchIntent, catalogIndex, pathwayResponse, facetContext]);
+  }, [selectedCareer, searchIntent, currentCatalogIndex, pathwayResponse, facetContext]);
 
   /**
    * Resets the entire feature state, returning the user to the intake form.

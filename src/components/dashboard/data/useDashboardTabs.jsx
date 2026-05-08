@@ -23,7 +23,7 @@ import {
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
   queryLearnerSkillLevels,
-  useEnterpriseCustomer,
+  useEnterpriseCustomer, useEnterpriseFeatures,
   useEnterprisePathwaysList,
   useEnterpriseProgramsList,
 } from '../../app/data';
@@ -49,7 +49,6 @@ const useDashboardTabs = () => {
   const [activeTab, setActiveTab] = useState(DASHBOARD_COURSES_TAB);
   const { data: enterprisePrograms } = useEnterpriseProgramsList();
   const { data: enterprisePathways } = useEnterprisePathwaysList();
-
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
   // Creates prefetch logic based on loadable-components, "component splitting" capability expose to Tabs component
