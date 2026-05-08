@@ -74,6 +74,6 @@ export default function useAlgoliaSearchFromCatalogOverrideKey(
     config.ALGOLIA_OVERRIDE_SEARCH_API_KEY,
     indexName,
     isLoading,
-    error
+    error,
   ]);
 }

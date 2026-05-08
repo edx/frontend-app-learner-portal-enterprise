@@ -30,7 +30,6 @@ import {
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
 import { catalogTranslationService } from '../services/catalogTranslationService';
-import { catalogTranslationXpertService } from '../services/catalogTranslation.xpert.service';
 import { mergeTags, mergeDiscovery } from '../utils/discoveryUtils';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 import { DEFAULT_XPERT_RAG_TAGS } from '../constants/retrieval.constants';
@@ -184,7 +183,7 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     try {
-      let facets: FacetReference | null;
+      let facets: FacetReference | null = null;
       if (!discRagBased) {
         // 1. Facet Bootstrap (Fetch common taxonomy values for normalization)
         const facetStartTime = Date.now();
@@ -301,17 +300,17 @@ export const usePathways = () => {
     try {
       const courseStartTime = Date.now();
 
-      // 1. Catalog Facet Snapshot (Ensures grounded search terms)
+      // 1. Catalog Facet Snapshot (Grounds skill mapping to this enterprise's catalog)
       const facetStartMs = Date.now();
       const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
-        .getFacetSnapshot(currentCatalogIndex, {}, facetContext);
+        .getFacetSnapshot({}, facetContext);
       updatedResponseModel.stages.catalogFacetSnapshot = {
         durationMs: Date.now() - facetStartMs,
         success: true,
         trace: facetSnapshotTrace,
       };
 
-      // 2. Rules-first Mapping (Deterministic stage)
+      // 2. Rules-first Mapping (Deterministic: selectedCareer.skills → catalog facets)
       const rulesFirstMs = Date.now();
       const { result: rulesFirst, trace: rulesFirstTrace } = catalogTranslationRules.translateTaxonomyToCatalog({
         careerTitle: selectedCareer.title,
@@ -326,62 +325,19 @@ export const usePathways = () => {
         trace: rulesFirstTrace,
       };
 
-      // 3. AI Mapping (Optional fallback for unmatched terms)
-      let xpertRawResponse: string | undefined;
-      let xpertDebugPayload: {
-        systemPrompt: string; rawResponse: string; durationMs: number; success: boolean;
-      } | undefined;
-      if (rulesFirst.unmatched.length > 0) {
-        try {
-          const xpertResult = await catalogTranslationXpertService.translateUnmatched(
-            {
-              careerTitle: selectedCareer.title,
-              unmatchedSkills: rulesFirst.unmatched,
-              unmatchedIndustries: selectedCareer.industries || [],
-              unmatchedSimilarJobs: selectedCareer.similarJobs || [],
-              facetSnapshot,
-            },
-            pathwayInterceptor,
-            updatedResponseModel.tags || DEFAULT_XPERT_RAG_TAGS,
-          );
-          xpertRawResponse = xpertResult.rawResponse || undefined;
-          xpertDebugPayload = xpertResult.debug;
-          // Sync tags and discovery if they were edited/used during translation
-          updatedResponseModel.tags = mergeTags(updatedResponseModel.tags, xpertResult.debug.tags);
-          updatedResponseModel.discovery = mergeDiscovery(
-            updatedResponseModel.discovery,
-            xpertResult.debug.discovery,
-          );
-          updatedResponseModel.wasDiscoveryUsed = updatedResponseModel.wasDiscoveryUsed
-            || xpertResult.debug.wasDiscoveryUsed;
-        } catch {
-          // Continue with deterministic results if AI fails.
-        }
-      }
-
-      // 4. Consolidation (Merge rules-first and AI mapping)
+      // 3. Translation Consolidation (No AI — produces facet-first or text-fallback intent)
       const translationMs = Date.now();
       const { translation, trace: translationTrace } = catalogTranslationService.processTranslation(
         selectedCareer.title,
-        facetSnapshot,
         rulesFirst,
-        xpertRawResponse,
-        xpertDebugPayload,
       );
       updatedResponseModel.stages.catalogTranslation = {
         durationMs: Date.now() - translationMs,
         success: true,
         trace: translationTrace,
       };
-      // Final sync from the grounded/parsed translation result
-      updatedResponseModel.discovery = mergeDiscovery(
-        updatedResponseModel.discovery,
-        translationTrace.xpertDiscovery,
-      );
-      updatedResponseModel.wasDiscoveryUsed = updatedResponseModel.wasDiscoveryUsed
-        || translationTrace.xpertWasDiscoveryUsed;
 
-      // 5. Course Retrieval (Progressive Discovery stage)
+      // 4. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
         // currentCatalogIndex,
         translation,

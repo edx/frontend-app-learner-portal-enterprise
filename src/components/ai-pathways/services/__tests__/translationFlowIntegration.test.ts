@@ -1,8 +1,19 @@
-import { SearchIndex } from 'algoliasearch/lite';
 import { catalogTranslationRules } from '../catalogTranslationRules';
 import { catalogTranslationService } from '../catalogTranslationService';
 import { courseRetrievalService } from '../courseRetrieval';
 import { CatalogFacetSnapshot, TaxonomyTranslationInput } from '../../types';
+
+const mockSearch = jest.fn();
+const mockInitIndex = jest.fn(() => ({ search: mockSearch }));
+jest.mock('algoliasearch', () => jest.fn(() => ({ initIndex: mockInitIndex })));
+
+jest.mock('@edx/frontend-platform/config', () => ({
+  getConfig: jest.fn(() => ({
+    ALGOLIA_APP_ID: 'test-app-id',
+    ALGOLIA_SEARCH_API_KEY: 'test-key',
+    ALGOLIA_INDEX_NAME: 'test-index',
+  })),
+}));
 
 describe('Translation and Retrieval Integration Flow', () => {
   const mockFacetSnapshot: CatalogFacetSnapshot = {
@@ -13,10 +24,6 @@ describe('Translation and Retrieval Integration Flow', () => {
     'partners.name': ['edX'],
     enterprise_catalog_query_uuids: ['uuid-1'],
   };
-
-  const mockIndex = {
-    search: jest.fn(),
-  } as unknown as SearchIndex;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -30,131 +37,110 @@ describe('Translation and Retrieval Integration Flow', () => {
     facetSnapshot: mockFacetSnapshot,
   };
 
-  it('exact skill mapping path: matches taxonomy skill directly to catalog facet and hits level 1', async () => {
+  it('exact skill mapping: matches taxonomy skill directly to catalog facet, uses facet-first', async () => {
     const input = { ...baseInput, skills: ['Data Analysis'] };
 
     const { result: rulesResult } = catalogTranslationRules.translateTaxonomyToCatalog(input);
     expect(rulesResult.exactMatches).toContain('Data Analysis');
 
-    const { translation } = catalogTranslationService.processTranslation(
+    const { translation, trace } = catalogTranslationService.processTranslation(
       input.careerTitle,
-      mockFacetSnapshot,
       rulesResult,
     );
-    expect(translation.strictSkills).toContain('Data Analysis');
+    expect(translation.query).toBe('');
+    expect(translation.strictSkillFilters.map(f => f.catalogSkill)).toContain('Data Analysis');
+    expect(trace.courseSearchMode).toBe('facet-first');
 
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
+    mockSearch.mockResolvedValueOnce({
       hits: Array(3).fill({ objectID: 'c1', title: 'Data Analysis Course' }),
     });
 
-    const { courses } = await courseRetrievalService.fetchCourses(mockIndex, translation);
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
 
-    expect(mockIndex.search).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledWith('', expect.objectContaining({
+      facetFilters: expect.arrayContaining([
+        expect.arrayContaining(['skill_names:"Data Analysis"']),
+      ]),
+    }));
     expect(courses).toHaveLength(3);
+    expect(ladderTrace.winnerStep).toBe(1);
   });
 
-  it('alias mapping path: maps "Python" to "Python (Programming Language)" and hits level 1', async () => {
+  it('alias mapping: maps "Python" to "Python (Programming Language)" via alias map', async () => {
     const input = { ...baseInput, skills: ['Python'] };
 
     const { result: rulesResult } = catalogTranslationRules.translateTaxonomyToCatalog(input);
     expect(rulesResult.aliasMatches).toContain('Python (Programming Language)');
 
-    const { translation } = catalogTranslationService.processTranslation(
+    const { translation, trace } = catalogTranslationService.processTranslation(
       input.careerTitle,
-      mockFacetSnapshot,
       rulesResult,
     );
-    expect(translation.strictSkills).toContain('Python (Programming Language)');
+    expect(translation.strictSkillFilters.map(f => f.catalogSkill)).toContain('Python (Programming Language)');
+    expect(trace.courseSearchMode).toBe('facet-first');
 
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
+    mockSearch.mockResolvedValueOnce({
       hits: Array(3).fill({ objectID: 'c1', title: 'Python Course' }),
     });
 
-    const { courses } = await courseRetrievalService.fetchCourses(mockIndex, translation);
+    const { courses } = await courseRetrievalService.fetchCourses(translation);
 
-    expect(mockIndex.search).toHaveBeenCalledTimes(1);
     expect(courses).toHaveLength(3);
   });
 
-  it('invalid Xpert output fallback path: falls back to rules-first when Xpert fails and hits level 1', async () => {
-    const input = { ...baseInput, skills: ['Data Analysis'] };
+  it('no skill mapping: falls back to text-fallback mode using careerTitle', async () => {
+    const input = { ...baseInput, skills: ['ObscureTechNotInCatalog'] };
+
     const { result: rulesResult } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
-    const { translation } = catalogTranslationService.processTranslation(
+    const { translation, trace } = catalogTranslationService.processTranslation(
       input.careerTitle,
-      mockFacetSnapshot,
       rulesResult,
-      'Invalid JSON or Error string',
     );
-
-    expect(translation.strictSkills).toContain('Data Analysis');
     expect(translation.query).toBe('Data Analyst');
-
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
-      hits: Array(3).fill({ objectID: 'c1', title: 'Data Analysis Course' }),
-    });
-
-    const { courses } = await courseRetrievalService.fetchCourses(mockIndex, translation);
-    expect(courses).toHaveLength(3);
+    expect(translation.strictSkillFilters).toHaveLength(0);
+    expect(trace.courseSearchMode).toBe('text-fallback');
   });
 
-  it('zero-hit strict filter fallback path: level 1 fails, falls back to level 2 (boosted)', async () => {
-    const input = { ...baseInput, skills: ['Data Analysis'] };
+  it('step 1 fails, step 2 succeeds with reduced facet filters', async () => {
+    const input = { ...baseInput, skills: ['Data Analysis', 'SQL'] };
+
     const { result: rulesResult } = catalogTranslationRules.translateTaxonomyToCatalog(input);
-
-    const xpertResponse = JSON.stringify({
-      boostSkills: ['SQL (Programming Language)'],
-    });
-
     const { translation } = catalogTranslationService.processTranslation(
       input.careerTitle,
-      mockFacetSnapshot,
       rulesResult,
-      xpertResponse,
     );
 
-    expect(translation.boostSkills).toContain('SQL (Programming Language)');
+    mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
+    mockSearch.mockResolvedValueOnce({ hits: Array(4).fill({ objectID: 'c2', title: 'Course' }) }); // step 2: hit
 
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] });
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
-      hits: Array(3).fill({ objectID: 'c2', title: 'Boosted Course' }),
-    });
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
 
-    const { courses } = await courseRetrievalService.fetchCourses(mockIndex, translation);
+    expect(courses).toHaveLength(4);
+    expect(ladderTrace.winnerStep).toBe(2);
 
-    expect(mockIndex.search).toHaveBeenCalledTimes(2);
-    expect(mockIndex.search).toHaveBeenLastCalledWith('Data Analyst', expect.objectContaining({
-      optionalFilters: expect.arrayContaining(['skill_names:"SQL (Programming Language)"']),
-    }));
-    expect(courses).toHaveLength(3);
+    // Step 2 must use facetFilters (not optionalFilters)
+    const step2Call = mockSearch.mock.calls[1];
+    expect(step2Call[1]).toHaveProperty('facetFilters');
+    expect(step2Call[1]).not.toHaveProperty('optionalFilters');
   });
 
-  it('scope-only final fallback path: all specific levels fail, returns scope-only results', async () => {
-    const translation: any = {
-      query: 'Rare Job Title',
-      queryAlternates: ['Alt 1'],
-      strictSkills: ['Rare Skill'],
-      boostSkills: [],
-      subjectHints: [],
-      droppedTaxonomySkills: [],
-      skillProvenance: [],
-    };
+  it('scope-only final fallback: all specific levels fail, returns scope-only results', async () => {
+    const input = { ...baseInput, skills: ['Data Analysis'] };
+    const { result: rulesResult } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const { translation } = catalogTranslationService.processTranslation(input.careerTitle, rulesResult);
 
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] }); // 1. Strict
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] }); // 2. Boosted
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] }); // 3. Primary Query
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] }); // 4. Alt Query
-    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
-      hits: Array(3).fill({ objectID: 'f1', title: 'Fallback Course' }),
-    }); // 5. Scope-only Fallback
+    // Exhaust all steps
+    mockSearch
+      .mockResolvedValueOnce({ hits: [] }) // step 1
+      .mockResolvedValueOnce({ hits: [] }) // step 2
+      .mockResolvedValueOnce({ hits: [] }) // step 3 text fallback
+      .mockResolvedValueOnce({ hits: Array(2).fill({ objectID: 'f1', title: 'Fallback Course' }) }); // step 4
 
-    const { courses } = await courseRetrievalService.fetchCourses(mockIndex, translation);
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
 
-    expect(mockIndex.search).toHaveBeenCalledTimes(5);
-    expect(mockIndex.search).toHaveBeenLastCalledWith('', expect.objectContaining({
-      hitsPerPage: 5,
-    }));
-    expect(courses).toHaveLength(3);
     expect(courses[0].title).toBe('Fallback Course');
+    expect(ladderTrace.winnerStep).toBe(4);
   });
 });

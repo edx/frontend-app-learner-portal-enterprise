@@ -26,9 +26,12 @@ jest.mock('../../services/intentExtraction.xpert.service');
 jest.mock('../../services/careerRetrieval');
 jest.mock('../../services/courseRetrieval');
 jest.mock('../../services/catalogFacetService');
+jest.mock('../../hooks/useAlgoliaSearchFromCatalogOverrideKey', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ searchIndex: null, hasOverrideKey: false })),
+}));
 jest.mock('../../services/catalogTranslationRules');
 jest.mock('../../services/catalogTranslationService');
-jest.mock('../../services/catalogTranslation.xpert.service');
 jest.mock('../../services/pathwayAssembler.xpert.service');
 
 describe('usePathways coverage gaps', () => {

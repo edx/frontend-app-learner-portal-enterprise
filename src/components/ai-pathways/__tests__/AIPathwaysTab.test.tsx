@@ -23,6 +23,11 @@ jest.mock('react-instantsearch-dom', () => ({
   Configure: () => <div data-testid="configure" />,
 }));
 
+jest.mock('../hooks/useSecuredAlgoliaKeyOverrideFromCatalog', () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+}));
+
 const customRender = (ui: React.ReactElement) => render(
   <IntlProvider locale="en">
     {ui}

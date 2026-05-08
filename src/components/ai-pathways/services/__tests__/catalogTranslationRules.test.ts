@@ -23,15 +23,13 @@ describe('catalogTranslationRules', () => {
     const input: TaxonomyTranslationInput = {
       ...defaultInput,
       skills: ['java', 'MACHINE LEARNING'], // Mixed case
-      industries: ['Data Science'], // Match subject
     };
 
     const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.exactMatches).toContain('Java');
     expect(result.exactMatches).toContain('Machine Learning');
-    expect(result.exactMatches).toContain('Data Science');
-    expect(result.exactMatches).toHaveLength(3);
+    expect(result.exactMatches).toHaveLength(2);
   });
 
   it('handles alias matches', () => {
@@ -77,14 +75,12 @@ describe('catalogTranslationRules', () => {
     const input: TaxonomyTranslationInput = {
       ...defaultInput,
       skills: ['Creative Writing', 'Underwater Basket Weaving'],
-      industries: ['Magic'],
     };
 
     const { result } = catalogTranslationRules.translateTaxonomyToCatalog(input);
 
     expect(result.unmatched).toContain('Creative Writing');
     expect(result.unmatched).toContain('Underwater Basket Weaving');
-    expect(result.unmatched).toContain('Magic');
   });
 
   it('trims and dedupes terms', () => {

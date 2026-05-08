@@ -90,9 +90,19 @@ const RulesFirstSection = ({ trace }: { trace: RulesFirstMappingTrace }) => (
 
 const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }) => (
   <Stack gap={2}>
-    <p className="mb-1"><strong>Query:</strong> {trace.query}</p>
+    <p className="mb-1">
+      <strong>Search mode:</strong>{' '}
+      <Badge variant={trace.courseSearchMode === 'facet-first' ? 'success' : 'warning'}>
+        {trace.courseSearchMode}
+      </Badge>
+    </p>
+    <p className="mb-1">
+      <strong>Facet match rate:</strong> {Math.round(trace.facetMatchRate * 100)}%
+      ({trace.facetMatchCount} of {trace.facetMatchCount + trace.droppedSkillCount} skills mapped)
+    </p>
+    <p className="mb-1"><strong>Query:</strong> {trace.query || <em className="text-muted">empty (facet-first)</em>}</p>
     {trace.queryAlternates.length > 0 && (
-      <p className="mb-1"><strong>Alternates:</strong> {trace.queryAlternates.join(', ')}</p>
+      <p className="mb-1"><strong>Text fallback:</strong> {trace.queryAlternates.join(', ')}</p>
     )}
     <p className="mb-1">
       <strong>Strict skills ({trace.strictSkillCount}):</strong> {trace.strictSkills.join(', ') || '—'}
@@ -100,33 +110,7 @@ const CatalogTranslationSection = ({ trace }: { trace: CatalogTranslationTrace }
     <p className="mb-1">
       <strong>Boost skills ({trace.boostSkillCount}):</strong> {trace.boostSkills.join(', ') || '—'}
     </p>
-    <p className="mb-1">
-      <strong>Subject hints ({trace.subjectHintCount}):</strong> {trace.subjectHints.join(', ') || '—'}
-    </p>
-    <p className="mb-1"><strong>Dropped skills ({trace.droppedSkillCount})</strong></p>
-    <p className="mb-1"><strong>Xpert used:</strong> {trace.xpertUsed ? 'Yes' : 'No'}</p>
-    {trace.xpertUsed && (
-      <>
-        <p className="mb-1"><strong>Xpert duration:</strong> {trace.xpertDurationMs}ms — {trace.xpertSuccess ? 'success' : 'failed'}</p>
-        <p className="mb-1"><strong>Discovery RAG used:</strong> {trace.xpertWasDiscoveryUsed ? 'Yes' : 'No'}</p>
-        {trace.xpertDiscovery && (
-          <div className="mb-2">
-            <strong>Discovery Data (RAG):</strong>
-            <pre className="small bg-light border rounded p-2">
-              {JSON.stringify(trace.xpertDiscovery, null, 2)}
-            </pre>
-          </div>
-        )}
-        <div className="mb-2">
-          <strong>Xpert system prompt:</strong>
-          <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertSystemPrompt}</pre>
-        </div>
-        <div className="mb-0">
-          <strong>Xpert raw response:</strong>
-          <pre className="small bg-light border rounded p-2" style={{ whiteSpace: 'pre-wrap' }}>{trace.xpertRawResponse}</pre>
-        </div>
-      </>
-    )}
+    <p className="mb-0"><strong>Dropped skills ({trace.droppedSkillCount})</strong></p>
   </Stack>
 );
 

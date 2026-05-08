@@ -1,19 +1,16 @@
 /**
- * Prompt 10 — Tests for the prompt interception layer.
+ * Tests for the prompt interception layer.
  *
  * Coverage:
  *  - usePromptInterceptor hook: disabled/pass-through, accept, reject, cancel
  *  - extractIntent service: disabled, accept, reject, cancel
- *  - translateUnmatched service: disabled, accept, reject, cancel
  */
 
 import { renderHook, act } from '@testing-library/react';
 import { usePromptInterceptor, InterceptResult } from '../usePromptInterceptor';
 import { intentExtractionXpertService } from '../../services/intentExtraction.xpert.service';
-import { catalogTranslationXpertService } from '../../services/catalogTranslation.xpert.service';
 import { xpertService } from '../../services/xpert.service';
 import { XpertPromptBundle } from '../../types';
-import * as xpertCatalogTranslationPromptModule from '../../services/xpertCatalogTranslationPrompt';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -38,12 +35,6 @@ jest.mock('../../services/intentExtraction.xpert.service', () => {
     },
   };
 });
-
-jest.mock('../../services/xpertCatalogTranslationPrompt', () => ({
-  xpertCatalogTranslationPrompt: {
-    buildTranslationPrompt: jest.fn(),
-  },
-}));
 
 jest.mock('../../services/promptValidation', () => ({
   validateBundle: jest.fn().mockReturnValue({ valid: true, issues: [], warnings: [] }),
@@ -312,119 +303,6 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
 
     await expect(
       intentExtractionXpertService.extractIntent(mockInput as any, null, interceptPrompt),
-    ).rejects.toThrow('cancelled by user');
-
-    expect(xpertService.sendMessage).not.toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Suite 3: translateUnmatched service interception integration
-// ---------------------------------------------------------------------------
-
-describe('catalogTranslationXpertService.translateUnmatched — interception', () => {
-  const { xpertCatalogTranslationPrompt } = xpertCatalogTranslationPromptModule;
-
-  const mockPayload = {
-    careerTitle: 'Data Scientist',
-    unmatchedSkills: ['Machine Learning'],
-    unmatchedIndustries: [],
-    unmatchedSimilarJobs: [],
-    facetSnapshot: {
-      skill_names: [],
-      'skills.name': [],
-      subjects: [],
-      level_type: [],
-      'partners.name': [],
-      enterprise_catalog_query_uuids: [],
-    },
-  };
-
-  const mockXpertTranslationJson = JSON.stringify({
-    resolvedSkills: [],
-    droppedTaxonomySkills: [],
-    resolvedSubjects: [],
-    boostSkills: [],
-    queryAlternates: [],
-    subjectHints: [],
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    const originalBundle = makeBundle('translation system prompt');
-    (xpertCatalogTranslationPrompt.buildTranslationPrompt as jest.Mock).mockReturnValue({
-      bundle: originalBundle,
-      userPayload: { careerTitle: 'Data Scientist', skills: [] },
-    });
-  });
-
-  it('disabled — calls xpert and returns result without interceptor', async () => {
-    mockXpertResponse(mockXpertTranslationJson);
-    const result = await catalogTranslationXpertService.translateUnmatched(mockPayload as any);
-    expect(xpertService.sendMessage).toHaveBeenCalled();
-    expect(result.rawResponse).toBe(mockXpertTranslationJson);
-  });
-
-  it('accept — proceeds with original bundle when no edits', async () => {
-    mockXpertResponse(mockXpertTranslationJson);
-
-    const interceptPrompt = jest.fn().mockResolvedValue({
-      decision: 'accepted',
-      bundle: undefined,
-    } as InterceptResult);
-
-    const result = await catalogTranslationXpertService.translateUnmatched(
-      mockPayload as any,
-      interceptPrompt,
-    );
-
-    expect(interceptPrompt).toHaveBeenCalledTimes(1);
-    expect(xpertService.sendMessage).toHaveBeenCalled();
-    expect(result.rawResponse).toBe(mockXpertTranslationJson);
-  });
-
-  it('accept with edited bundle — uses edited combined string', async () => {
-    const editedCombined = 'EDITED TRANSLATION PROMPT';
-    mockXpertResponse(mockXpertTranslationJson);
-
-    const editedBundle = makeEditedBundle(editedCombined);
-    const interceptPrompt = jest.fn().mockResolvedValue({
-      decision: 'accepted',
-      bundle: editedBundle,
-    } as InterceptResult);
-
-    await catalogTranslationXpertService.translateUnmatched(mockPayload as any, interceptPrompt);
-
-    const callArg = (xpertService.sendMessage as jest.Mock).mock.calls[0][0];
-    expect(callArg.systemMessage).toBe(editedCombined);
-  });
-
-  it('reject — falls back to original bundle and proceeds', async () => {
-    mockXpertResponse(mockXpertTranslationJson);
-
-    const interceptPrompt = jest.fn().mockResolvedValue({
-      decision: 'rejected',
-    } as InterceptResult);
-
-    const result = await catalogTranslationXpertService.translateUnmatched(
-      mockPayload as any,
-      interceptPrompt,
-    );
-
-    expect(xpertService.sendMessage).toHaveBeenCalled();
-    // original bundle combined = 'translation system prompt'
-    const callArg = (xpertService.sendMessage as jest.Mock).mock.calls[0][0];
-    expect(callArg.systemMessage).toBe('translation system prompt');
-    expect(result.rawResponse).toBe(mockXpertTranslationJson);
-  });
-
-  it('cancel — throws and does NOT call xpertService.sendMessage', async () => {
-    const interceptPrompt = jest.fn().mockResolvedValue({
-      decision: 'cancelled',
-    } as InterceptResult);
-
-    await expect(
-      catalogTranslationXpertService.translateUnmatched(mockPayload as any, interceptPrompt),
     ).rejects.toThrow('cancelled by user');
 
     expect(xpertService.sendMessage).not.toHaveBeenCalled();

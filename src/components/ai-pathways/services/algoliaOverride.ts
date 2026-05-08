@@ -1,6 +1,5 @@
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { getConfig } from '@edx/frontend-platform/config';
-import {useEnterpriseCustomer} from "../../app/data";
 
 const OVERRIDE_PARAM = 'enterprise_customer_uuid';
 

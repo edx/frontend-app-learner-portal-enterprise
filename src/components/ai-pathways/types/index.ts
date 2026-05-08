@@ -4,7 +4,7 @@
  * AI services (Xpert), and retrieval layers (Algolia).
  */
 
-import {CatalogSkillMatch} from "./translationContracts";
+import { CatalogSkillMatch } from './translationContracts';
 
 /**
  * Represents a single facet value from a search index.
@@ -411,40 +411,33 @@ export interface RulesFirstMappingTrace {
 
 /**
  * Traces the final output of the catalog translation stage.
- * Includes Xpert-specific metadata if AI was used for mapping.
+ * Reflects deterministic facet-first mapping — no AI involvement.
  */
 export interface CatalogTranslationTrace {
-  /** The final generated search query. */
+  /** Empty string when facet-first mode is active; careerTitle when falling back to text. */
   query: string;
-  /** Fallback or broader query variations. */
+  /** Text fallback queries (e.g., [careerTitle]) used if facet steps find no results. */
   queryAlternates: string[];
-  /** Count of required skills. */
+  /** Count of career skills successfully mapped to catalog facets. */
   strictSkillCount: number;
-  /** Count of preferred/boosted skills. */
+  /** Count of boost skill filters (reserved for future use; currently always 0). */
   boostSkillCount: number;
-  /** Count of category hints. */
-  subjectHintCount: number;
   /** Count of skills that could not be mapped and were dropped. */
   droppedSkillCount: number;
+  /** Catalog skill values used as hard facet filters. */
   strictSkills: string[];
+  /** Boost skill values (currently always empty). */
   boostSkills: string[];
-  subjectHints: string[];
-  /** Whether the AI (Xpert) was involved in this translation. */
-  xpertUsed: boolean;
-  /** The full system prompt sent to Xpert. */
-  xpertSystemPrompt?: string;
-  /** The raw, unparsed response from Xpert. */
-  xpertRawResponse?: string;
-  /** Duration of the Xpert call in milliseconds. */
-  xpertDurationMs?: number;
-  /** Whether the Xpert call was successful. */
-  xpertSuccess?: boolean;
-  /** Discovery data from Xpert RAG retrieval. */
-  xpertDiscovery?: any;
-  /** Whether discovery RAG was used during the request. */
-  xpertWasDiscoveryUsed?: boolean;
+  /** Full CatalogSkillMatch entries for the strict filter set. */
   strictSkillFilters?: CatalogSkillMatch[];
+  /** Full CatalogSkillMatch entries for the boost filter set. */
   boostSkillFilters?: CatalogSkillMatch[];
+  /** Whether retrieval is driven by mapped facets or falls back to text search. */
+  courseSearchMode: 'facet-first' | 'text-fallback';
+  /** Number of career skills that successfully mapped to catalog facets. */
+  facetMatchCount: number;
+  /** Ratio of matched skills to total input skills (0–1). */
+  facetMatchRate: number;
 }
 
 /**

@@ -1,6 +1,3 @@
-import { SearchOptions } from '@algolia/client-search';
-import { CatalogFacetSnapshot } from './catalogFacet';
-
 export type CatalogSkillField = 'skill_names' | 'skills.name';
 
 export interface CatalogSkillMatch {
@@ -26,43 +23,23 @@ export interface SkillProvenance {
  * It captures the refined search parameters after taxonomy translation.
  */
 export interface CatalogSearchIntent {
-  /** The primary search query string. */
+  /** The primary search query string. Empty string ('') when facet-first mode is active. */
   query: string;
-  /** Alternative query strings for broader or fallback searches. */
+  /** Alternative query strings for text-based fallback searches (e.g., careerTitle). */
   queryAlternates: string[];
   /** Skills that must be present in the results (used in facetFilters). */
   strictSkillFilters: CatalogSkillMatch[];
-  /** Skills that should be boosted if present (used in optionalFilters). */
+  /** Skills that should be boosted if present (used in reduced-facet step 2). */
   boostSkillFilters: CatalogSkillMatch[];
-  /** High-level subjects to nudge the search towards specific categories. */
-  subjectHints: string[];
   /** Taxonomy skills that were explicitly dropped because they don't exist in the catalog. */
   droppedTaxonomySkills: string[];
 }
 
 /**
- * Payload sent to Xpert to perform grounded translation of unmatched taxonomy terms.
- * Includes the catalog snapshot to ensure Xpert only suggests valid values.
- */
-export interface XpertCatalogTranslationPayload {
-  careerTitle: string;
-  unmatchedSkills: string[];
-  unmatchedIndustries: string[];
-  unmatchedSimilarJobs: string[];
-  facetSnapshot: CatalogFacetSnapshot;
-}
-
-/**
  * CatalogTranslation represents the complete output of the translation flow.
- * It combines the refined search intent with ready-to-use Algolia request objects.
+ * It combines the refined search intent with provenance metadata.
  */
 export interface CatalogTranslation extends CatalogSearchIntent {
   /** Detailed mapping history for each input skill. */
   skillProvenance: SkillProvenance[];
-  /** Pre-configured Algolia search request parameters for the primary attempt. */
-  algoliaPrimaryRequest: SearchOptions;
-  /** A sequence of fallback search requests to be used if the primary search returns no results. */
-  algoliaFallbackRequests: SearchOptions[];
-  /** The raw payload used for the Xpert translation stage (if applicable). */
-  xpertSystemPromptPayload?: XpertCatalogTranslationPayload;
 }

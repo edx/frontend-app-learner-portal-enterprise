@@ -1,5 +1,7 @@
-import {SearchClient, SearchIndex} from 'algoliasearch/lite';
+import { SearchClient } from 'algoliasearch/lite';
 import { SearchOptions } from '@algolia/client-search';
+import algoliasearch from 'algoliasearch';
+import { getConfig } from '@edx/frontend-platform/config';
 import {
   CourseCardModel,
   CatalogTranslation,
@@ -11,27 +13,18 @@ import {
 import {
   COURSE_RETRIEVAL_LIMIT,
   MIN_RESULTS_THRESHOLD,
+  TOP_N_REDUCED_FACETS,
   CONTENT_TYPE_COURSE,
-  FACET_FIELDS,
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
-import algoliasearch from "algoliasearch";
-import {getConfig} from "@edx/frontend-platform/config";
 
 /**
  * Formats a facet attribute and value for Algolia filtering.
- *
- * @param attr The facet attribute name (e.g., 'skill_names').
- * @param value The raw facet value to filter by.
- * @returns A properly escaped Algolia facet filter string.
  */
 const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
 /**
  * Builds the base facet filters required to scope all searches to the relevant content.
- *
- * @returns A nested array representing Algolia's facet filter groups.
- * @remarks Always includes ["content_type:course"] to ensure only courses are retrieved.
  */
 const buildScopedFacetFilters = (): string[][] => {
   const override = true;
@@ -43,76 +36,50 @@ const buildScopedFacetFilters = (): string[][] => {
 };
 
 /**
- * Build parameters for Attempt 1: Strict skill facet matching.
- * Uses exact skill matches as required facet filters.
- *
- * @param translation The grounded search intent containing strict skills.
- * @param baseParams Pre-configured search options including scoped filters.
- * @returns Updated search options with strict facet filters.
+ * Build parameters for Step 1: Facet-first with ALL mapped skills.
+ * Uses all strictSkillFilters as a single OR group; query is empty string.
  */
 const buildStrictParams = (
   translation: CatalogTranslation,
   baseParams: SearchOptions,
 ): SearchOptions => {
-  if (!translation.strictSkills.length) {
+  if (!translation.strictSkillFilters?.length) {
     return { ...baseParams, hitsPerPage: 0 };
   }
 
   const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
-  const strictSkillFilters = translation.strictSkillFilters?.length
-    ? translation.strictSkillFilters.map(({ catalogField, catalogSkill }) => (
-      formatFacet(catalogField, catalogSkill)
-    ))
-    : translation.strictSkills.map((skill) => (
-      formatFacet(FACET_FIELDS.SKILL_NAMES, skill)
-    ));
-  const facetFilters = [
-    ...baseFacetFilters,
-    strictSkillFilters,
-  ];
+  const skillFilters = translation.strictSkillFilters.map(
+    ({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill),
+  );
+  const facetFilters = [...baseFacetFilters, skillFilters];
 
-  return {
-    ...baseParams,
-    facetFilters,
-  };
+  return { ...baseParams, facetFilters };
 };
 
 /**
- * Build parameters for Attempt 2: Optional skill boosting with text query.
- * Uses skills as optional filters to improve relevance without restricting recall.
- *
- * @param translation The grounded search intent containing boost skills.
- * @param baseParams Pre-configured search options including scoped filters.
- * @returns Updated search options with optional (boosting) filters.
+ * Build parameters for Step 2: Facet-first with TOP-N mapped skills.
+ * Relaxes the filter pressure by using only the top-N skills as an OR group.
  */
-const buildBoostParams = (
+const buildReducedFacetParams = (
   translation: CatalogTranslation,
   baseParams: SearchOptions,
 ): SearchOptions => {
-  if (translation.boostSkills.length) {
-    const boostSkillFilters = translation.boostSkillFilters?.length
-      ? translation.boostSkillFilters.map(({ catalogField, catalogSkill }) => (
-        formatFacet(catalogField, catalogSkill)
-      ))
-      : translation.boostSkills.map((skill) => (
-        formatFacet(FACET_FIELDS.SKILL_NAMES, skill)
-      ));
-    return {
-      ...baseParams,
-      optionalFilters: boostSkillFilters,
-    };
+  const topSkills = translation.strictSkillFilters?.slice(0, TOP_N_REDUCED_FACETS) ?? [];
+  if (!topSkills.length) {
+    return { ...baseParams, hitsPerPage: 0 };
   }
 
-  return { ...baseParams };
+  const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
+  const reducedFilters = topSkills.map(
+    ({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill),
+  );
+  const facetFilters = [...baseFacetFilters, reducedFilters];
+
+  return { ...baseParams, facetFilters };
 };
 
 /**
- * Build parameters for Attempt 3: Text query / Alternates fallback.
- * Performs a standard keyword search.
- *
- * @param query The specific search query string to use.
- * @param baseParams Pre-configured search options including scoped filters.
- * @returns Updated search options with the target query.
+ * Build parameters for Step 3: Text fallback query, no skill filters.
  */
 const buildQueryFallbackParams = (
   query: string,
@@ -124,10 +91,6 @@ const buildQueryFallbackParams = (
 
 /**
  * Normalizes a raw Algolia course hit into a UI-ready CourseCardModel.
- *
- * @param hit The raw record retrieved from the Algolia catalog index.
- * @param idx The relative rank of this hit in the current search attempt.
- * @returns A structured model ready for rendering in the Pathway results.
  */
 const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
   id: hit.id || hit.objectID,
@@ -145,26 +108,14 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
 /**
  * Service for fetching and ranking courses from the Algolia catalog index.
  *
- * Pipeline context: This is the 'retrieval' phase. It takes the output of the
- * Translation stage and executes a progressive "ladder" of searches to find
- * the most relevant courses for the learner's goal.
- *
- * The Retrieval Ladder logic:
- * 1. Strict: Uses AI-confirmed skills as hard facet filters (High precision).
- * 2. Boost: Uses skills as optional boosting filters (Balanced).
- * 3. Alternate: Tries alternative search queries generated by the AI (Recall-focused).
- * 4. Fallback: Returns the top courses in the catalog scope (Fail-safe).
+ * Retrieval Ladder:
+ * 1. Facet-First (All Skills): query='', facetFilters=[ALL mapped skills OR'd] — high precision
+ * 2. Facet-First (Top Skills): query='', facetFilters=[TOP-3 mapped skills OR'd] — relaxed
+ * 3. Text Fallback:            query=careerTitle, no skill filters — recall-focused
+ * 4. Scope Only:               query='', base filters only — always succeeds
  */
 export const courseRetrievalService = {
-  /**
-   * Executes the course retrieval ladder until sufficient results are found.
-   *
-   * @param index The Algolia SearchIndex instance for the course catalog.
-   * @param translation The grounded search intent and search parameters.
-   * @returns A promise resolving to the final course list and a trace of the retrieval steps.
-   */
   async fetchCourses(
-    // index: SearchIndex,
     translation: CatalogTranslation,
   ): Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }> {
     const scopedFacetFilters = buildScopedFacetFilters();
@@ -183,15 +134,15 @@ export const courseRetrievalService = {
     const attempts: RetrievalLadderAttempt[] = [];
 
     try {
-      // 1. Attempt Strict Facet Matching
+      // Step 1: Facet-First (All Skills) — query='', all mapped skills as OR facetFilters
       const strictParams = buildStrictParams(translation, baseParams);
       if ((strictParams.hitsPerPage ?? 1) > 0) {
-        const strictResponse = await index.search(translation.query, strictParams);
+        const strictResponse = await index.search('', strictParams);
         const strictHits = strictResponse.hits?.length ?? 0;
         attempts.push({
           step: 1,
           label: RETRIEVAL_LADDER_STEPS.STRICT,
-          query: translation.query,
+          query: '',
           facetFilters: strictParams.facetFilters,
           hitCount: strictHits,
           winner: strictHits >= MIN_RESULTS_THRESHOLD,
@@ -205,27 +156,29 @@ export const courseRetrievalService = {
         }
       }
 
-      // 2. Attempt Boosted Optional Filters
-      const boostParams = buildBoostParams(translation, baseParams);
-      const boostResponse = await index.search(translation.query, boostParams);
-      const boostHits = boostResponse.hits?.length ?? 0;
-      attempts.push({
-        step: 2,
-        label: RETRIEVAL_LADDER_STEPS.BOOST,
-        query: translation.query,
-        optionalFilters: boostParams.optionalFilters,
-        hitCount: boostHits,
-        winner: boostHits >= MIN_RESULTS_THRESHOLD,
-        hits: (boostResponse.hits || []) as unknown as CourseRetrievalHit[],
-      });
-      if (boostHits >= MIN_RESULTS_THRESHOLD) {
-        return {
-          courses: boostResponse.hits.map(mapCourseHitToCard),
-          ladderTrace: { attempts, winnerStep: 2 },
-        };
+      // Step 2: Facet-First (Top Skills) — query='', top-N skills as OR facetFilters
+      const reducedParams = buildReducedFacetParams(translation, baseParams);
+      if ((reducedParams.hitsPerPage ?? 1) > 0) {
+        const reducedResponse = await index.search('', reducedParams);
+        const reducedHits = reducedResponse.hits?.length ?? 0;
+        attempts.push({
+          step: 2,
+          label: RETRIEVAL_LADDER_STEPS.BOOST,
+          query: '',
+          facetFilters: reducedParams.facetFilters,
+          hitCount: reducedHits,
+          winner: reducedHits >= MIN_RESULTS_THRESHOLD,
+          hits: (reducedResponse.hits || []) as unknown as CourseRetrievalHit[],
+        });
+        if (reducedHits >= MIN_RESULTS_THRESHOLD) {
+          return {
+            courses: reducedResponse.hits.map(mapCourseHitToCard),
+            ladderTrace: { attempts, winnerStep: 2 },
+          };
+        }
       }
 
-      // 3. Attempt Query Alternates
+      // Step 3: Text Fallback — careerTitle (from queryAlternates) and/or translation.query
       const queries = [translation.query, ...translation.queryAlternates].filter(Boolean);
       for (const q of queries) {
         const queryParams = buildQueryFallbackParams(q, baseParams);
@@ -248,7 +201,7 @@ export const courseRetrievalService = {
         }
       }
 
-      // 4. Final Fallback: Scope Only
+      // Step 4: Scope Only Fallback — empty query, base filters only
       const fallbackResponse = await index.search('', baseParams);
       const fallbackHits = fallbackResponse.hits?.length ?? 0;
       attempts.push({

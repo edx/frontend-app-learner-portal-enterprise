@@ -8,7 +8,6 @@ import { courseRetrievalService } from '../../services/courseRetrieval';
 import { catalogFacetService } from '../../services/catalogFacetService';
 import { catalogTranslationRules } from '../../services/catalogTranslationRules';
 import { catalogTranslationService } from '../../services/catalogTranslationService';
-import { catalogTranslationXpertService } from '../../services/catalogTranslation.xpert.service';
 import { pathwayAssemblerXpertService } from '../../services/pathwayAssembler.xpert.service';
 import useAlgoliaSearch from '../../../app/data/hooks/useAlgoliaSearch';
 import useEnterpriseCustomer from '../../../app/data/hooks/useEnterpriseCustomer';
@@ -31,6 +30,10 @@ jest.mock('@edx/frontend-platform', () => ({
 jest.mock('../../../app/data/hooks/useAlgoliaSearch', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../app/data/hooks/useEnterpriseCustomer', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../app/data/hooks/useSearchCatalogs', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('../../hooks/useAlgoliaSearchFromCatalogOverrideKey', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ searchIndex: null, hasOverrideKey: false })),
+}));
 jest.mock('../../services/facetBootstrap');
 jest.mock('../../services/intakePreprocessor');
 jest.mock('../../services/intentExtraction.xpert.service');
@@ -39,7 +42,6 @@ jest.mock('../../services/courseRetrieval');
 jest.mock('../../services/catalogFacetService');
 jest.mock('../../services/catalogTranslationRules');
 jest.mock('../../services/catalogTranslationService');
-jest.mock('../../services/catalogTranslation.xpert.service');
 jest.mock('../../services/pathwayAssembler.xpert.service');
 
 describe('usePathways hook', () => {
@@ -57,6 +59,36 @@ describe('usePathways hook', () => {
       id: 'c1', title: 'React Basics', skills: ['React'], level: 'beginner', order: 1,
     },
   ];
+
+  const mockFacetSnapshot = {
+    skill_names: ['JavaScript', 'React'],
+    'skills.name': [],
+    subjects: [],
+    level_type: [],
+    'partners.name': [],
+    enterprise_catalog_query_uuids: [],
+  };
+
+  const mockRulesFirst = {
+    exactMatches: ['JavaScript'],
+    aliasMatches: [],
+    exactSkillFilters: [
+      {
+        taxonomySkill: 'JavaScript', catalogSkill: 'JavaScript', catalogField: 'skill_names', matchMethod: 'exact',
+      },
+    ],
+    aliasSkillFilters: [],
+    unmatched: [],
+  };
+
+  const mockTranslation = {
+    query: '',
+    queryAlternates: ['Software Engineer'],
+    strictSkillFilters: mockRulesFirst.exactSkillFilters,
+    boostSkillFilters: [],
+    droppedTaxonomySkills: [],
+    skillProvenance: [],
+  };
 
   beforeEach(() => {
     jest.spyOn(appUtils, 'getSupportedLocale').mockReturnValue('en');
@@ -84,23 +116,6 @@ describe('usePathways hook', () => {
         durationMs: 100, success: true, systemPrompt: '', rawResponse: '', parsedResponse: {}, validationErrors: [], repairPromptUsed: false,
       },
     });
-    const mockFacetSnapshot = {
-      skill_names: [], 'skills.name': [], subjects: [], level_type: [], 'partners.name': [], enterprise_catalog_query_uuids: [],
-    };
-    const mockRulesFirst = {
-      exactMatches: ['JavaScript'], aliasMatches: [], unmatched: [],
-    };
-    const mockTranslation = {
-      query: 'Software Engineer',
-      queryAlternates: [],
-      strictSkills: [],
-      boostSkills: [],
-      subjectHints: [],
-      droppedTaxonomySkills: [],
-      skillProvenance: [],
-      algoliaPrimaryRequest: {},
-      algoliaFallbackRequests: [],
-    };
 
     (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
     (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
@@ -110,15 +125,9 @@ describe('usePathways hook', () => {
       result: mockRulesFirst, trace: {},
     });
     (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({
-      translation: mockTranslation, trace: {},
+      translation: mockTranslation, trace: { courseSearchMode: 'facet-first', facetMatchCount: 1, facetMatchRate: 1 },
     });
     (courseRetrievalService.fetchCourses as jest.Mock).mockResolvedValue({ courses: mockCourses, ladderTrace: {} });
-    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
-      rawResponse: '',
-      debug: {
-        systemPrompt: '', rawResponse: '', durationMs: 0, success: false,
-      },
-    });
     (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mockResolvedValue({
       pathway: { courses: mockCourses },
       debug: {
@@ -134,7 +143,6 @@ describe('usePathways hook', () => {
       await result.current.generateProfile(mockIntakeInput);
     });
 
-    expect(facetBootstrapService.bootstrapFacets).toHaveBeenCalled();
     expect(intakePreprocessor.preprocessInput).toHaveBeenCalledWith(mockIntakeInput);
     expect(intentExtractionXpertService.extractIntent).toHaveBeenCalled();
     expect(careerRetrievalService.searchCareers).toHaveBeenCalled();
@@ -144,10 +152,9 @@ describe('usePathways hook', () => {
     expect(result.current.selectedCareer?.title).toBe('Software Engineer');
   });
 
-  it('orchestrates the full flow: pathway generation', async () => {
+  it('orchestrates the full flow: pathway generation without Xpert translation', async () => {
     const { result } = renderHook(() => usePathways());
 
-    // Setup state for pathway generation
     await act(async () => {
       await result.current.generateProfile(mockIntakeInput);
     });
@@ -158,92 +165,26 @@ describe('usePathways hook', () => {
       await result.current.generatePathway();
     });
 
+    // Facet snapshot called with config and context (no index arg)
     expect(catalogFacetService.getFacetSnapshot).toHaveBeenCalledWith(
-      mockCatalogIndex,
       {},
       expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
     );
     expect(catalogTranslationRules.translateTaxonomyToCatalog).toHaveBeenCalled();
-    // no unmatched terms — Xpert should be skipped
-    expect(catalogTranslationXpertService.translateUnmatched).not.toHaveBeenCalled();
+    // processTranslation called with 2 args: careerTitle + rulesFirst
     expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
       'Software Engineer',
       expect.anything(),
-      expect.anything(),
-      undefined,
-      undefined,
     );
-    expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(
-      mockCatalogIndex,
-      expect.anything(),
-    );
+    // fetchCourses called with 1 arg: translation only
+    expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(expect.anything());
     expect(pathwayAssemblerXpertService.enrichWithReasoning).toHaveBeenCalled();
 
     expect(result.current.currentStep).toBe('pathway');
     expect(result.current.pathway?.courses).toHaveLength(1);
   });
 
-  it('calls Xpert translation when unmatched terms are present', async () => {
-    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
-      result: { exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'] }, trace: {},
-    });
-    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
-      rawResponse: '{"strictSkills":["Python"]}',
-      debug: {
-        systemPrompt: '', rawResponse: '', durationMs: 50, success: true,
-      },
-    });
-
-    const { result } = renderHook(() => usePathways());
-
-    await act(async () => {
-      await result.current.generateProfile(mockIntakeInput);
-    });
-    await act(async () => {
-      await result.current.generatePathway();
-    });
-
-    expect(catalogTranslationXpertService.translateUnmatched).toHaveBeenCalledWith(
-      expect.objectContaining({ careerTitle: 'Software Engineer', unmatchedSkills: ['UnknownSkill'] }),
-      undefined,
-      DEFAULT_XPERT_RAG_TAGS,
-    );
-    expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
-      'Software Engineer',
-      expect.anything(),
-      expect.anything(),
-      '{"strictSkills":["Python"]}',
-      expect.anything(),
-    );
-  });
-
-  it('falls back to rules-first when Xpert translation fails', async () => {
-    (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
-      result: { exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'] }, trace: {},
-    });
-    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockRejectedValue(new Error('Xpert unavailable'));
-
-    const { result } = renderHook(() => usePathways());
-
-    await act(async () => {
-      await result.current.generateProfile(mockIntakeInput);
-    });
-    await act(async () => {
-      await result.current.generatePathway();
-    });
-
-    // Should still complete with rules-first-only (xpertRawResponse = undefined)
-    expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
-      'Software Engineer',
-      expect.anything(),
-      expect.anything(),
-      undefined,
-      undefined,
-    );
-    expect(result.current.currentStep).toBe('pathway');
-  });
-
-  it('handles errors gracefully', async () => {
+  it('handles errors gracefully during profile generation', async () => {
     (careerRetrievalService.searchCareers as jest.Mock).mockRejectedValue(new Error('Algolia search failed'));
 
     const { result } = renderHook(() => usePathways());
@@ -279,7 +220,7 @@ describe('usePathways hook', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Prompt interception integration tests (Prompt 12)
+// Prompt interception integration tests
 // ---------------------------------------------------------------------------
 
 describe('usePathways — prompt interception', () => {
@@ -297,6 +238,15 @@ describe('usePathways — prompt interception', () => {
       id: 'c1', title: 'React Basics', skills: ['React'], level: 'beginner', order: 1,
     },
   ];
+
+  const mockTranslation = {
+    query: '',
+    queryAlternates: ['Software Engineer'],
+    strictSkillFilters: [],
+    boostSkillFilters: [],
+    droppedTaxonomySkills: [],
+    skillProvenance: [],
+  };
 
   beforeEach(() => {
     jest.spyOn(appUtils, 'getSupportedLocale').mockReturnValue('en');
@@ -327,34 +277,20 @@ describe('usePathways — prompt interception', () => {
 
     (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
 
-    const mockFacetSnapshot = {
-      skill_names: [], 'skills.name': [], subjects: [], level_type: [], 'partners.name': [], enterprise_catalog_query_uuids: [],
-    };
-    const mockTranslation = {
-      query: 'Software Engineer',
-      queryAlternates: [],
-      strictSkills: [],
-      boostSkills: [],
-      subjectHints: [],
-      droppedTaxonomySkills: [],
-      skillProvenance: [],
-      algoliaPrimaryRequest: {},
-      algoliaFallbackRequests: [],
-    };
     (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
-      snapshot: mockFacetSnapshot, trace: {},
+      snapshot: {
+        skill_names: [], 'skills.name': [], subjects: [], level_type: [], 'partners.name': [], enterprise_catalog_query_uuids: [],
+      },
+      trace: {},
     });
     (catalogTranslationRules.translateTaxonomyToCatalog as jest.Mock).mockReturnValue({
-      result: { exactMatches: [], aliasMatches: [], unmatched: ['UnknownSkill'] }, trace: {},
-    });
-    (catalogTranslationXpertService.translateUnmatched as jest.Mock).mockResolvedValue({
-      rawResponse: '{}',
-      debug: {
-        systemPrompt: '', rawResponse: '', durationMs: 0, success: true,
+      result: {
+        exactMatches: [], aliasMatches: [], exactSkillFilters: [], aliasSkillFilters: [], unmatched: [],
       },
+      trace: {},
     });
     (catalogTranslationService.processTranslation as jest.Mock).mockReturnValue({
-      translation: mockTranslation, trace: {},
+      translation: mockTranslation, trace: { courseSearchMode: 'text-fallback', facetMatchCount: 0, facetMatchRate: 0 },
     });
     (courseRetrievalService.fetchCourses as jest.Mock).mockResolvedValue({ courses: mockCourses, ladderTrace: {} });
     (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mockResolvedValue({
@@ -373,9 +309,7 @@ describe('usePathways — prompt interception', () => {
     });
 
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
-    // Third argument (interceptPrompt) must be undefined
     expect(callArgs[2]).toBeUndefined();
-    // Fourth argument must be DEFAULT_XPERT_RAG_TAGS
     expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
@@ -388,9 +322,7 @@ describe('usePathways — prompt interception', () => {
     });
 
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
-    // Third argument must be a function (the capturing wrapper)
     expect(typeof callArgs[2]).toBe('function');
-    // Fourth argument must be DEFAULT_XPERT_RAG_TAGS
     expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
@@ -402,7 +334,6 @@ describe('usePathways — prompt interception', () => {
       await result.current.generateProfile(mockIntakeInput, mockInterceptPrompt);
     });
 
-    // extractIntent must have been called (Xpert call proceeds after accept)
     expect(intentExtractionXpertService.extractIntent).toHaveBeenCalled();
     expect(result.current.currentStep).toBe('profile');
     expect(result.current.learnerProfile?.careerMatches).toHaveLength(1);
@@ -420,8 +351,7 @@ describe('usePathways — prompt interception', () => {
     expect(result.current.currentStep).toBe('profile');
   });
 
-  it('cancel path — generateProfile rejects and extractIntent is not called through to Xpert', async () => {
-    // Simulate extractIntent itself throwing (cancel propagates as throw inside the service)
+  it('cancel path — generateProfile rejects when extractIntent throws', async () => {
     (intentExtractionXpertService.extractIntent as jest.Mock).mockRejectedValue(
       new Error('cancelled by user'),
     );
@@ -441,45 +371,20 @@ describe('usePathways — prompt interception', () => {
     expect(result.current.currentStep).toBe('intake');
   });
 
-  it('catalog translation stage — interceptor is forwarded to translateUnmatched via generatePathway', async () => {
+  it('enrichment stage — interceptor is forwarded to enrichWithReasoning', async () => {
     const mockInterceptPrompt = jest.fn().mockResolvedValue({ decision: 'accepted', bundle: undefined });
     const { result } = renderHook(() => usePathways());
 
-    // generateProfile stores the interceptor
     await act(async () => {
       await result.current.generateProfile(mockIntakeInput, mockInterceptPrompt);
     });
 
-    // generatePathway reuses the stored interceptor and passes it to translateUnmatched
-    await act(async () => {
-      await result.current.generatePathway();
-    });
-
-    const translateCallArgs = (catalogTranslationXpertService.translateUnmatched as jest.Mock).mock.calls[0];
-    // Second argument to translateUnmatched must be a function (capturing interceptor wrapper)
-    expect(typeof translateCallArgs[1]).toBe('function');
-    // Third argument must be DEFAULT_XPERT_RAG_TAGS
-    expect(translateCallArgs[2]).toEqual(DEFAULT_XPERT_RAG_TAGS);
-  });
-
-  it('enrichment stage — interceptor is forwarded to enrichWithReasoning via generatePathway', async () => {
-    const mockInterceptPrompt = jest.fn().mockResolvedValue({ decision: 'accepted', bundle: undefined });
-    const { result } = renderHook(() => usePathways());
-
-    // generateProfile stores the interceptor
-    await act(async () => {
-      await result.current.generateProfile(mockIntakeInput, mockInterceptPrompt);
-    });
-
-    // generatePathway reuses the stored interceptor and passes it to enrichWithReasoning
     await act(async () => {
       await result.current.generatePathway();
     });
 
     const enrichCallArgs = (pathwayAssemblerXpertService.enrichWithReasoning as jest.Mock).mock.calls[0];
-    // Third argument (interceptPrompt) must be a function
     expect(typeof enrichCallArgs[2]).toBe('function');
-    // Fourth argument (tags) must be DEFAULT_XPERT_RAG_TAGS
     expect(enrichCallArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 });

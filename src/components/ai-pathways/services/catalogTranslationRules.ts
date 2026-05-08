@@ -32,18 +32,15 @@ export const catalogTranslationRules = {
     input: TaxonomyTranslationInput,
   ): { result: RulesFirstCandidates; trace: RulesFirstMappingTrace } {
     const {
-      careerTitle,
       skills,
-      industries,
-      similarJobs,
       facetSnapshot,
     } = input;
 
     // Build a set of all valid catalog skills/subjects for O(1) lookup.
     const validCatalogValues = new Set<string>();
     const normalizedLookup = new Map<
-      string,
-      { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
+    string,
+    { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
     >();
 
     // Create a normalized lookup map (normalizedValue -> originalCatalogValue).

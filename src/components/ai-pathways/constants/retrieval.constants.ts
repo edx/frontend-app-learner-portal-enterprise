@@ -20,6 +20,9 @@ export const CAREER_RETRIEVAL_LIMIT = 10;
 /** Minimum number of course results required before stopping the retrieval ladder. */
 export const MIN_RESULTS_THRESHOLD = 3;
 
+/** Number of skills used for the reduced-facet step 2 of the retrieval ladder. */
+export const TOP_N_REDUCED_FACETS = 3;
+
 /** Maximum number of facet values to fetch from Algolia (to ensure high coverage). */
 export const MAX_VALUES_PER_FACET = 1000;
 
@@ -52,12 +55,12 @@ export const FACET_FIELDS = {
  * Human-readable labels for the stages of the progressive search "ladder".
  */
 export const RETRIEVAL_LADDER_STEPS = {
-  /** Most restrictive: matches exact skills as strict facet filters. */
-  STRICT: 'Strict Facet Matching',
-  /** Moderate: uses skills as optional (boosting) filters for higher recall. */
-  BOOST: 'Boosted Optional Filters',
-  /** Broad: uses alternative AI-generated queries. */
-  QUERY_ALTERNATE: 'Query Alternate',
-  /** Broadest: fall back to a simple keyword search within the scoped catalog. */
+  /** Most restrictive: all mapped skills as OR facet filters, empty query. */
+  STRICT: 'Facet-First (All Skills)',
+  /** Relaxed facet: top-N mapped skills as OR facet filters, empty query. */
+  BOOST: 'Facet-First (Top Skills)',
+  /** Text fallback: career title as query, no skill filters. */
+  QUERY_ALTERNATE: 'Text Fallback',
+  /** Broadest: empty query scoped to enterprise catalog only. */
   FALLBACK: 'Scope Only Fallback',
 } as const;

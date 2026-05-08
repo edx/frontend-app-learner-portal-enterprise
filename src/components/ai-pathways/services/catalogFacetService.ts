@@ -1,4 +1,6 @@
-import {SearchClient, SearchIndex} from 'algoliasearch/lite';
+import { SearchClient } from 'algoliasearch/lite';
+import { getConfig } from '@edx/frontend-platform/config';
+import algoliasearch from 'algoliasearch';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
 import { FacetBootstrapContext, FacetSnapshotTrace } from '../types';
 import {
@@ -6,8 +8,6 @@ import {
   CONTENT_TYPE_COURSE,
   FACET_FIELDS,
 } from '../constants';
-import {getConfig} from "@edx/frontend-platform/config";
-import algoliasearch from "algoliasearch";
 
 /**
  * Validation helper that safely reads missing facets as empty arrays.
