@@ -63,7 +63,7 @@ describe('CustomSearchFilters', () => {
 
   it('transformItems for is_new_content keeps only the true row with original label preserved', () => {
     const facets = [
-      { attribute: 'is_new_content', title: 'New content', isEndOfRow: true },
+      { attribute: 'is_new_content', title: 'Recently added', isEndOfRow: true },
     ];
     renderWithContext(facets);
     const transform = capturedTransforms.is_new_content;
@@ -80,7 +80,7 @@ describe('CustomSearchFilters', () => {
     process.env.LEARNING_TYPE_FACET = 'true';
     const facets = [
       ...baseFacets,
-      { attribute: 'is_new_content', title: 'New content', isEndOfRow: true },
+      { attribute: 'is_new_content', title: 'Recently added', isEndOfRow: true },
     ];
     const { container } = renderWithContext(facets);
     const order = Array.from(container.querySelectorAll('[data-testid]')).map(
