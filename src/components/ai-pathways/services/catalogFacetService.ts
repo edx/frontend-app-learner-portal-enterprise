@@ -1,4 +1,4 @@
-import { SearchIndex } from 'algoliasearch/lite';
+import {SearchClient, SearchIndex} from 'algoliasearch/lite';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
 import { FacetBootstrapContext, FacetSnapshotTrace } from '../types';
 import {
@@ -6,6 +6,8 @@ import {
   CONTENT_TYPE_COURSE,
   FACET_FIELDS,
 } from '../constants';
+import {getConfig} from "@edx/frontend-platform/config";
+import algoliasearch from "algoliasearch";
 
 /**
  * Validation helper that safely reads missing facets as empty arrays.
@@ -41,11 +43,17 @@ export const catalogFacetService = {
    * @returns A promise resolving to a normalized CatalogFacetSnapshot and a debug trace.
    */
   async getFacetSnapshot(
-    index: SearchIndex,
+    // index: SearchIndex,
     config: FacetRetrievalConfig = {},
     context?: FacetBootstrapContext,
   ): Promise<{ snapshot: CatalogFacetSnapshot; trace: FacetSnapshotTrace }> {
     const { maxValuesPerFacet = MAX_VALUES_PER_FACET } = config;
+    const configg = getConfig();
+    const searchClient: SearchClient = algoliasearch(
+      configg.ALGOLIA_APP_ID,
+      configg.ALGOLIA_SEARCH_API_KEY,
+    );
+    const index = searchClient.initIndex(configg.ALGOLIA_INDEX_NAME);
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.
     // content_type:course scopes to courses; catalog query UUIDs restrict to the enterprise catalog.

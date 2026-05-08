@@ -4,6 +4,8 @@
  * AI services (Xpert), and retrieval layers (Algolia).
  */
 
+import {CatalogSkillMatch} from "./translationContracts";
+
 /**
  * Represents a single facet value from a search index.
  */
@@ -441,6 +443,8 @@ export interface CatalogTranslationTrace {
   xpertDiscovery?: any;
   /** Whether discovery RAG was used during the request. */
   xpertWasDiscoveryUsed?: boolean;
+  strictSkillFilters?: CatalogSkillMatch[];
+  boostSkillFilters?: CatalogSkillMatch[];
 }
 
 /**

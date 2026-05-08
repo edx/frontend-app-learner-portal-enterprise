@@ -1,5 +1,5 @@
 import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalogTranslation';
-import { RulesFirstMappingTrace } from '../types';
+import { CatalogSkillMatch, RulesFirstMappingTrace } from '../types';
 import { CATALOG_ALIAS_MAP } from '../constants';
 
 /**
@@ -41,25 +41,53 @@ export const catalogTranslationRules = {
 
     // Build a set of all valid catalog skills/subjects for O(1) lookup.
     const validCatalogValues = new Set<string>();
-    facetSnapshot.skill_names.forEach((s) => validCatalogValues.add(s));
-    facetSnapshot['skills.name'].forEach((s) => validCatalogValues.add(s));
-    facetSnapshot.subjects.forEach((s) => validCatalogValues.add(s));
+    const normalizedLookup = new Map<
+      string,
+      { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
+    >();
 
     // Create a normalized lookup map (normalizedValue -> originalCatalogValue).
     // This allows case-insensitive exact matching while preserving the catalog's casing.
-    const normalizedLookup = new Map<string, string>();
-    validCatalogValues.forEach((val) => {
-      normalizedLookup.set(normalizeCatalogTerm(val), val);
+    facetSnapshot.skill_names.forEach((value) => {
+      validCatalogValues.add(value);
+      normalizedLookup.set(normalizeCatalogTerm(value), {
+        value,
+        field: 'skill_names',
+      });
     });
+
+    facetSnapshot['skills.name'].forEach((value) => {
+      validCatalogValues.add(value);
+
+      if (!normalizedLookup.has(normalizeCatalogTerm(value))) {
+        normalizedLookup.set(normalizeCatalogTerm(value), {
+          value,
+          field: 'skills.name',
+        });
+      }
+    });
+
+    facetSnapshot.subjects.forEach((value) => {
+      validCatalogValues.add(value);
+      normalizedLookup.set(normalizeCatalogTerm(value), {
+        value,
+        field: 'subjects',
+      });
+    });
+
+    // Create a normalized lookup map (normalizedValue -> originalCatalogValue).
+    // This allows case-insensitive exact matching while preserving the catalog's casing.
 
     const exactMatchesSet = new Set<string>();
     const aliasMatchesSet = new Set<string>();
     const unmatchedSet = new Set<string>();
+    const exactSkillFilters: CatalogSkillMatch[] = [];
+    const aliasSkillFilters: CatalogSkillMatch[] = [];
 
     // Combine all inputs to be translated into a unique list.
     const termsToTranslate = Array.from(
       new Set(
-        [careerTitle, ...skills, ...industries, ...similarJobs]
+        skills
           .map((t) => t.trim())
           .filter(Boolean),
       ),
@@ -70,16 +98,37 @@ export const catalogTranslationRules = {
 
       // 1. Check Exact Match (Case-insensitive).
       if (normalizedLookup.has(normTerm)) {
-        exactMatchesSet.add(normalizedLookup.get(normTerm)!);
+        const match = normalizedLookup.get(normTerm)!;
+
+        exactMatchesSet.add(match.value);
+
+        if (match.field === 'skill_names' || match.field === 'skills.name') {
+          exactSkillFilters.push({
+            taxonomySkill: term,
+            catalogSkill: match.value,
+            catalogField: match.field,
+            matchMethod: 'exact',
+          });
+        }
         return;
       }
 
       // 2. Check Curated Alias Map.
       const aliasTarget = CATALOG_ALIAS_MAP[normTerm];
+
       if (aliasTarget) {
-        // Only count as an alias match if the target actually exists in the current catalog.
-        if (validCatalogValues.has(aliasTarget)) {
-          aliasMatchesSet.add(aliasTarget);
+        const aliasMatch = normalizedLookup.get(normalizeCatalogTerm(aliasTarget));
+
+        if (aliasMatch && (aliasMatch.field === 'skill_names' || aliasMatch.field === 'skills.name')) {
+          aliasMatchesSet.add(aliasMatch.value);
+
+          aliasSkillFilters.push({
+            taxonomySkill: term,
+            catalogSkill: aliasMatch.value,
+            catalogField: aliasMatch.field,
+            matchMethod: 'alias',
+          });
+
           return;
         }
       }
@@ -92,6 +141,8 @@ export const catalogTranslationRules = {
       exactMatches: Array.from(exactMatchesSet).sort(),
       aliasMatches: Array.from(aliasMatchesSet).sort(),
       unmatched: Array.from(unmatchedSet).sort(),
+      exactSkillFilters,
+      aliasSkillFilters,
     };
 
     const trace: RulesFirstMappingTrace = {

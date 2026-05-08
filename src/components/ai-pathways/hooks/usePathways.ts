@@ -25,7 +25,7 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
   PromptDebugEntry,
-  CourseRetrievalHit,
+  CourseRetrievalHit, FacetReference,
 } from '../types';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
@@ -34,12 +34,13 @@ import { catalogTranslationXpertService } from '../services/catalogTranslation.x
 import { mergeTags, mergeDiscovery } from '../utils/discoveryUtils';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 import { DEFAULT_XPERT_RAG_TAGS } from '../constants/retrieval.constants';
-import useAlgoliaSearchFromCatalogOverrideKey from "./useAlgoliaSearchFromCatalogOverrideKey";
+import useAlgoliaSearchFromCatalogOverrideKey from './useAlgoliaSearchFromCatalogOverrideKey';
 
 /**
  * Union type representing the possible steps in the AI Pathways generation flow.
  */
 export type PathwayStep = typeof FEATURE_STEPS[keyof typeof FEATURE_STEPS];
+const discRagBased = true;
 
 /**
  * Creates a wrapped interceptPrompt function that records the interaction outcome
@@ -183,17 +184,18 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Facet Bootstrap (Fetch common taxonomy values for normalization)
-      const facetStartTime = Date.now();
-      const facets = await facetBootstrapService.bootstrapFacets(jobIndex);
-      responseModel.stages.facetBootstrap = {
-        durationMs: Date.now() - facetStartTime,
-        success: true,
-      };
-
+      let facets: FacetReference | null;
+      if (!discRagBased) {
+        // 1. Facet Bootstrap (Fetch common taxonomy values for normalization)
+        const facetStartTime = Date.now();
+        facets = await facetBootstrapService.bootstrapFacets(jobIndex);
+        responseModel.stages.facetBootstrap = {
+          durationMs: Date.now() - facetStartTime,
+          success: true,
+        };
+      }
       // 2. Preprocess Input (Clean narrative and normalize choices)
       const preprocessed = intakePreprocessor.preprocessInput(args);
-
       // 3. Intent Extraction (AI stage)
       responseModel.promptDebug = promptDebugLogRef.current;
       const profileInterceptor = interceptPromptRef.current
@@ -297,8 +299,9 @@ export const usePathways = () => {
       : undefined;
 
     try {
-      // 1. Catalog Facet Snapshot (Ensures grounded search terms)
       const courseStartTime = Date.now();
+
+      // 1. Catalog Facet Snapshot (Ensures grounded search terms)
       const facetStartMs = Date.now();
       const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
         .getFacetSnapshot(currentCatalogIndex, {}, facetContext);
@@ -380,7 +383,7 @@ export const usePathways = () => {
 
       // 5. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
-        currentCatalogIndex,
+        // currentCatalogIndex,
         translation,
       );
       updatedResponseModel.stages.retrievalLadder = {

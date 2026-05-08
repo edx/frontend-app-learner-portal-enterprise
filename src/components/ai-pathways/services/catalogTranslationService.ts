@@ -75,10 +75,15 @@ export const catalogTranslationService = {
 
     // 1. Initialize intent from deterministic rules-first matches.
     let finalIntent: CatalogSearchIntent = {
-      query: careerTitle,
+      query: [...rulesFirst.exactMatches, ...rulesFirst.aliasMatches].join(' '),
       queryAlternates: [],
       strictSkills: [...rulesFirst.exactMatches, ...rulesFirst.aliasMatches],
       boostSkills: [],
+      strictSkillFilters: [
+        ...rulesFirst.exactSkillFilters,
+        ...rulesFirst.aliasSkillFilters,
+      ],
+      boostSkillFilters: [],
       subjectHints: [],
       droppedTaxonomySkills: [],
     };
@@ -104,12 +109,19 @@ export const catalogTranslationService = {
           const groundedStrict = validateAllowedFacetValues(xpertData.strictSkills || [], validCatalogValues);
           const groundedBoost = validateAllowedFacetValues(xpertData.boostSkills || [], validCatalogValues);
           const groundedSubjects = validateAllowedFacetValues(xpertData.subjectHints || [], validCatalogValues);
+          const groundedStrictFilters = xpertData.strictSkillFilters || [];
+          const groundedBoostFilters = xpertData.boostSkillFilters || [];
 
           finalIntent = {
             query: xpertData.query || finalIntent.query,
             queryAlternates: xpertData.queryAlternates || [],
             strictSkills: Array.from(new Set([...finalIntent.strictSkills, ...groundedStrict])),
             boostSkills: groundedBoost,
+            strictSkillFilters: [
+              ...finalIntent.strictSkillFilters,
+              ...groundedStrictFilters,
+            ],
+            boostSkillFilters: groundedBoostFilters,
             subjectHints: groundedSubjects,
             droppedTaxonomySkills: Array.from(new Set([...(xpertData.droppedTaxonomySkills || [])])),
           };
@@ -122,8 +134,8 @@ export const catalogTranslationService = {
     }
 
     // 3. Apply safety caps to filter counts.
-    finalIntent.strictSkills = capSkillCounts(finalIntent.strictSkills, MAX_STRICT_SKILLS);
-    finalIntent.boostSkills = capSkillCounts(finalIntent.boostSkills, MAX_BOOST_SKILLS);
+    finalIntent.strictSkillFilters = finalIntent.strictSkillFilters.slice(0, MAX_STRICT_SKILLS);
+    finalIntent.boostSkillFilters = finalIntent.boostSkillFilters.slice(0, MAX_BOOST_SKILLS);
 
     // 4. Construct the consolidated mapping history.
     const skillProvenance = this.buildSkillProvenance(rulesFirst, xpertProvenance);
@@ -138,6 +150,8 @@ export const catalogTranslationService = {
       strictSkills: finalIntent.strictSkills,
       boostSkills: finalIntent.boostSkills,
       subjectHints: finalIntent.subjectHints,
+      strictSkillFilters: finalIntent.strictSkillFilters,
+      boostSkillFilters: finalIntent.boostSkillFilters,
       xpertUsed: !!xpertRawResponse,
       xpertSystemPrompt: xpertDebug?.systemPrompt,
       xpertRawResponse: xpertDebug?.rawResponse,
@@ -145,6 +159,7 @@ export const catalogTranslationService = {
       xpertSuccess: xpertDebug?.success,
       xpertDiscovery,
       xpertWasDiscoveryUsed,
+
     };
 
     const translation: CatalogTranslation = {
@@ -198,6 +213,23 @@ export const catalogTranslationService = {
    */
   buildSkillProvenance(rulesFirst: RulesFirstCandidates, xpertProvenance: SkillProvenance[]): SkillProvenance[] {
     const provenance: SkillProvenance[] = [];
+    rulesFirst.exactSkillFilters.forEach((match) => {
+      provenance.push({
+        taxonomySkill: match.taxonomySkill,
+        catalogMatch: match.catalogSkill,
+        catalogField: match.catalogField,
+        matchMethod: 'exact',
+      });
+    });
+
+    rulesFirst.aliasSkillFilters.forEach((match) => {
+      provenance.push({
+        taxonomySkill: match.taxonomySkill,
+        catalogMatch: match.catalogSkill,
+        catalogField: match.catalogField,
+        matchMethod: 'alias',
+      });
+    });
 
     // Process deterministic matches.
     rulesFirst.exactMatches.forEach((match) => {

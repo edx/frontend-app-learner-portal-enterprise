@@ -1,16 +1,23 @@
 import { SearchOptions } from '@algolia/client-search';
 import { CatalogFacetSnapshot } from './catalogFacet';
 
+export type CatalogSkillField = 'skill_names' | 'skills.name';
+
+export interface CatalogSkillMatch {
+  taxonomySkill: string;
+  catalogSkill: string;
+  catalogField: CatalogSkillField;
+  matchMethod: 'exact' | 'alias' | 'xpert' | 'none';
+}
+
 /**
  * SkillProvenance tracks the origin and mapping status of each taxonomy skill.
  * This helps in debugging and understanding why certain skills were included or dropped.
  */
 export interface SkillProvenance {
-  /** The original skill name from the taxonomy index. */
   taxonomySkill: string;
-  /** The corresponding valid skill name in the catalog (if matched). */
   catalogMatch?: string;
-  /** The method used to determine the match. */
+  catalogField?: CatalogSkillField;
   matchMethod: 'exact' | 'alias' | 'xpert' | 'none';
 }
 
@@ -24,9 +31,9 @@ export interface CatalogSearchIntent {
   /** Alternative query strings for broader or fallback searches. */
   queryAlternates: string[];
   /** Skills that must be present in the results (used in facetFilters). */
-  strictSkills: string[];
+  strictSkillFilters: CatalogSkillMatch[];
   /** Skills that should be boosted if present (used in optionalFilters). */
-  boostSkills: string[];
+  boostSkillFilters: CatalogSkillMatch[];
   /** High-level subjects to nudge the search towards specific categories. */
   subjectHints: string[];
   /** Taxonomy skills that were explicitly dropped because they don't exist in the catalog. */

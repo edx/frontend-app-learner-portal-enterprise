@@ -1,4 +1,4 @@
-import { SearchIndex } from 'algoliasearch/lite';
+import {SearchClient, SearchIndex} from 'algoliasearch/lite';
 import { SearchOptions } from '@algolia/client-search';
 import {
   CourseCardModel,
@@ -15,6 +15,8 @@ import {
   FACET_FIELDS,
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
+import algoliasearch from "algoliasearch";
+import {getConfig} from "@edx/frontend-platform/config";
 
 /**
  * Formats a facet attribute and value for Algolia filtering.
@@ -32,7 +34,10 @@ const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/
  * @remarks Always includes ["content_type:course"] to ensure only courses are retrieved.
  */
 const buildScopedFacetFilters = (): string[][] => {
-  const groups: string[][] = [[CONTENT_TYPE_COURSE]];
+  const override = true;
+  const groups: string[][] = [[CONTENT_TYPE_COURSE], override && [
+    'enterprise_catalog_query_titles:Subscription',
+  ]].filter(Boolean);
 
   return groups;
 };
@@ -54,9 +59,16 @@ const buildStrictParams = (
   }
 
   const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
+  const strictSkillFilters = translation.strictSkillFilters?.length
+    ? translation.strictSkillFilters.map(({ catalogField, catalogSkill }) => (
+      formatFacet(catalogField, catalogSkill)
+    ))
+    : translation.strictSkills.map((skill) => (
+      formatFacet(FACET_FIELDS.SKILL_NAMES, skill)
+    ));
   const facetFilters = [
     ...baseFacetFilters,
-    translation.strictSkills.map((skill) => `${FACET_FIELDS.SKILL_NAMES}:${skill}`),
+    strictSkillFilters,
   ];
 
   return {
@@ -78,11 +90,16 @@ const buildBoostParams = (
   baseParams: SearchOptions,
 ): SearchOptions => {
   if (translation.boostSkills.length) {
+    const boostSkillFilters = translation.boostSkillFilters?.length
+      ? translation.boostSkillFilters.map(({ catalogField, catalogSkill }) => (
+        formatFacet(catalogField, catalogSkill)
+      ))
+      : translation.boostSkills.map((skill) => (
+        formatFacet(FACET_FIELDS.SKILL_NAMES, skill)
+      ));
     return {
       ...baseParams,
-      optionalFilters: translation.boostSkills.map(
-        (skill) => formatFacet(FACET_FIELDS.SKILL_NAMES, skill),
-      ),
+      optionalFilters: boostSkillFilters,
     };
   }
 
@@ -147,10 +164,17 @@ export const courseRetrievalService = {
    * @returns A promise resolving to the final course list and a trace of the retrieval steps.
    */
   async fetchCourses(
-    index: SearchIndex,
+    // index: SearchIndex,
     translation: CatalogTranslation,
   ): Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }> {
     const scopedFacetFilters = buildScopedFacetFilters();
+    const config = getConfig();
+    const searchClient: SearchClient = algoliasearch(
+      config.ALGOLIA_APP_ID,
+      config.ALGOLIA_SEARCH_API_KEY,
+    );
+    const index = searchClient.initIndex(config.ALGOLIA_INDEX_NAME);
+
     const baseParams: SearchOptions = {
       hitsPerPage: COURSE_RETRIEVAL_LIMIT,
       facetFilters: scopedFacetFilters,

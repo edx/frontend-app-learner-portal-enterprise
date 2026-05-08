@@ -159,7 +159,10 @@ export const intentExtractionXpertService = {
    * @returns A structured XpertPromptBundle containing all prompt segments.
    */
   buildSystemPrompt(facets?: FacetReference | null): XpertPromptBundle {
-    const baseContent = INTENT_EXTRACTION_PROMPT.BASE_CONTENT;
+    const discRagBased = true;
+    const baseContent = discRagBased
+      ? INTENT_EXTRACTION_PROMPT.DISCOVERY_RAG_BASE_PROMPT
+      : INTENT_EXTRACTION_PROMPT.BASE_CONTENT;
 
     const basePart: PromptPart = {
       label: 'base',

@@ -1,4 +1,5 @@
 import { CatalogFacetSnapshot } from './catalogFacet';
+import { CatalogSkillMatch } from './translationContracts';
 
 /**
  * RulesFirstCandidates represents the result of the initial deterministic
@@ -7,14 +8,12 @@ import { CatalogFacetSnapshot } from './catalogFacet';
  * Pipeline context: Output of the 'rulesFirstMapping' stage.
  */
 export interface RulesFirstCandidates {
-  /** Taxonomy terms that matched exactly (case-insensitive) with catalog facets. */
   exactMatches: string[];
-  /** Taxonomy terms that matched via a curated alias list (see translation.constants.ts). */
   aliasMatches: string[];
-  /** Terms that could not be mapped deterministically and should be passed to Xpert for AI mapping. */
   unmatched: string[];
+  exactSkillFilters: CatalogSkillMatch[];
+  aliasSkillFilters: CatalogSkillMatch[];
 }
-
 /**
  * Input payload for the rules-first translation helper.
  * Combines the target career data with the current catalog snapshot.
