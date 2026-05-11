@@ -1,13 +1,13 @@
 import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalogTranslation';
-import { CatalogSkillMatch, RulesFirstMappingTrace } from '../types';
+import {
+  CatalogSkillMatch, RulesFirstMappingTrace, SkillSignal,
+} from '../types';
 import { CATALOG_ALIAS_MAP } from '../constants';
+import { tierAllSignals } from './skillTiering';
 
 /**
  * Normalizes a term for catalog alias matching and comparison.
  * Trims whitespace and converts to lowercase for consistent case-insensitive lookup.
- *
- * @param term The raw taxonomy term or catalog facet value.
- * @returns A normalized string.
  */
 export const normalizeCatalogTerm = (term: string): string => term.trim().toLowerCase();
 
@@ -17,63 +17,68 @@ export const normalizeCatalogTerm = (term: string): string => term.trim().toLowe
  * Pipeline context: This is the first sub-stage of the 'catalogTranslation' phase.
  * It uses high-confidence rules (exact matches and a curated alias map) to ground
  * taxonomy data into the specific course catalog.
- *
- * Because this module is deterministic, it provides a reliable baseline before
- * any AI-driven translation is attempted.
  */
 export const catalogTranslationRules = {
-  /**
-   * Translates taxonomy terms into catalog-valid candidates using exact matches and aliases.
-   *
-   * @param input Structured taxonomy data and the current catalog facet snapshot.
-   * @returns An object containing the successfully mapped candidates and a detailed trace.
-   */
   translateTaxonomyToCatalog(
     input: TaxonomyTranslationInput,
   ): { result: RulesFirstCandidates; trace: RulesFirstMappingTrace } {
-    const {
-      skills,
-      facetSnapshot,
-    } = input;
+    const { skills, facetSnapshot } = input;
 
-    // Build a set of all valid catalog skills/subjects for O(1) lookup.
+    // Build a normalized lookup map (normalizedValue -> originalCatalogValue).
     const validCatalogValues = new Set<string>();
     const normalizedLookup = new Map<
-    string,
-    { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
+      string,
+      { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
     >();
 
-    // Create a normalized lookup map (normalizedValue -> originalCatalogValue).
-    // This allows case-insensitive exact matching while preserving the catalog's casing.
     facetSnapshot.skill_names.forEach((value) => {
       validCatalogValues.add(value);
-      normalizedLookup.set(normalizeCatalogTerm(value), {
-        value,
-        field: 'skill_names',
-      });
+      normalizedLookup.set(normalizeCatalogTerm(value), { value, field: 'skill_names' });
     });
 
     facetSnapshot['skills.name'].forEach((value) => {
       validCatalogValues.add(value);
-
       if (!normalizedLookup.has(normalizeCatalogTerm(value))) {
-        normalizedLookup.set(normalizeCatalogTerm(value), {
-          value,
-          field: 'skills.name',
-        });
+        normalizedLookup.set(normalizeCatalogTerm(value), { value, field: 'skills.name' });
       }
     });
 
     facetSnapshot.subjects.forEach((value) => {
       validCatalogValues.add(value);
-      normalizedLookup.set(normalizeCatalogTerm(value), {
-        value,
-        field: 'subjects',
-      });
+      normalizedLookup.set(normalizeCatalogTerm(value), { value, field: 'subjects' });
     });
 
-    // Create a normalized lookup map (normalizedValue -> originalCatalogValue).
-    // This allows case-insensitive exact matching while preserving the catalog's casing.
+    // Build SkillSignal list from all input sources for tiering
+    const signals: SkillSignal[] = [
+      ...(input.intentRequiredSkills || []).map((name) => ({
+        name, source: 'intent_required' as const,
+      })),
+      ...(input.intentPreferredSkills || []).map((name) => ({
+        name, source: 'intent_preferred' as const,
+      })),
+      ...(input.skillDetails?.length
+        ? input.skillDetails.map((s) => ({
+          name: s.name,
+          source: 'career_taxonomy' as const,
+          significance: s.significance,
+          uniquePostings: s.unique_postings,
+          typeName: s.type_name,
+        }))
+        : skills.map((name) => ({ name, source: 'career_taxonomy' as const }))
+      ),
+    ];
+
+    const tieredSignals = tierAllSignals(signals);
+
+    // Build a map from normalized name → tiered signal for lookup during matching
+    const tieredMap = new Map(tieredSignals.map((s) => [s.normalizedName, s]));
+
+    // Build terms to translate from ALL non-noise signals plus the raw skills list
+    const allTermNames = new Set([
+      ...tieredSignals.filter((s) => s.tier !== 'noise').map((s) => s.name),
+      ...skills.map((s) => s.trim()).filter(Boolean),
+    ]);
+    const termsToTranslate = Array.from(allTermNames);
 
     const exactMatchesSet = new Set<string>();
     const aliasMatchesSet = new Set<string>();
@@ -81,22 +86,13 @@ export const catalogTranslationRules = {
     const exactSkillFilters: CatalogSkillMatch[] = [];
     const aliasSkillFilters: CatalogSkillMatch[] = [];
 
-    // Combine all inputs to be translated into a unique list.
-    const termsToTranslate = Array.from(
-      new Set(
-        skills
-          .map((t) => t.trim())
-          .filter(Boolean),
-      ),
-    );
-
     termsToTranslate.forEach((term) => {
       const normTerm = normalizeCatalogTerm(term);
+      const tierInfo = tieredMap.get(normTerm);
 
-      // 1. Check Exact Match (Case-insensitive).
+      // 1. Check Exact Match (Case-insensitive)
       if (normalizedLookup.has(normTerm)) {
         const match = normalizedLookup.get(normTerm)!;
-
         exactMatchesSet.add(match.value);
 
         if (match.field === 'skill_names' || match.field === 'skills.name') {
@@ -105,32 +101,38 @@ export const catalogTranslationRules = {
             catalogSkill: match.value,
             catalogField: match.field,
             matchMethod: 'exact',
+            tier: tierInfo?.tier,
+            score: tierInfo?.score,
+            source: tierInfo?.source,
+            significance: tierInfo?.significance,
+            reasons: tierInfo?.reasons,
           });
         }
         return;
       }
 
-      // 2. Check Curated Alias Map.
+      // 2. Check Curated Alias Map
       const aliasTarget = CATALOG_ALIAS_MAP[normTerm];
-
       if (aliasTarget) {
         const aliasMatch = normalizedLookup.get(normalizeCatalogTerm(aliasTarget));
-
         if (aliasMatch && (aliasMatch.field === 'skill_names' || aliasMatch.field === 'skills.name')) {
           aliasMatchesSet.add(aliasMatch.value);
-
           aliasSkillFilters.push({
             taxonomySkill: term,
             catalogSkill: aliasMatch.value,
             catalogField: aliasMatch.field,
             matchMethod: 'alias',
+            tier: tierInfo?.tier,
+            score: tierInfo?.score,
+            source: tierInfo?.source,
+            significance: tierInfo?.significance,
+            reasons: tierInfo?.reasons,
           });
-
           return;
         }
       }
 
-      // 3. Mark as unmatched for later stages (e.g., AI Mapping).
+      // 3. Mark as unmatched for later stages
       unmatchedSet.add(term);
     });
 
@@ -142,6 +144,18 @@ export const catalogTranslationRules = {
       aliasSkillFilters,
     };
 
+    const noiseDropped = tieredSignals
+      .filter((s) => s.tier === 'noise')
+      .map((s) => s.name);
+
+    const broadAnchorCatalogSkills = [...exactSkillFilters, ...aliasSkillFilters]
+      .filter((f) => f.tier === 'broad_anchor')
+      .map((f) => f.catalogSkill);
+
+    const boostCatalogSkills = [...exactSkillFilters, ...aliasSkillFilters]
+      .filter((f) => f.tier === 'role_differentiator' || f.tier === 'narrow_signal')
+      .map((f) => f.catalogSkill);
+
     const trace: RulesFirstMappingTrace = {
       termsConsidered: termsToTranslate.length,
       exactMatchCount: result.exactMatches.length,
@@ -150,6 +164,17 @@ export const catalogTranslationRules = {
       exactMatches: result.exactMatches,
       aliasMatches: result.aliasMatches,
       unmatched: result.unmatched,
+      broadAnchorMatches: broadAnchorCatalogSkills,
+      boostMatches: boostCatalogSkills,
+      noiseDropped,
+      tieringTrace: tieredSignals.map((s) => ({
+        name: s.name,
+        tier: s.tier,
+        source: s.source,
+        significance: s.significance,
+        score: s.score,
+        reasons: s.reasons,
+      })),
     };
 
     return { result, trace };

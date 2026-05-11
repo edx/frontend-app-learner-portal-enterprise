@@ -1,5 +1,6 @@
 import { CatalogFacetSnapshot } from './catalogFacet';
 import { CatalogSkillMatch } from './translationContracts';
+import type { LearnerLevel, TaxonomySkill } from './index';
 
 /**
  * RulesFirstCandidates represents the result of the initial deterministic
@@ -23,6 +24,14 @@ export interface TaxonomyTranslationInput {
   careerTitle: string;
   /** List of skills extracted from the taxonomy for this career. */
   skills: string[];
+  /** Raw Lightcast skill objects with significance and type metadata. */
+  skillDetails?: TaxonomySkill[];
+  /** Broad career-anchor skills from searchIntent.skillsRequired. */
+  intentRequiredSkills?: string[];
+  /** Tool/language/framework skills from searchIntent.skillsPreferred. */
+  intentPreferredSkills?: string[];
+  /** Learner experience level from searchIntent.learnerLevel. */
+  learnerLevel?: LearnerLevel;
   /** List of industries associated with the career. */
   industries: string[];
   /** List of similar job titles from the taxonomy. */

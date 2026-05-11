@@ -23,6 +23,21 @@ export const MIN_RESULTS_THRESHOLD = 3;
 /** Number of skills used for the reduced-facet step 2 of the retrieval ladder. */
 export const TOP_N_REDUCED_FACETS = 3;
 
+/** Maximum number of required skills to include as optionalFilters in career search. */
+export const CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT = 4;
+
+/** Maximum number of preferred skills to include as optionalFilters in career search (excluded for beginners). */
+export const CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT = 2;
+
+/** Maximum number of broad-anchor skills to use as hard facetFilters in course retrieval. */
+export const MAX_STRICT_SKILLS = 4;
+
+/** Maximum number of boost skills (role_differentiator + narrow_signal) to use as optionalFilters. */
+export const MAX_BOOST_SKILLS = 8;
+
+/** Reduced strict-skill cap for beginner learners (fewer hard filters = broader results). */
+export const BEGINNER_MAX_STRICT_SKILLS = 3;
+
 /** Maximum number of facet values to fetch from Algolia (to ensure high coverage). */
 export const MAX_VALUES_PER_FACET = 1000;
 
@@ -55,12 +70,12 @@ export const FACET_FIELDS = {
  * Human-readable labels for the stages of the progressive search "ladder".
  */
 export const RETRIEVAL_LADDER_STEPS = {
-  /** Most restrictive: all mapped skills as OR facet filters, empty query. */
-  STRICT: 'Facet-First (All Skills)',
-  /** Relaxed facet: top-N mapped skills as OR facet filters, empty query. */
-  BOOST: 'Facet-First (Top Skills)',
+  /** Hybrid: broad-anchor facetFilters + boost optionalFilters + query. */
+  STRICT: 'Hybrid Broad (Facets + Boosts)',
+  /** Text + boost optionalFilters only, no facetFilters. */
+  BOOST: 'Boosted Text Fallback',
   /** Text fallback: career title as query, no skill filters. */
-  QUERY_ALTERNATE: 'Text Fallback',
+  QUERY_ALTERNATE: 'Career Text Fallback',
   /** Broadest: empty query scoped to enterprise catalog only. */
   FALLBACK: 'Scope Only Fallback',
 } as const;

@@ -171,10 +171,11 @@ describe('usePathways hook', () => {
       expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
     );
     expect(catalogTranslationRules.translateTaxonomyToCatalog).toHaveBeenCalled();
-    // processTranslation called with 2 args: careerTitle + rulesFirst
+    // processTranslation called with 3 args: careerTitle + rulesFirst + options
     expect(catalogTranslationService.processTranslation).toHaveBeenCalledWith(
       'Software Engineer',
       expect.anything(),
+      expect.objectContaining({ intentRequiredSkills: expect.any(Array) }),
     );
     // fetchCourses called with translation + catalogIndex (useCatalogAlgoliaSearch returns null → fallback to mockCatalogIndex)
     expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(expect.anything(), mockCatalogIndex);

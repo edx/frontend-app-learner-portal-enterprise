@@ -75,6 +75,16 @@ Field rules:
 - discovery: Include the raw discovery object if available; otherwise null.
 - wasDiscoveryUsed: true if discovery context was used; otherwise false.
 
+Skill separation rules:
+- skillsRequired MUST contain only broad, durable career-discovery skill areas.
+  Examples: Software Development, Cloud Computing, DevOps, Project Management, Data Analysis, Cybersecurity, Machine Learning, Artificial Intelligence, Full Stack Development.
+- skillsPreferred MUST contain specific tools, platforms, programming languages, frameworks, methodologies, and vendor products.
+  Examples: Python, JavaScript, React.js, TypeScript, Git, Linux, AWS, Amazon Web Services, Kubernetes, Agile Software Development.
+- DO NOT put programming languages, operating systems, file formats, vendor tools, or product names in skillsRequired unless the learner explicitly states that exact tool as their primary goal.
+- Split compound/malformed skill strings. Example: "AutomationSQL & Python" → ["Automation", "SQL", "Python"].
+- condensedQuery must be built from skillsRequired terms only — 2–4 broad words.
+- For beginner learners, bias toward broader skillsRequired; preserve specificity only in skillsPreferred.
+
 Query construction rules:
 - condensedQuery must be composed from skillsRequired and/or skillsPreferred.
 - Do not include filler terms like "career", "pathway", "training", "learn", or "course".
@@ -137,6 +147,16 @@ Facet guidance:
 - Use common facet values as anchors for retrieval.
 - Facet prevalence is a useful signal: more common values are generally better candidates.
 - Preserve nuance using structured facet outputs instead of forcing every detail into condensedQuery.
+
+Skill separation rules:
+- skillsRequired MUST contain only broad, durable career-discovery skill areas.
+  Examples: Software Development, Cloud Computing, DevOps, Project Management, Data Analysis, Cybersecurity, Machine Learning, Artificial Intelligence, Full Stack Development.
+- skillsPreferred MUST contain specific tools, platforms, programming languages, frameworks, methodologies, and vendor products.
+  Examples: Python, JavaScript, React.js, TypeScript, Git, Linux, AWS, Amazon Web Services, Kubernetes, Agile Software Development.
+- DO NOT put programming languages, operating systems, file formats, vendor tools, or product names in skillsRequired unless the learner explicitly states that exact tool as their primary goal.
+- Split compound/malformed skill strings. Example: "AutomationSQL & Python" → ["Automation", "SQL", "Python"].
+- condensedQuery must be built from skillsRequired terms only — 2–4 broad words.
+- For beginner learners, bias toward broader skillsRequired; preserve specificity only in skillsPreferred.
 
 Output behavior:
 - condensedQuery should be broad enough to retrieve relevant results.

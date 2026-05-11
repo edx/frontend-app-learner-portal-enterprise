@@ -407,6 +407,43 @@ export interface RulesFirstMappingTrace {
   aliasMatches: string[];
   /** List of terms that remain unmatched. */
   unmatched: string[];
+  /** Catalog skills classified as broad_anchor (used as strict facetFilters). */
+  broadAnchorMatches?: string[];
+  /** Catalog skills classified as role_differentiator or narrow_signal (used as optionalFilters). */
+  boostMatches?: string[];
+  /** Skills classified as noise and excluded from retrieval. */
+  noiseDropped?: string[];
+  /** Full tiering trace for all input signals. */
+  tieringTrace?: Array<{
+    name: string;
+    catalogSkill?: string;
+    tier: import('./translationContracts').RetrievalSkillTier;
+    source: string;
+    significance?: number;
+    score: number;
+    reasons: string[];
+  }>;
+}
+
+/**
+ * A skill signal entering the tiering pipeline, before tier classification.
+ */
+export interface SkillSignal {
+  name: string;
+  source: 'intent_required' | 'intent_preferred' | 'career_taxonomy';
+  significance?: number;
+  uniquePostings?: number;
+  typeName?: string;
+}
+
+/**
+ * A skill signal after tier classification by skillTiering.ts.
+ */
+export interface TieredSkillSignal extends SkillSignal {
+  tier: import('./translationContracts').RetrievalSkillTier;
+  reasons: string[];
+  normalizedName: string;
+  score: number;
 }
 
 /**
@@ -433,7 +470,7 @@ export interface CatalogTranslationTrace {
   /** Full CatalogSkillMatch entries for the boost filter set. */
   boostSkillFilters?: CatalogSkillMatch[];
   /** Whether retrieval is driven by mapped facets or falls back to text search. */
-  courseSearchMode: 'facet-first' | 'text-fallback';
+  courseSearchMode: 'facet-first' | 'text-fallback' | 'hybrid-broad' | 'text-boost';
   /** Number of career skills that successfully mapped to catalog facets. */
   facetMatchCount: number;
   /** Ratio of matched skills to total input skills (0–1). */

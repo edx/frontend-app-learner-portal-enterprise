@@ -315,6 +315,10 @@ export const usePathways = () => {
       const { result: rulesFirst, trace: rulesFirstTrace } = catalogTranslationRules.translateTaxonomyToCatalog({
         careerTitle: selectedCareer.title,
         skills: selectedCareer.skills || [],
+        skillDetails: (selectedCareer.raw?.skills || []) as import('../types').TaxonomySkill[],
+        intentRequiredSkills: searchIntent?.skillsRequired || [],
+        intentPreferredSkills: searchIntent?.skillsPreferred || [],
+        learnerLevel: searchIntent?.learnerLevel,
         industries: selectedCareer.industries || [],
         similarJobs: selectedCareer.similarJobs || [],
         facetSnapshot,
@@ -330,6 +334,7 @@ export const usePathways = () => {
       const { translation, trace: translationTrace } = catalogTranslationService.processTranslation(
         selectedCareer.title,
         rulesFirst,
+        { learnerLevel: searchIntent?.learnerLevel, intentRequiredSkills: searchIntent?.skillsRequired },
       );
       updatedResponseModel.stages.catalogTranslation = {
         durationMs: Date.now() - translationMs,

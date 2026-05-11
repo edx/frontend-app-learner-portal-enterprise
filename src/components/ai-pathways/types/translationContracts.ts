@@ -1,10 +1,17 @@
 export type CatalogSkillField = 'skill_names' | 'skills.name';
 
+export type RetrievalSkillTier = 'broad_anchor' | 'role_differentiator' | 'narrow_signal' | 'noise';
+
 export interface CatalogSkillMatch {
   taxonomySkill: string;
   catalogSkill: string;
   catalogField: CatalogSkillField;
   matchMethod: 'exact' | 'alias' | 'xpert' | 'none';
+  tier?: RetrievalSkillTier;
+  score?: number;
+  source?: 'intent_required' | 'intent_preferred' | 'career_taxonomy';
+  significance?: number;
+  reasons?: string[];
 }
 
 /**
@@ -42,4 +49,6 @@ export interface CatalogSearchIntent {
 export interface CatalogTranslation extends CatalogSearchIntent {
   /** Detailed mapping history for each input skill. */
   skillProvenance: SkillProvenance[];
+  /** Learner level forwarded from intent extraction for reranking. */
+  learnerLevel?: string;
 }

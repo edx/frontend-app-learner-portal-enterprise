@@ -6,90 +6,135 @@ import {
   RetrievalLadderAttempt,
   RetrievalLadderTrace,
   CourseRetrievalHit,
+  CatalogSkillMatch,
 } from '../types';
 
 import {
   COURSE_RETRIEVAL_LIMIT,
   MIN_RESULTS_THRESHOLD,
-  TOP_N_REDUCED_FACETS,
   CONTENT_TYPE_COURSE,
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
 
-/**
- * Formats a facet attribute and value for Algolia filtering.
- */
 const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
-/**
- * Builds the base facet filters required to scope all searches to the relevant content.
- */
 const buildScopedFacetFilters = (): string[][] => {
   const override = true;
   const groups: string[][] = [[CONTENT_TYPE_COURSE], override && [
     'enterprise_catalog_query_titles:Subscription',
   ]].filter(Boolean);
-
   return groups;
 };
 
 /**
- * Build parameters for Step 1: Facet-first with ALL mapped skills.
- * Uses all strictSkillFilters as a single OR group; query is empty string.
+ * Step 1: Hybrid Broad — query + broad-anchor facetFilters + boost optionalFilters.
  */
-const buildStrictParams = (
+const buildHybridBroadParams = (
   translation: CatalogTranslation,
   baseParams: SearchOptions,
 ): SearchOptions => {
-  if (!translation.strictSkillFilters?.length) {
+  if (!translation.strictSkillFilters?.length && !translation.boostSkillFilters?.length) {
     return { ...baseParams, hitsPerPage: 0 };
   }
 
   const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
-  const skillFilters = translation.strictSkillFilters.map(
-    ({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill),
-  );
-  const facetFilters = [...baseFacetFilters, skillFilters];
+  const skillFilters = translation.strictSkillFilters?.length
+    ? translation.strictSkillFilters.map(({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill))
+    : undefined;
+  const boostFilters = translation.boostSkillFilters?.length
+    ? translation.boostSkillFilters.map(({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill))
+    : undefined;
 
-  return { ...baseParams, facetFilters };
+  return {
+    ...baseParams,
+    query: translation.query,
+    ...(skillFilters ? { facetFilters: [...baseFacetFilters, skillFilters] } : {}),
+    ...(boostFilters ? { optionalFilters: boostFilters } : {}),
+  };
 };
 
 /**
- * Build parameters for Step 2: Facet-first with TOP-N mapped skills.
- * Relaxes the filter pressure by using only the top-N skills as an OR group.
+ * Step 2: Boosted Text — query + boost optionalFilters only, no facetFilters.
  */
-const buildReducedFacetParams = (
+const buildBoostedTextParams = (
   translation: CatalogTranslation,
   baseParams: SearchOptions,
 ): SearchOptions => {
-  const topSkills = translation.strictSkillFilters?.slice(0, TOP_N_REDUCED_FACETS) ?? [];
-  if (!topSkills.length) {
+  const query = translation.query || translation.queryAlternates[0] || '';
+  if (!query && !translation.boostSkillFilters?.length) {
     return { ...baseParams, hitsPerPage: 0 };
   }
 
-  const baseFacetFilters = (baseParams.facetFilters as string[][] | undefined) || [];
-  const reducedFilters = topSkills.map(
-    ({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill),
-  );
-  const facetFilters = [...baseFacetFilters, reducedFilters];
+  const boostFilters = translation.boostSkillFilters?.length
+    ? translation.boostSkillFilters.map(({ catalogField, catalogSkill }) => formatFacet(catalogField, catalogSkill))
+    : undefined;
 
-  return { ...baseParams, facetFilters };
+  return {
+    ...baseParams,
+    query,
+    ...(boostFilters ? { optionalFilters: boostFilters } : {}),
+  };
 };
 
 /**
- * Build parameters for Step 3: Text fallback query, no skill filters.
+ * Step 3+: Text fallback query, no skill filters.
  */
 const buildQueryFallbackParams = (
   query: string,
   baseParams: SearchOptions,
-): SearchOptions => ({
-  ...baseParams,
-  query,
-});
+): SearchOptions => ({ ...baseParams, query });
 
 /**
- * Normalizes a raw Algolia course hit into a UI-ready CourseCardModel.
+ * Lightweight post-retrieval reranker that scores courses by skill overlap and level match.
  */
+function rerank(
+  hits: any[],
+  strictSkillFilters: CatalogSkillMatch[],
+  boostSkillFilters: CatalogSkillMatch[],
+  learnerLevel?: string,
+): any[] {
+  if (!strictSkillFilters.length && !boostSkillFilters.length && !learnerLevel) {
+    return hits;
+  }
+
+  const strictNames = new Set(strictSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
+  const boostNames = new Set(boostSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
+  const levelOrder: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 };
+
+  return hits
+    .map((hit, originalIdx) => {
+      const hitSkills: string[] = [
+        ...(Array.isArray(hit.skill_names) ? hit.skill_names : []),
+        ...(Array.isArray(hit['skills.name']) ? hit['skills.name'] : []),
+      ].map((s: string) => s.toLowerCase());
+
+      const strictMatches = hitSkills.filter((s) => strictNames.has(s)).length;
+      const boostMatches = hitSkills.filter((s) => boostNames.has(s)).length;
+
+      const hitLevel = (hit.level || hit.difficulty || hit.level_type || '').toLowerCase();
+      let levelBonus = 0;
+      if (learnerLevel && hitLevel) {
+        const target = levelOrder[learnerLevel] ?? 1;
+        let actual: number;
+        if (hitLevel.includes('beginner') || hitLevel.includes('introductory')) {
+          actual = 0;
+        } else if (hitLevel.includes('intermediate')) {
+          actual = 1;
+        } else {
+          actual = 2;
+        }
+        const diff = Math.abs(actual - target);
+        if (diff === 0) { levelBonus = 2; } else if (diff === 1) { levelBonus = 1; }
+      }
+
+      return {
+        hit, score: strictMatches * 10 + boostMatches * 3 + levelBonus, originalIdx,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.originalIdx - b.originalIdx)
+    .map(({ hit }) => hit);
+}
+
 const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
   id: hit.id || hit.objectID,
   title: hit.title || hit.name || '',
@@ -107,10 +152,10 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
  * Service for fetching and ranking courses from the Algolia catalog index.
  *
  * Retrieval Ladder:
- * 1. Facet-First (All Skills): query='', facetFilters=[ALL mapped skills OR'd] — high precision
- * 2. Facet-First (Top Skills): query='', facetFilters=[TOP-3 mapped skills OR'd] — relaxed
- * 3. Text Fallback:            query=careerTitle, no skill filters — recall-focused
- * 4. Scope Only:               query='', base filters only — always succeeds
+ * 1. Hybrid Broad:    query + broad facetFilters + boost optionalFilters
+ * 2. Boosted Text:    query + boost optionalFilters, no facetFilters
+ * 3. Career Text:     careerTitle query, no skill filters
+ * 4. Scope Only:      empty query, base filters only
  */
 export const courseRetrievalService = {
   async fetchCourses(
@@ -127,51 +172,65 @@ export const courseRetrievalService = {
     const attempts: RetrievalLadderAttempt[] = [];
 
     try {
-      // Step 1: Facet-First (All Skills) — query='', all mapped skills as OR facetFilters
-      const strictParams = buildStrictParams(translation, baseParams);
-      if ((strictParams.hitsPerPage ?? 1) > 0) {
-        const strictResponse = await index.search('', strictParams);
-        const strictHits = strictResponse.hits?.length ?? 0;
+      // Step 1: Hybrid Broad — query + facetFilters (strict) + optionalFilters (boost)
+      const hybridParams = buildHybridBroadParams(translation, baseParams);
+      if ((hybridParams.hitsPerPage ?? 1) > 0) {
+        const hybridResponse = await index.search(translation.query || '', hybridParams);
+        const hybridHits = hybridResponse.hits?.length ?? 0;
         attempts.push({
           step: 1,
           label: RETRIEVAL_LADDER_STEPS.STRICT,
-          query: '',
-          facetFilters: strictParams.facetFilters,
-          hitCount: strictHits,
-          winner: strictHits >= MIN_RESULTS_THRESHOLD,
-          hits: (strictResponse.hits || []) as unknown as CourseRetrievalHit[],
+          query: translation.query || '',
+          facetFilters: hybridParams.facetFilters,
+          optionalFilters: hybridParams.optionalFilters,
+          hitCount: hybridHits,
+          winner: hybridHits >= MIN_RESULTS_THRESHOLD,
+          hits: (hybridResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (strictHits >= MIN_RESULTS_THRESHOLD) {
+        if (hybridHits >= MIN_RESULTS_THRESHOLD) {
+          const ranked = rerank(
+            hybridResponse.hits,
+            translation.strictSkillFilters || [],
+            translation.boostSkillFilters || [],
+            translation.learnerLevel,
+          );
           return {
-            courses: strictResponse.hits.map(mapCourseHitToCard),
+            courses: ranked.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 1 },
           };
         }
       }
 
-      // Step 2: Facet-First (Top Skills) — query='', top-N skills as OR facetFilters
-      const reducedParams = buildReducedFacetParams(translation, baseParams);
-      if ((reducedParams.hitsPerPage ?? 1) > 0) {
-        const reducedResponse = await index.search('', reducedParams);
-        const reducedHits = reducedResponse.hits?.length ?? 0;
+      // Step 2: Boosted Text — query + optionalFilters, no skill facetFilters
+      const boostedParams = buildBoostedTextParams(translation, baseParams);
+      if ((boostedParams.hitsPerPage ?? 1) > 0) {
+        const boostedQuery = translation.query || translation.queryAlternates[0] || '';
+        const boostedResponse = await index.search(boostedQuery, boostedParams);
+        const boostedHits = boostedResponse.hits?.length ?? 0;
         attempts.push({
           step: 2,
           label: RETRIEVAL_LADDER_STEPS.BOOST,
-          query: '',
-          facetFilters: reducedParams.facetFilters,
-          hitCount: reducedHits,
-          winner: reducedHits >= MIN_RESULTS_THRESHOLD,
-          hits: (reducedResponse.hits || []) as unknown as CourseRetrievalHit[],
+          query: boostedQuery,
+          optionalFilters: boostedParams.optionalFilters,
+          hitCount: boostedHits,
+          winner: boostedHits >= MIN_RESULTS_THRESHOLD,
+          hits: (boostedResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (reducedHits >= MIN_RESULTS_THRESHOLD) {
+        if (boostedHits >= MIN_RESULTS_THRESHOLD) {
+          const ranked = rerank(
+            boostedResponse.hits,
+            translation.strictSkillFilters || [],
+            translation.boostSkillFilters || [],
+            translation.learnerLevel,
+          );
           return {
-            courses: reducedResponse.hits.map(mapCourseHitToCard),
+            courses: ranked.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 2 },
           };
         }
       }
 
-      // Step 3: Text Fallback — careerTitle (from queryAlternates) and/or translation.query
+      // Step 3: Text Fallback — careerTitle and/or translation.query
       const queries = [translation.query, ...translation.queryAlternates].filter(Boolean);
       for (const q of queries) {
         const queryParams = buildQueryFallbackParams(q, baseParams);

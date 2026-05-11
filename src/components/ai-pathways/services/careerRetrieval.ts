@@ -9,7 +9,10 @@ import {
 import {
   CAREER_RETRIEVAL_LIMIT,
   FACET_FIELDS,
+  CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT,
+  CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT,
 } from '../constants';
+import { isMalformedCompound } from './skillTiering';
 
 /**
  * Utility to clean and normalize search strings.
@@ -116,14 +119,19 @@ const buildFilters = (intent: XpertIntent): string | undefined => {
 
 /**
  * Constructs the Algolia optional filters (boosting) based on the extracted intent.
- * Required skills are boosted more heavily than preferred skills.
- *
- * @param intent The structured search intent.
- * @returns An array of Algolia optional filter strings, or undefined.
+ * Required (broad) skills are boosted from skillsRequired; preferred (tools/languages)
+ * are boosted at a lower weight, capped, and excluded for beginner learners.
  */
 const buildOptionalFilters = (intent: XpertIntent): string[] | undefined => {
-  const requiredSkills = dedupeStrings(intent.skillsRequired || []);
-  const preferredSkills = dedupeStrings(intent.skillsPreferred || []);
+  const requiredSkills = dedupeStrings(intent.skillsRequired || [])
+    .filter((s) => !isMalformedCompound(s))
+    .slice(0, CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT);
+
+  const preferredSkills = intent.learnerLevel === 'beginner'
+    ? []
+    : dedupeStrings(intent.skillsPreferred || [])
+      .filter((s) => !isMalformedCompound(s))
+      .slice(0, CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT);
 
   const optionalFilters = [
     ...requiredSkills.map((skill) => buildOptionalSkillFilter(skill)),

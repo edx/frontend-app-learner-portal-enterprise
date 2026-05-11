@@ -5,9 +5,37 @@ const mockSearch = jest.fn();
 const mockIndex = { search: mockSearch } as any;
 
 describe('courseRetrievalService', () => {
-  /** Facet-first mode: skills mapped, query is empty string. */
+  /** Hybrid-broad mode: broad anchors in strict, narrow signals in boost. */
+  const hybridBroadTranslation: CatalogTranslation = {
+    query: 'cloud computing devops',
+    queryAlternates: ['Full Stack Engineer'],
+    strictSkillFilters: [
+      {
+        taxonomySkill: 'Cloud Computing', catalogSkill: 'Cloud Computing',
+        catalogField: 'skill_names', matchMethod: 'exact', tier: 'broad_anchor',
+      },
+      {
+        taxonomySkill: 'DevOps', catalogSkill: 'DevOps',
+        catalogField: 'skill_names', matchMethod: 'exact', tier: 'broad_anchor',
+      },
+    ],
+    boostSkillFilters: [
+      {
+        taxonomySkill: 'Python', catalogSkill: 'Python',
+        catalogField: 'skill_names', matchMethod: 'exact', tier: 'narrow_signal',
+      },
+      {
+        taxonomySkill: 'JSON', catalogSkill: 'JSON',
+        catalogField: 'skill_names', matchMethod: 'exact', tier: 'narrow_signal',
+      },
+    ],
+    droppedTaxonomySkills: [],
+    skillProvenance: [],
+  };
+
+  /** Legacy facet-first mode: matched skills, no boost tier info. */
   const facetFirstTranslation: CatalogTranslation = {
-    query: '',
+    query: 'python sql',
     queryAlternates: ['Software Engineer'],
     strictSkillFilters: [
       {
@@ -36,57 +64,136 @@ describe('courseRetrievalService', () => {
     jest.clearAllMocks();
   });
 
-  describe('step 1: facet-first (all skills)', () => {
-    it('calls search with empty string query and all skills as OR facetFilters', async () => {
+  describe('step 1: hybrid broad (facets + boosts)', () => {
+    it('passes broad-anchor skills as facetFilters and boost skills as optionalFilters', async () => {
       mockSearch.mockResolvedValueOnce({
         hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
       });
 
-      const { courses } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
+      await courseRetrievalService.fetchCourses(hybridBroadTranslation, mockIndex);
 
       expect(mockSearch).toHaveBeenCalledTimes(1);
-      expect(mockSearch).toHaveBeenCalledWith('', expect.objectContaining({
-        facetFilters: expect.arrayContaining([
-          expect.arrayContaining(['skill_names:"Python"', 'skill_names:"SQL"']),
+      const [queryArg, paramsArg] = mockSearch.mock.calls[0];
+
+      // Non-empty query is used
+      expect(queryArg).toBe('cloud computing devops');
+
+      // Broad anchors appear in facetFilters (as OR group)
+      expect(paramsArg.facetFilters).toEqual(
+        expect.arrayContaining([
+          expect.arrayContaining([
+            'skill_names:"Cloud Computing"',
+            'skill_names:"DevOps"',
+          ]),
         ]),
-      }));
-      expect(courses).toHaveLength(3);
+      );
+
+      // Narrow boost skills appear in optionalFilters
+      expect(paramsArg.optionalFilters).toEqual(
+        expect.arrayContaining([
+          'skill_names:"Python"',
+          'skill_names:"JSON"',
+        ]),
+      );
+    });
+
+    it('narrow skill (JSON) appears in optionalFilters, NOT in facetFilters skill group', async () => {
+      mockSearch.mockResolvedValueOnce({
+        hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
+      });
+
+      await courseRetrievalService.fetchCourses(hybridBroadTranslation, mockIndex);
+
+      const [, paramsArg] = mockSearch.mock.calls[0];
+
+      // Flatten all strings inside facetFilters to check JSON is absent
+      const facetFilterStrings = (paramsArg.facetFilters as string[][])
+        .flat()
+        .join(' ');
+      expect(facetFilterStrings).not.toContain('"JSON"');
+
+      // JSON must appear in optionalFilters
+      expect((paramsArg.optionalFilters as string[]).some((f: string) => f.includes('"JSON"'))).toBe(true);
     });
 
     it('returns step-1 results when hit count meets MIN_RESULTS_THRESHOLD (3)', async () => {
       mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) });
-      const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
+      const { ladderTrace } = await courseRetrievalService.fetchCourses(hybridBroadTranslation, mockIndex);
       expect(ladderTrace.winnerStep).toBe(1);
+    });
+
+    it('also works for legacy facet-first data (no boost skills)', async () => {
+      mockSearch.mockResolvedValueOnce({
+        hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
+      });
+
+      await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
+
+      expect(mockSearch).toHaveBeenCalledTimes(1);
+      const [, paramsArg] = mockSearch.mock.calls[0];
+      expect(paramsArg.facetFilters).toEqual(
+        expect.arrayContaining([
+          expect.arrayContaining(['skill_names:"Python"', 'skill_names:"SQL"']),
+        ]),
+      );
+      // No boost skills → no optionalFilters from skills
+      expect(paramsArg.optionalFilters).toBeUndefined();
     });
   });
 
-  describe('step 2: facet-first (top skills)', () => {
-    it('falls through to step 2 using facetFilters with reduced skill set', async () => {
+  describe('step 2: boosted text fallback', () => {
+    it('uses query + optionalFilters (boost only) with no skill facetFilters when step 1 misses', async () => {
+      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
+      mockSearch.mockResolvedValueOnce({ hits: Array(4).fill({ objectID: 'c', title: 'Course' }) }); // step 2: hit
+
+      const { ladderTrace } = await courseRetrievalService.fetchCourses(hybridBroadTranslation, mockIndex);
+
+      expect(mockSearch).toHaveBeenCalledTimes(2);
+      const step2Params = mockSearch.mock.calls[1][1];
+
+      // Query must be present (boosted text uses translation.query)
+      expect(mockSearch.mock.calls[1][0]).toBeTruthy();
+
+      // Boost optionalFilters must be present
+      expect(step2Params.optionalFilters).toEqual(
+        expect.arrayContaining(['skill_names:"Python"', 'skill_names:"JSON"']),
+      );
+
+      // No extra skill-based facetFilters beyond the base scope group
+      const facetFilterStrings = (step2Params.facetFilters as string[][]).flat().join(' ');
+      expect(facetFilterStrings).not.toContain('"Cloud Computing"');
+      expect(facetFilterStrings).not.toContain('"DevOps"');
+
+      expect(ladderTrace.winnerStep).toBe(2);
+    });
+
+    it('falls to step 2 for legacy data and preserves base facetFilters without optionalFilters', async () => {
       mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
       mockSearch.mockResolvedValueOnce({ hits: Array(4).fill({ objectID: 'c', title: 'Course' }) }); // step 2: hit
 
       const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
 
       expect(mockSearch).toHaveBeenCalledTimes(2);
-      // Step 2 must use facetFilters (not optionalFilters)
-      const step2Call = mockSearch.mock.calls[1];
-      const step2Params = step2Call[1];
-      expect(step2Params).toHaveProperty('facetFilters');
-      expect(step2Params).not.toHaveProperty('optionalFilters');
+      const step2Params = mockSearch.mock.calls[1][1];
+      expect(step2Params).toHaveProperty('facetFilters'); // base scope facets always present
+      expect(step2Params.optionalFilters).toBeUndefined(); // no boost skills in legacy data
       expect(ladderTrace.winnerStep).toBe(2);
     });
   });
 
   describe('step 3: text fallback', () => {
     it('uses careerTitle from queryAlternates as the text query', async () => {
-      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1
-      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 2
-      mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) }); // step 3
+      // Step 3 iterates [translation.query, ...queryAlternates] — both 'python sql' and 'Software Engineer'
+      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
+      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 2: miss
+      mockSearch.mockResolvedValueOnce({ hits: [] }); // step 3a: 'python sql' miss
+      mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) }); // step 3b: hit
 
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
 
-      expect(mockSearch).toHaveBeenCalledTimes(3);
-      expect(mockSearch.mock.calls[2][0]).toBe('Software Engineer');
+      expect(mockSearch).toHaveBeenCalledTimes(4);
+      // step 3b fires with the queryAlternate (careerTitle)
+      expect(mockSearch.mock.calls[3][0]).toBe('Software Engineer');
       expect(courses).toHaveLength(3);
       expect(ladderTrace.winnerStep).toBe(3);
     });
@@ -101,10 +208,13 @@ describe('courseRetrievalService', () => {
 
   describe('step 4: scope-only fallback', () => {
     it('returns scope-only results when all earlier steps produce too few results', async () => {
+      // facetFirstTranslation: query='python sql', queryAlternates=['Software Engineer']
+      // Step 3 iterates both → 2 search calls before step 4
       mockSearch
-        .mockResolvedValueOnce({ hits: [] }) // step 1: strict facets miss
-        .mockResolvedValueOnce({ hits: [] }) // step 2: reduced facets miss
-        .mockResolvedValueOnce({ hits: [] }) // step 3: text fallback miss
+        .mockResolvedValueOnce({ hits: [] }) // step 1: miss
+        .mockResolvedValueOnce({ hits: [] }) // step 2: miss
+        .mockResolvedValueOnce({ hits: [] }) // step 3a: 'python sql' miss
+        .mockResolvedValueOnce({ hits: [] }) // step 3b: 'Software Engineer' miss
         .mockResolvedValueOnce({ hits: [{ objectID: 'fallback', title: 'Fallback Course' }] }); // step 4
 
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
