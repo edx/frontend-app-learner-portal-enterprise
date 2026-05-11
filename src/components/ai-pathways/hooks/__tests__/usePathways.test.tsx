@@ -30,9 +30,9 @@ jest.mock('@edx/frontend-platform', () => ({
 jest.mock('../../../app/data/hooks/useAlgoliaSearch', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../app/data/hooks/useEnterpriseCustomer', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../app/data/hooks/useSearchCatalogs', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('../../hooks/useAlgoliaSearchFromCatalogOverrideKey', () => ({
+jest.mock('../../hooks/useCatalogAlgoliaSearch', () => ({
   __esModule: true,
-  default: jest.fn(() => ({ searchIndex: null, hasOverrideKey: false })),
+  default: jest.fn(() => ({ searchClient: null, searchIndex: null })),
 }));
 jest.mock('../../services/facetBootstrap');
 jest.mock('../../services/intakePreprocessor');
@@ -176,8 +176,8 @@ describe('usePathways hook', () => {
       'Software Engineer',
       expect.anything(),
     );
-    // fetchCourses called with 1 arg: translation only
-    expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(expect.anything());
+    // fetchCourses called with translation + catalogIndex (useCatalogAlgoliaSearch returns null → fallback to mockCatalogIndex)
+    expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(expect.anything(), mockCatalogIndex);
     expect(pathwayAssemblerXpertService.enrichWithReasoning).toHaveBeenCalled();
 
     expect(result.current.currentStep).toBe('pathway');

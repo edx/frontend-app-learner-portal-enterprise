@@ -1,18 +1,8 @@
 import { courseRetrievalService } from '../courseRetrieval';
 import { CatalogTranslation } from '../../types';
 
-// Mock Algolia client construction
 const mockSearch = jest.fn();
-const mockInitIndex = jest.fn(() => ({ search: mockSearch }));
-jest.mock('algoliasearch', () => jest.fn(() => ({ initIndex: mockInitIndex })));
-
-jest.mock('@edx/frontend-platform/config', () => ({
-  getConfig: jest.fn(() => ({
-    ALGOLIA_APP_ID: 'test-app-id',
-    ALGOLIA_SEARCH_API_KEY: 'test-key',
-    ALGOLIA_INDEX_NAME: 'test-index',
-  })),
-}));
+const mockIndex = { search: mockSearch } as any;
 
 describe('courseRetrievalService', () => {
   /** Facet-first mode: skills mapped, query is empty string. */
@@ -52,7 +42,7 @@ describe('courseRetrievalService', () => {
         hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
       });
 
-      const { courses } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { courses } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
 
       expect(mockSearch).toHaveBeenCalledTimes(1);
       expect(mockSearch).toHaveBeenCalledWith('', expect.objectContaining({
@@ -65,7 +55,7 @@ describe('courseRetrievalService', () => {
 
     it('returns step-1 results when hit count meets MIN_RESULTS_THRESHOLD (3)', async () => {
       mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) });
-      const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
       expect(ladderTrace.winnerStep).toBe(1);
     });
   });
@@ -75,7 +65,7 @@ describe('courseRetrievalService', () => {
       mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
       mockSearch.mockResolvedValueOnce({ hits: Array(4).fill({ objectID: 'c', title: 'Course' }) }); // step 2: hit
 
-      const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
 
       expect(mockSearch).toHaveBeenCalledTimes(2);
       // Step 2 must use facetFilters (not optionalFilters)
@@ -93,10 +83,9 @@ describe('courseRetrievalService', () => {
       mockSearch.mockResolvedValueOnce({ hits: [] }); // step 2
       mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) }); // step 3
 
-      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
 
       expect(mockSearch).toHaveBeenCalledTimes(3);
-      // Step 3 should search for 'Software Engineer' (from queryAlternates)
       expect(mockSearch.mock.calls[2][0]).toBe('Software Engineer');
       expect(courses).toHaveLength(3);
       expect(ladderTrace.winnerStep).toBe(3);
@@ -105,8 +94,7 @@ describe('courseRetrievalService', () => {
     it('uses query directly when in text-fallback mode (no skills mapped)', async () => {
       mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c', title: 'Course' }) });
 
-      // When strictSkillFilters is empty, step 1 is skipped; step 3 with the query runs
-      const { courses } = await courseRetrievalService.fetchCourses(textFallbackTranslation);
+      const { courses } = await courseRetrievalService.fetchCourses(textFallbackTranslation, mockIndex);
       expect(courses).toHaveLength(3);
     });
   });
@@ -119,7 +107,7 @@ describe('courseRetrievalService', () => {
         .mockResolvedValueOnce({ hits: [] }) // step 3: text fallback miss
         .mockResolvedValueOnce({ hits: [{ objectID: 'fallback', title: 'Fallback Course' }] }); // step 4
 
-      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
       expect(courses[0].id).toBe('fallback');
       expect(ladderTrace.winnerStep).toBe(4);
     });
@@ -128,7 +116,7 @@ describe('courseRetrievalService', () => {
   describe('error handling', () => {
     it('returns empty courses and null winnerStep on Algolia error', async () => {
       mockSearch.mockRejectedValueOnce(new Error('Algolia error'));
-      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation);
+      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
       expect(courses).toEqual([]);
       expect(ladderTrace.winnerStep).toBeNull();
     });

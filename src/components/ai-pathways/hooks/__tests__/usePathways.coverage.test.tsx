@@ -26,9 +26,9 @@ jest.mock('../../services/intentExtraction.xpert.service');
 jest.mock('../../services/careerRetrieval');
 jest.mock('../../services/courseRetrieval');
 jest.mock('../../services/catalogFacetService');
-jest.mock('../../hooks/useAlgoliaSearchFromCatalogOverrideKey', () => ({
+jest.mock('../../hooks/useCatalogAlgoliaSearch', () => ({
   __esModule: true,
-  default: jest.fn(() => ({ searchIndex: null, hasOverrideKey: false })),
+  default: jest.fn(() => ({ searchClient: null, searchIndex: null })),
 }));
 jest.mock('../../services/catalogTranslationRules');
 jest.mock('../../services/catalogTranslationService');

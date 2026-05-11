@@ -1,7 +1,5 @@
-import { SearchClient } from 'algoliasearch/lite';
+import { SearchIndex } from 'algoliasearch/lite';
 import { SearchOptions } from '@algolia/client-search';
-import algoliasearch from 'algoliasearch';
-import { getConfig } from '@edx/frontend-platform/config';
 import {
   CourseCardModel,
   CatalogTranslation,
@@ -117,14 +115,9 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
 export const courseRetrievalService = {
   async fetchCourses(
     translation: CatalogTranslation,
+    index: SearchIndex,
   ): Promise<{ courses: CourseCardModel[]; ladderTrace: RetrievalLadderTrace }> {
     const scopedFacetFilters = buildScopedFacetFilters();
-    const config = getConfig();
-    const searchClient: SearchClient = algoliasearch(
-      config.ALGOLIA_APP_ID,
-      config.ALGOLIA_SEARCH_API_KEY,
-    );
-    const index = searchClient.initIndex(config.ALGOLIA_INDEX_NAME);
 
     const baseParams: SearchOptions = {
       hitsPerPage: COURSE_RETRIEVAL_LIMIT,

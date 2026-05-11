@@ -4,16 +4,7 @@ import { courseRetrievalService } from '../courseRetrieval';
 import { CatalogFacetSnapshot, TaxonomyTranslationInput } from '../../types';
 
 const mockSearch = jest.fn();
-const mockInitIndex = jest.fn(() => ({ search: mockSearch }));
-jest.mock('algoliasearch', () => jest.fn(() => ({ initIndex: mockInitIndex })));
-
-jest.mock('@edx/frontend-platform/config', () => ({
-  getConfig: jest.fn(() => ({
-    ALGOLIA_APP_ID: 'test-app-id',
-    ALGOLIA_SEARCH_API_KEY: 'test-key',
-    ALGOLIA_INDEX_NAME: 'test-index',
-  })),
-}));
+const mockIndex = { search: mockSearch } as any;
 
 describe('Translation and Retrieval Integration Flow', () => {
   const mockFacetSnapshot: CatalogFacetSnapshot = {
@@ -55,7 +46,7 @@ describe('Translation and Retrieval Integration Flow', () => {
       hits: Array(3).fill({ objectID: 'c1', title: 'Data Analysis Course' }),
     });
 
-    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation, mockIndex);
 
     expect(mockSearch).toHaveBeenCalledTimes(1);
     expect(mockSearch).toHaveBeenCalledWith('', expect.objectContaining({
@@ -84,7 +75,7 @@ describe('Translation and Retrieval Integration Flow', () => {
       hits: Array(3).fill({ objectID: 'c1', title: 'Python Course' }),
     });
 
-    const { courses } = await courseRetrievalService.fetchCourses(translation);
+    const { courses } = await courseRetrievalService.fetchCourses(translation, mockIndex);
 
     expect(courses).toHaveLength(3);
   });
@@ -115,7 +106,7 @@ describe('Translation and Retrieval Integration Flow', () => {
     mockSearch.mockResolvedValueOnce({ hits: [] }); // step 1: miss
     mockSearch.mockResolvedValueOnce({ hits: Array(4).fill({ objectID: 'c2', title: 'Course' }) }); // step 2: hit
 
-    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation, mockIndex);
 
     expect(courses).toHaveLength(4);
     expect(ladderTrace.winnerStep).toBe(2);
@@ -138,7 +129,7 @@ describe('Translation and Retrieval Integration Flow', () => {
       .mockResolvedValueOnce({ hits: [] }) // step 3 text fallback
       .mockResolvedValueOnce({ hits: Array(2).fill({ objectID: 'f1', title: 'Fallback Course' }) }); // step 4
 
-    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation);
+    const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation, mockIndex);
 
     expect(courses[0].title).toBe('Fallback Course');
     expect(ladderTrace.winnerStep).toBe(4);

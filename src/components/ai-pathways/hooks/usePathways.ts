@@ -33,7 +33,7 @@ import { catalogTranslationService } from '../services/catalogTranslationService
 import { mergeTags, mergeDiscovery } from '../utils/discoveryUtils';
 import { FEATURE_STEPS, COURSE_STATUSES } from '../constants';
 import { DEFAULT_XPERT_RAG_TAGS } from '../constants/retrieval.constants';
-import useAlgoliaSearchFromCatalogOverrideKey from './useAlgoliaSearchFromCatalogOverrideKey';
+import useCatalogAlgoliaSearch from './useCatalogAlgoliaSearch';
 
 /**
  * Union type representing the possible steps in the AI Pathways generation flow.
@@ -134,9 +134,9 @@ export const usePathways = () => {
     shouldUseSecuredAlgoliaApiKey,
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME);
 
-  const { searchIndex: overrideCatalogIndex, hasOverrideKey } = useAlgoliaSearchFromCatalogOverrideKey();
+  const { searchIndex: catalogAlgoliaSearchIndex } = useCatalogAlgoliaSearch();
 
-  const currentCatalogIndex = hasOverrideKey ? overrideCatalogIndex : catalogIndex;
+  const currentCatalogIndex = catalogAlgoliaSearchIndex ?? catalogIndex;
 
   const enterpriseCustomerResult = useEnterpriseCustomer();
   const enterpriseCustomer = (enterpriseCustomerResult.data || {}) as { uuid?: string, slug?: string };
@@ -339,8 +339,8 @@ export const usePathways = () => {
 
       // 4. Course Retrieval (Progressive Discovery stage)
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(
-        // currentCatalogIndex,
         translation,
+        currentCatalogIndex,
       );
       updatedResponseModel.stages.retrievalLadder = {
         durationMs: 0,
