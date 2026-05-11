@@ -70,7 +70,7 @@ describe('usePathways coverage gaps', () => {
   });
 
   it('handles case with no career matches', async () => {
-    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue([]);
+    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue({ careers: [], trace: {} });
     const { result } = renderHook(() => usePathways(), { wrapper });
 
     await act(async () => {
@@ -82,7 +82,7 @@ describe('usePathways coverage gaps', () => {
   });
 
   it('uses username if name is missing', async () => {
-    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue([{ title: 'Dev' }]);
+    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue({ careers: [{ title: 'Dev' }], trace: {} });
     const { result } = renderHook(() => usePathways(), {
       wrapper: ({ children }: any) => (
         <AppContext.Provider value={{ authenticatedUser: { username: 'only-username' } } as any}>
@@ -99,7 +99,7 @@ describe('usePathways coverage gaps', () => {
   });
 
   it('handles selectCareer when career is not found in rawCareers', async () => {
-    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue([{ title: 'Dev' }]);
+    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue({ careers: [{ title: 'Dev' }], trace: {} });
     const { result } = renderHook(() => usePathways(), { wrapper });
 
     await act(async () => {

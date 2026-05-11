@@ -7,6 +7,7 @@ import {
   LearnerLevel,
   CatalogSkillMatch,
 } from '../types';
+import type { RetrievalSkillTier } from '../types/translationContracts';
 import {
   MAX_STRICT_SKILLS,
   MAX_BOOST_SKILLS,
@@ -29,6 +30,26 @@ import {
  *   falls back to original behavior (all matches → strictSkillFilters)
  */
 export const catalogTranslationService = {
+  /**
+   * Converts rules-first mapping candidates into a fully grounded `CatalogTranslation`
+   * ready for the course retrieval ladder.
+   *
+   * The translation strategy depends on what tiering metadata is available:
+   * - **Hybrid-broad** (primary): broad_anchor skills → `strictSkillFilters` (facetFilters);
+   *   role_differentiator + narrow_signal → `boostSkillFilters` (optionalFilters).
+   * - **Strict-only** (legacy): no tier metadata present — all matches go to `strictSkillFilters`.
+   * - **Promote** (fallback): only role_differentiators/narrow_signals available — up to 2
+   *   are promoted to strict to guarantee some facet-based recall.
+   *
+   * The query is derived from `intentRequiredSkills` when available, otherwise from the
+   * broad anchor catalog names, falling back to the career title.
+   *
+   * @param careerTitle The selected career title; used as a text-fallback query.
+   * @param rulesFirst The output of `catalogTranslationRules.translateTaxonomyToCatalog`.
+   * @param options Optional learner level (controls strict skill caps) and intent required skills
+   *   (used to build the primary query string).
+   * @returns A CatalogTranslation for retrieval and a CatalogTranslationTrace for debugging.
+   */
   processTranslation(
     careerTitle: string,
     rulesFirst: RulesFirstCandidates,
@@ -105,6 +126,35 @@ export const catalogTranslationService = {
       + rulesFirst.aliasSkillFilters.length
       + rulesFirst.unmatched.length;
 
+    let strictSelectionReason: string;
+    if (broadAnchors.length > 0) {
+      strictSelectionReason = 'Broad anchor skills selected for stable catalog recall.';
+    } else if (noTierMatches.length > 0) {
+      strictSelectionReason = 'Legacy path: all matches used as strict filters (no tier metadata).';
+    } else {
+      strictSelectionReason = 'Role differentiators promoted to strict (no broad anchors available).';
+    }
+
+    const boostSelectionReason = boostSkillFilters.length > 0
+      ? 'Role differentiators and narrow signals retained as optional boosts.'
+      : 'No boost signals available.';
+
+    const tierCounts = allMatches.reduce((acc, m) => {
+      if (m.tier) {
+        acc[m.tier] = (acc[m.tier] ?? 0) + 1;
+      }
+      return acc;
+    }, {} as Partial<Record<RetrievalSkillTier, number>>);
+
+    let querySource: CatalogTranslationTrace['querySource'];
+    if (options.intentRequiredSkills?.length) {
+      querySource = 'intent_required';
+    } else if (strictSkillFilters.length > 0) {
+      querySource = 'strict_filters';
+    } else {
+      querySource = 'career_title';
+    }
+
     const trace: CatalogTranslationTrace = {
       query: finalIntent.query,
       queryAlternates: finalIntent.queryAlternates,
@@ -120,6 +170,12 @@ export const catalogTranslationService = {
       facetMatchRate: totalInputSkills > 0
         ? Math.round((allMatches.length / totalInputSkills) * 100) / 100
         : 0,
+      strictSelectionReason,
+      boostSelectionReason,
+      droppedTaxonomySkills: [...rulesFirst.unmatched],
+      tierCounts,
+      querySource,
+      learnerLevel: options.learnerLevel,
     };
 
     const translation: CatalogTranslation = {
@@ -131,6 +187,20 @@ export const catalogTranslationService = {
     return { translation, trace };
   },
 
+  /**
+   * Builds a flat per-skill audit trail from all three outcome buckets of a rules-first
+   * mapping run: exact matches, alias matches, and unmatched skills.
+   *
+   * Each entry records how a taxonomy skill was resolved to a catalog term (or not),
+   * preserving both the source name and the Algolia field it was found in. This provenance
+   * array is attached to the `CatalogTranslation` and surfaced in the DebugConsole
+   * "Rules-First Mapping" section so every skill's fate is visible without parsing raw data.
+   *
+   * @param rulesFirst The output of `catalogTranslationRules.translateTaxonomyToCatalog`,
+   *   containing `exactSkillFilters`, `aliasSkillFilters`, and `unmatched` arrays.
+   * @returns An array of `SkillProvenance` entries — one per input skill — covering
+   *   all exact, alias, and unmatched outcomes.
+   */
   buildSkillProvenance(rulesFirst: RulesFirstCandidates): SkillProvenance[] {
     const provenance: SkillProvenance[] = [];
 

@@ -1,13 +1,17 @@
 import { RulesFirstCandidates, TaxonomyTranslationInput } from '../types/catalogTranslation';
 import {
-  CatalogSkillMatch, RulesFirstMappingTrace, SkillSignal,
+  CatalogSkillMatch, RulesFirstMappingTrace, SkillSignal, TieredSkillTrace,
 } from '../types';
 import { CATALOG_ALIAS_MAP } from '../constants';
 import { tierAllSignals } from './skillTiering';
 
 /**
- * Normalizes a term for catalog alias matching and comparison.
- * Trims whitespace and converts to lowercase for consistent case-insensitive lookup.
+ * Normalises a term for catalog alias matching and comparison.
+ * Trims whitespace and converts to lowercase so that lookups against the
+ * facet snapshot and the `CATALOG_ALIAS_MAP` are always case-insensitive.
+ *
+ * @param term The raw skill or subject term to normalise.
+ * @returns The trimmed, lowercased version of the term.
  */
 export const normalizeCatalogTerm = (term: string): string => term.trim().toLowerCase();
 
@@ -19,6 +23,27 @@ export const normalizeCatalogTerm = (term: string): string => term.trim().toLowe
  * taxonomy data into the specific course catalog.
  */
 export const catalogTranslationRules = {
+  /**
+   * Translates a list of taxonomy skill signals into validated Algolia facet parameters
+   * using deterministic rules — no AI calls at this stage.
+   *
+   * The process:
+   * 1. Builds a normalised lookup map from the `CatalogFacetSnapshot` (all known skill values).
+   * 2. Passes the skills through `skillTiering.tierAllSignals` to assign each signal a
+   *    `RetrievalSkillTier` (`broad_anchor`, `role_differentiator`, `narrow_signal`, `noise`).
+   * 3. Checks each tiered signal against the facet snapshot via exact case-insensitive match,
+   *    then falls back to the `CATALOG_ALIAS_MAP` for curated synonyms.
+   * 4. Splits matched signals into `exactSkillFilters` and `aliasSkillFilters`; unresolved
+   *    signals go into `unmatched`.
+   *
+   * The returned `RulesFirstMappingTrace` records every tiered signal's outcome (`decision`,
+   * `catalogSkill`, `matchMethod`, significance, etc.) and is consumed by the DebugConsole.
+   *
+   * @param input Contains the `skills` array (from intent + career taxonomy) and the
+   *   `facetSnapshot` capturing valid catalog values for the learner's specific catalog.
+   * @returns An object with `result` (the grounded facet candidates) and `trace` (full
+   *   audit trail for every skill signal processed).
+   */
   translateTaxonomyToCatalog(
     input: TaxonomyTranslationInput,
   ): { result: RulesFirstCandidates; trace: RulesFirstMappingTrace } {
@@ -148,13 +173,57 @@ export const catalogTranslationRules = {
       .filter((s) => s.tier === 'noise')
       .map((s) => s.name);
 
-    const broadAnchorCatalogSkills = [...exactSkillFilters, ...aliasSkillFilters]
+    const allMatchedFilters = [...exactSkillFilters, ...aliasSkillFilters];
+    const matchedByNormalizedName = new Map(
+      allMatchedFilters.map((f) => [normalizeCatalogTerm(f.taxonomySkill), f]),
+    );
+
+    const broadAnchorCatalogSkills = allMatchedFilters
       .filter((f) => f.tier === 'broad_anchor')
       .map((f) => f.catalogSkill);
 
-    const boostCatalogSkills = [...exactSkillFilters, ...aliasSkillFilters]
+    const boostCatalogSkills = allMatchedFilters
       .filter((f) => f.tier === 'role_differentiator' || f.tier === 'narrow_signal')
       .map((f) => f.catalogSkill);
+
+    const roleDifferentiatorMatches = tieredSignals
+      .filter((s) => s.tier === 'role_differentiator')
+      .map((s) => s.name);
+
+    const narrowSignalMatches = tieredSignals
+      .filter((s) => s.tier === 'narrow_signal')
+      .map((s) => s.name);
+
+    const tieringTrace: TieredSkillTrace[] = tieredSignals.map((s) => {
+      const match = matchedByNormalizedName.get(s.normalizedName);
+
+      let decision: TieredSkillTrace['decision'];
+      if (s.tier === 'noise') {
+        decision = 'dropped';
+      } else if (!match) {
+        decision = 'unmatched';
+      } else if (s.tier === 'broad_anchor') {
+        decision = 'strict';
+      } else {
+        decision = 'boost';
+      }
+
+      return {
+        name: s.name,
+        normalizedName: s.normalizedName,
+        source: s.source,
+        tier: s.tier,
+        score: s.score,
+        significance: s.significance,
+        uniquePostings: s.uniquePostings,
+        typeName: s.typeName,
+        reasons: s.reasons,
+        catalogSkill: match?.catalogSkill,
+        catalogField: match?.catalogField,
+        matchMethod: match?.matchMethod,
+        decision,
+      };
+    });
 
     const trace: RulesFirstMappingTrace = {
       termsConsidered: termsToTranslate.length,
@@ -166,15 +235,12 @@ export const catalogTranslationRules = {
       unmatched: result.unmatched,
       broadAnchorMatches: broadAnchorCatalogSkills,
       boostMatches: boostCatalogSkills,
+      roleDifferentiatorMatches,
+      narrowSignalMatches,
+      strictCandidateCount: tieredSignals.filter((s) => s.tier === 'broad_anchor').length,
+      boostCandidateCount: tieredSignals.filter((s) => s.tier === 'role_differentiator' || s.tier === 'narrow_signal').length,
       noiseDropped,
-      tieringTrace: tieredSignals.map((s) => ({
-        name: s.name,
-        tier: s.tier,
-        source: s.source,
-        significance: s.significance,
-        score: s.score,
-        reasons: s.reasons,
-      })),
+      tieringTrace,
     };
 
     return { result, trace };

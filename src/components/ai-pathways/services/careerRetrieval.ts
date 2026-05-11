@@ -4,6 +4,7 @@ import {
   XpertIntent,
   CareerCardModel,
   TaxonomyResult,
+  CareerRetrievalTrace,
 } from '../types';
 
 import {
@@ -15,12 +16,19 @@ import {
 import { isMalformedCompound } from './skillTiering';
 
 /**
- * Utility to clean and normalize search strings.
+ * Trims and coerces a nullable value to a clean string.
+ *
+ * @param value The raw input value.
+ * @returns The trimmed string, or an empty string if null/undefined.
  */
 const normalizeString = (value?: string | null): string => (value || '').trim();
 
 /**
- * Escapes and quotes a facet value for use in Algolia filters.
+ * Wraps a skill or taxonomy value in double-quotes and escapes any embedded quotes
+ * so it can be passed safely as an Algolia facet filter value.
+ *
+ * @param value The raw facet value to escape.
+ * @returns A double-quoted, escape-safe string.
  */
 const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
 
@@ -42,12 +50,19 @@ const buildOptionalSkillFilter = (skill: string, score?: number): string => {
 };
 
 /**
- * Checks if a value is a non-empty, trimmed string.
+ * Type-guard that returns true when the trimmed value is a non-empty string.
+ *
+ * @param value The value to test.
+ * @returns Whether the value is a non-empty string after trimming.
  */
 const isNonEmptyString = (value?: string | null): value is string => Boolean(normalizeString(value));
 
 /**
- * Removes duplicates and empty values from a string array.
+ * Normalises, filters, and deduplicates a list of raw skill or filter strings.
+ * Removes empty, null, and repeat values while preserving first-occurrence order.
+ *
+ * @param values Raw values which may include nulls, undefineds, or duplicates.
+ * @returns A clean array of unique, non-empty strings.
  */
 const dedupeStrings = (values: Array<string | undefined | null>): string[] => {
   const seen = new Set<string>();
@@ -118,27 +133,64 @@ const buildFilters = (intent: XpertIntent): string | undefined => {
 };
 
 /**
- * Constructs the Algolia optional filters (boosting) based on the extracted intent.
- * Required (broad) skills are boosted from skillsRequired; preferred (tools/languages)
- * are boosted at a lower weight, capped, and excluded for beginner learners.
+ * Builds Algolia `optionalFilters` (soft-boosting) from the intent's required and preferred skills.
+ *
+ * Required skills are treated as high-weight optional signals; preferred skills (tools, languages)
+ * are added at a lower weight and are excluded entirely for beginner learners to avoid over-narrowing.
+ * Malformed compound skill strings (e.g. "JavaScript / TypeScript") are skipped and recorded in
+ * `droppedSkillInputs` so callers can surface them in debug traces.
+ *
+ * @param intent The structured search intent produced by the Xpert extraction stage.
+ * @returns An object containing the built `optionalFilters` array plus trace arrays
+ *   (`requiredSkillFilters`, `preferredSkillFilters`, `droppedSkillInputs`) for audit visibility.
  */
-const buildOptionalFilters = (intent: XpertIntent): string[] | undefined => {
-  const requiredSkills = dedupeStrings(intent.skillsRequired || [])
+const buildOptionalFiltersWithTrace = (intent: XpertIntent): {
+  optionalFilters: string[] | undefined;
+  requiredSkillFilters: string[];
+  preferredSkillFilters: string[];
+  droppedSkillInputs: CareerRetrievalTrace['droppedSkillInputs'];
+} => {
+  const droppedSkillInputs: CareerRetrievalTrace['droppedSkillInputs'] = [];
+
+  const allRequired = dedupeStrings(intent.skillsRequired || []);
+  const allPreferred = dedupeStrings(intent.skillsPreferred || []);
+
+  // Identify and record malformed compounds
+  allRequired.forEach((s) => {
+    if (isMalformedCompound(s)) droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' });
+  });
+  allPreferred.forEach((s) => {
+    if (isMalformedCompound(s)) droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' });
+  });
+
+  // Record preferred skills excluded due to beginner level
+  if (intent.learnerLevel === 'beginner') {
+    allPreferred.filter((s) => !isMalformedCompound(s)).forEach((s) => {
+      droppedSkillInputs!.push({ skill: s, reason: 'beginner-level-excluded' });
+    });
+  }
+
+  const requiredSkillFilters = allRequired
     .filter((s) => !isMalformedCompound(s))
     .slice(0, CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT);
 
-  const preferredSkills = intent.learnerLevel === 'beginner'
+  const preferredSkillFilters = intent.learnerLevel === 'beginner'
     ? []
-    : dedupeStrings(intent.skillsPreferred || [])
+    : allPreferred
       .filter((s) => !isMalformedCompound(s))
       .slice(0, CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT);
 
   const optionalFilters = [
-    ...requiredSkills.map((skill) => buildOptionalSkillFilter(skill)),
-    ...preferredSkills.map((skill) => buildOptionalSkillFilter(skill, 1)),
+    ...requiredSkillFilters.map((skill) => buildOptionalSkillFilter(skill)),
+    ...preferredSkillFilters.map((skill) => buildOptionalSkillFilter(skill, 1)),
   ];
 
-  return optionalFilters.length ? optionalFilters : undefined;
+  return {
+    optionalFilters: optionalFilters.length ? optionalFilters : undefined,
+    requiredSkillFilters,
+    preferredSkillFilters,
+    droppedSkillInputs,
+  };
 };
 
 /**
@@ -174,19 +226,35 @@ const buildCareerQuery = (intent: XpertIntent): string => {
  */
 export const careerRetrievalService = {
   /**
-   * Searches the taxonomy index for careers matching the provided intent.
+   * Queries the Algolia taxonomy index for professional roles that match the learner's
+   * background and goals, then shapes the raw hits into UI-ready `CareerCardModel`s.
    *
-   * @param index The Algolia SearchIndex for the taxonomy catalog.
-   * @param intent The structured search intent extracted from user input.
-   * @returns A promise resolving to an array of normalized CareerCardModels.
+   * The query is derived from the intent's `condensedQuery` (AI-generated) or falls back
+   * to required roles/skills. Required skills become high-weight `optionalFilters`; preferred
+   * skills are added at a lower weight but are suppressed for beginner learners. Hard
+   * `filters` scope by industry or job source when provided.
+   *
+   * After the search, a `CareerRetrievalTrace` is assembled recording the exact query
+   * parameters sent, which skills were used or dropped, and per-result summaries with top
+   * skills sorted by Lightcast significance — all surfaced in the DebugConsole.
+   *
+   * @param index The Algolia `SearchIndex` pointing to the taxonomy (career) catalog.
+   * @param intent The structured intent produced by the Xpert extraction stage.
+   * @returns A promise resolving to `{ careers, trace }` — the career cards and
+   *   the full retrieval trace for debugging.
    */
   async searchCareers(
     index: SearchIndex,
     intent: XpertIntent,
-  ): Promise<CareerCardModel[]> {
+  ): Promise<{ careers: CareerCardModel[]; trace: CareerRetrievalTrace }> {
     const query = buildCareerQuery(intent);
     const filters = buildFilters(intent);
-    const optionalFilters = buildOptionalFilters(intent);
+    const {
+      optionalFilters,
+      requiredSkillFilters,
+      preferredSkillFilters,
+      droppedSkillInputs,
+    } = buildOptionalFiltersWithTrace(intent);
 
     const searchParams: Record<string, unknown> = {
       hitsPerPage: CAREER_RETRIEVAL_LIMIT,
@@ -201,7 +269,39 @@ export const careerRetrievalService = {
     }
 
     const response = await index.search<TaxonomyResult>(query, searchParams);
+    const { hits } = response;
 
-    return response.hits.map(mapTaxonomyResultToCareerCard);
+    const resultSummaries: CareerRetrievalTrace['resultSummaries'] = hits.map((hit) => ({
+      id: String(hit.id || hit.objectID || ''),
+      title: hit.name || '',
+      skillCount: (hit.skills || []).length,
+      topSkills: (hit.skills || [])
+        .slice()
+        .sort((a, b) => (b.significance ?? 0) - (a.significance ?? 0))
+        .slice(0, 5)
+        .map((s) => ({
+          name: s.name,
+          significance: s.significance,
+          uniquePostings: s.unique_postings,
+          typeName: s.type_name,
+        })),
+      industries: hit.industry_names,
+      medianSalary: hit.job_postings?.[0]?.median_salary,
+      uniquePostings: hit.job_postings?.[0]?.unique_postings,
+    }));
+
+    const trace: CareerRetrievalTrace = {
+      query,
+      hitsPerPage: CAREER_RETRIEVAL_LIMIT,
+      filters,
+      optionalFilters: optionalFilters ?? [],
+      requiredSkillFilters,
+      preferredSkillFilters,
+      droppedSkillInputs,
+      learnerLevel: intent.learnerLevel,
+      resultSummaries,
+    };
+
+    return { careers: hits.map(mapTaxonomyResultToCareerCard), trace };
   },
 };

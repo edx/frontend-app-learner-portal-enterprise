@@ -9,6 +9,13 @@ export function isMalformedCompound(name: string): boolean {
   return name.includes(' & ') || name.includes(' + ');
 }
 
+/**
+ * Computes the median value from a numeric array.
+ * Used to produce a significance baseline for relative tier-score boosting.
+ *
+ * @param values Array of numbers to calculate the median from.
+ * @returns The median value, or 0 if the array is empty.
+ */
 function median(values: number[]): number {
   if (!values.length) { return 0; }
   const sorted = [...values].sort((a, b) => a - b);
@@ -19,12 +26,21 @@ function median(values: number[]): number {
 }
 
 /**
- * Classifies a single SkillSignal into a tier.
+ * Classifies a single SkillSignal into a retrieval tier.
  *
- * Tiering is entirely source-driven — no hardcoded skill name lists:
- * - intent_required  → broad_anchor  (Xpert prompt classifies these as broad career areas)
- * - intent_preferred → narrow_signal (Xpert prompt classifies these as tools/languages)
- * - career_taxonomy  → Lightcast type_name determines tier
+ * Tiering is source-driven — no hardcoded skill name lists. The tier controls
+ * whether a skill becomes a hard facet filter (broad_anchor → strict), an
+ * optional boost (role_differentiator / narrow_signal → boost), or is excluded
+ * entirely (noise). The score within each tier is refined by the skill's
+ * Lightcast significance relative to its peers.
+ *
+ * - `intent_required`  → `broad_anchor`  (Xpert classifies these as broad career areas)
+ * - `intent_preferred` → `narrow_signal` (Xpert classifies these as specific tools/languages)
+ * - `career_taxonomy`  → Lightcast `type_name` determines tier, rare skills demoted to `noise`
+ *
+ * @param signal The skill signal to classify.
+ * @param allSignals All sibling signals (used to compute relative significance scores).
+ * @returns The classified TieredSkillSignal with tier, score, and reasons attached.
  */
 export function tierSkillSignal(signal: SkillSignal, allSignals: SkillSignal[] = []): TieredSkillSignal {
   const normalizedName = signal.name.trim().toLowerCase();
@@ -121,8 +137,16 @@ export function tierSkillSignal(signal: SkillSignal, allSignals: SkillSignal[] =
 }
 
 /**
- * Tiers all signals, deduplicating by normalized name and keeping the
- * highest-priority source when duplicates exist (intent_required wins over others).
+ * Tiers a full set of skill signals from all pipeline sources, deduplicating
+ * by normalized name and retaining the highest-priority source when a skill
+ * appears more than once (priority: `intent_required` > `intent_preferred` > `career_taxonomy`).
+ *
+ * This is the entry point for skill tiering during the catalogTranslationRules stage.
+ * Input signals come from: intentRequiredSkills, intentPreferredSkills, and skillDetails
+ * pulled from the selected career's taxonomy record.
+ *
+ * @param signals All skill signals to process, possibly from multiple sources.
+ * @returns An array of TieredSkillSignals, one per unique normalized skill name.
  */
 export function tierAllSignals(signals: SkillSignal[]): TieredSkillSignal[] {
   const SOURCE_PRIORITY: Record<string, number> = {

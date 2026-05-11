@@ -31,16 +31,18 @@ describe('careerRetrievalService', () => {
       skillsRequired: ['React'],
     };
 
-    const result = await careerRetrievalService.searchCareers(mockIndex, intent);
+    const { careers, trace } = await careerRetrievalService.searchCareers(mockIndex, intent);
 
     expect(mockIndex.search).toHaveBeenCalledWith('engineer', expect.objectContaining({
       filters: expect.stringContaining('industry_names:"Tech"'),
       optionalFilters: expect.arrayContaining(['skills.name:"React"']),
     }));
 
-    expect(result).toHaveLength(1);
-    expect(result[0].title).toBe('Software Engineer');
-    expect(result[0].skills).toEqual(['React']);
+    expect(careers).toHaveLength(1);
+    expect(careers[0].title).toBe('Software Engineer');
+    expect(careers[0].skills).toEqual(['React']);
+    expect(trace.query).toBe('engineer');
+    expect(trace.requiredSkillFilters).toContain('React');
   });
 
   it('handles excludeTags in filters', async () => {
@@ -126,5 +128,55 @@ describe('careerRetrievalService', () => {
     const filters: string[] = callArgs.optionalFilters || [];
     expect(filters.some((f) => f.includes('AutomationSQL'))).toBe(false);
     expect(filters.some((f) => f.includes('Cloud Computing'))).toBe(true);
+  });
+
+  it('trace.droppedSkillInputs includes malformed compound skills', async () => {
+    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] });
+
+    const intent = {
+      ...DEFAULT_INTENT,
+      skillsRequired: ['Python & SQL', 'Cloud Computing'],
+    };
+
+    const { trace } = await careerRetrievalService.searchCareers(mockIndex, intent);
+    const dropped = trace.droppedSkillInputs || [];
+    expect(dropped.some((d) => d.skill === 'Python & SQL' && d.reason === 'malformed-compound')).toBe(true);
+    expect(dropped.some((d) => d.skill === 'Cloud Computing')).toBe(false);
+  });
+
+  it('trace.preferredSkillFilters is empty for beginner learner', async () => {
+    (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits: [] });
+
+    const intent = {
+      ...DEFAULT_INTENT,
+      learnerLevel: 'beginner' as const,
+      skillsRequired: ['Cloud Computing'],
+      skillsPreferred: ['AWS', 'Terraform'],
+    };
+
+    const { trace } = await careerRetrievalService.searchCareers(mockIndex, intent);
+    expect(trace.preferredSkillFilters).toHaveLength(0);
+    const dropped = trace.droppedSkillInputs || [];
+    expect(dropped.some((d) => d.skill === 'AWS' && d.reason === 'beginner-level-excluded')).toBe(true);
+  });
+
+  it('trace.resultSummaries contains top skills sorted by significance', async () => {
+    (mockIndex.search as jest.Mock).mockResolvedValueOnce({
+      hits: [{
+        id: '10',
+        name: 'Data Engineer',
+        skills: [
+          { name: 'SQL', significance: 500, unique_postings: 1000, type_name: 'Common Skill' },
+          { name: 'Python', significance: 900, unique_postings: 2000, type_name: 'Common Skill' },
+        ],
+        industry_names: ['Finance'],
+      }],
+    });
+
+    const { trace } = await careerRetrievalService.searchCareers(mockIndex, { ...DEFAULT_INTENT, condensedQuery: 'data' });
+    const summary = trace.resultSummaries?.[0];
+    expect(summary?.skillCount).toBe(2);
+    expect(summary?.topSkills?.[0].name).toBe('Python');
+    expect(summary?.topSkills?.[0].significance).toBe(900);
   });
 });

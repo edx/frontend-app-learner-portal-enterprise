@@ -19,11 +19,19 @@ import { MAX_VALUES_PER_FACET } from '../constants';
  */
 export const facetBootstrapService = {
   /**
-   * Fetches and normalizes the top facet values from the provided Algolia index.
+   * Fetches the top facet values for skills, industries, job roles, and job sources
+   * from the Algolia taxonomy index using a zero-hit search (`hitsPerPage: 0`).
    *
-   * @param index The Algolia SearchIndex instance (typically the taxonomy/job index).
-   * @param context Optional context for enterprise-specific scoping.
-   * @returns A promise resolving to a structured FacetReference object.
+   * The returned `FacetReference` is sorted by occurrence count (descending) so that
+   * the most commonly required terms appear first when injected into the Xpert
+   * intent-extraction system prompt — improving vocabulary coverage without inflating
+   * prompt token usage.
+   *
+   * @param index The Algolia `SearchIndex` instance pointing to the taxonomy (job) catalog.
+   * @param context Optional enterprise context; when `enterpriseCustomerUuid` is provided,
+   *   a `filters` expression scopes the facet retrieval to that enterprise's data only.
+   * @returns A promise resolving to a `FacetReference` with `skills`, `industries`,
+   *   `jobSources`, and `name` arrays, each sorted by Algolia hit count descending.
    */
   async bootstrapFacets(
     index: SearchIndex,

@@ -26,7 +26,20 @@ describe('DebugConsole', () => {
         validationErrors: ['err1'],
         repairPromptUsed: true,
       },
-      careerRetrieval: { durationMs: 150, success: true, resultCount: 2 },
+      careerRetrieval: {
+        durationMs: 150,
+        success: true,
+        resultCount: 2,
+        trace: {
+          query: 'cloud computing',
+          hitsPerPage: 10,
+          requiredSkillFilters: ['Cloud Computing'],
+          preferredSkillFilters: ['Python'],
+          learnerLevel: 'intermediate',
+          droppedSkillInputs: [],
+          resultSummaries: [{ id: '1', title: 'Cloud Engineer', skillCount: 5 }],
+        },
+      },
       catalogFacetSnapshot: {
         durationMs: 50,
         success: true,
@@ -51,6 +64,26 @@ describe('DebugConsole', () => {
           aliasMatches: ['Alias'],
           unmatchedCount: 1,
           unmatched: ['Unmatched'],
+          tieringTrace: [{
+            name: 'Cloud Computing',
+            normalizedName: 'cloud computing',
+            tier: 'broad_anchor' as const,
+            decision: 'strict' as const,
+            source: 'intent_required' as const,
+            score: 80,
+            significance: 1200,
+            uniquePostings: 12000,
+            catalogSkill: 'Cloud Computing',
+            catalogField: 'skill_names' as const,
+            matchMethod: 'exact' as const,
+          }],
+          strictCandidateCount: 1,
+          boostCandidateCount: 0,
+          roleDifferentiatorMatches: [],
+          narrowSignalMatches: [],
+          noiseDropped: [],
+          broadAnchorMatches: ['Cloud Computing'],
+          boostMatches: [],
         },
       },
       catalogTranslation: {
@@ -78,9 +111,27 @@ describe('DebugConsole', () => {
             {
               step: 1,
               label: 'Step 1',
+              searchMode: 'hybrid-broad' as const,
               hitCount: 1,
               winner: true,
               query: 'step 1 query',
+              strictSkillsUsed: ['Cloud Computing'],
+              boostSkillsUsed: [],
+              rerankApplied: true,
+              rerankTrace: {
+                inputCount: 1,
+                outputCount: 1,
+                courseScores: [{
+                  objectID: 'c1',
+                  title: 'Course 1',
+                  originalRank: 0,
+                  finalRank: 0,
+                  score: 10,
+                  matchedStrictSkills: ['Cloud Computing'],
+                  matchedBoostSkills: [],
+                  levelCompatibility: 'matched' as const,
+                }],
+              },
               hits: [{ objectID: 'c1', title: 'Course 1' } as any],
             },
           ],
@@ -91,6 +142,9 @@ describe('DebugConsole', () => {
         success: true,
         resultCount: 1,
         hits: [{ objectID: 'c1', title: 'Course 1' } as any],
+        winnerStep: 1,
+        selectedCourseTitles: ['Cloud Fundamentals'],
+        requestSummary: { winningQuery: 'cloud computing' },
       },
       pathwayEnrichment: {
         durationMs: 300,
@@ -193,5 +247,54 @@ describe('DebugConsole', () => {
       </IntlProvider>,
     );
     expect(screen.getByText(/No courses returned for the winning step./i)).toBeInTheDocument();
+  });
+
+  it('renders hybrid-broad trace data — career retrieval query, tiering table, rerank', () => {
+    render(
+      <IntlProvider locale="en">
+        <DebugConsole response={mockResponse} />
+      </IntlProvider>,
+    );
+
+    // Career retrieval trace
+    expect(screen.getAllByText(/cloud computing/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Required broad filters/i)).toBeInTheDocument();
+
+    // Tiering table
+    expect(screen.getByText(/Skill Tiering Detail/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/broad_anchor/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/strict/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cloud Computing/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1200/i).length).toBeGreaterThan(0);
+
+    // Retrieval ladder hybrid-broad badge
+    expect(screen.getAllByText(/hybrid-broad/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Strict facets/i)).toBeInTheDocument();
+
+    // Course retrieval winner step and selected courses
+    expect(screen.getAllByText(/Winner step/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cloud Fundamentals/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders null-safe with minimal payload (no new trace fields)', () => {
+    const minimalResponse: AIPathwaysResponseModel = {
+      requestId: 'min-req',
+      stages: {
+        facetBootstrap: { durationMs: 10, success: true },
+        intentExtraction: {
+          durationMs: 10, success: true, systemPrompt: '', rawResponse: '',
+          parsedResponse: {}, validationErrors: [], repairPromptUsed: false,
+        },
+        careerRetrieval: { durationMs: 10, success: true, resultCount: 0 },
+        courseRetrieval: { durationMs: 10, success: true, resultCount: 0, hits: [] },
+        pathwayEnrichment: { durationMs: 10, success: true, systemPrompt: '', rawResponse: '' },
+      },
+    };
+
+    expect(() => render(
+      <IntlProvider locale="en">
+        <DebugConsole response={minimalResponse} />
+      </IntlProvider>,
+    )).not.toThrow();
   });
 });

@@ -7,6 +7,7 @@ import {
   RetrievalLadderTrace,
   CourseRetrievalHit,
   CatalogSkillMatch,
+  CourseRerankTrace,
 } from '../types';
 
 import {
@@ -16,8 +17,23 @@ import {
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
 
+/**
+ * Formats a single Algolia facet filter expression for a given attribute and value,
+ * escaping any embedded double-quotes in the value.
+ *
+ * @param attr The Algolia facet attribute name (e.g. `'skill_names'`).
+ * @param value The facet value to match.
+ * @returns A formatted filter string, e.g. `skill_names:"Python"`.
+ */
 const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/"/g, '\\"')}"`;
 
+/**
+ * Builds the base Algolia `facetFilters` groups that scope every retrieval ladder step
+ * to course-type content within the active enterprise subscription catalog.
+ * These filters are applied to all four ladder steps before any skill filters are added.
+ *
+ * @returns An array of facet filter groups (each group is an OR'd array of strings).
+ */
 const buildScopedFacetFilters = (): string[][] => {
   const override = true;
   const groups: string[][] = [[CONTENT_TYPE_COURSE], override && [
@@ -27,7 +43,16 @@ const buildScopedFacetFilters = (): string[][] => {
 };
 
 /**
- * Step 1: Hybrid Broad — query + broad-anchor facetFilters + boost optionalFilters.
+ * Builds Algolia search params for Step 1 of the retrieval ladder (Hybrid Broad).
+ *
+ * Combines the catalog translation query with hard `facetFilters` for each broad-anchor
+ * skill and soft `optionalFilters` for each role-differentiator / narrow-signal skill.
+ * Returns zero-hit params (`hitsPerPage: 0`) when no skill signals are available,
+ * causing this step to be skipped.
+ *
+ * @param translation The grounded `CatalogTranslation` from the catalog translation stage.
+ * @param baseParams The scoped base params (content-type + catalog facet filters).
+ * @returns Merged `SearchOptions` with skill filters injected.
  */
 const buildHybridBroadParams = (
   translation: CatalogTranslation,
@@ -54,7 +79,16 @@ const buildHybridBroadParams = (
 };
 
 /**
- * Step 2: Boosted Text — query + boost optionalFilters only, no facetFilters.
+ * Builds Algolia search params for Step 2 of the retrieval ladder (Boosted Text).
+ *
+ * Uses the translation query (or first alternate) with only soft `optionalFilters` for
+ * boost skills — no hard `facetFilters`. This widens recall relative to Step 1 while
+ * still surfacing skill-relevant results at the top of the ranking.
+ * Returns zero-hit params when neither a query nor boost signals are available.
+ *
+ * @param translation The grounded `CatalogTranslation` from the catalog translation stage.
+ * @param baseParams The scoped base params.
+ * @returns Merged `SearchOptions` with boost-only optional filters.
  */
 const buildBoostedTextParams = (
   translation: CatalogTranslation,
@@ -77,7 +111,15 @@ const buildBoostedTextParams = (
 };
 
 /**
- * Step 3+: Text fallback query, no skill filters.
+ * Builds Algolia search params for Steps 3+ of the retrieval ladder (Text Fallback).
+ *
+ * Uses only the supplied text query with the base scoped filters — no skill facetFilters
+ * or optionalFilters. Called for each query alternate (career title, etc.) when earlier
+ * steps have not reached the minimum result threshold.
+ *
+ * @param query The plain-text query string (e.g. career title or alternate phrase).
+ * @param baseParams The scoped base params.
+ * @returns `SearchOptions` with the text query applied.
  */
 const buildQueryFallbackParams = (
   query: string,
@@ -85,56 +127,110 @@ const buildQueryFallbackParams = (
 ): SearchOptions => ({ ...baseParams, query });
 
 /**
- * Lightweight post-retrieval reranker that scores courses by skill overlap and level match.
+ * Post-retrieval reranker that scores Algolia course hits by skill overlap and level compatibility.
+ *
+ * Scoring rules (applied per hit):
+ * - Each matched strict skill (`strictSkillFilters`) contributes **10 points**.
+ * - Each matched boost skill (`boostSkillFilters`) contributes **3 points**.
+ * - A level that exactly matches `learnerLevel` adds **2 points**; one level off adds **1 point**.
+ *
+ * Hits are sorted descending by score, with original Algolia rank as the tiebreaker.
+ * The returned `CourseRerankTrace` records per-course scores, matched skills, and level
+ * compatibility — surfaced in the DebugConsole "Retrieval Ladder" section.
+ *
+ * @param hits Raw Algolia course hits to rerank.
+ * @param strictSkillFilters Broad-anchor skill matches used as high-weight signals.
+ * @param boostSkillFilters Role-differentiator / narrow-signal matches used as lower-weight signals.
+ * @param learnerLevel Optional learner level (`'beginner' | 'intermediate' | 'advanced'`) for level bonuses.
+ * @returns An object with the reranked `hits` array and a `trace` for debug output.
  */
 function rerank(
   hits: any[],
   strictSkillFilters: CatalogSkillMatch[],
   boostSkillFilters: CatalogSkillMatch[],
   learnerLevel?: string,
-): any[] {
+): { hits: any[]; trace: CourseRerankTrace } {
   if (!strictSkillFilters.length && !boostSkillFilters.length && !learnerLevel) {
-    return hits;
+    return {
+      hits,
+      trace: { inputCount: hits.length, outputCount: hits.length, learnerLevel },
+    };
   }
 
   const strictNames = new Set(strictSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
   const boostNames = new Set(boostSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
   const levelOrder: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 };
 
-  return hits
-    .map((hit, originalIdx) => {
-      const hitSkills: string[] = [
-        ...(Array.isArray(hit.skill_names) ? hit.skill_names : []),
-        ...(Array.isArray(hit['skills.name']) ? hit['skills.name'] : []),
-      ].map((s: string) => s.toLowerCase());
+  const scored = hits.map((hit, originalIdx) => {
+    const hitSkills: string[] = [
+      ...(Array.isArray(hit.skill_names) ? hit.skill_names : []),
+      ...(Array.isArray(hit['skills.name']) ? hit['skills.name'] : []),
+    ].map((s: string) => s.toLowerCase());
 
-      const strictMatches = hitSkills.filter((s) => strictNames.has(s)).length;
-      const boostMatches = hitSkills.filter((s) => boostNames.has(s)).length;
+    const matchedStrictSkills = hitSkills.filter((s) => strictNames.has(s));
+    const matchedBoostSkills = hitSkills.filter((s) => boostNames.has(s));
 
-      const hitLevel = (hit.level || hit.difficulty || hit.level_type || '').toLowerCase();
-      let levelBonus = 0;
-      if (learnerLevel && hitLevel) {
-        const target = levelOrder[learnerLevel] ?? 1;
-        let actual: number;
-        if (hitLevel.includes('beginner') || hitLevel.includes('introductory')) {
-          actual = 0;
-        } else if (hitLevel.includes('intermediate')) {
-          actual = 1;
-        } else {
-          actual = 2;
-        }
-        const diff = Math.abs(actual - target);
-        if (diff === 0) { levelBonus = 2; } else if (diff === 1) { levelBonus = 1; }
+    const hitLevel = (hit.level || hit.difficulty || hit.level_type || '').toLowerCase();
+    let levelBonus = 0;
+    type LevelCompatibility = 'matched' | 'near' | 'mismatch' | 'unknown';
+    let levelCompatibility: LevelCompatibility = 'unknown';
+
+    if (learnerLevel && hitLevel) {
+      const target = levelOrder[learnerLevel] ?? 1;
+      let actual: number;
+      if (hitLevel.includes('beginner') || hitLevel.includes('introductory')) {
+        actual = 0;
+      } else if (hitLevel.includes('intermediate')) {
+        actual = 1;
+      } else {
+        actual = 2;
       }
+      const diff = Math.abs(actual - target);
+      if (diff === 0) { levelBonus = 2; levelCompatibility = 'matched'; } else if (diff === 1) { levelBonus = 1; levelCompatibility = 'near'; } else { levelCompatibility = 'mismatch'; }
+    }
 
-      return {
-        hit, score: strictMatches * 10 + boostMatches * 3 + levelBonus, originalIdx,
-      };
-    })
-    .sort((a, b) => b.score - a.score || a.originalIdx - b.originalIdx)
-    .map(({ hit }) => hit);
+    return {
+      hit,
+      originalIdx,
+      score: matchedStrictSkills.length * 10 + matchedBoostSkills.length * 3 + levelBonus,
+      matchedStrictSkills,
+      matchedBoostSkills,
+      levelType: hitLevel,
+      levelCompatibility,
+    };
+  });
+
+  const sortedScored = scored.sort((a, b) => b.score - a.score || a.originalIdx - b.originalIdx);
+
+  const trace: CourseRerankTrace = {
+    inputCount: hits.length,
+    outputCount: sortedScored.length,
+    learnerLevel,
+    courseScores: sortedScored.map((item, finalRank) => ({
+      objectID: item.hit.objectID || item.hit.id || '',
+      title: item.hit.title || item.hit.name,
+      originalRank: item.originalIdx,
+      finalRank,
+      score: item.score,
+      matchedStrictSkills: item.matchedStrictSkills,
+      matchedBoostSkills: item.matchedBoostSkills,
+      levelType: item.levelType,
+      levelCompatibility: item.levelCompatibility,
+    })),
+  };
+
+  return { hits: sortedScored.map(({ hit }) => hit), trace };
 }
 
+/**
+ * Shapes a raw Algolia course hit into a `CourseCardModel` for display.
+ * Field lookups cover multiple Algolia index schema variants (e.g. `title` vs `name`,
+ * `image_url` vs `card_image_url`) to stay resilient across catalog configurations.
+ *
+ * @param hit The raw Algolia course hit object.
+ * @param idx Zero-based position in the result set, used to set `order` (1-based).
+ * @returns A normalised `CourseCardModel` ready for the pathway assembler.
+ */
 const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
   id: hit.id || hit.objectID,
   title: hit.title || hit.name || '',
@@ -157,7 +253,34 @@ const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
  * 3. Career Text:     careerTitle query, no skill filters
  * 4. Scope Only:      empty query, base filters only
  */
+/**
+ * Service for fetching and ranking courses from the Algolia catalog index
+ * using a four-step retrieval ladder that progressively relaxes constraints
+ * until enough results are found.
+ *
+ * Retrieval Ladder:
+ * 1. **Hybrid Broad**:  query + broad-anchor `facetFilters` + boost `optionalFilters`
+ * 2. **Boosted Text**:  query + boost `optionalFilters` only (no hard skill facetFilters)
+ * 3. **Career Text**:   plain-text query against the career title and alternates
+ * 4. **Scope Only**:    empty query with base catalog/content-type filters (always returns results)
+ *
+ * Each step that reaches `MIN_RESULTS_THRESHOLD` is declared the winner and the ladder
+ * stops. All attempted steps are recorded in `RetrievalLadderTrace` for debug visibility.
+ */
 export const courseRetrievalService = {
+  /**
+   * Executes the retrieval ladder against the Algolia catalog index and returns
+   * the winning course set alongside a full trace of all ladder attempts.
+   *
+   * Courses retrieved from the winning step are post-processed by `rerank()` (Steps 1–2)
+   * to surface the most skill-relevant and level-appropriate results first.
+   *
+   * @param translation The grounded `CatalogTranslation` produced by the catalog translation stage,
+   *   containing the query, strict facet filters, and boost optional filters.
+   * @param index The Algolia `SearchIndex` pointing to the course catalog.
+   * @returns A promise resolving to `{ courses, ladderTrace }` — the winning course cards
+   *   and the full ladder trace (all attempts, winner step) for debugging.
+   */
   async fetchCourses(
     translation: CatalogTranslation,
     index: SearchIndex,
@@ -171,31 +294,47 @@ export const courseRetrievalService = {
 
     const attempts: RetrievalLadderAttempt[] = [];
 
+    const strictSkillsUsed = translation.strictSkillFilters?.map((f) => f.catalogSkill) || [];
+    const boostSkillsUsed = translation.boostSkillFilters?.map((f) => f.catalogSkill) || [];
+    const { learnerLevel } = translation as any;
+
     try {
       // Step 1: Hybrid Broad — query + facetFilters (strict) + optionalFilters (boost)
       const hybridParams = buildHybridBroadParams(translation, baseParams);
       if ((hybridParams.hitsPerPage ?? 1) > 0) {
         const hybridResponse = await index.search(translation.query || '', hybridParams);
         const hybridHits = hybridResponse.hits?.length ?? 0;
+        const isWinner = hybridHits >= MIN_RESULTS_THRESHOLD;
+        const rerankResult = rerank(
+          hybridResponse.hits,
+          translation.strictSkillFilters || [],
+          translation.boostSkillFilters || [],
+          learnerLevel,
+        );
         attempts.push({
           step: 1,
           label: RETRIEVAL_LADDER_STEPS.STRICT,
+          searchMode: 'hybrid-broad',
           query: translation.query || '',
           facetFilters: hybridParams.facetFilters,
           optionalFilters: hybridParams.optionalFilters,
+          strictSkillsUsed,
+          boostSkillsUsed,
+          requestParams: {
+            query: translation.query || '',
+            facetFilters: hybridParams.facetFilters,
+            optionalFilters: hybridParams.optionalFilters,
+            hitsPerPage: hybridParams.hitsPerPage,
+          },
           hitCount: hybridHits,
-          winner: hybridHits >= MIN_RESULTS_THRESHOLD,
+          winner: isWinner,
+          rerankApplied: true,
+          rerankTrace: rerankResult.trace,
           hits: (hybridResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (hybridHits >= MIN_RESULTS_THRESHOLD) {
-          const ranked = rerank(
-            hybridResponse.hits,
-            translation.strictSkillFilters || [],
-            translation.boostSkillFilters || [],
-            translation.learnerLevel,
-          );
+        if (isWinner) {
           return {
-            courses: ranked.map(mapCourseHitToCard),
+            courses: rerankResult.hits.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 1 },
           };
         }
@@ -207,24 +346,36 @@ export const courseRetrievalService = {
         const boostedQuery = translation.query || translation.queryAlternates[0] || '';
         const boostedResponse = await index.search(boostedQuery, boostedParams);
         const boostedHits = boostedResponse.hits?.length ?? 0;
+        const isWinner2 = boostedHits >= MIN_RESULTS_THRESHOLD;
+        const rerankResult2 = rerank(
+          boostedResponse.hits,
+          translation.strictSkillFilters || [],
+          translation.boostSkillFilters || [],
+          learnerLevel,
+        );
         attempts.push({
           step: 2,
           label: RETRIEVAL_LADDER_STEPS.BOOST,
+          searchMode: 'boosted-text',
           query: boostedQuery,
+          facetFilters: boostedParams.facetFilters,
           optionalFilters: boostedParams.optionalFilters,
+          boostSkillsUsed,
+          requestParams: {
+            query: boostedQuery,
+            facetFilters: boostedParams.facetFilters,
+            optionalFilters: boostedParams.optionalFilters,
+            hitsPerPage: boostedParams.hitsPerPage,
+          },
           hitCount: boostedHits,
-          winner: boostedHits >= MIN_RESULTS_THRESHOLD,
+          winner: isWinner2,
+          rerankApplied: true,
+          rerankTrace: rerankResult2.trace,
           hits: (boostedResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (boostedHits >= MIN_RESULTS_THRESHOLD) {
-          const ranked = rerank(
-            boostedResponse.hits,
-            translation.strictSkillFilters || [],
-            translation.boostSkillFilters || [],
-            translation.learnerLevel,
-          );
+        if (isWinner2) {
           return {
-            courses: ranked.map(mapCourseHitToCard),
+            courses: rerankResult2.hits.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 2 },
           };
         }
@@ -237,15 +388,19 @@ export const courseRetrievalService = {
         // eslint-disable-next-line no-await-in-loop
         const queryResponse = await index.search(q, queryParams);
         const queryHits = queryResponse.hits?.length ?? 0;
+        const isWinner3 = queryHits >= MIN_RESULTS_THRESHOLD;
         attempts.push({
           step: 3,
           label: `${RETRIEVAL_LADDER_STEPS.QUERY_ALTERNATE}: ${q}`,
+          searchMode: 'career-text',
           query: q,
+          facetFilters: queryParams.facetFilters,
+          requestParams: { query: q, facetFilters: queryParams.facetFilters, hitsPerPage: queryParams.hitsPerPage },
           hitCount: queryHits,
-          winner: queryHits >= MIN_RESULTS_THRESHOLD,
+          winner: isWinner3,
           hits: (queryResponse.hits || []) as unknown as CourseRetrievalHit[],
         });
-        if (queryHits >= MIN_RESULTS_THRESHOLD) {
+        if (isWinner3) {
           return {
             courses: queryResponse.hits.map(mapCourseHitToCard),
             ladderTrace: { attempts, winnerStep: 3 },
@@ -259,7 +414,10 @@ export const courseRetrievalService = {
       attempts.push({
         step: 4,
         label: RETRIEVAL_LADDER_STEPS.FALLBACK,
+        searchMode: 'scope-only',
         query: '',
+        facetFilters: baseParams.facetFilters,
+        requestParams: { query: '', facetFilters: baseParams.facetFilters, hitsPerPage: baseParams.hitsPerPage },
         hitCount: fallbackHits,
         winner: true,
         hits: (fallbackResponse.hits || []) as unknown as CourseRetrievalHit[],
@@ -270,7 +428,7 @@ export const courseRetrievalService = {
       };
     } catch (error) {
       attempts.push({
-        step: 1, label: 'Error', hitCount: 0, winner: false,
+        step: 1, label: 'Error', searchMode: 'error', hitCount: 0, winner: false,
       });
       return { courses: [], ladderTrace: { attempts, winnerStep: null } };
     }

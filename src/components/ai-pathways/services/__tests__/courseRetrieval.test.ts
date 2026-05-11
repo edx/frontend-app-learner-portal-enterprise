@@ -122,6 +122,22 @@ describe('courseRetrievalService', () => {
       expect(ladderTrace.winnerStep).toBe(1);
     });
 
+    it('step-1 attempt has searchMode=hybrid-broad, rerankApplied=true, and rerankTrace', async () => {
+      mockSearch.mockResolvedValueOnce({ hits: Array(3).fill({ objectID: 'c1', title: 'Course 1' }) });
+      const { ladderTrace } = await courseRetrievalService.fetchCourses(hybridBroadTranslation, mockIndex);
+      const attempt = ladderTrace.attempts[0];
+      expect(attempt.searchMode).toBe('hybrid-broad');
+      expect(attempt.rerankApplied).toBe(true);
+      expect(attempt.rerankTrace).toBeDefined();
+      expect(attempt.rerankTrace?.inputCount).toBe(3);
+      expect(attempt.strictSkillsUsed).toEqual(
+        expect.arrayContaining(['Cloud Computing', 'DevOps']),
+      );
+      expect(attempt.boostSkillsUsed).toEqual(
+        expect.arrayContaining(['Python', 'JSON']),
+      );
+    });
+
     it('also works for legacy facet-first data (no boost skills)', async () => {
       mockSearch.mockResolvedValueOnce({
         hits: Array(3).fill({ objectID: 'c', title: 'Course' }),
@@ -165,6 +181,8 @@ describe('courseRetrievalService', () => {
       expect(facetFilterStrings).not.toContain('"DevOps"');
 
       expect(ladderTrace.winnerStep).toBe(2);
+      const attempt2 = ladderTrace.attempts[1];
+      expect(attempt2.searchMode).toBe('boosted-text');
     });
 
     it('falls to step 2 for legacy data and preserves base facetFilters without optionalFilters', async () => {
@@ -220,6 +238,8 @@ describe('courseRetrievalService', () => {
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(facetFirstTranslation, mockIndex);
       expect(courses[0].id).toBe('fallback');
       expect(ladderTrace.winnerStep).toBe(4);
+      const step4Attempt = ladderTrace.attempts.find((a) => a.step === 4);
+      expect(step4Attempt?.searchMode).toBe('scope-only');
     });
   });
 

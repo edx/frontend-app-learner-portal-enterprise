@@ -218,11 +218,12 @@ export const usePathways = () => {
 
       // 4. Career Retrieval (Deterministic search based on intent)
       const careerStartTime = Date.now();
-      const careers = await careerRetrievalService.searchCareers(jobIndex, intent);
+      const { careers, trace: careerTrace } = await careerRetrievalService.searchCareers(jobIndex, intent);
       responseModel.stages.careerRetrieval = {
         durationMs: Date.now() - careerStartTime,
         success: true,
         resultCount: careers.length,
+        trace: careerTrace,
       };
 
       // 5. Build the UI-facing profile summary
@@ -352,11 +353,20 @@ export const usePathways = () => {
         success: true,
         trace: ladderTrace,
       };
+      const winningAttempt = ladderTrace.attempts?.find((a) => a.winner);
       updatedResponseModel.stages.courseRetrieval = {
         durationMs: Date.now() - courseStartTime,
         success: true,
         resultCount: courses.length,
-        hits: courses.map(c => c.raw as CourseRetrievalHit),
+        hits: courses.map((c) => c.raw as CourseRetrievalHit),
+        winnerStep: ladderTrace.winnerStep,
+        selectedCourseIds: courses.map((c) => c.id),
+        selectedCourseTitles: courses.map((c) => c.title),
+        requestSummary: {
+          winningQuery: winningAttempt?.query,
+          winningFacetFilters: winningAttempt?.facetFilters,
+          winningOptionalFilters: winningAttempt?.optionalFilters,
+        },
       };
 
       // 6. Assembly (Map to LearningPathway shape)

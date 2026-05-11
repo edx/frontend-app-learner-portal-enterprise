@@ -117,7 +117,7 @@ describe('usePathways hook', () => {
       },
     });
 
-    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
+    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue({ careers: mockCareers, trace: {} });
     (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
       snapshot: mockFacetSnapshot, trace: {},
     });
@@ -276,7 +276,7 @@ describe('usePathways — prompt interception', () => {
       },
     });
 
-    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue(mockCareers);
+    (careerRetrievalService.searchCareers as jest.Mock).mockResolvedValue({ careers: mockCareers, trace: {} });
 
     (catalogFacetService.getFacetSnapshot as jest.Mock).mockResolvedValue({
       snapshot: {

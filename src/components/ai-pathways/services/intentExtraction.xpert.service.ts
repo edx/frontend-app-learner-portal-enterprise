@@ -26,14 +26,25 @@ export type PromptInterceptFn = (
  */
 export const intentExtractionXpertService = {
   /**
-   * Main entry point for converting preprocessed user data into a structured search intent.
-   * Includes logic for prompt interception, AI execution, and automatic response repair.
+   * Converts preprocessed intake form data into a structured `XpertIntent` by calling
+   * the Xpert AI platform with a curated system prompt and optional RAG tag scoping.
    *
-   * @param input The cleaned user narrative and preferences from the intake form.
-   * @param facets Optional taxonomy facet values to guide the AI toward valid search terms.
-   * @param interceptPrompt Optional hook to allow manual prompt editing in debug mode.
-   * @returns A result object containing the normalized intent and detailed execution metrics.
-   * @throws Error if the user cancels the generation during prompt interception.
+   * The call flow:
+   * 1. Builds the multi-part system prompt (base instructions + optional facet context).
+   * 2. Passes the prompt through the optional `interceptPrompt` hook so the DebugConsole
+   *    can inspect or modify it before the network call.
+   * 3. Sends the prompt to Xpert and parses the response via `xpertContractService.parseIntent`.
+   * 4. If parsing fails, triggers an automatic repair prompt to recover from common LLM output issues.
+   *
+   * @param input The cleaned user narrative and preferences from `intakePreprocessor.preprocessInput`.
+   * @param facets Optional taxonomy facet values injected into the prompt to guide the AI
+   *   toward skill and role terms that exist in the Algolia taxonomy index.
+   * @param interceptPrompt Optional hook for prompt inspection/modification in debug mode.
+   * @param tags Optional RAG control tags that scope Xpert's document retrieval to a relevant
+   *   knowledge base subset.
+   * @returns A promise resolving to an `XpertExtractionResult` with the normalized intent
+   *   and full execution debug metadata (prompts, raw response, duration, validation errors).
+   * @throws Error if the user cancels generation during prompt interception.
    */
   async extractIntent(
     input: PreprocessedInput,

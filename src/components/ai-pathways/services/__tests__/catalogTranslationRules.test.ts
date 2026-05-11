@@ -195,4 +195,108 @@ describe('catalogTranslationRules', () => {
     expect(result.aliasSkillFilters).toHaveLength(0);
     expect(trace.noiseDropped).toContain('AutomationSQL & Python');
   });
+
+  it('tieringTrace entries have decision=strict for broad_anchor matched skills', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      intentRequiredSkills: ['Cloud Computing'],
+      skills: [],
+      facetSnapshot: {
+        ...mockFacetSnapshot,
+        skill_names: ['Cloud Computing'],
+      },
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const cloudEntry = trace.tieringTrace!.find((t) => t.name === 'Cloud Computing');
+    expect(cloudEntry?.decision).toBe('strict');
+    expect(cloudEntry?.catalogSkill).toBe('Cloud Computing');
+    expect(cloudEntry?.matchMethod).toBe('exact');
+    expect(cloudEntry?.normalizedName).toBeDefined();
+  });
+
+  it('tieringTrace entries have decision=boost for narrow_signal matched skills', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      intentPreferredSkills: ['Python'],
+      skills: [],
+      facetSnapshot: {
+        ...mockFacetSnapshot,
+        skill_names: ['Python'],
+      },
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const pythonEntry = trace.tieringTrace!.find((t) => t.name === 'Python');
+    expect(pythonEntry?.tier).toBe('narrow_signal');
+    expect(pythonEntry?.decision).toBe('boost');
+  });
+
+  it('tieringTrace entries have decision=dropped for noise tier', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      skills: ['AutomationSQL & Python'],
+      facetSnapshot: mockFacetSnapshot,
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const noiseEntry = trace.tieringTrace!.find((t) => t.name === 'AutomationSQL & Python');
+    expect(noiseEntry?.tier).toBe('noise');
+    expect(noiseEntry?.decision).toBe('dropped');
+  });
+
+  it('tieringTrace entries have decision=unmatched for non-noise unmatched skills', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      intentRequiredSkills: ['Quantum Computing'],
+      skills: [],
+      facetSnapshot: { ...mockFacetSnapshot, skill_names: [] },
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const quantumEntry = trace.tieringTrace!.find((t) => t.name === 'Quantum Computing');
+    expect(quantumEntry?.decision).toBe('unmatched');
+    expect(quantumEntry?.catalogSkill).toBeUndefined();
+  });
+
+  it('tieringTrace entries include uniquePostings and typeName from skillDetails', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      intentRequiredSkills: [],
+      skills: ['Python'],
+      skillDetails: [
+        {
+          name: 'Python',
+          significance: 1200,
+          unique_postings: 50000,
+          type_name: 'Common Skill',
+        },
+      ],
+      facetSnapshot: { ...mockFacetSnapshot, skill_names: ['Python'] },
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    const pythonEntry = trace.tieringTrace!.find((t) => t.name === 'Python');
+    expect(pythonEntry?.uniquePostings).toBe(50000);
+    expect(pythonEntry?.typeName).toBe('Common Skill');
+    expect(pythonEntry?.significance).toBe(1200);
+  });
+
+  it('populates roleDifferentiatorMatches and narrowSignalMatches in trace', () => {
+    const input: TaxonomyTranslationInput = {
+      ...defaultInput,
+      intentRequiredSkills: ['Cloud Computing'],
+      intentPreferredSkills: ['Python'],
+      skills: [],
+      facetSnapshot: {
+        ...mockFacetSnapshot,
+        skill_names: ['Cloud Computing', 'Python'],
+      },
+    };
+
+    const { trace } = catalogTranslationRules.translateTaxonomyToCatalog(input);
+    expect(trace.narrowSignalMatches).toContain('Python');
+    expect(trace.strictCandidateCount).toBeGreaterThanOrEqual(1);
+    expect(trace.boostCandidateCount).toBeGreaterThanOrEqual(1);
+  });
 });

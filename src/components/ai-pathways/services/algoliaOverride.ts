@@ -4,13 +4,19 @@ import { getConfig } from '@edx/frontend-platform/config';
 const OVERRIDE_PARAM = 'enterprise_customer_uuid';
 
 /**
- * Dev-only POC: If `?enterprise_customer_uuid=<uuid>` is present, call enterprise-catalog
- * directly to mint a secured Algolia search key for that enterprise.
+ * Dev-only override: reads an `?enterprise_customer_uuid=<uuid>` query param and,
+ * if present, calls the enterprise-catalog service directly to obtain a secured Algolia
+ * API key for that enterprise.
  *
- * Returns `null` when no override is provided (or if the call fails).
+ * This bypasses the normal BFF-issued key and is intended for local development and
+ * QA testing against arbitrary enterprise catalogs without a full auth session.
+ * Returns `null` when no override param is present or if the catalog call fails, so
+ * normal key-fetching is unaffected in production.
  *
- * Catalog endpoint:
- *   GET /api/v1/enterprise-customer/{enterprise_uuid}/secured-algolia-api-key/
+ * @param options Optional object accepting a `search` string; defaults to `window.location.search`.
+ *   Pass a custom value in tests to avoid relying on `window.location`.
+ * @returns A promise resolving to the secured Algolia API key string, or `null` if the
+ *   override is not active or the request fails.
  */
 export async function fetchSecuredAlgoliaKeyOverrideFromCatalog({
   search = (typeof window !== 'undefined' ? window.location.search : ''),

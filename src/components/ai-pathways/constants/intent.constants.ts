@@ -44,70 +44,129 @@ export const PATHWAY_ENRICHMENT_PROMPT = {
 export const INTENT_EXTRACTION_PROMPT = {
   // This prompt is for the RAG based approach avoiding all facet filter from Algolia and extracting taxonomy skills
   // from course discovery metadata
-  DISCOVERY_RAG_BASE_PROMPT: `You are a grounded skill extraction engine.
+  DISCOVERY_RAG_BASE_PROMPT: `You are a grounded career-skill extraction engine.
 
-Your job is to extract skills from the discovery RAG context and return them using the existing XpertIntent JSON schema.
+Return a valid XpertIntent JSON object for accurate taxonomy career retrieval and flexible course retrieval. The schema must remain unchanged.
 
-The output schema must remain unchanged for downstream compatibility, but the content should be skill-focused.
+Goal:
+Produce a retrieval intent broad enough to avoid hyperspecific filtering, but specific enough to retrieve directly relevant careers.
 
-Core behavior:
-- Focus only on skills.
-- Use the discovery RAG context as the source of truth.
-- ONLY return skills explicitly supported by the discovery context.
-- DO NOT invent, infer, or expand skills beyond the discovery context.
-- DO NOT generate a broad learner intent summary.
-- DO NOT generate generalized career language.
-- DO NOT include industries, job titles, learning interests, or career narratives unless they are explicitly required by the schema.
-- Prefer skills searchable in taxonomy through skills.name.
-- Prefer concrete technical, professional, analytical, or domain skills.
-- Remove duplicates and near-duplicates.
+Downstream behavior:
+- condensedQuery = primary taxonomy career query
+- skillsRequired = broad retrieval anchors
+- skillsPreferred = optional refinement/boost signals
 
-Field rules:
-- condensedQuery: Build this only from the strongest returned skills. Use 2–6 words when possible. Do not summarize the learner's goal.
-- roles: Return [] unless the discovery context explicitly contains a role/title that is necessary for retrieval.
-- skillsRequired: Return the strongest grounded skills for taxonomy retrieval.
-- skillsPreferred: Return secondary grounded skills only if they are useful but less central. Otherwise return [].
-- industries: Return [] unless the discovery context explicitly identifies an industry and it is necessary for downstream compatibility.
-- jobSources: Return [] unless explicitly provided by context.
-- learnerLevel: Use the learner level from intake if available; otherwise use "beginner".
-- timeCommitment: Use the time commitment from intake if available; otherwise use "medium".
-- excludeTags: Return [] unless the learner explicitly excludes something.
-- discovery: Include the raw discovery object if available; otherwise null.
-- wasDiscoveryUsed: true if discovery context was used; otherwise false.
+Important:
+- condensedQuery must NOT be generic.
+- Never use vague words like: skills, career, training, course, pathway, learning, jobs.
+- Never return generic queries like "software engineering skills".
+- Do not lowercase canonical skill names.
 
-Skill separation rules:
-- skillsRequired MUST contain only broad, durable career-discovery skill areas.
-  Examples: Software Development, Cloud Computing, DevOps, Project Management, Data Analysis, Cybersecurity, Machine Learning, Artificial Intelligence, Full Stack Development.
-- skillsPreferred MUST contain specific tools, platforms, programming languages, frameworks, methodologies, and vendor products.
-  Examples: Python, JavaScript, React.js, TypeScript, Git, Linux, AWS, Amazon Web Services, Kubernetes, Agile Software Development.
-- DO NOT put programming languages, operating systems, file formats, vendor tools, or product names in skillsRequired unless the learner explicitly states that exact tool as their primary goal.
-- Split compound/malformed skill strings. Example: "AutomationSQL & Python" → ["Automation", "SQL", "Python"].
-- condensedQuery must be built from skillsRequired terms only — 2–4 broad words.
-- For beginner learners, bias toward broader skillsRequired; preserve specificity only in skillsPreferred.
+Use canonical title casing:
+- Software Development
+- Software Engineering
+- Cloud Computing
+- DevOps
+- Programming
+- Agile Software Development
+- Machine Learning
 
-Query construction rules:
-- condensedQuery must be composed from skillsRequired and/or skillsPreferred.
-- Do not include filler terms like "career", "pathway", "training", "learn", or "course".
-- Do not include role guesses.
-- Prefer broad skill terms over long phrases.
-- Keep it short and searchable.
+CORE RULES
 
-Good condensedQuery examples:
-- "data analysis python"
-- "project management agile"
-- "machine learning statistics"
-- "cloud computing security"
-- "financial modeling excel"
+condensedQuery:
+- Build ONLY from skillsRequired.
+- Use 2–5 words.
+- Represent ONE coherent retrieval direction.
+- Use broad career/domain anchors, not tool-only terms.
+- Include an adjacent anchor when supported.
+- Never include "skills".
 
-Bad condensedQuery examples:
-- "help the learner become a data analyst"
-- "career pathway for software engineering"
-- "courses for someone interested in AI"
-- "beginner friendly technology career"
+skillsRequired:
+- Return 2–3 broad retrieval anchors when supported.
+- Include the primary career family first.
+- Include adjacent anchors that improve relevance without overfitting.
+- Use canonical taxonomy-friendly names.
 
-You MUST respond with only a valid JSON object matching this exact schema. Raw JSON only. No markdown.
+skillsPreferred:
+- Return supporting/specific signals only.
+- Include tools, platforms, frameworks, methods, languages, certifications, and secondary capabilities.
+- These refine retrieval, not define it.
 
-Expected Output Shape:
+roles:
+- Return [] unless explicitly required.
+
+industries:
+- Return [] unless explicitly required.
+
+jobSources:
+- Return [] unless explicitly provided.
+
+learnerLevel:
+- Use intake value if available; otherwise "beginner".
+
+timeCommitment:
+- Use intake value if available; otherwise "medium".
+
+excludeTags:
+- Return [] unless explicitly excluded.
+
+discovery:
+- Include raw discovery object if available; otherwise null.
+
+wasDiscoveryUsed:
+- true if discovery context used; otherwise false.
+
+BREADTH VS RELEVANCE
+
+Too broad:
+- "software engineering skills"
+- "technology skills"
+- "programming skills"
+
+Too narrow:
+- tool-only or framework-only queries
+
+Good:
+- "software development cloud"
+- "software engineering devops"
+- "software development programming"
+- "cloud computing devops"
+- "data analysis business"
+
+CANONICALIZATION
+
+You MAY map narrow concepts to broader retrieval anchors.
+
+Examples:
+- Python -> Programming or Software Development
+- AWS -> Cloud Computing
+- Scrum -> Agile Software Development
+- Git -> Software Development or DevOps
+- Linux -> DevOps or Systems Administration
+- ML libraries -> Machine Learning
+
+Keep original narrow skills in skillsPreferred.
+
+BEGINNER RULE
+
+For beginner learners:
+- avoid tool-heavy queries
+- avoid one-word/generic queries
+- use broad but relevant anchors
+- prefer 2–3 retrieval anchors when supported
+
+SELF-CHECK
+
+Before returning JSON, silently verify:
+1. Does condensedQuery contain "skills"? Remove it.
+2. Is condensedQuery too generic? Add a supported adjacent anchor.
+3. Is skillsRequired only one skill when more relevant anchors exist? Expand to 2–3.
+4. Are skill names canonical title case? Fix them.
+5. Would the query retrieve unrelated careers? Make it more specific.
+6. Are tools/frameworks in skillsPreferred instead of skillsRequired? Fix them.
+
+Return ONLY raw JSON matching this schema:
+
 {
   "condensedQuery": "string",
   "roles": ["string"],
