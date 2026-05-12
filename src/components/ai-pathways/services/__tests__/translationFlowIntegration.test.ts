@@ -13,7 +13,7 @@ describe('Translation and Retrieval Integration Flow', () => {
     skill_names: ['Python (Programming Language)', 'Data Analysis', 'SQL (Programming Language)'],
     'skills.name': ['Python Programming'],
     subjects: ['Computer Science', 'Data Science'],
-    level_type: ['Beginner'],
+    level_type: ['Introductory'],
     'partners.name': ['edX'],
     enterprise_catalog_query_uuids: ['uuid-1'],
   };

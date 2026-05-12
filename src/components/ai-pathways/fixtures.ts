@@ -20,7 +20,6 @@ export const mockSearchIntent = {
   roles: ['Software Engineer', 'Full Stack Developer'],
   skillsRequired: ['JavaScript', 'React', 'Node.js'],
   skillsPreferred: ['TypeScript', 'SQL'],
-  learnerLevel: 'beginner',
   queryTerms: ['full stack', 'web development'],
   excludeTags: [],
   timeCommitment: 'medium',

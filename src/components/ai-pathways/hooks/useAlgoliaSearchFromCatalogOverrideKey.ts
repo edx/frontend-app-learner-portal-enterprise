@@ -55,7 +55,7 @@ export default function useAlgoliaSearchFromCatalogOverrideKey(
 
     const client = algoliasearch(
       config.ALGOLIA_OVERRIDE_APP_ID,
-      config.ALGOLIA_OVERRIDE_SEARCH_API_KEY || securedAlgoliaApiKeyOverride,
+      config.ALGOLIA_OVERRIDE_SEARCH_API_KEY,
     );
     const idx = client.initIndex(indexName || config.ALGOLIA_INDEX_NAME);
 

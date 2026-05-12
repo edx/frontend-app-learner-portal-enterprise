@@ -25,7 +25,7 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
   PromptDebugEntry,
-  CourseRetrievalHit, FacetReference,
+  CourseRetrievalHit, FacetReference, LearnerLevel,
 } from '../types';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
@@ -368,13 +368,12 @@ export const usePathways = () => {
           winningOptionalFilters: winningAttempt?.optionalFilters,
         },
       };
-
       // 6. Assembly (Map to LearningPathway shape)
       const initialPathway: LearningPathway = {
         courses: courses.map(c => ({
           id: c.id,
           title: c.title,
-          level: c.level || 'intermediate',
+          level: c.level || '',
           skills: c.skills,
           status: COURSE_STATUSES.NOT_STARTED,
           order: c.order,

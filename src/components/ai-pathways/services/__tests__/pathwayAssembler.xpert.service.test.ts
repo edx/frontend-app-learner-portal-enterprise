@@ -25,7 +25,7 @@ describe('pathwayAssemblerXpertService', () => {
     industries: [],
     jobSources: [],
     condensedQuery: 'react',
-    learnerLevel: 'beginner',
+    learnerLevel: 'introductory',
     timeCommitment: 'medium',
     excludeTags: [],
   };

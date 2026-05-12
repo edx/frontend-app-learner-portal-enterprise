@@ -234,7 +234,7 @@ function rerank(
 const mapCourseHitToCard = (hit: any, idx: number): CourseCardModel => ({
   id: hit.id || hit.objectID,
   title: hit.title || hit.name || '',
-  level: hit.level || hit.difficulty || hit.pacing_type || null,
+  level: hit.level_type || hit.difficulty || hit.pacing_type || null,
   skills: Array.isArray(hit.skill_names) ? hit.skill_names : [],
   marketingUrl: hit.marketing_url || hit.url || hit.advertised_course_run_url || null,
   imageUrl: hit.image_url || hit.card_image_url || hit.image?.src || null,

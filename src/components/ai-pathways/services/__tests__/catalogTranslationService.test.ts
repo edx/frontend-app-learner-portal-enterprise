@@ -233,7 +233,7 @@ describe('catalogTranslationService', () => {
       const { translation } = catalogTranslationService.processTranslation(
         'Engineer',
         manyBroadAnchors,
-        { learnerLevel: 'beginner' },
+        { learnerLevel: 'introductory' },
       );
       expect(translation.strictSkillFilters.length).toBeLessThanOrEqual(3);
     });

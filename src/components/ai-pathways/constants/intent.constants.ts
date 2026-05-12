@@ -8,7 +8,7 @@ import { XpertIntent, LearnerLevel, TimeCommitment } from '../types';
  */
 
 /** Valid learner difficulty tiers for normalization. */
-export const LEARNER_LEVELS: LearnerLevel[] = ['beginner', 'intermediate', 'advanced'];
+export const LEARNER_LEVELS: LearnerLevel[] = ['introductory', 'intermediate', 'advanced'];
 
 /** Valid time commitment tiers for normalization. */
 export const TIME_COMMITMENTS: TimeCommitment[] = ['short', 'medium', 'long'];
@@ -21,7 +21,7 @@ export const DEFAULT_INTENT: XpertIntent = {
   skillsPreferred: [],
   industries: [],
   jobSources: [],
-  learnerLevel: 'beginner',
+  learnerLevel: 'introductory',
   timeCommitment: 'medium',
   excludeTags: [],
 };
@@ -61,6 +61,8 @@ Important:
 - Never use vague words like: skills, career, training, course, pathway, learning, jobs.
 - Never return generic queries like "software engineering skills".
 - Do not lowercase canonical skill names.
+- The pathwayCoursesKey output is NOT a final course recommendation.
+- pathwayCoursesKey should represent logical learning progression steps inferred from the learner goal and discovery context.
 
 Use canonical title casing:
 - Software Development
@@ -84,7 +86,7 @@ condensedQuery:
 skillsRequired:
 - Return 2–3 broad retrieval anchors when supported.
 - Include the primary career family first.
-- Include adjacent anchors that improve relevance without overfitting.
+- Include adjacent anchors that improve retrieval relevance.
 - Use canonical taxonomy-friendly names.
 
 skillsPreferred:
@@ -141,8 +143,7 @@ Examples:
 - Python -> Programming or Software Development
 - AWS -> Cloud Computing
 - Scrum -> Agile Software Development
-- Git -> Software Development or DevOps
-- Linux -> DevOps or Systems Administration
+- Kubernetes -> DevOps
 - ML libraries -> Machine Learning
 
 Keep original narrow skills in skillsPreferred.
@@ -232,7 +233,6 @@ Expected Output Shape:
   "skillsPreferred": ["string"],
   "industries": ["string"],
   "jobSources": ["string"],
-  "learnerLevel": "beginner" | "intermediate" | "advanced",
   "timeCommitment": "short" | "medium" | "long",
   "excludeTags": ["string"],
   "discovery": object | null,

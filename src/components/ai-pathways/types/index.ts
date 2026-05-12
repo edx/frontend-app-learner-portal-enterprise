@@ -70,7 +70,7 @@ export interface LearningPathway {
 /**
  * Standard learner difficulty tiers.
  */
-export type LearnerLevel = 'beginner' | 'intermediate' | 'advanced';
+export type LearnerLevel = 'introductory' | 'intermediate' | 'advanced';
 
 /**
  * Preferred intensity of the learning journey.

@@ -6,7 +6,7 @@ describe('catalogTranslationRules', () => {
     skill_names: ['Python (Programming Language)', 'Java', 'SQL (Programming Language)'],
     'skills.name': ['Machine Learning'],
     subjects: ['Data Science', 'Computer Science'],
-    level_type: ['Beginner'],
+    level_type: ['introductory'],
     'partners.name': ['Coursera'],
     enterprise_catalog_query_uuids: ['ent-123'],
   };
