@@ -24,6 +24,7 @@ import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
   queryLearnerSkillLevels,
   useEnterpriseCustomer,
+  useEnterpriseFeatures,
   useEnterprisePathwaysList,
   useEnterpriseProgramsList,
 } from '../../app/data';
@@ -49,6 +50,12 @@ const useDashboardTabs = () => {
   const [activeTab, setActiveTab] = useState(DASHBOARD_COURSES_TAB);
   const { data: enterprisePrograms } = useEnterpriseProgramsList();
   const { data: enterprisePathways } = useEnterprisePathwaysList();
+  const { data: enterpriseFeatures } = useEnterpriseFeatures();
+
+  // TODO: Remove or pare down to a single feature flag from enterpriseFeatures (waffle)
+  //      when ai-pathways POC is no longer needed
+  const enableAIPathways = features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
+    && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
 
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
@@ -125,7 +132,7 @@ const useDashboardTabs = () => {
         {activeTab === DASHBOARD_MY_CAREER_TAB && <MyCareerTab learnerCurrentJobID={learnerCurrentJobID} />}
       </Tab>
     ),
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS && (
+    enableAIPathways && (
       <Tab
         eventKey={DASHBOARD_AI_PATHWAYS_TAB}
         title={intl.formatMessage({
