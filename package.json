@@ -7,7 +7,7 @@
     "extends @edx/browserslist-config"
   ],
   "dependencies": {
-    "@2uinc/frontend-enterprise-catalog-search": "^11.1.1",
+    "@2uinc/frontend-enterprise-catalog-search": "^11.2.0",
     "@2uinc/frontend-enterprise-logistration": "^9.2.3",
     "@2uinc/frontend-enterprise-utils": "^10.0.2",
     "@algolia/client-search": "^4.24.0",
