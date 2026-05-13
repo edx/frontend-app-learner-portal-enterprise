@@ -197,7 +197,7 @@ describe('courseRetrievalService', () => {
       const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation, mockIndex);
 
       expect(courses[0].id).toBe('beginner-course');
-      expect(ladderTrace.attempts[0].rerankTrace?.courseScores[0]).toEqual(
+      expect(ladderTrace.attempts[0].rerankTrace?.courseScores?.[0]).toEqual(
         expect.objectContaining({
           objectID: 'beginner-course',
           levelCompatibility: 'matched',
