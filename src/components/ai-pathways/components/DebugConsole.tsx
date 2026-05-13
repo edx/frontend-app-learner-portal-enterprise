@@ -427,24 +427,6 @@ export const DebugConsole = ({
             )}
           </div>
 
-          {/* Facet Bootstrap */}
-          <details>
-            <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">
-              <span>Stage 1: Facet Bootstrap</span>
-              <Badge variant={stages.facetBootstrap?.success ? 'success' : 'danger'}>
-                {stages.facetBootstrap?.durationMs}ms
-              </Badge>
-            </summary>
-            <div className="py-2">
-              <p className="small text-muted mb-0">
-                Taxonomy facets loaded for intent extraction prompt injection.
-                {stages.facetBootstrap?.error && (
-                  <span className="text-danger ml-2">{stages.facetBootstrap.error}</span>
-                )}
-              </p>
-            </div>
-          </details>
-
           {/* Intent Extraction */}
           <details>
             <summary className="h5 cursor-pointer py-2 border-bottom d-flex align-items-center justify-content-between">

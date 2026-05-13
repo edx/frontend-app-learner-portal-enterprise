@@ -1,6 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
 import { usePathways } from '../usePathways';
-import { facetBootstrapService } from '../../services/facetBootstrap';
 import { intakePreprocessor } from '../../services/intakePreprocessor';
 import { intentExtractionXpertService } from '../../services/intentExtraction.xpert.service';
 import { careerRetrievalService } from '../../services/careerRetrieval';
@@ -16,7 +15,6 @@ import * as appUtils from '../../../app/data/utils';
 import {
   mockIntakeInput,
   mockSearchIntent,
-  mockTaxonomyUniverse,
 } from '../../fixtures';
 import { DEFAULT_XPERT_RAG_TAGS } from '../../constants/retrieval.constants';
 
@@ -34,7 +32,6 @@ jest.mock('../../hooks/useCatalogAlgoliaSearch', () => ({
   __esModule: true,
   default: jest.fn(() => ({ searchClient: null, searchIndex: null })),
 }));
-jest.mock('../../services/facetBootstrap');
 jest.mock('../../services/intakePreprocessor');
 jest.mock('../../services/intentExtraction.xpert.service');
 jest.mock('../../services/careerRetrieval');
@@ -108,7 +105,6 @@ describe('usePathways hook', () => {
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-123' } });
     (useSearchCatalogs as jest.Mock).mockReturnValue(['cat-1']);
 
-    (facetBootstrapService.bootstrapFacets as jest.Mock).mockResolvedValue(mockTaxonomyUniverse);
     (intakePreprocessor.preprocessInput as jest.Mock).mockReturnValue('preprocessed-input');
     (intentExtractionXpertService.extractIntent as jest.Mock).mockResolvedValue({
       intent: mockSearchIntent,
@@ -268,7 +264,6 @@ describe('usePathways — prompt interception', () => {
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-123' } });
     (useSearchCatalogs as jest.Mock).mockReturnValue(['cat-1']);
 
-    (facetBootstrapService.bootstrapFacets as jest.Mock).mockResolvedValue(mockTaxonomyUniverse);
     (intakePreprocessor.preprocessInput as jest.Mock).mockReturnValue('preprocessed-input');
     (intentExtractionXpertService.extractIntent as jest.Mock).mockResolvedValue({
       intent: mockSearchIntent,
@@ -311,8 +306,8 @@ describe('usePathways — prompt interception', () => {
     });
 
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
-    expect(callArgs[2]).toBeUndefined();
-    expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
+    expect(callArgs[1]).toBeUndefined();
+    expect(callArgs[2]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
   it('forwards a capturing interceptor to extractIntent when one is provided', async () => {
@@ -324,8 +319,8 @@ describe('usePathways — prompt interception', () => {
     });
 
     const callArgs = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0];
-    expect(typeof callArgs[2]).toBe('function');
-    expect(callArgs[3]).toEqual(DEFAULT_XPERT_RAG_TAGS);
+    expect(typeof callArgs[1]).toBe('function');
+    expect(callArgs[2]).toEqual(DEFAULT_XPERT_RAG_TAGS);
   });
 
   it('accept path — interceptor called and extractIntent completes successfully', async () => {

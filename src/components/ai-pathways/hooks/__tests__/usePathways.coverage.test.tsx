@@ -2,13 +2,12 @@ import { renderHook, act } from '@testing-library/react';
 import { AppContext } from '@edx/frontend-platform/react';
 import React from 'react';
 import { usePathways } from '../usePathways';
-import { facetBootstrapService } from '../../services/facetBootstrap';
 import { intakePreprocessor } from '../../services/intakePreprocessor';
 import { intentExtractionXpertService } from '../../services/intentExtraction.xpert.service';
 import { careerRetrievalService } from '../../services/careerRetrieval';
 import useAlgoliaSearch from '../../../app/data/hooks/useAlgoliaSearch';
 import * as appUtils from '../../../app/data/utils';
-import { mockIntakeInput, mockSearchIntent, mockTaxonomyUniverse } from '../../fixtures';
+import { mockIntakeInput, mockSearchIntent } from '../../fixtures';
 
 jest.mock('@edx/frontend-platform', () => ({
   getConfig: jest.fn(() => ({
@@ -20,7 +19,6 @@ jest.mock('@edx/frontend-platform', () => ({
 jest.mock('../../../app/data/hooks/useAlgoliaSearch', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('../../../app/data/hooks/useEnterpriseCustomer', () => ({ __esModule: true, default: jest.fn(() => ({ data: {} })) }));
 jest.mock('../../../app/data/hooks/useSearchCatalogs', () => ({ __esModule: true, default: jest.fn(() => []) }));
-jest.mock('../../services/facetBootstrap');
 jest.mock('../../services/intakePreprocessor');
 jest.mock('../../services/intentExtraction.xpert.service');
 jest.mock('../../services/careerRetrieval');
@@ -46,7 +44,6 @@ describe('usePathways coverage gaps', () => {
       }
       return { searchIndex: {} };
     });
-    (facetBootstrapService.bootstrapFacets as jest.Mock).mockResolvedValue(mockTaxonomyUniverse);
     (intakePreprocessor.preprocessInput as jest.Mock).mockReturnValue({});
     (intentExtractionXpertService.extractIntent as jest.Mock).mockResolvedValue({
       intent: mockSearchIntent,
@@ -136,7 +133,7 @@ describe('usePathways coverage gaps', () => {
       await result.current.generateProfile(mockIntakeInput, mockInterceptPrompt);
     });
 
-    const interceptor = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0][2];
+    const interceptor = (intentExtractionXpertService.extractIntent as jest.Mock).mock.calls[0][1];
     await interceptor(mockBundle, { label: 'test' });
 
     // Verify debug log contains edited bundle and warnings

@@ -7,27 +7,6 @@
 import { CatalogSkillMatch } from './translationContracts';
 
 /**
- * Represents a single facet value from a search index.
- */
-export interface FacetValue {
-  /** The human-readable or machine-name value. */
-  value: string;
-  /** Optional count of documents matching this facet value. */
-  count?: number;
-}
-
-/**
- * References to taxonomical facets used for career and course matching.
- * Primarily used in the intent extraction and translation pipeline.
- */
-export interface FacetReference {
-  skills: FacetValue[];
-  industries: FacetValue[];
-  jobSources: FacetValue[];
-  name: FacetValue[];
-}
-
-/**
  * Defines the lifecycle of a course within a learning pathway.
  */
 export type CourseStatus = 'completed' | 'in_progress' | 'not_started';
@@ -293,12 +272,6 @@ export interface TaxonomyResult {
   /** Historical job posting data. */
   job_postings?: TaxonomyJobPosting[];
 
-  /** Algolia highlighting metadata. */
-  _highlightResult?: Record<string, unknown>;
-  /** Algolia snippet metadata. */
-  _snippetResult?: Record<string, unknown>;
-  /** Algolia ranking metadata. */
-  _rankingInfo?: Record<string, unknown>;
 }
 
 /**
@@ -772,8 +745,6 @@ export interface AIPathwaysResponseModel {
   promptDebug?: PromptDebugEntry[];
   /** Metrics and data for each stage of the generation pipeline. */
   stages: {
-    /** Initial loading of taxonomy facets. */
-    facetBootstrap: StageMetrics;
     /** Conversion of natural language input to structured intent. */
     intentExtraction: StageMetrics & {
       systemPrompt: string;
@@ -833,7 +804,7 @@ export interface AIPathwaysResponseModel {
 /**
  * Represents a single named segment of an AI system prompt.
  */
-export type PromptPartLabel = 'base' | 'facetContext' | 'schema' | 'repair' | 'json_instruction';
+export type PromptPartLabel = 'base' | 'schema' | 'repair' | 'json_instruction';
 
 /**
  * A component part of a structured prompt.

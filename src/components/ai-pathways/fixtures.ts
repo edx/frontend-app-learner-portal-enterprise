@@ -113,7 +113,6 @@ export const mockLearnerProfile: LearnerProfile = {
 export const mockPathwayResponse: AIPathwaysResponseModel = {
   requestId: 'test-request-id',
   stages: {
-    facetBootstrap: { durationMs: 150, success: true },
     intentExtraction: {
       durationMs: 450,
       success: true,

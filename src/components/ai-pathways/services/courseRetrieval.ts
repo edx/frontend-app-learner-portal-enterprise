@@ -36,9 +36,11 @@ const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/
  */
 const buildScopedFacetFilters = (): string[][] => {
   const override = true;
-  const groups: string[][] = [[CONTENT_TYPE_COURSE], override && [
-    'enterprise_catalog_query_titles:Subscription',
-  ]].filter(Boolean);
+  const groups: string[][] = [
+    [CONTENT_TYPE_COURSE],
+    override && ['enterprise_catalog_query_titles:Subscription'],
+    ['metadata_language:en'],
+  ].filter(Boolean);
   return groups;
 };
 

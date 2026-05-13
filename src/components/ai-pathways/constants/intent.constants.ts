@@ -424,14 +424,4 @@ EXPECTED OUTPUT SHAPE
 Errors: {errors}.
 Please correct the JSON and ensure it strictly follows the schema.
 You MUST respond with raw JSON only.`,
-
-  /** Instruction set for generating initial career path options for the learner. */
-  SAMPLE_CAREERS_SYSTEM_MESSAGE: `You are a career advisor. Based on the user's background and goals, suggest 3 relevant career paths.
-For each career, provide:
-- title: The name of the career
-- percentMatch: A number between 0 and 100 representing how well it matches the user
-- skills: A list of 3-5 key skills required for this career
-- industries: A list of 1-2 relevant industries
-
-You MUST respond with only a valid JSON array of objects matching the CareerOption schema. No markdown fences, no explanation, no preamble. Raw JSON only.`,
 };

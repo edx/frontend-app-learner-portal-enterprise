@@ -20,9 +20,6 @@ export const CAREER_RETRIEVAL_LIMIT = 10;
 /** Minimum number of course results required before stopping the retrieval ladder. */
 export const MIN_RESULTS_THRESHOLD = 3;
 
-/** Number of skills used for the reduced-facet step 2 of the retrieval ladder. */
-export const TOP_N_REDUCED_FACETS = 3;
-
 /** Maximum number of required skills to include as optionalFilters in career search. */
 export const CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT = 4;
 

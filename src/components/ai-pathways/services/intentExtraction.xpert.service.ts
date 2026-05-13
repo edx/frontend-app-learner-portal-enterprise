@@ -2,7 +2,7 @@ import { intakePreprocessor, PreprocessedInput } from './intakePreprocessor';
 import { xpertService } from './xpert.service';
 import { xpertContractService } from './xpertContract';
 import {
-  FacetReference, CareerOption, XpertPromptBundle, PromptPart, XpertMessage,
+  XpertPromptBundle, PromptPart, XpertMessage,
 } from '../types';
 import { XpertExtractionResult } from './xpertDebug';
 import { InterceptContext, InterceptResult } from '../hooks/usePromptInterceptor';
@@ -30,15 +30,13 @@ export const intentExtractionXpertService = {
    * the Xpert AI platform with a curated system prompt and optional RAG tag scoping.
    *
    * The call flow:
-   * 1. Builds the multi-part system prompt (base instructions + optional facet context).
+   * 1. Builds the system prompt from the Discovery RAG base.
    * 2. Passes the prompt through the optional `interceptPrompt` hook so the DebugConsole
    *    can inspect or modify it before the network call.
    * 3. Sends the prompt to Xpert and parses the response via `xpertContractService.parseIntent`.
    * 4. If parsing fails, triggers an automatic repair prompt to recover from common LLM output issues.
    *
    * @param input The cleaned user narrative and preferences from `intakePreprocessor.preprocessInput`.
-   * @param facets Optional taxonomy facet values injected into the prompt to guide the AI
-   *   toward skill and role terms that exist in the Algolia taxonomy index.
    * @param interceptPrompt Optional hook for prompt inspection/modification in debug mode.
    * @param tags Optional RAG control tags that scope Xpert's document retrieval to a relevant
    *   knowledge base subset.
@@ -48,12 +46,11 @@ export const intentExtractionXpertService = {
    */
   async extractIntent(
     input: PreprocessedInput,
-    facets?: FacetReference | null,
     interceptPrompt?: PromptInterceptFn,
     tags?: string[],
   ): Promise<XpertExtractionResult> {
     const startTime = Date.now();
-    const originalBundle = this.buildSystemPrompt(facets);
+    const originalBundle = this.buildSystemPrompt();
     originalBundle.tags = tags;
 
     // --- Interception Logic ---
@@ -164,12 +161,11 @@ export const intentExtractionXpertService = {
   },
 
   /**
-   * Constructs the multi-part system prompt used for intent extraction.
+   * Constructs the system prompt used for intent extraction.
    *
-   * @param facets Optional facet data to inject into the "facetContext" segment of the prompt.
-   * @returns A structured XpertPromptBundle containing all prompt segments.
+   * @returns A structured XpertPromptBundle containing the base Discovery RAG prompt.
    */
-  buildSystemPrompt(facets?: FacetReference | null): XpertPromptBundle {
+  buildSystemPrompt(): XpertPromptBundle {
     const baseContent = INTENT_EXTRACTION_PROMPT.DISCOVERY_RAG_BASE_PROMPT;
 
     const basePart: PromptPart = {
@@ -179,88 +175,12 @@ export const intentExtractionXpertService = {
       required: true,
     };
 
-    const formatFacetValues = (values: Array<{ value: string }>) => values
-      .map(({ value }) => JSON.stringify(String(value).replace(/\r?\n/g, ' ')))
-      .join(', ');
-
-    if (facets) {
-      const facetContextContent = `
-Use the following available facet values to normalize your output.
-
-Primary searchable facet sources:
- - Jobs / Roles (name): ${formatFacetValues(facets.name)}
- - Skills (skills.name): ${formatFacetValues(facets.skills)}
-
-Supporting facet sources:
- - Industries (industry_names): ${formatFacetValues(facets.industries)}
- - Job Sources (job_sources): ${formatFacetValues(facets.jobSources)}
-
-Rules:
-- Build condensedQuery primarily from broad, common values in name and skills.name.
-- Use the sorted order as a signal of prevalence and retrievability.
-- Prefer broader high-signal facet values over niche or compound phrases.
-- Do not overfit to exact narrative wording.
-- If the user is transitioning fields, generalize toward the target role or adjacent transferable skill area.
-- Use supporting facets to preserve useful context that should not be forced into condensedQuery.
-- Return the closest relevant facet values, even when they are somewhat more general than the user's words.
-`;
-
-      const facetContextPart: PromptPart = {
-        label: 'facetContext',
-        content: facetContextContent,
-        editable: true,
-        required: false,
-      };
-
-      return {
-        id: 'intentExtraction',
-        stage: 'intentExtraction',
-        parts: [basePart, facetContextPart],
-        combined: `${baseContent}\n\n${facetContextContent}`,
-      };
-    }
-
     return {
       id: 'intentExtraction',
       stage: 'intentExtraction',
       parts: [basePart],
       combined: baseContent,
     };
-  },
-
-  /**
-   * Generates a list of suggested career paths based on the learner's profile.
-   * This is typically used as a fallback or starting point when direct discovery returns limited results.
-   *
-   * @param input The preprocessed user data.
-   * @returns A promise resolving to an array of CareerOption objects.
-   */
-  async generateSampleCareers(input: PreprocessedInput, tags?: string[]): Promise<CareerOption[]> {
-    const systemMessage = INTENT_EXTRACTION_PROMPT.SAMPLE_CAREERS_SYSTEM_MESSAGE;
-
-    try {
-      const response = await xpertService.sendMessage({
-        systemMessage,
-        messages: [
-          {
-            role: 'user',
-            content: JSON.stringify(input),
-          },
-        ],
-        tags,
-      });
-
-      let parsed: CareerOption[];
-      try {
-        parsed = JSON.parse(response.content);
-      } catch {
-        return [];
-      }
-
-      return parsed;
-    } catch {
-      return [];
-    }
   },
 
   /**

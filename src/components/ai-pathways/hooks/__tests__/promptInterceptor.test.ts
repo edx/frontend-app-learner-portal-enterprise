@@ -241,7 +241,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
 
   it('disabled — calls xpert and returns result without interceptor', async () => {
     mockXpertResponse(validXpertJson);
-    const result = await intentExtractionXpertService.extractIntent(mockInput as any, null);
+    const result = await intentExtractionXpertService.extractIntent(mockInput as any);
     expect(xpertService.sendMessage).toHaveBeenCalled();
     expect(result.intent).toBeDefined();
   });
@@ -254,7 +254,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
       bundle: undefined,
     } as InterceptResult);
 
-    await intentExtractionXpertService.extractIntent(mockInput as any, null, interceptPrompt);
+    await intentExtractionXpertService.extractIntent(mockInput as any, interceptPrompt);
 
     expect(interceptPrompt).toHaveBeenCalledTimes(1);
     expect(xpertService.sendMessage).toHaveBeenCalled();
@@ -274,7 +274,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
       bundle: editedBundle,
     } as InterceptResult);
 
-    await intentExtractionXpertService.extractIntent(mockInput as any, null, interceptPrompt);
+    await intentExtractionXpertService.extractIntent(mockInput as any, interceptPrompt);
 
     const callArg = (xpertService.sendMessage as jest.Mock).mock.calls[0][0];
     expect(callArg.systemMessage).toBe(editedCombined);
@@ -287,7 +287,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
       decision: 'rejected',
     } as InterceptResult);
 
-    await intentExtractionXpertService.extractIntent(mockInput as any, null, interceptPrompt);
+    await intentExtractionXpertService.extractIntent(mockInput as any, interceptPrompt);
 
     expect(xpertService.sendMessage).toHaveBeenCalled();
     const callArg = (xpertService.sendMessage as jest.Mock).mock.calls[0][0];
@@ -302,7 +302,7 @@ describe('intentExtractionXpertService.extractIntent — interception', () => {
     } as InterceptResult);
 
     await expect(
-      intentExtractionXpertService.extractIntent(mockInput as any, null, interceptPrompt),
+      intentExtractionXpertService.extractIntent(mockInput as any, interceptPrompt),
     ).rejects.toThrow('cancelled by user');
 
     expect(xpertService.sendMessage).not.toHaveBeenCalled();

@@ -49,9 +49,8 @@ export const PathwayFilters = ({
 }: PathwayFiltersProps) => (
   <div className="pathway-filters mb-4 p-3 bg-light rounded shadow-sm">
     <Row className="align-items-end">
-      <Col xs={12} lg={4} className="mb-3 mb-lg-0">
+      <Col xs={12} lg={6} className="mb-3 mb-lg-0">
         <SearchField
-          label="Search Courses"
           placeholder="Filter by title or reasoning..."
           value={searchQuery}
           onChange={onSearchChange}
@@ -90,7 +89,7 @@ export const PathwayFilters = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onLevelChange(e.target.value)}
           >
             <option value="all">All Levels</option>
-            <option value="Beginner">Beginner</option>
+            <option value="Introductory">Introductory</option>
             <option value="Intermediate">Intermediate</option>
             <option value="Advanced">Advanced</option>
           </Form.Control>

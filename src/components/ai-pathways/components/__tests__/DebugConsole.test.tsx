@@ -16,7 +16,6 @@ describe('DebugConsole', () => {
   const mockResponse: AIPathwaysResponseModel = {
     requestId: 'test-req-id',
     stages: {
-      facetBootstrap: { durationMs: 100, success: true },
       intentExtraction: {
         durationMs: 200,
         success: true,
@@ -207,7 +206,6 @@ describe('DebugConsole', () => {
     expect(screen.getByText(/Request ID: test-req-id/i)).toBeInTheDocument();
 
     // Check various stages
-    expect(screen.getByText(/Stage 1: Facet Bootstrap/i)).toBeInTheDocument();
     expect(screen.getByText(/Stage 2: Xpert Intent Extraction/i)).toBeInTheDocument();
     expect(screen.getByText(/Stage 3: Career Retrieval/i)).toBeInTheDocument();
     expect(screen.getByText(/Stage 3b: Catalog Facet Snapshot/i)).toBeInTheDocument();
@@ -280,7 +278,6 @@ describe('DebugConsole', () => {
     const minimalResponse: AIPathwaysResponseModel = {
       requestId: 'min-req',
       stages: {
-        facetBootstrap: { durationMs: 10, success: true },
         intentExtraction: {
           durationMs: 10,
           success: true,

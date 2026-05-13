@@ -6,7 +6,6 @@ import { getConfig } from '@edx/frontend-platform';
 import { AppContext } from '@edx/frontend-platform/react';
 import { intentExtractionXpertService, PromptInterceptFn } from '../services/intentExtraction.xpert.service';
 import { pathwayAssemblerXpertService } from '../services/pathwayAssembler.xpert.service';
-import { facetBootstrapService } from '../services/facetBootstrap';
 import { careerRetrievalService } from '../services/careerRetrieval';
 import { courseRetrievalService } from '../services/courseRetrieval';
 import { intakePreprocessor } from '../services/intakePreprocessor';
@@ -26,7 +25,6 @@ import {
   AIPathwaysResponseModel,
   PromptDebugEntry,
   CourseRetrievalHit,
-  FacetReference,
 } from '../types';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';
@@ -40,7 +38,6 @@ import useCatalogAlgoliaSearch from './useCatalogAlgoliaSearch';
  * Union type representing the possible steps in the AI Pathways generation flow.
  */
 export type PathwayStep = typeof FEATURE_STEPS[keyof typeof FEATURE_STEPS];
-const discRagBased = true;
 
 /**
  * Creates a wrapped interceptPrompt function that records the interaction outcome
@@ -87,7 +84,7 @@ function makeCapturingInterceptor(
  * 2. Intent Extraction: AI processes narrative into structured intent.
  * 3. Career Discovery: Search taxonomy for matching professional roles.
  * 4. Selection: User chooses a target career → selectCareer()
- * 5. Translation: Taxonomy terms mapped to valid catalog facets (Rules + AI).
+ * 5. Translation: Taxonomy terms mapped deterministically to catalog facets.
  * 6. Course Discovery: Progressive search "ladder" to find courses → generatePathway()
  * 7. Enrichment: AI generates personalized reasoning for recommendations.
  * 8. UI Rendering: Final pathway displayed to learner.
@@ -184,19 +181,9 @@ export const usePathways = () => {
     setIsLoading(true);
     setError(null);
     try {
-      let facets: FacetReference | null = null;
-      if (!discRagBased) {
-        // 1. Facet Bootstrap (Fetch common taxonomy values for normalization)
-        const facetStartTime = Date.now();
-        facets = await facetBootstrapService.bootstrapFacets(jobIndex);
-        responseModel.stages.facetBootstrap = {
-          durationMs: Date.now() - facetStartTime,
-          success: true,
-        };
-      }
-      // 2. Preprocess Input (Clean narrative and normalize choices)
+      // 1. Preprocess Input (Clean narrative and normalize choices)
       const preprocessed = intakePreprocessor.preprocessInput(args);
-      // 3. Intent Extraction (AI stage)
+      // 2. Intent Extraction (AI stage)
       responseModel.promptDebug = promptDebugLogRef.current;
       const profileInterceptor = interceptPromptRef.current
         ? makeCapturingInterceptor(interceptPromptRef.current, promptDebugLogRef.current)
@@ -204,7 +191,6 @@ export const usePathways = () => {
 
       const extractionResult = await intentExtractionXpertService.extractIntent(
         preprocessed,
-        facets,
         profileInterceptor,
         DEFAULT_XPERT_RAG_TAGS,
       );
