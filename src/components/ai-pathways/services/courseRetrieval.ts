@@ -145,7 +145,8 @@ const buildQueryFallbackParams = (
  * @param hits Raw Algolia course hits to rerank.
  * @param strictSkillFilters Broad-anchor skill matches used as high-weight signals.
  * @param boostSkillFilters Role-differentiator / narrow-signal matches used as lower-weight signals.
- * @param learnerLevel Optional learner level (`'introductory' | 'intermediate' | 'advanced'`) for level bonuses.
+ * @param learnerLevel Optional learner level
+ *   (`'beginner' | 'introductory' | 'intermediate' | 'advanced'`) for level bonuses.
  * @returns An object with the reranked `hits` array and a `trace` for debug output.
  */
 function rerank(
