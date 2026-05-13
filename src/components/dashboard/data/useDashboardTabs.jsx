@@ -56,6 +56,11 @@ const useDashboardTabs = () => {
   //      when ai-pathways POC is no longer needed
   const enableAIPathways = features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
     && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
+
+  // TODO: Remove or pare down to a single feature flag from enterpriseFeatures (waffle)
+  //      when ai-pathways POC is no longer needed
+  const enableAIPathways = features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
+    && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
   // Creates prefetch logic based on loadable-components, "component splitting" capability expose to Tabs component
