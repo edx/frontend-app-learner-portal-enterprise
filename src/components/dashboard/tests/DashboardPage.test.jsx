@@ -124,6 +124,7 @@ jest.mock('../../../config', () => ({
     FEATURE_ENABLE_PATHWAY_PROGRESS: jest.fn(),
     FEATURE_ENABLE_MY_CAREER: jest.fn(),
     FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT: jest.fn(),
+    FEATURE_ENABLE_AI_LEARNER_PATHWAYS: false,
   },
 }));
 
@@ -215,6 +216,7 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
@@ -338,6 +340,27 @@ describe('<Dashboard />', () => {
     features.FEATURE_ENABLE_MY_CAREER.mockImplementation(() => true);
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByText('My Career')).toBeInTheDocument();
+  });
+
+  it('renders AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS and enterpriseAiPathwaysOperatorEnabled are both enabled', () => {
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.getByText('AI Pathways')).toBeInTheDocument();
+  });
+
+  it('does not render AI Pathways tab when enterpriseAiPathwaysOperatorEnabled is disabled', () => {
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
+  });
+
+  it('does not render AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS is disabled', () => {
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
   });
 
   it('renders subsidies summary on a small screen', () => {
