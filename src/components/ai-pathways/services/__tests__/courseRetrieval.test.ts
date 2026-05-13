@@ -167,6 +167,43 @@ describe('courseRetrievalService', () => {
       // No boost skills → no optionalFilters from skills
       expect(paramsArg.optionalFilters).toBeUndefined();
     });
+
+    it('treats introductory learners as matching beginner-level courses during reranking', async () => {
+      mockSearch.mockResolvedValueOnce({
+        hits: [
+          {
+            objectID: 'intermediate-course',
+            title: 'Intermediate Course',
+            level_type: 'Intermediate',
+          },
+          {
+            objectID: 'beginner-course',
+            title: 'Beginner Course',
+            level_type: 'Beginner',
+          },
+          {
+            objectID: 'advanced-course',
+            title: 'Advanced Course',
+            level_type: 'Advanced',
+          },
+        ],
+      });
+
+      const translation = {
+        ...hybridBroadTranslation,
+        learnerLevel: 'introductory',
+      } as CatalogTranslation;
+
+      const { courses, ladderTrace } = await courseRetrievalService.fetchCourses(translation, mockIndex);
+
+      expect(courses[0].id).toBe('beginner-course');
+      expect(ladderTrace.attempts[0].rerankTrace?.courseScores[0]).toEqual(
+        expect.objectContaining({
+          objectID: 'beginner-course',
+          levelCompatibility: 'matched',
+        }),
+      );
+    });
   });
 
   describe('step 2: boosted text fallback', () => {

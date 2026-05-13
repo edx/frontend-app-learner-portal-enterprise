@@ -145,7 +145,7 @@ const buildQueryFallbackParams = (
  * @param hits Raw Algolia course hits to rerank.
  * @param strictSkillFilters Broad-anchor skill matches used as high-weight signals.
  * @param boostSkillFilters Role-differentiator / narrow-signal matches used as lower-weight signals.
- * @param learnerLevel Optional learner level (`'beginner' | 'intermediate' | 'advanced'`) for level bonuses.
+ * @param learnerLevel Optional learner level (`'introductory' | 'intermediate' | 'advanced'`) for level bonuses.
  * @returns An object with the reranked `hits` array and a `trace` for debug output.
  */
 function rerank(
@@ -163,7 +163,12 @@ function rerank(
 
   const strictNames = new Set(strictSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
   const boostNames = new Set(boostSkillFilters.map((f) => f.catalogSkill.toLowerCase()));
-  const levelOrder: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 };
+  const levelOrder: Record<string, number> = {
+    beginner: 0,
+    introductory: 0,
+    intermediate: 1,
+    advanced: 2,
+  };
 
   const scored = hits.map((hit, originalIdx) => {
     const hitSkills: string[] = [
