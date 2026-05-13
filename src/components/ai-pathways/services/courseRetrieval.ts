@@ -16,6 +16,7 @@ import {
   CONTENT_TYPE_COURSE,
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
+import {getConfig} from "@edx/frontend-platform";
 
 /**
  * Formats a single Algolia facet filter expression for a given attribute and value,
@@ -35,7 +36,8 @@ const formatFacet = (attr: string, value: string) => `${attr}:"${value.replace(/
  * @returns An array of facet filter groups (each group is an OR'd array of strings).
  */
 const buildScopedFacetFilters = (): string[][] => {
-  const override = true;
+  const config = getConfig();
+  const override = config.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE && config.ALGOLIA_STAGE_APP_ID_OVERRIDE;
   const groups: string[][] = [
     [CONTENT_TYPE_COURSE],
     override && ['enterprise_catalog_query_titles:Subscription'],
