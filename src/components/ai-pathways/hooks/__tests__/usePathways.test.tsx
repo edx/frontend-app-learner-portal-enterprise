@@ -177,7 +177,8 @@ describe('usePathways hook', () => {
       expect.anything(),
       expect.objectContaining({ intentRequiredSkills: expect.any(Array) }),
     );
-    // fetchCourses called with translation + catalogIndex (useCatalogAlgoliaSearch returns null → fallback to mockCatalogIndex)
+    // fetchCourses called with translation + catalogIndex
+    // (useCatalogAlgoliaSearch returns null → fallback to mockCatalogIndex)
     expect(courseRetrievalService.fetchCourses).toHaveBeenCalledWith(expect.anything(), mockCatalogIndex);
     expect(pathwayAssemblerXpertService.enrichWithReasoning).toHaveBeenCalled();
 

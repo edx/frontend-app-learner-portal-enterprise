@@ -157,14 +157,14 @@ const buildOptionalFiltersWithTrace = (intent: XpertIntent): {
 
   // Identify and record malformed compounds
   allRequired.forEach((s) => {
-    if (isMalformedCompound(s)) droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' });
+    if (isMalformedCompound(s)) { droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' }); }
   });
   allPreferred.forEach((s) => {
-    if (isMalformedCompound(s)) droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' });
+    if (isMalformedCompound(s)) { droppedSkillInputs!.push({ skill: s, reason: 'malformed-compound' }); }
   });
 
   // Record preferred skills excluded due to beginner level
-  if (intent.learnerLevel === 'beginner') {
+  if (intent.learnerLevel === 'introductory') {
     allPreferred.filter((s) => !isMalformedCompound(s)).forEach((s) => {
       droppedSkillInputs!.push({ skill: s, reason: 'beginner-level-excluded' });
     });
@@ -174,7 +174,7 @@ const buildOptionalFiltersWithTrace = (intent: XpertIntent): {
     .filter((s) => !isMalformedCompound(s))
     .slice(0, CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT);
 
-  const preferredSkillFilters = intent.learnerLevel === 'beginner'
+  const preferredSkillFilters = intent.learnerLevel === 'introductory'
     ? []
     : allPreferred
       .filter((s) => !isMalformedCompound(s))

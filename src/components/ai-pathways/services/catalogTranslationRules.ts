@@ -52,8 +52,8 @@ export const catalogTranslationRules = {
     // Build a normalized lookup map (normalizedValue -> originalCatalogValue).
     const validCatalogValues = new Set<string>();
     const normalizedLookup = new Map<
-      string,
-      { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
+    string,
+    { value: string; field: 'skill_names' | 'skills.name' | 'subjects' }
     >();
 
     facetSnapshot.skill_names.forEach((value) => {

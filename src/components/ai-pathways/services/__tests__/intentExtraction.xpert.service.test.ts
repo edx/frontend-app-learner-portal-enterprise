@@ -100,7 +100,7 @@ describe('intentExtractionXpertService', () => {
 
       // Should use original bundle
       expect(xpertService.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        systemMessage: expect.stringContaining('You are a grounded skill extraction engine'),
+        systemMessage: expect.stringContaining('You are a grounded career-skill extraction engine'),
       }));
     });
 

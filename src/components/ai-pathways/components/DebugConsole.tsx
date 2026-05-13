@@ -51,8 +51,10 @@ const TIER_BADGE_VARIANT: Record<string, string> = {
   noise: 'light',
 };
 
-const TierBadge = ({ tier }: { tier?: string }) => (
-  tier ? <Badge variant={TIER_BADGE_VARIANT[tier] || 'secondary'} className="mr-1">{tier}</Badge> : null
+const TierBadge = ({ tier, 'aria-label': ariaLabel }: { tier?: string; 'aria-label'?: string }) => (
+  tier
+    ? <Badge variant={TIER_BADGE_VARIANT[tier] || 'secondary'} className="mr-1" aria-label={ariaLabel || `Tier: ${tier}`}>{tier}</Badge>
+    : null
 );
 
 const DECISION_BADGE_VARIANT: Record<string, string> = {
@@ -62,9 +64,9 @@ const DECISION_BADGE_VARIANT: Record<string, string> = {
   dropped: 'dark',
 };
 
-const DecisionBadge = ({ decision }: { decision?: string }) => (
+const DecisionBadge = ({ decision, 'aria-label': ariaLabel }: { decision?: string; 'aria-label'?: string }) => (
   decision
-    ? <Badge variant={DECISION_BADGE_VARIANT[decision] || 'secondary'} className="mr-1">{decision}</Badge>
+    ? <Badge variant={DECISION_BADGE_VARIANT[decision] || 'secondary'} className="mr-1" aria-label={ariaLabel || `Decision: ${decision}`}>{decision}</Badge>
     : null
 );
 
@@ -81,6 +83,15 @@ const SEARCH_MODE_LABEL: Record<string, string> = {
   'text-boost': 'Boosted Text',
   'text-fallback': 'Text Fallback',
 };
+
+const LEVEL_COMPATIBILITY_VARIANT: Record<string, string> = {
+  matched: 'success',
+  near: 'warning',
+};
+
+const levelCompatibilityVariant = (levelCompatibility?: string) => (
+  LEVEL_COMPATIBILITY_VARIANT[levelCompatibility || ''] || 'danger'
+);
 
 // ─── Skill Tiering Table ──────────────────────────────────────────────────────
 
@@ -110,8 +121,8 @@ const SkillTieringTable = ({ rows }: { rows?: TieredSkillTrace[] }) => {
             <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
               <td className="pr-2 py-1">{row.name}</td>
               <td className="pr-2 py-1"><small>{row.source}</small></td>
-              <td className="pr-2 py-1"><TierBadge tier={row.tier} /></td>
-              <td className="pr-2 py-1"><DecisionBadge decision={row.decision} /></td>
+              <td className="pr-2 py-1"><TierBadge tier={row.tier} aria-label={`Tier value: ${row.tier || 'none'}`} /></td>
+              <td className="pr-2 py-1"><DecisionBadge decision={row.decision} aria-label={`Decision value: ${row.decision || 'none'}`} /></td>
               <td className="pr-2 py-1">{row.catalogSkill || '—'}</td>
               <td className="pr-2 py-1"><small>{row.matchMethod || '—'}</small></td>
               <td className="pr-2 py-1">{row.significance ?? '—'}</td>
@@ -356,7 +367,7 @@ const RetrievalLadderSection = ({ trace }: { trace: RetrievalLadderTrace }) => (
                   <span className="text-muted ml-1">(score: {cs.score})</span>
                   {cs.levelCompatibility && cs.levelCompatibility !== 'unknown' && (
                     <Badge
-                      variant={cs.levelCompatibility === 'matched' ? 'success' : cs.levelCompatibility === 'near' ? 'warning' : 'danger'}
+                      variant={levelCompatibilityVariant(cs.levelCompatibility)}
                       className="ml-1"
                     >
                       level: {cs.levelCompatibility}

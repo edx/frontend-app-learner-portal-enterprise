@@ -23,7 +23,7 @@ import {
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
   queryLearnerSkillLevels,
-  useEnterpriseCustomer, useEnterpriseFeatures,
+  useEnterpriseCustomer,
   useEnterprisePathwaysList,
   useEnterpriseProgramsList,
 } from '../../app/data';

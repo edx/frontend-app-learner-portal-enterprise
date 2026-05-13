@@ -25,7 +25,8 @@ import {
   CareerCardModel,
   AIPathwaysResponseModel,
   PromptDebugEntry,
-  CourseRetrievalHit, FacetReference, LearnerLevel,
+  CourseRetrievalHit,
+  FacetReference,
 } from '../types';
 import { catalogFacetService } from '../services/catalogFacetService';
 import { catalogTranslationRules } from '../services/catalogTranslationRules';

@@ -71,7 +71,7 @@ export const catalogTranslationService = {
     // Legacy path: no tier info attached (e.g., old test data or missing skillDetails)
     const noTierMatches = allMatches.filter((m) => !m.tier);
 
-    const maxStrict = options.learnerLevel === 'beginner' ? BEGINNER_MAX_STRICT_SKILLS : MAX_STRICT_SKILLS;
+    const maxStrict = options.learnerLevel === 'introductory' ? BEGINNER_MAX_STRICT_SKILLS : MAX_STRICT_SKILLS;
 
     let strictSkillFilters: CatalogSkillMatch[];
     let boostSkillFilters: CatalogSkillMatch[];
@@ -85,7 +85,7 @@ export const catalogTranslationService = {
       boostSkillFilters = [];
     } else {
       // Only role_differentiators/narrow_signals available — allow up to 2 into strict
-      const roleStrict = options.learnerLevel === 'beginner'
+      const roleStrict = options.learnerLevel === 'introductory'
         ? boosters.filter((m) => m.tier === 'role_differentiator').slice(0, 2)
         : boosters.slice(0, 2);
       strictSkillFilters = roleStrict;

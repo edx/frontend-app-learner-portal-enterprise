@@ -282,12 +282,21 @@ describe('DebugConsole', () => {
       stages: {
         facetBootstrap: { durationMs: 10, success: true },
         intentExtraction: {
-          durationMs: 10, success: true, systemPrompt: '', rawResponse: '',
-          parsedResponse: {}, validationErrors: [], repairPromptUsed: false,
+          durationMs: 10,
+          success: true,
+          systemPrompt: '',
+          rawResponse: '',
+          parsedResponse: {},
+          validationErrors: [],
+          repairPromptUsed: false,
         },
         careerRetrieval: { durationMs: 10, success: true, resultCount: 0 },
-        courseRetrieval: { durationMs: 10, success: true, resultCount: 0, hits: [] },
-        pathwayEnrichment: { durationMs: 10, success: true, systemPrompt: '', rawResponse: '' },
+        courseRetrieval: {
+          durationMs: 10, success: true, resultCount: 0, hits: [],
+        },
+        pathwayEnrichment: {
+          durationMs: 10, success: true, systemPrompt: '', rawResponse: '',
+        },
       },
     };
 

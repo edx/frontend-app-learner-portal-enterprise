@@ -8,10 +8,8 @@ import { AiPathwaysPage } from './routes/AiPathwaysPage';
  * It initializes the necessary Algolia InstantSearch context (used for facet
  * discovery) and renders the core AiPathwaysPage component.
  */
-export const AIPathwaysTab = () => {
-  return (
-    <AiPathwaysPage />
-  );
-};
+export const AIPathwaysTab = () => (
+  <AiPathwaysPage />
+);
 
 export default AIPathwaysTab;

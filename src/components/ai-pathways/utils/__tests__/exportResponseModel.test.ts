@@ -173,7 +173,9 @@ describe('exportResponseModel', () => {
             success: true,
             trace: {
               winnerStep: 1,
-              attempts: [{ step: 1, searchMode: 'hybrid-broad', hitCount: 5, winner: true }],
+              attempts: [{
+                step: 1, searchMode: 'hybrid-broad', hitCount: 5, winner: true,
+              }],
             },
           },
           courseRetrieval: {

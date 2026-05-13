@@ -82,7 +82,7 @@ describe('careerRetrievalService', () => {
 
     const intent = {
       ...DEFAULT_INTENT,
-      learnerLevel: 'beginner' as const,
+      learnerLevel: 'introductory' as const,
       skillsRequired: ['Cloud Computing'],
       skillsPreferred: ['AWS', 'Kubernetes'],
     };
@@ -149,7 +149,7 @@ describe('careerRetrievalService', () => {
 
     const intent = {
       ...DEFAULT_INTENT,
-      learnerLevel: 'beginner' as const,
+      learnerLevel: 'introductory' as const,
       skillsRequired: ['Cloud Computing'],
       skillsPreferred: ['AWS', 'Terraform'],
     };
@@ -166,8 +166,12 @@ describe('careerRetrievalService', () => {
         id: '10',
         name: 'Data Engineer',
         skills: [
-          { name: 'SQL', significance: 500, unique_postings: 1000, type_name: 'Common Skill' },
-          { name: 'Python', significance: 900, unique_postings: 2000, type_name: 'Common Skill' },
+          {
+            name: 'SQL', significance: 500, unique_postings: 1000, type_name: 'Common Skill',
+          },
+          {
+            name: 'Python', significance: 900, unique_postings: 2000, type_name: 'Common Skill',
+          },
         ],
         industry_names: ['Finance'],
       }],
