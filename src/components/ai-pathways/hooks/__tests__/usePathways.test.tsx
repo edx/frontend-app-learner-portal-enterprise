@@ -11,6 +11,7 @@ import { pathwayAssemblerXpertService } from '../../services/pathwayAssembler.xp
 import useAlgoliaSearch from '../../../app/data/hooks/useAlgoliaSearch';
 import useEnterpriseCustomer from '../../../app/data/hooks/useEnterpriseCustomer';
 import useSearchCatalogs from '../../../app/data/hooks/useSearchCatalogs';
+import useCatalogAlgoliaSearch from '../useCatalogAlgoliaSearch';
 import * as appUtils from '../../../app/data/utils';
 import {
   mockIntakeInput,
@@ -104,6 +105,7 @@ describe('usePathways hook', () => {
 
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-123' } });
     (useSearchCatalogs as jest.Mock).mockReturnValue(['cat-1']);
+    (useCatalogAlgoliaSearch as jest.Mock).mockReturnValue({ searchClient: null, searchIndex: null });
 
     (intakePreprocessor.preprocessInput as jest.Mock).mockReturnValue('preprocessed-input');
     (intentExtractionXpertService.extractIntent as jest.Mock).mockResolvedValue({
@@ -161,10 +163,11 @@ describe('usePathways hook', () => {
       await result.current.generatePathway();
     });
 
-    // Facet snapshot called with config and context (no index arg)
+    // Facet snapshot called with config, context, and the active catalog index
     expect(catalogFacetService.getFacetSnapshot).toHaveBeenCalledWith(
       {},
       expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
+      mockCatalogIndex,
     );
     expect(catalogTranslationRules.translateTaxonomyToCatalog).toHaveBeenCalled();
     // processTranslation called with 3 args: careerTitle + rulesFirst + options
@@ -180,6 +183,29 @@ describe('usePathways hook', () => {
 
     expect(result.current.currentStep).toBe('pathway');
     expect(result.current.pathway?.courses).toHaveLength(1);
+  });
+
+  it('uses the catalog override index for facet snapshot retrieval when available', async () => {
+    const overrideCatalogIndex = { search: jest.fn() };
+    (useCatalogAlgoliaSearch as jest.Mock).mockReturnValue({
+      searchClient: {},
+      searchIndex: overrideCatalogIndex,
+    });
+    const { result } = renderHook(() => usePathways());
+
+    await act(async () => {
+      await result.current.generateProfile(mockIntakeInput);
+    });
+
+    await act(async () => {
+      await result.current.generatePathway();
+    });
+
+    expect(catalogFacetService.getFacetSnapshot).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ enterpriseCustomerUuid: 'ent-123', locale: 'en' }),
+      overrideCatalogIndex,
+    );
   });
 
   it('handles errors gracefully during profile generation', async () => {
@@ -263,6 +289,7 @@ describe('usePathways — prompt interception', () => {
 
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-123' } });
     (useSearchCatalogs as jest.Mock).mockReturnValue(['cat-1']);
+    (useCatalogAlgoliaSearch as jest.Mock).mockReturnValue({ searchClient: null, searchIndex: null });
 
     (intakePreprocessor.preprocessInput as jest.Mock).mockReturnValue('preprocessed-input');
     (intentExtractionXpertService.extractIntent as jest.Mock).mockResolvedValue({

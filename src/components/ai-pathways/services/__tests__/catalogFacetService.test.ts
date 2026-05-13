@@ -1,3 +1,4 @@
+import algoliasearch from 'algoliasearch';
 import { catalogFacetService } from '../catalogFacetService';
 import { FACET_FIELDS } from '../../constants';
 
@@ -93,6 +94,19 @@ describe('catalogFacetService', () => {
       expect(mockSearch).toHaveBeenCalledWith('', expect.objectContaining({
         facetFilters: [['content_type:course']],
       }));
+    });
+
+    it('uses the provided search index instead of constructing the default Algolia index', async () => {
+      const explicitIndexSearch = jest.fn().mockResolvedValue({ facets: {}, hits: [], nbHits: 0 });
+      const explicitIndex = { search: explicitIndexSearch };
+
+      await catalogFacetService.getFacetSnapshot({}, undefined, explicitIndex as any);
+
+      expect(explicitIndexSearch).toHaveBeenCalledWith('', expect.objectContaining({
+        facetFilters: [['content_type:course']],
+      }));
+      expect(algoliasearch).not.toHaveBeenCalled();
+      expect(mockInitIndex).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { SearchClient } from 'algoliasearch/lite';
+import { SearchClient, SearchIndex } from 'algoliasearch/lite';
 import { getConfig } from '@edx/frontend-platform/config';
 import algoliasearch from 'algoliasearch';
 import { CatalogFacetSnapshot, FacetRetrievalConfig } from '../types/catalogFacet';
@@ -55,17 +55,19 @@ export const catalogFacetService = {
    *   a count summary for debug visibility in the DebugConsole.
    */
   async getFacetSnapshot(
-    // index: SearchIndex,
     config: FacetRetrievalConfig = {},
     context?: FacetBootstrapContext,
+    index?: SearchIndex,
   ): Promise<{ snapshot: CatalogFacetSnapshot; trace: FacetSnapshotTrace }> {
     const { maxValuesPerFacet = MAX_VALUES_PER_FACET } = config;
-    const configg = getConfig();
-    const searchClient: SearchClient = algoliasearch(
-      configg.ALGOLIA_APP_ID,
-      configg.ALGOLIA_SEARCH_API_KEY,
-    );
-    const index = searchClient.initIndex(configg.ALGOLIA_INDEX_NAME);
+    const resolvedIndex = index ?? (() => {
+      const configg = getConfig();
+      const searchClient: SearchClient = algoliasearch(
+        configg.ALGOLIA_APP_ID,
+        configg.ALGOLIA_SEARCH_API_KEY,
+      );
+      return searchClient.initIndex(configg.ALGOLIA_INDEX_NAME);
+    })();
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.
     // content_type:course scopes to courses; catalog query UUIDs restrict to the enterprise catalog.
@@ -82,7 +84,7 @@ export const catalogFacetService = {
 
     // Query Algolia for facets only (hitsPerPage: 0)
     // We use an empty query ('') to get the full universe of available values within the scope.
-    const response = await index.search('', {
+    const response = await resolvedIndex.search('', {
       facets: ['*'],
       hitsPerPage: 0,
       maxValuesPerFacet,

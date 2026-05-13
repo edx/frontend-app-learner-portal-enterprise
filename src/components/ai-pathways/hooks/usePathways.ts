@@ -291,7 +291,7 @@ export const usePathways = () => {
       // 1. Catalog Facet Snapshot (Grounds skill mapping to this enterprise's catalog)
       const facetStartMs = Date.now();
       const { snapshot: facetSnapshot, trace: facetSnapshotTrace } = await catalogFacetService
-        .getFacetSnapshot({}, facetContext);
+        .getFacetSnapshot({}, facetContext, currentCatalogIndex);
       updatedResponseModel.stages.catalogFacetSnapshot = {
         durationMs: Date.now() - facetStartMs,
         success: true,
