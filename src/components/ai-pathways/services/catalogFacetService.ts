@@ -61,12 +61,12 @@ export const catalogFacetService = {
   ): Promise<{ snapshot: CatalogFacetSnapshot; trace: FacetSnapshotTrace }> {
     const { maxValuesPerFacet = MAX_VALUES_PER_FACET } = config;
     const resolvedIndex = index ?? (() => {
-      const configg = getConfig();
+      const appConfig = getConfig();
       const searchClient: SearchClient = algoliasearch(
-        configg.ALGOLIA_APP_ID,
-        configg.ALGOLIA_SEARCH_API_KEY,
+        appConfig.ALGOLIA_APP_ID,
+        appConfig.ALGOLIA_SEARCH_API_KEY,
       );
-      return searchClient.initIndex(configg.ALGOLIA_INDEX_NAME);
+      return searchClient.initIndex(appConfig.ALGOLIA_INDEX_NAME);
     })();
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.
