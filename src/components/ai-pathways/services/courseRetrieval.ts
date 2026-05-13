@@ -1,5 +1,6 @@
 import { SearchIndex } from 'algoliasearch/lite';
 import { SearchOptions } from '@algolia/client-search';
+import { getConfig } from '@edx/frontend-platform';
 import {
   CourseCardModel,
   CatalogTranslation,
@@ -16,7 +17,6 @@ import {
   CONTENT_TYPE_COURSE,
   RETRIEVAL_LADDER_STEPS,
 } from '../constants';
-import {getConfig} from "@edx/frontend-platform";
 
 /**
  * Formats a single Algolia facet filter expression for a given attribute and value,
