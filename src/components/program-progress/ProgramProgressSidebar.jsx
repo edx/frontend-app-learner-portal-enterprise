@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Button } from '@openedx/paragon';
 import { v4 as uuidv4 } from 'uuid';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform/config';
 
 import ProgramProgressCircle from './ProgramProgressCircle';
@@ -21,6 +21,7 @@ const ProgramProgressSideBar = () => {
     },
   } = useLearnerProgramProgressData();
   const { LMS_BASE_URL } = getConfig();
+  const intl = useIntl();
   const courseCertificates = useMemo(
     () => {
       if (certificateData) {
@@ -60,7 +61,16 @@ const ProgramProgressSideBar = () => {
             <img
               src={programCertificate.img}
               className="program-cert"
-              alt={`Open the certificate you earned for the ${programCertificate.title}s program.`}
+              alt={intl.formatMessage(
+                {
+                  id: 'enterprise.dashboard.program.sidebar.program.certificate.image.alt',
+                  defaultMessage: 'Open the certificate you earned for the {programTitle} program.',
+                  description: 'Alt text for the program certificate image on the program progress sidebar',
+                },
+                {
+                  programTitle: programCertificate.title,
+                },
+              )}
             />
           </a>
         </div>

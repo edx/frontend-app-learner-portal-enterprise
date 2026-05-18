@@ -50,13 +50,13 @@ describe('getProgramPacing', () => {
 describe('getProgramPacingTypeContent', () => {
   it('when pacing type is self paced', () => {
     const pacingTypeContent = programUtils.getProgramPacingTypeContent(PROGRAM_PACING_MAP.SELF_PACED);
-    const expected = PACING_TYPE_CONTENT.SELF_PACED;
+    const expected = PACING_TYPE_CONTENT.SELF_PACED.defaultMessage;
     expect(pacingTypeContent).toEqual(expected);
   });
 
   it('when pacing type is instructor paced', () => {
     const pacingTypeContent = programUtils.getProgramPacingTypeContent(PROGRAM_PACING_MAP.INSTRUCTOR_PACED);
-    const expected = PACING_TYPE_CONTENT.INSTRUCTOR_PACED;
+    const expected = PACING_TYPE_CONTENT.INSTRUCTOR_PACED.defaultMessage;
     expect(pacingTypeContent).toEqual(expected);
   });
 });
@@ -364,17 +364,17 @@ describe('getProgramDuration', () => {
 describe('appendProgramToProgramType', () => {
   it('tests appendProgramToProgramType returns correct results for MicroMasters', () => {
     expect(render(appendProgramToProgramType('MicroMasters')).baseElement.outerHTML)
-      .toBe('<body><div><span> MicroMasters<markup>®</markup> Program </span></div></body>');
+      .toBe('<body><div><span> MicroMasters<sup>®</sup> Program </span></div></body>');
   });
 
   it('tests appendProgramToProgramType returns correct results for xSeries', () => {
     expect(render(appendProgramToProgramType('xSeries')).baseElement.outerHTML)
-      .toBe('<body><div><span> xSeries<markup>®</markup> Program </span></div></body>');
+      .toBe('<body><div><span> xSeries<sup>®</sup> Program </span></div></body>');
   });
 
   it('tests appendProgramToProgramType returns correct results for MicroBachelors', () => {
     expect(render(appendProgramToProgramType('MicroBachelors')).baseElement.outerHTML)
-      .toBe('<body><div><span> MicroBachelors<markup>®</markup> Program </span></div></body>');
+      .toBe('<body><div><span> MicroBachelors<sup>®</sup> Program </span></div></body>');
   });
 
   it('tests appendProgramToProgramType returns correct results for Masters', () => {

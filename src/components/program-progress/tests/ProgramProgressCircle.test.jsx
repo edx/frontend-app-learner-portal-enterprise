@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/extend-expect';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import ProgramProgressCircle from '../ProgramProgressCircle';
 import {
-  X_AXIS, Y_AXIS, CIRCLE_RADIUS, STROKE_WIDTH, CIRCLE_LABEL,
+  X_AXIS, Y_AXIS, CIRCLE_RADIUS, STROKE_WIDTH,
 } from '../data/constants';
 import { useLearnerProgramProgressData } from '../../app/data';
 
@@ -43,7 +43,7 @@ describe('<ProgramProgressCircle />', () => {
     const { container } = render(
       <ProgramProgressCircleWithContext />,
     );
-    expect(screen.getByText(`${testProgramData.type} Progress`)).toBeInTheDocument();
+    expect(screen.getByText('MicroMasters Program Progress')).toBeInTheDocument();
     expect(container.querySelector('[data-testid="svg-circle"]')).toBeInTheDocument();
     expect(container.querySelector('[data-testid="svg-circle"]')).toHaveClass('progress-circle');
     // Test background circle is present with the given attributes
@@ -66,7 +66,7 @@ describe('<ProgramProgressCircle />', () => {
       expect(segment).toHaveAttribute('stroke-dashoffset');
     });
     // Test circle label
-    expect(screen.getByText(CIRCLE_LABEL)).toBeInTheDocument();
+    expect(screen.getByText('Earned Certificates')).toBeInTheDocument();
     expect(container.querySelector('span.complete')).toHaveTextContent(testCourseData.completed.length);
     expect(container.querySelector('span.total')).toHaveTextContent(totalCourse);
   });
