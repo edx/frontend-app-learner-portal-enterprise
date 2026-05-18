@@ -56,7 +56,7 @@ export const PathwayDetail = ({
       title={title}
       size="lg"
       hasCloseButton
-      isOverflowVisible
+      isOverflowVisible={false}
     >
       <ModalDialog.Header>
         <ModalDialog.Title>{title}</ModalDialog.Title>
