@@ -14,13 +14,13 @@ import { renderWithRouter } from '../../../utils/tests';
 import edxLogo from '../images/edx-logo.svg';
 import SkillsQuizStepper from '../SkillsQuizStepper';
 import { SkillsContext, SkillsContextProvider } from '../SkillsContextProvider';
+import industryMessages from '../industryMessages';
 import {
   CURRENT_JOB_FACET,
   DESIRED_JOB_FACET,
   DROPDOWN_OPTION_CHANGE_CAREERS,
   DROPDOWN_OPTION_IMPROVE_CURRENT_ROLE,
   GOAL_DROPDOWN_DEFAULT_OPTION,
-  INDUSTRY_FACET,
 } from '../constants';
 import { useAlgoliaSearch, useDefaultSearchFilters, useEnterpriseCustomer } from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
@@ -244,7 +244,7 @@ describe('<SkillsQuizStepper />', () => {
       { route: '/test/skills-quiz/' },
     );
 
-    expect(screen.getByText(INDUSTRY_FACET.title)).toBeInTheDocument();
+    expect(screen.getByText(industryMessages.industryLabel.defaultMessage)).toBeInTheDocument();
     expect(screen.getByText(CURRENT_JOB_FACET.title)).toBeInTheDocument();
     expect(screen.getByText(DESIRED_JOB_FACET.title)).toBeInTheDocument();
   });
