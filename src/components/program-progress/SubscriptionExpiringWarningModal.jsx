@@ -17,18 +17,13 @@ const messages = defineMessages({
   },
   subscriptionWillExpire: {
     id: 'enterprise.program.progress.subscription.warning.body.expiration',
-    defaultMessage: 'Your edX subscription access through [{enterpriseName}] will expire before you are projected to complete all of the courses in the program (based off of course end dates). If you are not able to complete all of the courses in the program before your access expires, you will not be eligible to view or share your program record.',
+    defaultMessage: 'Your edX subscription access through [{enterpriseName}] will expire before you are projected to complete all of the courses in the program (based on course end dates). If you are not able to complete all of the courses in the program before your access expires, you will not be eligible to view or share your program record.',
     description: 'Primary explanation in the subscription expiration warning modal.',
   },
-  renewalNoticePrefix: {
-    id: 'enterprise.program.progress.subscription.warning.body.renewal.notice.prefix',
-    defaultMessage: 'If you plan to complete the program, please ',
-    description: 'Prefix for the renewal guidance shown before the contact action in the subscription expiration warning modal.',
-  },
-  renewalNoticeSuffix: {
-    id: 'enterprise.program.progress.subscription.warning.body.renewal.notice.suffix',
-    defaultMessage: ' to ensure your subscription access is renewed.',
-    description: 'Suffix for the renewal guidance shown after the contact action in the subscription expiration warning modal.',
+  renewalNotice: {
+    id: 'enterprise.program.progress.subscription.warning.body.renewal.notice',
+    defaultMessage: 'If you plan to complete the program, please {contactLink} to ensure your subscription access is renewed.',
+    description: 'Renewal guidance shown in the subscription expiration warning modal. The contactLink placeholder should render a link or plain text directing the learner to contact their learning manager.',
   },
   accessExpires: {
     id: 'enterprise.program.progress.subscription.warning.access.expires',
@@ -50,16 +45,10 @@ const SubscriptionExpirationWarningModal = ({
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { data: { subscriptionPlan } } = useSubscriptions();
   const modalTitle = intl.formatMessage(SUBSCRIPTION_EXPIRING_MODAL_TITLE);
-
-  const renderContactText = () => {
-    const contactText = intl.formatMessage(messages.contactLearningManager);
-    if (enterpriseCustomer.contactEmail) {
-      return (
-        <MailtoLink to={enterpriseCustomer.contactEmail} className="font-weight-bold">{contactText}</MailtoLink>
-      );
-    }
-    return contactText;
-  };
+  const contactText = intl.formatMessage(messages.contactLearningManager);
+  const contactLink = enterpriseCustomer.contactEmail
+    ? <MailtoLink to={enterpriseCustomer.contactEmail} className="font-weight-bold">{contactText}</MailtoLink>
+    : contactText;
 
   const renderExpiredBody = () => (
     <>
@@ -74,9 +63,7 @@ const SubscriptionExpirationWarningModal = ({
         />
       </p>
       <p>
-        {intl.formatMessage(messages.renewalNoticePrefix)}
-        {renderContactText()}
-        {intl.formatMessage(messages.renewalNoticeSuffix)}
+        {intl.formatMessage(messages.renewalNotice, { contactLink })}
       </p>
       <i>
         <FormattedMessage

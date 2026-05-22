@@ -1,5 +1,6 @@
+import PropTypes from 'prop-types';
 import { getConfig } from '@edx/frontend-platform';
-import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { IntlProvider, useIntl } from '@edx/frontend-platform/i18n';
 import dayjs from 'dayjs';
 import { render, screen } from '@testing-library/react';
 import MockDate from 'mockdate';
@@ -16,12 +17,14 @@ import {
   getSubscriptionDisabledEnrollmentReasonType,
   isActiveSubscriptionLicense,
   isCurrentCoupon,
+  formatProgramType,
   pathContainsCourseTypeSlug,
   processCourseSubjects,
   transformedCourseMetadata,
 } from '../utils';
 import { LICENSE_STATUS } from '../../../enterprise-user-subsidy/data/constants';
 import { findCouponCodeForCourse } from '../../../app/data';
+import { PROGRAM_TYPE_MAP } from '../../../program/data/constants';
 
 jest.mock('@edx/frontend-platform', () => ({
   ensureConfig: jest.fn(),
@@ -43,6 +46,23 @@ jest.mock('@edx/frontend-platform', () => ({
 
 const mockCatalogUuid = 'test-catalog-uuid';
 
+const FormatProgramTypeWrapper = ({ programType }) => {
+  const intl = useIntl();
+  return <div>{formatProgramType(programType, intl)}</div>;
+};
+
+FormatProgramTypeWrapper.propTypes = {
+  programType: PropTypes.string.isRequired,
+};
+
+function renderFormattedProgramType(programType) {
+  return render(
+    <IntlProvider locale="en">
+      <FormatProgramTypeWrapper programType={programType} />
+    </IntlProvider>,
+  );
+}
+
 describe('findCouponCodeForCourse', () => {
   const couponCodes = [{
     code: 'bearsRus',
@@ -58,6 +78,24 @@ describe('findCouponCodeForCourse', () => {
 
   test('returns undefined if catalog list is empty', () => {
     expect(findCouponCodeForCourse(couponCodes)).toBeUndefined();
+  });
+});
+
+describe('formatProgramType', () => {
+  it('returns a trademarked localized label for MicroMasters when intl is provided', () => {
+    renderFormattedProgramType(PROGRAM_TYPE_MAP.MICROMASTERS);
+    expect(screen.getByText('MicroMasters® Program')).toBeInTheDocument();
+  });
+
+  it('returns a trademarked localized label for MicroBachelors when intl is provided', () => {
+    renderFormattedProgramType(PROGRAM_TYPE_MAP.MICROBACHELORS);
+    expect(screen.getByText('MicroBachelors® Program')).toBeInTheDocument();
+  });
+
+  it('returns a trademarked fallback element for MicroMasters without intl', () => {
+    const { container } = render(<div>{formatProgramType(PROGRAM_TYPE_MAP.MICROMASTERS)}</div>);
+    expect(container.querySelector('sup')).toHaveTextContent('®');
+    expect(container).toHaveTextContent('MicroMasters® Program');
   });
 });
 

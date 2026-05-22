@@ -139,7 +139,7 @@ export function formatProgramType(programType, intl) {
       if (intl) {
         return intl.formatMessage({
           id: 'enterprise.program.type.micromasters',
-          defaultMessage: 'MicroMasters Program',
+          defaultMessage: 'MicroMasters® Program',
           description: 'Localized label for the MicroMasters program type',
         });
       }
@@ -148,7 +148,7 @@ export function formatProgramType(programType, intl) {
       if (intl) {
         return intl.formatMessage({
           id: 'enterprise.program.type.microbachelors',
-          defaultMessage: 'MicroBachelors Program',
+          defaultMessage: 'MicroBachelors® Program',
           description: 'Localized label for the MicroBachelors program type',
         });
       }

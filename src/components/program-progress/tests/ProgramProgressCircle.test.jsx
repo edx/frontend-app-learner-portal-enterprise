@@ -43,7 +43,7 @@ describe('<ProgramProgressCircle />', () => {
     const { container } = render(
       <ProgramProgressCircleWithContext />,
     );
-    expect(screen.getByText('MicroMasters Program Progress')).toBeInTheDocument();
+    expect(screen.getByText('MicroMasters® Program Progress')).toBeInTheDocument();
     expect(container.querySelector('[data-testid="svg-circle"]')).toBeInTheDocument();
     expect(container.querySelector('[data-testid="svg-circle"]')).toHaveClass('progress-circle');
     // Test background circle is present with the given attributes

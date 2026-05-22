@@ -62,7 +62,7 @@ const messages = defineMessages({
   professionalCertificate: {
     id: 'enterprise.program.type.professional.certificate',
     defaultMessage: 'Professional Certificate',
-    description: 'Display label for professional certificate programs.',
+    description: 'Localized label for the Professional Certificate program type',
   },
 });
 
