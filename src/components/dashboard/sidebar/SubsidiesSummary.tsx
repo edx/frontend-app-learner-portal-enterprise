@@ -32,42 +32,11 @@ const SearchCoursesCta = ({
   const { data: enterpriseCustomer } = useEnterpriseCustomer<EnterpriseCustomer>();
   const { data: academies } = useAcademies();
   const isOneAcademy = enterpriseCustomer?.enableOneAcademy;
-  const isAcademiesEnabled = enterpriseCustomer?.enableAcademies;
 
   if (enterpriseCustomer.disableSearch || !showSearchCoursesCta || isProgramProgressPage) {
     return null;
   }
-
-  const hasOneAcademyDestination = isOneAcademy && academies[0]?.uuid;
-  const ctaLinkDestination = hasOneAcademyDestination ? `academies/${academies[0]?.uuid}` : 'search';
-
-  const getButtonLabel = () => {
-    if (hasOneAcademyDestination) {
-      return (
-        <FormattedMessage
-          id="enterprise.dashboard.sidebar.subsidy.go.to.academy.button"
-          defaultMessage="Go to Academy"
-          description="Button text for the go to academy button on the enterprise dashboard sidebar."
-        />
-      );
-    }
-    if (isAcademiesEnabled) {
-      return (
-        <FormattedMessage
-          id="enterprise.dashboard.sidebar.subsidy.explore.academies.button"
-          defaultMessage="Explore Academies"
-          description="Button text for the explore academies button on the enterprise dashboard sidebar for multi-academy customers."
-        />
-      );
-    }
-    return (
-      <FormattedMessage
-        id="enterprise.dashboard.sidebar.subsidy.find.course.button"
-        defaultMessage="Find a course"
-        description="Button text for the find a course button on the enterprise dashboard sidebar."
-      />
-    );
-  };
+  const ctaLinkDestination = isOneAcademy && academies[0]?.uuid ? `academies/${academies[0]?.uuid}` : 'search';
 
   return (
     <Card.Section>
@@ -77,7 +46,20 @@ const SearchCoursesCta = ({
         variant={ctaButtonVariant}
         block
       >
-        {getButtonLabel()}
+        {isOneAcademy ? (
+          <FormattedMessage
+            id="enterprise.dashboard.sidebar.subsidy.go.to.academy.button"
+            defaultMessage="Go to Academy"
+            description="Button text for the go to academy button on the enterprise dashboard sidebar."
+          />
+        )
+          : (
+            <FormattedMessage
+              id="enterprise.dashboard.sidebar.subsidy.find.course.button"
+              defaultMessage="Find a course"
+              description="Button text for the find a course button on the enterprise dashboard sidebar."
+            />
+          )}
       </Button>
     </Card.Section>
   );

@@ -53,7 +53,7 @@ describe('xpertContractService', () => {
         timeCommitment: 'forever',
       };
       const result = xpertContractService.normalizeIntent(raw);
-      expect(result.learnerLevel).toBe('beginner');
+      expect(result.learnerLevel).toBe('introductory');
       expect(result.timeCommitment).toBe('medium');
     });
 

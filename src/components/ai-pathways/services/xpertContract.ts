@@ -24,6 +24,8 @@ export interface ReasoningResponse {
   wasDiscoveryUsed?: boolean;
 }
 
+const stripJsonFence = (raw: string): string => raw.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+
 /**
  * Service for enforcing structural and semantic contracts for Xpert AI interactions.
  *
@@ -41,10 +43,7 @@ export const xpertContractService = {
    */
   parseIntent(rawResponse: string): XpertIntent | null {
     try {
-      /**
-       * Strip potential markdown fences (e.g., ```json ... ```) to isolate the raw JSON.
-       */
-      const jsonString = rawResponse.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+      const jsonString = stripJsonFence(rawResponse);
       const parsed = JSON.parse(jsonString);
       return this.normalizeIntent(parsed);
     } catch {
@@ -125,7 +124,7 @@ export const xpertContractService = {
    */
   parseReasoning(rawResponse: string): ReasoningResponse | null {
     try {
-      const jsonString = rawResponse.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+      const jsonString = stripJsonFence(rawResponse);
       const parsed = JSON.parse(jsonString);
 
       if (!parsed.reasonings || !Array.isArray(parsed.reasonings)) {

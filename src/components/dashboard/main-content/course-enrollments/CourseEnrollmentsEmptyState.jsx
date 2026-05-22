@@ -36,39 +36,6 @@ const CourseEnrollmentsEmptyState = () => {
   if (enterpriseCustomer.enableOneAcademy && academies?.length === 1) {
     return <GoToAcademy />;
   }
-  if (enterpriseCustomer.enableAcademies) {
-    return (
-      <>
-        {enterpriseFeatures.enterpriseGroupsV1 && (
-          <NewGroupAssignmentAlert
-            showAlert={showNewGroupAssociationAlert}
-            onClose={dismissGroupAssociationAlert}
-            enterpriseCustomer={enterpriseCustomer}
-          />
-        )}
-        <p>
-          <FormattedMessage
-            id="enterprise.dashboard.tab.courses.academies.message"
-            defaultMessage="Getting started with edX is easy. Explore your Academies, find a course, and get started on your learning journey."
-            description="Message shown to a learner on enterprise dashboard when academies are enabled and there are no enrollments."
-          />
-        </p>
-        <Button
-          as={Link}
-          to={`/${enterpriseCustomer.slug}/search`}
-          className="btn-brand-primary d-block d-md-inline-block"
-        >
-          <FormattedMessage
-            id="enterprise.dashboard.tab.courses.explore.academies"
-            defaultMessage="Explore Academies"
-            description="Label for Explore Academies button on enterprise dashboard's courses tab for multi-academy customers."
-          />
-        </Button>
-        <br />
-        {canOnlyViewHighlightSets === false && <CourseRecommendations />}
-      </>
-    );
-  }
 
   return (
     <>

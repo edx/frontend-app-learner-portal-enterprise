@@ -6,11 +6,11 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { SearchData } from '@2uinc/frontend-enterprise-catalog-search';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { SkillsContextProvider } from '../SkillsContextProvider';
+import industryMessages from '../industryMessages';
 import {
   CURRENT_JOB_FACET,
   DESIRED_JOB_FACET,
   DROPDOWN_OPTION_GET_PROMOTED,
-  INDUSTRY_FACET,
 } from '../constants';
 import SkillsQuizStepper from '../SkillsQuizStepper';
 import { useAlgoliaSearch, useEnterpriseCustomer } from '../../app/data';
@@ -34,7 +34,7 @@ const defaultAppState = {
   authenticatedUser: mockAuthenticatedUser,
 };
 
-const facetsToTest = [DESIRED_JOB_FACET, INDUSTRY_FACET, CURRENT_JOB_FACET];
+const facetsToTest = [DESIRED_JOB_FACET, CURRENT_JOB_FACET];
 
 const mockAlgoliaSearch = {
   searchClient: {
@@ -74,6 +74,7 @@ describe('<SearchFilters />', () => {
       facetsToTest.forEach((filter) => {
         expect(screen.getByText(filter.title)).toBeInTheDocument();
       });
+      expect(screen.getByText(industryMessages.industryLabel.defaultMessage)).toBeInTheDocument();
     });
   });
 });
