@@ -278,4 +278,36 @@ describe('<ContinueLearningButton />', () => {
 
     expect(screen.getByRole('link', { name: /Reanudar/i })).toBeInTheDocument();
   });
+
+  it('renders start course text when startDate is missing and resume url is absent', () => {
+    renderContinueLearningButton(
+      {
+        startDate: null,
+        resumeCourseRunUrl: null,
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.start_course': 'Empezar curso',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Empezar curso/i })).toBeInTheDocument();
+  });
+
+  it('renders start course text when startDate is invalid and resume url is absent', () => {
+    renderContinueLearningButton(
+      {
+        startDate: 'invalid-start-date',
+        resumeCourseRunUrl: null,
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.start_course': 'Empezar curso',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Empezar curso/i })).toBeInTheDocument();
+  });
 });

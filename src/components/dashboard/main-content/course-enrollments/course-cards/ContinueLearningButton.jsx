@@ -58,16 +58,26 @@ const ContinueLearningButton = ({
     );
   };
 
-  const isCourseStarted = () => dayjs(startDate) <= dayjs();
+  const isCourseStarted = () => {
+    if (!startDate) {
+      return true;
+    }
+
+    const parsedStartDate = dayjs(startDate);
+    if (!parsedStartDate.isValid()) {
+      return true;
+    }
+
+    return parsedStartDate <= dayjs();
+  };
   const isExecutiveEducation2UCourse = EXECUTIVE_EDUCATION_COURSE_MODES.includes(mode);
   const disabled = !isCourseStarted() ? 'disabled' : undefined;
   const defaultVariant = isExecutiveEducation2UCourse ? 'inverse-outline-primary' : 'outline-primary';
 
   const renderContent = () => {
-    // resumeCourseRunUrl indicates that learner has made progress, available only if the learner has started learning.
-    // The "Start Course" is visible either when the course has not started or when the course has started but the
-    // learner has not yet begun the learning.
-    if ((!isCourseStarted() && startDate) || (isCourseStarted() && !resumeCourseRunUrl)) {
+    // resumeCourseRunUrl exists only when a learner has made progress.
+    // If it is absent, always show "Start course", including when startDate is missing/invalid.
+    if (!resumeCourseRunUrl) {
       return intl.formatMessage(messages.startCourse);
     }
     return intl.formatMessage(messages.resumeCourse);
