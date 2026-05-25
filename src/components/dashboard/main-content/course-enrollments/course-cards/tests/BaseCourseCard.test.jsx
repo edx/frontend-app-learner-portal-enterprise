@@ -333,4 +333,52 @@ describe('<BaseCourseCard />', () => {
       expect(expiringWarningIconButton).not.toBeInTheDocument();
     }
   });
+
+  it('renders custom buttons row when buttons prop is provided', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        buttons={<button type="button">Custom action</button>}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Custom action' })).toBeInTheDocument();
+  });
+
+  it('renders miscText prop when provided', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        miscText={<span>Custom misc text override</span>}
+      />,
+    );
+
+    expect(screen.getByText('Custom misc text override')).toBeInTheDocument();
+  });
+
+  it('renders canceled assignment alert message', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.assigned}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        isCanceledAssignment
+      />,
+    );
+
+    expect(screen.getByText('Your learning administrator canceled this assignment')).toBeInTheDocument();
+  });
 });
