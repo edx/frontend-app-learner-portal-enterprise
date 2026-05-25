@@ -61,6 +61,26 @@ describe('transformCourseEnrollment', () => {
     };
     expect(transformCourseEnrollment(originalCourseEnrollment)).toEqual(transformedCourseEnrollment);
   });
+
+  it('prefers pre-resolved title when available (e.g. Algolia-enriched title)', () => {
+    const originalCourseEnrollment = createRawCourseEnrollment({
+      title: 'Fundamentos de Neurociencia, Parte 3: El cerebro',
+      displayName: 'Fundamentals of Neuroscience, Part 3: The Brain',
+    });
+
+    const transformedCourseEnrollment = transformCourseEnrollment(originalCourseEnrollment);
+    expect(transformedCourseEnrollment.title).toEqual(originalCourseEnrollment.title);
+  });
+
+  it('falls back to displayName when localized title is unavailable', () => {
+    const originalCourseEnrollment = createRawCourseEnrollment({
+      title: null,
+      displayName: 'Fundamentals of Neuroscience, Part 3: The Brain',
+    });
+
+    const transformedCourseEnrollment = transformCourseEnrollment(originalCourseEnrollment);
+    expect(transformedCourseEnrollment.title).toEqual(originalCourseEnrollment.displayName);
+  });
 });
 
 describe('transformSubsidyRequest', () => {

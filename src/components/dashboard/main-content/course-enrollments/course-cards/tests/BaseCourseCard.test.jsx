@@ -21,6 +21,12 @@ import { isCourseEnded } from '../../../../../../utils/common';
 import { getNormalizedStartDate } from '../../../../../course/data';
 import { COURSE_STATUSES } from '../../../../../../constants';
 
+const formatLocalizedDate = (date, locale = 'en') => new Intl.DateTimeFormat(locale, {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+}).format(new Date(date));
+
 jest.mock('@2uinc/frontend-enterprise-utils', () => ({
   ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
   sendEnterpriseTrackEvent: jest.fn(),
@@ -156,7 +162,6 @@ describe('<BaseCourseCard />', () => {
       pacingType: 'self',
       weeksToComplete: null,
     });
-    const formatStartDate = (date) => dayjs(date).format('MMMM Do, YYYY');
     renderWithRouter(
       <BaseCourseCardWrapper
         type={COURSE_STATUSES.inProgress}
@@ -174,9 +179,9 @@ describe('<BaseCourseCard />', () => {
       />,
     );
     if (isStarted) {
-      expect(screen.queryByText(`Starts ${formatStartDate(courseStartDate)}`)).not.toBeInTheDocument();
+      expect(screen.queryByText(`Starts ${formatLocalizedDate(courseStartDate)}`)).not.toBeInTheDocument();
     } else {
-      expect(screen.getByText(`Starts ${formatStartDate(courseStartDate)}`)).toBeInTheDocument();
+      expect(screen.getByText(`Starts ${formatLocalizedDate(courseStartDate)}`)).toBeInTheDocument();
     }
   });
 
@@ -236,7 +241,7 @@ describe('<BaseCourseCard />', () => {
   ])('renders endDate based on the course state', ({ type, shouldRenderEndDate }) => {
     const startDate = dayjs().subtract(7, 'days').toISOString();
     const endDate = dayjs().add(7, 'days').toISOString();
-    const formattedEndDate = dayjs(endDate).format('MMMM Do, YYYY');
+    const formattedEndDate = formatLocalizedDate(endDate);
     renderWithRouter(
       <BaseCourseCardWrapper
         type={type}

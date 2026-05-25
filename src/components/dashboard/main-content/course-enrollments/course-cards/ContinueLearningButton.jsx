@@ -1,10 +1,29 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { Button, Hyperlink } from '@openedx/paragon';
+import { defineMessages, useIntl } from '@edx/frontend-platform/i18n';
 
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import dayjs from 'dayjs';
 import { EXECUTIVE_EDUCATION_COURSE_MODES, useEnterpriseCustomer } from '../../../../app/data';
+
+const messages = defineMessages({
+  startCourse: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.start_course',
+    defaultMessage: 'Start course',
+    description: 'CTA text to start a course from the learner portal dashboard card.',
+  },
+  resumeCourse: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.resume_course',
+    defaultMessage: 'Resume',
+    description: 'CTA text to resume a course from the learner portal dashboard card.',
+  },
+  buttonSrOnlyText: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text',
+    defaultMessage: 'for {title}',
+    description: 'Screen reader suffix for course continue learning button label.',
+  },
+});
 
 /**
  * A 'Continue Learning' button with parameters.
@@ -26,6 +45,7 @@ const ContinueLearningButton = ({
   mode,
   resumeCourseRunUrl,
 }) => {
+  const intl = useIntl();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
 
   const onClickHandler = () => {
@@ -47,10 +67,10 @@ const ContinueLearningButton = ({
     // resumeCourseRunUrl indicates that learner has made progress, available only if the learner has started learning.
     // The "Start Course" is visible either when the course has not started or when the course has started but the
     // learner has not yet begun the learning.
-    if ((!isCourseStarted() && startDate) || (isCourseStarted && !resumeCourseRunUrl)) {
-      return 'Start course';
+    if ((!isCourseStarted() && startDate) || (isCourseStarted() && !resumeCourseRunUrl)) {
+      return intl.formatMessage(messages.startCourse);
     }
-    return 'Resume';
+    return intl.formatMessage(messages.resumeCourse);
   };
 
   return (
@@ -62,7 +82,7 @@ const ContinueLearningButton = ({
       variant={variant || defaultVariant}
     >
       {renderContent()}
-      <span className="sr-only">for {title}</span>
+      <span className="sr-only">{intl.formatMessage(messages.buttonSrOnlyText, { title })}</span>
     </Button>
   );
 };
