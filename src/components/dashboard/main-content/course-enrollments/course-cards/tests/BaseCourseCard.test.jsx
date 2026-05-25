@@ -1,5 +1,5 @@
 import { AppContext } from '@edx/frontend-platform/react';
-import { renderWithRouter } from '@2uinc/frontend-enterprise-utils';
+import { renderWithRouter, sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,6 +20,7 @@ import {
 import { isCourseEnded } from '../../../../../../utils/common';
 import * as courseData from '../../../../../course/data';
 import { COURSE_STATUSES } from '../../../../../../constants';
+import { unenrollFromCourse } from '../unenroll/data';
 
 const formatLocalizedDate = (date, locale = 'en') => new Intl.DateTimeFormat(locale, {
   month: 'long',
@@ -32,11 +33,24 @@ jest.mock('@2uinc/frontend-enterprise-utils', () => ({
   sendEnterpriseTrackEvent: jest.fn(),
 }));
 
+jest.mock('../unenroll/data', () => ({
+  ...jest.requireActual('../unenroll/data'),
+  unenrollFromCourse: jest.fn(),
+}));
+
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
   useIsBFFEnabled: jest.fn(),
 }));
+
+jest.mock('../../../../../course/data', () => {
+  const actualCourseData = jest.requireActual('../../../../../course/data');
+  return {
+    ...actualCourseData,
+    getNormalizedStartDate: jest.fn(actualCourseData.getNormalizedStartDate),
+  };
+});
 
 const mockAddToast = jest.fn();
 
@@ -126,6 +140,22 @@ describe('<BaseCourseCard />', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
     });
+
+    it('handles unenroll modal success', async () => {
+      const user = userEvent.setup();
+      unenrollFromCourse.mockResolvedValueOnce({});
+
+      const unenrollButton = screen.getByRole('button', { name: /^Unenroll$/ });
+      await user.click(unenrollButton);
+
+      await waitFor(() => {
+        expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+          mockEnterpriseCustomer.uuid,
+          'edx.ui.enterprise.learner_portal.dashboard.enrollments.course.unenroll_modal.unenrolled',
+          { course_run_id: 'my+course+key' },
+        );
+      });
+    });
   });
 
   it('should render Skeleton if isLoading = true', () => {
@@ -141,6 +171,69 @@ describe('<BaseCourseCard />', () => {
       />,
     );
     expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+
+  it('renders course title as plain text for upcoming status', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.upcoming}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+      />,
+    );
+
+    expect(screen.getByText('edX Demonstration Course')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'edX Demonstration Course' })).not.toBeInTheDocument();
+  });
+
+  it('renders internal link for course title when externalCourseLink is false', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="/test-enterprise/course/course-v1:test+run"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        externalCourseLink={false}
+      />,
+    );
+
+    const courseTitleLink = screen.getByRole('link', { name: 'edX Demonstration Course' });
+    expect(courseTitleLink).toHaveAttribute('href', '/test-enterprise/course/course-v1:test+run');
+  });
+
+  it('renders custom dropdown menu item when provided', async () => {
+    const user = userEvent.setup();
+    const customMenuAction = jest.fn();
+
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        dropdownMenuItems={[
+          {
+            key: 'custom-action',
+            type: 'button',
+            onClick: customMenuAction,
+            children: <div role="menuitem">Custom action</div>,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByLabelText('course settings for edX Demonstration Course'));
+    const customActionItem = await screen.findByRole('menuitem', { name: 'Custom action' });
+    await user.click(customActionItem);
+
+    expect(customMenuAction).toHaveBeenCalledTimes(1);
   });
 
   it.each([{
@@ -279,6 +372,24 @@ describe('<BaseCourseCard />', () => {
     expect(screen.getByText('some_name • Course')).toBeInTheDocument();
   });
 
+  it('renders standard course type tooltip text when not executive education', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        mode="verified"
+        orgName="some_name"
+      />,
+    );
+
+    await user.click(screen.getByLabelText('More information about course type'));
+    expect(await screen.findByText('Courses are on-demand, self-paced, and include asynchronous online discussion.')).toBeInTheDocument();
+  });
+
   it('does not render end date label when endDate is missing', () => {
     renderWithRouter(
       <BaseCourseCardWrapper
@@ -296,6 +407,89 @@ describe('<BaseCourseCard />', () => {
     );
 
     expect(screen.queryByText(/^Ends /)).not.toBeInTheDocument();
+  });
+
+  it('does not render start date label when normalized start date is null', () => {
+    courseData.getNormalizedStartDate.mockReturnValueOnce(null);
+
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        mode="verified"
+        orgName="some_name"
+        startDate={dayjs().add(1, 'day').toISOString()}
+        endDate={dayjs().add(5, 'days').toISOString()}
+        pacing="self"
+      />,
+    );
+
+    expect(screen.queryByText(/^Starts /)).not.toBeInTheDocument();
+  });
+
+  it('renders learner credit requested helper text for lcRequested status', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.lcRequested}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+      />,
+    );
+
+    expect(screen.getByText('Please allow 5-10 business days for review. If approved by your edX administrator, you will be able to enroll.')).toBeInTheDocument();
+  });
+
+  it('renders requested helper text for requested status', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.requested}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+      />,
+    );
+
+    expect(screen.getByText('Please allow 5-10 business days for review. If approved, you will receive an email to get started.')).toBeInTheDocument();
+  });
+
+  it('renders micromasters title when provided', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        micromastersTitle="MicroMasters Program"
+      />,
+    );
+
+    expect(screen.getByText('MicroMasters Program')).toBeInTheDocument();
+  });
+
+  it('renders course upgrade price element when provided', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        courseUpgradePrice={<div>Upgrade for $99</div>}
+      />,
+    );
+
+    expect(screen.getByText('Upgrade for $99')).toBeInTheDocument();
   });
 
   it.each([
@@ -415,5 +609,37 @@ describe('<BaseCourseCard />', () => {
     );
 
     expect(screen.getByText('Your learning administrator canceled this assignment')).toBeInTheDocument();
+  });
+
+  it('renders assigned badge when isCourseAssigned is true', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        isCourseAssigned
+      />,
+    );
+
+    expect(screen.getByText('Assigned')).toBeInTheDocument();
+  });
+
+  it('renders expired assignment alert message', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.assigned}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        mode="verified"
+        hasEmailsEnabled
+        isExpiredAssignment
+      />,
+    );
+
+    expect(screen.getByText('Deadline to enroll in this course has passed')).toBeInTheDocument();
   });
 });
