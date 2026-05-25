@@ -485,7 +485,8 @@ const BaseCourseCard = ({
         year: 'numeric',
       })
       : null;
-    const isCourseStarted = dayjs(startDate).isBefore(dayjs(), 'minute');
+    const parsedStartDate = dayjs(startDate);
+    const isCourseStarted = !startDate || !parsedStartDate.isValid() || parsedStartDate.isBefore(dayjs(), 'minute');
     if (formattedStartDate && !isCourseStarted) {
       return (
         <span className="font-weight-light">
@@ -507,7 +508,8 @@ const BaseCourseCard = ({
         year: 'numeric',
       })
       : null;
-    const isCourseStarted = dayjs(startDate).isBefore(dayjs(), 'minute');
+    const parsedStartDate = dayjs(startDate);
+    const isCourseStarted = !startDate || !parsedStartDate.isValid() || parsedStartDate.isBefore(dayjs(), 'minute');
     if (formattedEndDate && isCourseStarted && type !== COURSE_STATUSES.completed) {
       return (
         <span className="font-weight-light">

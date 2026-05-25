@@ -390,7 +390,9 @@ describe('<BaseCourseCard />', () => {
     expect(await screen.findByText('Courses are on-demand, self-paced, and include asynchronous online discussion.')).toBeInTheDocument();
   });
 
-  it('does not render end date label when endDate is missing', () => {
+  it('does not render end date label when endDate is missing (even after course has started)', () => {
+    const startedStartDate = dayjs().subtract(1, 'day').toISOString();
+
     renderWithRouter(
       <BaseCourseCardWrapper
         type={COURSE_STATUSES.inProgress}
@@ -400,7 +402,7 @@ describe('<BaseCourseCard />', () => {
         hasEmailsEnabled
         mode="verified"
         orgName="some_name"
-        startDate={null}
+        startDate={startedStartDate}
         endDate={null}
         pacing="self"
       />,

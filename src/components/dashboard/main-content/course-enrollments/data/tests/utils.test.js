@@ -1,4 +1,5 @@
 import { camelCaseObject } from '@edx/frontend-platform';
+import * as i18n from '@edx/frontend-platform/i18n';
 import MockDate from 'mockdate';
 
 import { createRawCourseEnrollment } from '../../tests/enrollment-testutils';
@@ -10,6 +11,11 @@ import {
 } from '../../../../../app/data';
 import { sortAssignmentsByAssignmentStatus } from '../utils';
 import { COURSE_STATUSES } from '../../../../../../constants';
+
+jest.mock('@edx/frontend-platform/i18n', () => ({
+  ...jest.requireActual('@edx/frontend-platform/i18n'),
+  getLocale: jest.fn(() => 'en'),
+}));
 
 describe('transformCourseEnrollment', () => {
   it('should transform a course enrollment', () => {
@@ -70,6 +76,37 @@ describe('transformCourseEnrollment', () => {
 
     const transformedCourseEnrollment = transformCourseEnrollment(originalCourseEnrollment);
     expect(transformedCourseEnrollment.title).toEqual(originalCourseEnrollment.title);
+  });
+
+  it('uses titleTranslations for the active locale when title is missing', () => {
+    i18n.getLocale.mockReturnValue('es');
+    const originalCourseEnrollment = createRawCourseEnrollment({
+      title: null,
+      titleTranslations: {
+        es: 'Titulo en espanol',
+        en: 'English title',
+      },
+      displayName: 'Display name fallback',
+    });
+
+    const transformedCourseEnrollment = transformCourseEnrollment(originalCourseEnrollment);
+    expect(transformedCourseEnrollment.title).toEqual('Titulo en espanol');
+    i18n.getLocale.mockReturnValue('en');
+  });
+
+  it('falls back to English titleTranslations when active locale translation is missing', () => {
+    i18n.getLocale.mockReturnValue('es');
+    const originalCourseEnrollment = createRawCourseEnrollment({
+      title: null,
+      titleTranslations: {
+        en: 'English title',
+      },
+      displayName: 'Display name fallback',
+    });
+
+    const transformedCourseEnrollment = transformCourseEnrollment(originalCourseEnrollment);
+    expect(transformedCourseEnrollment.title).toEqual('English title');
+    i18n.getLocale.mockReturnValue('en');
   });
 
   it('falls back to displayName when localized title is unavailable', () => {
