@@ -18,7 +18,7 @@ import {
   enterpriseCustomerFactory,
 } from '../../../../../app/data/services/data/__factories__';
 import { isCourseEnded } from '../../../../../../utils/common';
-import { getNormalizedStartDate } from '../../../../../course/data';
+import * as courseData from '../../../../../course/data';
 import { COURSE_STATUSES } from '../../../../../../constants';
 
 const formatLocalizedDate = (date, locale = 'en') => new Intl.DateTimeFormat(locale, {
@@ -156,7 +156,7 @@ describe('<BaseCourseCard />', () => {
     endDate: dayjs().add(5, 'days').toISOString(),
     isStarted: false,
   }])('renders with different startDate values (%s)', ({ startDate, endDate, isStarted }) => {
-    const courseStartDate = getNormalizedStartDate({
+    const courseStartDate = courseData.getNormalizedStartDate({
       start: startDate,
       end: endDate,
       pacingType: 'self',
@@ -261,6 +261,41 @@ describe('<BaseCourseCard />', () => {
     } else {
       expect(screen.queryByText(`Ends ${formattedEndDate}`)).not.toBeInTheDocument();
     }
+  });
+
+  it('renders standard course type label when not executive education', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        mode="verified"
+        orgName="some_name"
+      />,
+    );
+
+    expect(screen.getByText('some_name • Course')).toBeInTheDocument();
+  });
+
+  it('does not render end date label when endDate is missing', () => {
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        mode="verified"
+        orgName="some_name"
+        startDate={null}
+        endDate={null}
+        pacing="self"
+      />,
+    );
+
+    expect(screen.queryByText(/^Ends /)).not.toBeInTheDocument();
   });
 
   it.each([
