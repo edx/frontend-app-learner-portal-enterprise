@@ -279,6 +279,15 @@ describe('<ContinueLearningButton />', () => {
     expect(screen.getByRole('link', { name: /Reanudar/i })).toBeInTheDocument();
   });
 
+  it('renders an accessible name with spacing between label and sr-only title', () => {
+    renderContinueLearningButton({
+      startDate: null,
+      resumeCourseRunUrl: null,
+    });
+
+    expect(screen.getByRole('link', { name: 'Start course for My Course' })).toBeInTheDocument();
+  });
+
   it('renders start course text when startDate is missing and resume url is absent', () => {
     renderContinueLearningButton(
       {

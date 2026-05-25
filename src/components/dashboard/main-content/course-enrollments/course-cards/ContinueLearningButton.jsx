@@ -92,6 +92,7 @@ const ContinueLearningButton = ({
       variant={variant || defaultVariant}
     >
       {renderContent()}
+      {' '}
       <span className="sr-only">{intl.formatMessage(messages.buttonSrOnlyText, { title })}</span>
     </Button>
   );
