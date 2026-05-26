@@ -7,6 +7,7 @@ import { getConfig } from '@edx/frontend-platform/config';
 import ProgramProgressCircle from './ProgramProgressCircle';
 import ProgramPathwayOpportunity from './ProgramPathwayOpportunity';
 import { getProgramCertImage } from './data/utils';
+import { formatProgramType } from '../course/data/utils';
 import progSampleCertImage from './images/sample-cert.png';
 import { useLearnerProgramProgressData } from '../app/data';
 
@@ -22,6 +23,7 @@ const ProgramProgressSideBar = () => {
   } = useLearnerProgramProgressData();
   const { LMS_BASE_URL } = getConfig();
   const intl = useIntl();
+  const localizedProgramType = formatProgramType(programData.type, intl);
   const courseCertificates = useMemo(
     () => {
       if (certificateData) {
@@ -53,7 +55,7 @@ const ProgramProgressSideBar = () => {
               defaultMessage="Your {certificateType} Certificate"
               description="Label for program certificate on program sidebar"
               values={{
-                certificateType: programData.type,
+                certificateType: localizedProgramType,
               }}
             />
           </h2>
