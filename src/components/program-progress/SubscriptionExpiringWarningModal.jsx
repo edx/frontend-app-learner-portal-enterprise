@@ -45,10 +45,10 @@ const SubscriptionExpirationWarningModal = ({
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { data: { subscriptionPlan } } = useSubscriptions();
   const modalTitle = intl.formatMessage(SUBSCRIPTION_EXPIRING_MODAL_TITLE);
-  const contactText = intl.formatMessage(messages.contactLearningManager);
+  const contactLearningManagerText = intl.formatMessage(messages.contactLearningManager);
   const contactLink = enterpriseCustomer.contactEmail
-    ? <MailtoLink to={enterpriseCustomer.contactEmail} className="font-weight-bold">{contactText}</MailtoLink>
-    : contactText;
+    ? <MailtoLink to={enterpriseCustomer.contactEmail} className="font-weight-bold">{contactLearningManagerText}</MailtoLink>
+    : contactLearningManagerText;
 
   const renderExpiredBody = () => (
     <>
@@ -63,7 +63,12 @@ const SubscriptionExpirationWarningModal = ({
         />
       </p>
       <p>
-        {intl.formatMessage(messages.renewalNotice, { contactLink })}
+        <FormattedMessage
+          id={messages.renewalNotice.id}
+          defaultMessage={messages.renewalNotice.defaultMessage}
+          description={messages.renewalNotice.description}
+          values={{ contactLink }}
+        />
       </p>
       <i>
         <FormattedMessage

@@ -53,9 +53,11 @@ describe('<ProgramProgressCircle />', () => {
     expect(backgroundCircle).toHaveAttribute('cy', Y_AXIS.toString());
     expect(backgroundCircle).toHaveAttribute('stroke-width', STROKE_WIDTH.toString());
     // Test circle segments
-    const totalCourse = testCourseData.inProgress.length + testCourseData.completed.length + testCourseData.notStarted;
+    const totalCourse = testCourseData.inProgress.length
+      + testCourseData.completed.length
+      + testCourseData.notStarted.length;
     const circleSegments = screen.queryAllByTestId('circle-segment');
-    expect(circleSegments.length).toEqual(parseInt(totalCourse, 10));
+    expect(circleSegments.length).toEqual(totalCourse);
     // Test circle segments have given attributes
     circleSegments.forEach(segment => {
       expect(segment).toHaveAttribute('r', CIRCLE_RADIUS.toString());
