@@ -58,7 +58,7 @@ const useDashboardTabs = () => {
     && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
   const enablePathwayStatusAlertScaffold = features.FEATURE_ENABLE_PATHWAY_PROGRESS
     && enterpriseFeatures?.enterprisePathwayStatusInCoursesTabEnabled
-    && enterpriseCustomer.enablePathways;
+    && enterpriseCustomer?.enablePathways;
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
   // Creates prefetch logic based on loadable-components, "component splitting" capability expose to Tabs component

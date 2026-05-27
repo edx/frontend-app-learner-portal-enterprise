@@ -206,5 +206,15 @@ describe('useDashboardTabs', () => {
       const coursesTab = result.current.tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
       expect(coursesTab.props.children.props.shouldShowPathwayStatusAlert).toBe(false);
     });
+
+    it('is disabled when enterprise customer pathways are disabled', () => {
+      features.FEATURE_ENABLE_PATHWAY_PROGRESS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePathwayStatusInCoursesTabEnabled: true } });
+      const enterpriseCustomerWithoutPathways = enterpriseCustomerFactory({ enable_pathways: false });
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerWithoutPathways });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesTab = result.current.tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
+      expect(coursesTab.props.children.props.shouldShowPathwayStatusAlert).toBe(false);
+    });
   });
 });

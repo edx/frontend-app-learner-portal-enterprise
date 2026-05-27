@@ -28,10 +28,10 @@ export const PATHWAY_STATUS_ALERT_CONTENT = {
 };
 
 const getActionHandler = (actionType, onOpenPathwaysTab) => {
-  if (actionType === 'openPathwaysTab') {
-    return onOpenPathwaysTab;
-  }
-  return () => {};
+  const actionHandlers = {
+    openPathwaysTab: onOpenPathwaysTab,
+  };
+  return actionHandlers[actionType] || onOpenPathwaysTab;
 };
 
 const PathwayStatusAlertScaffold = ({
@@ -61,7 +61,7 @@ const PathwayStatusAlertScaffold = ({
           </p>
         </div>
         <div className="d-flex justify-content-end mt-3">
-          <Button onClick={onActionClick}>
+          <Button onClick={onActionClick} variant="primary">
             <FormattedMessage {...pathwayStatusAlertContent.actionMessage} />
           </Button>
         </div>
