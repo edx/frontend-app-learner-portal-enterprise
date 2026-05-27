@@ -56,6 +56,9 @@ const useDashboardTabs = () => {
   //      when ai-pathways POC is no longer needed
   const enableAIPathways = features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
     && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
+  const enablePathwayStatusAlertScaffold = features.FEATURE_ENABLE_PATHWAY_PROGRESS
+    && enterpriseFeatures?.enterprisePathwayStatusInCoursesTabEnabled
+    && enterpriseCustomer.enablePathways;
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
   // Creates prefetch logic based on loadable-components, "component splitting" capability expose to Tabs component
@@ -91,7 +94,12 @@ const useDashboardTabs = () => {
         description: 'Title for courses tab on enterprise dashboard.',
       })}
     >
-      {activeTab === DASHBOARD_COURSES_TAB && <CoursesTabComponent />}
+      {activeTab === DASHBOARD_COURSES_TAB && (
+        <CoursesTabComponent
+          onOpenPathwaysTab={() => onSelectHandler(DASHBOARD_PATHWAYS_TAB)}
+          shouldShowPathwayStatusAlert={enablePathwayStatusAlertScaffold}
+        />
+      )}
     </Tab>,
     enterpriseCustomer.enablePrograms && (
       <Tab

@@ -36,6 +36,7 @@ jest.mock('../../../config', () => ({
   features: {
     FEATURE_ENABLE_AI_LEARNER_PATHWAYS: false,
     FEATURE_ENABLE_MY_CAREER: false,
+    FEATURE_ENABLE_PATHWAY_PROGRESS: false,
   },
 }));
 
@@ -72,6 +73,7 @@ describe('useDashboardTabs', () => {
     useEnterprisePathwaysList.mockReturnValue({ data: [] });
     features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
     features.FEATURE_ENABLE_MY_CAREER = false;
+    features.FEATURE_ENABLE_PATHWAY_PROGRESS = false;
   });
 
   it('always returns courses tab', () => {
@@ -181,6 +183,28 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
       expect(tabKeys).not.toContain(DASHBOARD_AI_PATHWAYS_TAB);
+    });
+  });
+
+  describe('Courses tab pathway status alert scaffold', () => {
+    it('is enabled when both FEATURE_ENABLE_PATHWAY_PROGRESS and enterprisePathwayStatusInCoursesTabEnabled are enabled', () => {
+      features.FEATURE_ENABLE_PATHWAY_PROGRESS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePathwayStatusInCoursesTabEnabled: true } });
+      const enterpriseCustomerWithPathways = enterpriseCustomerFactory({ enable_pathways: true });
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerWithPathways });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesTab = result.current.tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
+      expect(coursesTab.props.children.props.shouldShowPathwayStatusAlert).toBe(true);
+    });
+
+    it('is disabled when enterprisePathwayStatusInCoursesTabEnabled is disabled', () => {
+      features.FEATURE_ENABLE_PATHWAY_PROGRESS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePathwayStatusInCoursesTabEnabled: false } });
+      const enterpriseCustomerWithPathways = enterpriseCustomerFactory({ enable_pathways: true });
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerWithPathways });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesTab = result.current.tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
+      expect(coursesTab.props.children.props.shouldShowPathwayStatusAlert).toBe(false);
     });
   });
 });
