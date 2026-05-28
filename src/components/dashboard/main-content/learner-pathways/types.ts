@@ -48,8 +48,7 @@ export type LearnerPathwaysAlertMessageKey =
   | 'viewPathwayProfile'
   | 'viewPathwayCourses'
   | 'redoOnboardingQuiz'
-  | 'startNewPathway'
-  | 'viewCertificate';
+  | 'startNewPathway';
 
 /**
  * Resolved alert descriptor for a single {@link LearnerPathwaysAlertStateKey}.

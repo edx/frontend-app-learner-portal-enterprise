@@ -59,7 +59,6 @@ export const LEARNER_PATHWAYS_ALERT_DESCRIPTORS: LearnerPathwaysAlertDescriptorM
     actions: [
       { id: 'start-new-pathway', labelKey: 'startNewPathway', variant: 'primary' },
       { id: 'view-pathway-profile', labelKey: 'viewPathwayProfile', variant: 'outline-primary' },
-      { id: 'view-certificate', labelKey: 'viewCertificate', variant: 'tertiary' },
     ],
   },
 };

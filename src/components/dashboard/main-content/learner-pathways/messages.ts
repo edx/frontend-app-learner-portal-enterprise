@@ -73,11 +73,6 @@ const learnerPathwaysMessages = defineMessages({
     defaultMessage: 'Start a new pathway',
     description: 'Button label to start a new learner pathway.',
   },
-  viewCertificate: {
-    id: 'enterprise.dashboard.learner.pathways.alert.action.view.certificate',
-    defaultMessage: 'View certificate',
-    description: 'Button label to view a pathway completion certificate.',
-  },
 });
 
 export default learnerPathwaysMessages;

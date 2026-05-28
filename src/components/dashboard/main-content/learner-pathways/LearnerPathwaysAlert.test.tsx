@@ -43,6 +43,7 @@ describe('LearnerPathwaysAlert', () => {
     renderComponent({ initialState: 'completed' });
     expect(screen.getByText('Your learning pathway is complete!')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start a new pathway' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View certificate' })).not.toBeInTheDocument();
   });
 
   it('renders dynamic progress values for active and completed states', () => {
