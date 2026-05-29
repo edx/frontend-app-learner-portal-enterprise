@@ -39,7 +39,7 @@ const mockUsePromptInterceptor = usePromptInterceptor as jest.Mock;
 const mockUsePathways = usePathways as jest.Mock;
 
 const renderWithIntl = (ui: React.ReactElement) => render(
-  <IntlProvider locale="en">
+  <IntlProvider locale="en" messages={{}}>
     {ui}
   </IntlProvider>,
 );
