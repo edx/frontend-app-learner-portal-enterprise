@@ -76,6 +76,36 @@ const messages = defineMessages({
     defaultMessage: 'Please allow 5-10 business days for review. If approved, you will receive an email to get started.',
     description: 'Help text for requested courses',
   },
+  courseTypeLabel: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.type_label',
+    defaultMessage: 'Course',
+    description: 'Label for standard course type',
+  },
+  executiveEducationLabel: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.executive_education_label',
+    defaultMessage: 'Executive Education',
+    description: 'Label for Executive Education course type',
+  },
+  courseTypeTooltip: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.type_tooltip',
+    defaultMessage: 'Courses are on-demand, self-paced, and include asynchronous online discussion.',
+    description: 'Tooltip description for standard course type',
+  },
+  executiveEducationTooltip: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.executive_education_tooltip',
+    defaultMessage: 'Executive Education courses are instructor-led, cohort-based, and follow a set schedule.',
+    description: 'Tooltip description for Executive Education course type',
+  },
+  startsLabel: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.starts_label',
+    defaultMessage: 'Starts {startDate}',
+    description: 'Label for course start date',
+  },
+  endsLabel: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.ends_label',
+    defaultMessage: 'Ends {endDate}',
+    description: 'Label for course end date',
+  },
   lcRequestedCourseHelpText: {
     id: 'enterprise.learner_portal.dashboard.enrollments.course.lcRequested.help_text',
     defaultMessage: 'Please allow 5-10 business days for review. If approved by your edX administrator, you will be able to enroll.',
@@ -415,19 +445,21 @@ const BaseCourseCard = ({
     if (!orgName) {
       return null;
     }
-    const courseTypeLabel = isExecutiveEducation2UCourse ? 'Executive Education' : 'Course';
-    const tooltipText = isExecutiveEducation2UCourse
-      ? 'Executive Education courses are instructor-led, cohort-based, and follow a set schedule.'
-      : 'Courses are on-demand, self-paced, and include asynchronous online discussion.';
+    const courseTypeLabelMessage = isExecutiveEducation2UCourse
+      ? messages.executiveEducationLabel
+      : messages.courseTypeLabel;
+    const tooltipMessage = isExecutiveEducation2UCourse
+      ? messages.executiveEducationTooltip
+      : messages.courseTypeTooltip;
 
     return (
       <Stack direction="horizontal" gap={1} className="align-items-center font-weight-light small">
         <p className={classNames('mb-0', { 'text-light-200': isExecutiveEducation2UCourse })}>
-          {orgName} &bull; {courseTypeLabel}
+          {orgName} &bull; <FormattedMessage {...courseTypeLabelMessage} />
         </p>
         <IconButtonWithTooltip
           placement="top"
-          tooltipContent={tooltipText}
+          tooltipContent={intl.formatMessage(tooltipMessage)}
           iconAs={Icon}
           src={InfoOutline}
           size="inline"
@@ -446,19 +478,48 @@ const BaseCourseCard = ({
       end: endDate,
       weeksToComplete: null,
     });
-    const formattedStartDate = dayjs(courseStartDate).format('MMMM Do, YYYY');
-    const isCourseStarted = dayjs(startDate).isBefore(dayjs(), 'minute');
+    const formattedStartDate = courseStartDate
+      ? intl.formatDate(courseStartDate, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      : null;
+    const parsedStartDate = dayjs(startDate);
+    const isCourseStarted = !startDate || !parsedStartDate.isValid() || parsedStartDate.isBefore(dayjs(), 'minute');
     if (formattedStartDate && !isCourseStarted) {
-      return <span className="font-weight-light">Starts {formattedStartDate}</span>;
+      return (
+        <span className="font-weight-light">
+          <FormattedMessage
+            {...messages.startsLabel}
+            values={{ startDate: formattedStartDate }}
+          />
+        </span>
+      );
     }
     return null;
   };
 
   const renderEndDate = () => {
-    const formattedEndDate = endDate ? dayjs(endDate).format('MMMM Do, YYYY') : null;
-    const isCourseStarted = dayjs(startDate).isBefore(dayjs(), 'minute');
+    const parsedEndDate = dayjs(endDate);
+    const formattedEndDate = endDate && parsedEndDate.isValid()
+      ? intl.formatDate(endDate, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      : null;
+    const parsedStartDate = dayjs(startDate);
+    const isCourseStarted = !startDate || !parsedStartDate.isValid() || parsedStartDate.isBefore(dayjs(), 'minute');
     if (formattedEndDate && isCourseStarted && type !== COURSE_STATUSES.completed) {
-      return <span className="font-weight-light">Ends {formattedEndDate}</span>;
+      return (
+        <span className="font-weight-light">
+          <FormattedMessage
+            {...messages.endsLabel}
+            values={{ endDate: formattedEndDate }}
+          />
+        </span>
+      );
     }
     return null;
   };
