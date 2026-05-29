@@ -501,7 +501,8 @@ const BaseCourseCard = ({
   };
 
   const renderEndDate = () => {
-    const formattedEndDate = endDate
+    const parsedEndDate = dayjs(endDate);
+    const formattedEndDate = endDate && parsedEndDate.isValid()
       ? intl.formatDate(endDate, {
         month: 'long',
         day: 'numeric',

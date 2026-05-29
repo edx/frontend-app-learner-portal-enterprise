@@ -411,6 +411,27 @@ describe('<BaseCourseCard />', () => {
     expect(screen.queryByText(/^Ends /)).not.toBeInTheDocument();
   });
 
+  it('does not render end date label when endDate is invalid (even after course has started)', () => {
+    const startedStartDate = dayjs().subtract(1, 'day').toISOString();
+
+    renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        mode="verified"
+        orgName="some_name"
+        startDate={startedStartDate}
+        endDate="invalid-date"
+        pacing="self"
+      />,
+    );
+
+    expect(screen.queryByText(/^Ends /)).not.toBeInTheDocument();
+  });
+
   it('does not render start date label when normalized start date is null', () => {
     courseData.getNormalizedStartDate.mockReturnValueOnce(null);
 
