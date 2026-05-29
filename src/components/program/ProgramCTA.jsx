@@ -59,7 +59,7 @@ const ProgramCTA = () => {
     return intl.formatMessage(messages['enterprise.program.courses.allCoursesAvailable']);
   };
 
-  const programDuration = getProgramDuration(program);
+  const programDuration = getProgramDuration(program, intl);
   const availableCourses = getAvailableCourses();
 
   const getEnrollButtonText = () => {
@@ -159,7 +159,11 @@ const ProgramCTA = () => {
             id="program-details-dropdown"
             style={{ cursor: 'pointer' }}
           >
-            View Course Details
+            <FormattedMessage
+              id="enterprise.program.cta.view.course.details"
+              defaultMessage="View Course Details"
+              description="Dropdown toggle label for viewing program course details."
+            />
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {courses?.map(course => (

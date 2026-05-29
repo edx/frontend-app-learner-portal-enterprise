@@ -1,4 +1,5 @@
 import { AppContext } from '@edx/frontend-platform/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { screen, render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import dayjs from 'dayjs';
@@ -36,7 +37,9 @@ const initialAppState = {
 
 const ProgramCoursesWrapper = () => (
   <AppContext.Provider value={initialAppState}>
-    <ProgramCourses />
+    <IntlProvider locale="en">
+      <ProgramCourses />
+    </IntlProvider>
   </AppContext.Provider>
 );
 
