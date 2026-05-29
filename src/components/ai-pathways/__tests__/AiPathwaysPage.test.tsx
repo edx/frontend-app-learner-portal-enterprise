@@ -3,6 +3,7 @@ import {
   render, screen, fireEvent, act,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AiPathwaysPage } from '../routes/AiPathwaysPage';
 import { usePathways } from '../hooks/usePathways';
 import { usePromptInterceptor } from '../hooks';
@@ -36,6 +37,12 @@ jest.mock('../components', () => ({
 const mockUsePromptInterceptor = usePromptInterceptor as jest.Mock;
 
 const mockUsePathways = usePathways as jest.Mock;
+
+const renderWithIntl = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en" messages={{}}>
+    {ui}
+  </IntlProvider>,
+);
 
 /** Minimal valid XpertPromptBundle for test stubs. */
 const makeBundle = (label: PromptPartLabel): XpertPromptBundle => ({
@@ -102,7 +109,7 @@ describe('AiPathwaysPage Full Flow Test', () => {
   });
 
   test('renders the main heading and the intake form by default', () => {
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     expect(screen.getByText(/AI Learning Pathways/i)).toBeInTheDocument();
     // IntakeForm is globally stubbed as a "Trigger Submit" button in this test file
     expect(screen.getByRole('button', { name: /trigger submit/i })).toBeInTheDocument();
@@ -110,7 +117,7 @@ describe('AiPathwaysPage Full Flow Test', () => {
 
   test('shows debug component when ?debug=true is present', () => {
     window.history.pushState({}, '', '/?debug=true');
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     expect(screen.getByTestId('debug-console')).toBeInTheDocument();
   });
 
@@ -131,7 +138,7 @@ describe('AiPathwaysPage Full Flow Test', () => {
       setCurrentStep: mockSetCurrentStep,
     });
 
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     expect(screen.getAllByText(/Software Engineer/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Build My Learning Pathway/i)).toBeInTheDocument();
   });
@@ -155,7 +162,7 @@ describe('AiPathwaysPage Full Flow Test', () => {
       setCurrentStep: mockSetCurrentStep,
     });
 
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     expect(screen.getByText(/Modern React/i)).toBeInTheDocument();
   });
 });
@@ -197,7 +204,7 @@ describe('AiPathwaysPage — prompt interception', () => {
   const renderDebug = (generateProfile: jest.Mock = jest.fn()) => {
     mockUsePathways.mockReturnValue(defaultPathwaysReturn({ generateProfile }));
     window.history.pushState({}, '', '/?debug=true');
-    return render(<AiPathwaysPage />);
+    return renderWithIntl(<AiPathwaysPage />);
   };
 
   /** Click stub submit and settle async effects. */
@@ -211,7 +218,7 @@ describe('AiPathwaysPage — prompt interception', () => {
 
   test('does NOT render PromptEditorModal when debug mode is off', () => {
     // URL is '/' from beforeEach; no ?debug=true
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     // PromptEditorModal is inside the isDebug guard — buttons are absent
     expect(screen.queryByRole('button', { name: /accept & execute/i })).not.toBeInTheDocument();
   });
@@ -231,7 +238,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     const generateProfile = jest.fn();
     mockUsePathways.mockReturnValue(defaultPathwaysReturn({ generateProfile }));
     // URL is '/' — no debug flag
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     await clickSubmit();
 
     expect(generateProfile).toHaveBeenCalledTimes(1);
@@ -255,7 +262,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     }));
 
     window.history.pushState({}, '', '/?debug=true');
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
 
     expect(screen.getByRole('button', { name: /accept & execute/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /reset to original/i })).toBeInTheDocument();
@@ -272,7 +279,7 @@ describe('AiPathwaysPage — prompt interception', () => {
       cancel: mockCancel,
     }));
     // Non-debug URL
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
     expect(screen.queryByRole('button', { name: /accept & execute/i })).not.toBeInTheDocument();
   });
 
@@ -289,7 +296,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     }));
 
     window.history.pushState({}, '', '/?debug=true');
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /accept & execute/i }));
     expect(mockAccept).toHaveBeenCalledTimes(1);
@@ -308,7 +315,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     }));
 
     window.history.pushState({}, '', '/?debug=true');
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /reset to original/i }));
     expect(mockReject).toHaveBeenCalledTimes(1);
@@ -325,7 +332,7 @@ describe('AiPathwaysPage — prompt interception', () => {
     }));
 
     window.history.pushState({}, '', '/?debug=true');
-    render(<AiPathwaysPage />);
+    renderWithIntl(<AiPathwaysPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /cancel request/i }));
     expect(mockCancel).toHaveBeenCalledTimes(1);
