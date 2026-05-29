@@ -1,9 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { PromptEditorModal } from '../PromptEditorModal';
 import { XpertPromptBundle } from '../../types';
 import { InterceptContext } from '../../hooks/usePromptInterceptor';
+
+const renderWithIntl = (ui: React.ReactElement) => render(
+  <IntlProvider locale="en">
+    {ui}
+  </IntlProvider>,
+);
 
 describe('PromptEditorModal', () => {
   // @ts-ignore
@@ -34,7 +41,7 @@ describe('PromptEditorModal', () => {
   const mockOnCancel = jest.fn();
 
   it('renders nothing if bundle or context is null', () => {
-    const { container } = render(
+    const { container } = renderWithIntl(
       <PromptEditorModal
         bundle={null}
         context={null}
@@ -47,7 +54,7 @@ describe('PromptEditorModal', () => {
   });
 
   it('renders correctly and handles interactions', () => {
-    render(
+    renderWithIntl(
       <PromptEditorModal
         bundle={mockBundle}
         context={mockContext}
@@ -101,7 +108,7 @@ describe('PromptEditorModal', () => {
 
   it('handles context without meta stage', () => {
     const contextWithoutMeta = { ...mockContext, meta: undefined };
-    render(
+    renderWithIntl(
       <PromptEditorModal
         bundle={mockBundle}
         context={contextWithoutMeta}
