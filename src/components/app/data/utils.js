@@ -24,6 +24,24 @@ import {
 } from './constants';
 import { features } from '../../../config';
 
+export const SUPPORTED_LANGUAGES = ['en', 'es'];
+
+/**
+ * Get the current locale, falling back to English if unsupported.
+ * @returns {string} A supported language code ('en' or 'es').
+ */
+export function getSupportedLocale() {
+  let currentLocale = 'en';
+  try {
+    currentLocale = getLocale() || 'en';
+  } catch {
+    const browserLocale = globalThis?.navigator?.language || 'en';
+    currentLocale = browserLocale;
+  }
+  const baseLocale = currentLocale.split('-')[0].toLowerCase();
+  return SUPPORTED_LANGUAGES.includes(baseLocale) ? baseLocale : 'en';
+}
+
 /**
  * Check if system maintenance alert is open, based on configuration.
  * @param {Object} config
@@ -351,8 +369,12 @@ export const canUnenrollCourseEnrollment = (courseEnrollment) => {
  */
 export const transformCourseEnrollment = (rawCourseEnrollment) => {
   const courseEnrollment = { ...rawCourseEnrollment };
+  const localizedTitle = courseEnrollment.title
+    || courseEnrollment.titleTranslations?.[getSupportedLocale()]
+    || courseEnrollment.titleTranslations?.en
+    || courseEnrollment.displayName;
   // Return the fields expected by the component(s)
-  courseEnrollment.title = courseEnrollment.displayName;
+  courseEnrollment.title = localizedTitle;
   // The link to course here gives precedence to the resume course link, which is
   // present if the learner has made progress. If the learner has not made progress,
   // we should link to the main course run URL. Similarly, if the resume course link
@@ -421,6 +443,7 @@ export const determineAssignmentState = ({ state }) => ({
 });
 
 export const transformLearnerContentAssignment = (learnerContentAssignment, enterpriseSlug) => {
+  const supportedLocale = getSupportedLocale();
   const {
     contentKey,
     parentContentKey,
@@ -442,11 +465,17 @@ export const transformLearnerContentAssignment = (learnerContentAssignment, ente
     courseKey = parentContentKey;
     courseRunId = contentKey;
   }
+  const localizedAssignmentTitle = learnerContentAssignment.contentTitleTranslations?.[supportedLocale]
+    || learnerContentAssignment.contentTitleTranslations?.en
+    || learnerContentAssignment.contentMetadata?.title
+    || learnerContentAssignment.contentMetadata?.titleTranslations?.[supportedLocale]
+    || learnerContentAssignment.contentMetadata?.titleTranslations?.en
+    || learnerContentAssignment.contentTitle;
   return {
     linkToCourse: `/${enterpriseSlug}/course/${courseKey}`,
     courseRunId,
     isAssignedCourseRun,
-    title: learnerContentAssignment.contentTitle,
+    title: localizedAssignmentTitle,
     isRevoked: false,
     notifications: [],
     courseRunStatus: COURSE_STATUSES.assigned,
@@ -1239,15 +1268,3 @@ export function getCoursePrice(courseMetadata) {
   // 4. Return default normalized price in cents
   return 0;
 }
-
-export const SUPPORTED_LANGUAGES = ['en', 'es'];
-
-/**
- * Get the current locale, falling back to English if unsupported
- * @returns {string} A supported language code ('en' or 'es')
- */
-export const getSupportedLocale = () => {
-  const currentLocale = getLocale();
-  const baseLocale = currentLocale.split('-')[0].toLowerCase();
-  return SUPPORTED_LANGUAGES.includes(baseLocale) ? baseLocale : 'en';
-};
