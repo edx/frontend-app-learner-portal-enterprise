@@ -1,5 +1,4 @@
 import { breakpoints, MediaQuery } from '@openedx/paragon';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { FormatQuote } from '@openedx/paragon/icons';
 import { useProgramDetails } from '../app/data';
 
@@ -12,13 +11,7 @@ const ProgramEndorsements = () => {
       && (corporateEndorsements.some((e) => e.individualEndorsements?.length > 0)))
     ? (
       <div className="endorsements p-2 mb-3">
-        <h2 className="program-section-heading">
-          <FormattedMessage
-            id="enterprise.program.endorsements.heading"
-            defaultMessage="Program endorsements"
-            description="Heading for the endorsements section on the program detail page"
-          />
-        </h2>
+        <h2 className="program-section-heading">Program endorsements</h2>
         <MediaQuery minWidth={breakpoints.medium.minWidth}>
           {matches => matches && (
             <div className="quote-icon-wrapper">

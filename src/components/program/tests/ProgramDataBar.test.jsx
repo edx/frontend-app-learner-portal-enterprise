@@ -1,5 +1,4 @@
 import { AppContext } from '@edx/frontend-platform/react';
-import { IntlProvider } from '@edx/frontend-platform/i18n';
 import {
   screen, render, fireEvent,
 } from '@testing-library/react';
@@ -22,11 +21,9 @@ const initialAppState = {
 };
 
 const ProgramDataBarWithContext = () => (
-  <IntlProvider locale="en">
-    <AppContext.Provider value={initialAppState}>
-      <ProgramDataBar />
-    </AppContext.Provider>
-  </IntlProvider>
+  <AppContext.Provider value={initialAppState}>
+    <ProgramDataBar />
+  </AppContext.Provider>
 );
 
 const programState = {

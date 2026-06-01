@@ -4,7 +4,6 @@ import dayjs from 'dayjs';
 import {
   Alert, Collapsible, Icon,
 } from '@openedx/paragon';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import {
   CalendarMonth, ExpandLess, ExpandMore, LibraryBooks,
   WarningFilled,
@@ -33,13 +32,7 @@ const ProgramCourses = () => {
 
   return (
     <>
-      <h2 className="h2 section-title pb-3">
-        <FormattedMessage
-          id="enterprise.program.courses.section.title"
-          defaultMessage="Courses in this program"
-          description="Section title for the list of courses included in a program detail page"
-        />
-      </h2>
+      <h2 className="h2 section-title pb-3">Courses in this program</h2>
       <div className="courses-in-program-wrapper ml-3 mb-5">
         {program.courses && program.courses.map((course) => {
           const courseRun = getCourseRun(course);
@@ -63,16 +56,7 @@ const ProgramCourses = () => {
                   && (
                     <div className="course-card-result mb-2 d-flex">
                       <Icon src={CalendarMonth} className="mr-2" />
-                      <span className="font-weight-bold">
-                        <FormattedMessage
-                          id="enterprise.program.courses.course.start.date"
-                          defaultMessage="Starts {startDate}"
-                          description="Start date label shown for a course run on the program detail page"
-                          values={{
-                            startDate: dayjs(courseRun.start).format(DATE_FORMAT),
-                          }}
-                        />
-                      </span>
+                      <span className="font-weight-bold">Starts {dayjs(courseRun.start).format(DATE_FORMAT)}</span>
                     </div>
                   )
                 }
@@ -103,19 +87,11 @@ const ProgramCourses = () => {
                     }}
                     data-testid="view-the-course"
                   >
-                    <FormattedMessage
-                      id="enterprise.program.courses.view.course"
-                      defaultMessage="View the course"
-                      description="Link text to view a course from the program detail page"
-                    />
+                    View the course
                   </Link>
                 ) : (
                   <Alert variant="warning" icon={WarningFilled}>
-                    <FormattedMessage
-                      id="enterprise.program.courses.not.in.catalog"
-                      defaultMessage="This course is not included in your organization's catalog."
-                      description="Warning shown when a course in a program is not included in the learner's enterprise catalog"
-                    />
+                    This course is not included in your organization&apos;s catalog.
                   </Alert>
                 )}
               </Collapsible.Body>
