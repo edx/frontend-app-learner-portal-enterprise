@@ -123,11 +123,11 @@ const useDashboardTabs = () => {
           defaultMessage: 'Pathways',
           description: 'Title for pathways tab on enterprise dashboard.',
         })}
-        disabled={enterprisePathways.length === 0}
+        disabled={!enableAIPathways && enterprisePathways.length === 0}
       >
         {activeTab === DASHBOARD_PATHWAYS_TAB && (
           enableAIPathways ? (
-            <LearnerPathwaysTab onSelectTab={onSelectHandler} />
+            <LearnerPathwaysTab />
           ) : (
             <PathwayProgressListingPage />
           )
