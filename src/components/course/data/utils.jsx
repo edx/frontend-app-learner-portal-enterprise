@@ -133,53 +133,13 @@ export function getDefaultProgram({ programs = [], isProgramsEnabled = true }) {
   return programs[0];
 }
 
-export function formatProgramType(programType, intl) {
+export function formatProgramType(programType) {
   switch (programType) {
     case PROGRAM_TYPE_MAP.MICROMASTERS:
-      if (intl) {
-        return intl.formatMessage({
-          id: 'enterprise.program.type.micromasters',
-          defaultMessage: 'MicroMasters® Program',
-          description: 'Localized label for the MicroMasters program type',
-        });
-      }
-      return <>{programType}<sup>&reg;</sup> Program</>;
     case PROGRAM_TYPE_MAP.MICROBACHELORS:
-      if (intl) {
-        return intl.formatMessage({
-          id: 'enterprise.program.type.microbachelors',
-          defaultMessage: 'MicroBachelors® Program',
-          description: 'Localized label for the MicroBachelors program type',
-        });
-      }
       return <>{programType}<sup>&reg;</sup> Program</>;
     case PROGRAM_TYPE_MAP.MASTERS:
-      if (intl) {
-        return intl.formatMessage({
-          id: 'enterprise.program.type.masters',
-          defaultMessage: 'Master\'s',
-          description: 'Localized label for the Masters program type',
-        });
-      }
       return 'Master\'s';
-    case PROGRAM_TYPE_MAP.PROFESSIONAL_CERTIFICATE:
-      return intl ? intl.formatMessage({
-        id: 'enterprise.program.type.professional.certificate',
-        defaultMessage: 'Professional Certificate',
-        description: 'Localized label for the Professional Certificate program type',
-      }) : programType;
-    case PROGRAM_TYPE_MAP.XSERIES:
-      return intl ? intl.formatMessage({
-        id: 'enterprise.program.type.xseries',
-        defaultMessage: 'XSeries Program',
-        description: 'Localized label for the XSeries program type',
-      }) : programType;
-    case PROGRAM_TYPE_MAP.CREDIT:
-      return intl ? intl.formatMessage({
-        id: 'enterprise.program.type.credit',
-        defaultMessage: 'Credit',
-        description: 'Localized label for the Credit program type',
-      }) : programType;
     default:
       return programType;
   }

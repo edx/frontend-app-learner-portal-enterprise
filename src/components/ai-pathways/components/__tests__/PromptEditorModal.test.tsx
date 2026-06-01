@@ -7,7 +7,7 @@ import { XpertPromptBundle } from '../../types';
 import { InterceptContext } from '../../hooks/usePromptInterceptor';
 
 const renderWithIntl = (ui: React.ReactElement) => render(
-  <IntlProvider locale="en" messages={{}}>
+  <IntlProvider locale="en">
     {ui}
   </IntlProvider>,
 );

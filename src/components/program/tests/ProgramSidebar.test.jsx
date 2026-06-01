@@ -1,5 +1,4 @@
 import { AppContext } from '@edx/frontend-platform/react';
-import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { screen, render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 
@@ -23,11 +22,9 @@ const initialAppState = {
 };
 
 const ProgramSidebarWrapper = () => (
-  <IntlProvider locale="en">
-    <AppContext.Provider value={initialAppState}>
-      <ProgramSidebar />
-    </AppContext.Provider>
-  </IntlProvider>
+  <AppContext.Provider value={initialAppState}>
+    <ProgramSidebar />
+  </AppContext.Provider>
 );
 
 const initialProgramState = {
@@ -72,8 +69,8 @@ describe('<ProgramSidebar />', () => {
 
     // renders pacing type and pacing type content
     const { activeCourseRun: { pacingType } } = initialProgramState.courses[0];
-    expect(screen.getByText(`${VERBOSE_PROGRAM_PACING_MAP[pacingType].defaultMessage}:`)).toBeInTheDocument();
-    expect(screen.getByText(PACING_TYPE_CONTENT.SELF_PACED.defaultMessage)).toBeInTheDocument();
+    expect(screen.getByText(`${VERBOSE_PROGRAM_PACING_MAP[pacingType]}:`)).toBeInTheDocument();
+    expect(screen.getByText(PACING_TYPE_CONTENT.SELF_PACED)).toBeInTheDocument();
 
     // renders program duration
     const programDuration = '2 weeks';
@@ -105,8 +102,8 @@ describe('<ProgramSidebar />', () => {
     expect(screen.queryByText(`${PROGRAM_PACING_MAP.MIXED}:`)).not.toBeInTheDocument();
 
     // pacing type content
-    expect(screen.queryByText(PACING_TYPE_CONTENT.SELF_PACED.defaultMessage)).not.toBeInTheDocument();
-    expect(screen.queryByText(PACING_TYPE_CONTENT.INSTRUCTOR_PACED.defaultMessage)).not.toBeInTheDocument();
+    expect(screen.queryByText(PACING_TYPE_CONTENT.SELF_PACED)).not.toBeInTheDocument();
+    expect(screen.queryByText(PACING_TYPE_CONTENT.INSTRUCTOR_PACED)).not.toBeInTheDocument();
   });
 
   test('does not render program duration when not available', () => {
