@@ -11,7 +11,7 @@ const messages = defineMessages({
   },
   heroBody: {
     id: 'enterprise.dashboard.pathways.learnerPathways.heroBody',
-    defaultMessage: 'A personalized pathway helps you achieve your goals. Answer a few questions to tell us more about the skills and jobs you are interested in, and our XPERT AI will build you personalized course pathways, a set of courses recommended and ordered based on the skills you have and the ones you need to level up to achieve your learning goals.',
+    defaultMessage: 'A personalized pathway helps you achieve your goals. Answer a few questions to tell us more about the skills and jobs you are interested in, and our XPERT AI will build your personalized course pathways, a set of courses recommended and ordered based on the skills you have and the ones you need to level up to achieve your learning goals.',
     description: 'Learner pathways tab scaffold hero description.',
   },
   stageOnboarding: {

@@ -13,6 +13,7 @@ const InitialStateActionButton = () => (
     <Button
       variant="secondary"
       data-testid="learner-pathways-action-start-onboarding"
+      disabled
     >
       <FormattedMessage {...messages.startOnboarding} />
     </Button>
