@@ -4,7 +4,7 @@ import {
   Badge, Breadcrumb, Col, Container, Hyperlink, Row,
 } from '@openedx/paragon';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
 import CourseSkills from '../CourseSkills';
 import CourseEnrollmentFailedAlert, { ENROLLMENT_SOURCE } from '../CourseEnrollmentFailedAlert';
@@ -29,6 +29,7 @@ import {
 import CourseImportantDates from './CourseImportantDates';
 
 const CourseHeader = () => {
+  const intl = useIntl();
   const location = useLocation();
   const { courseKey } = useParams();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
@@ -147,7 +148,7 @@ const CourseHeader = () => {
                       defaultMessage="This course is part of a {programType}."
                       description="Message for when a course is part of a program"
                       values={{
-                        programType: formatProgramType(defaultProgram.type),
+                        programType: formatProgramType(defaultProgram.type, intl),
                       }}
                     />
                   </p>
