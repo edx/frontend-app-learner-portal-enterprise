@@ -9,6 +9,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
+import { LearnerPathwaysTab } from '../pathways-tab';
 import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
@@ -122,9 +123,15 @@ const useDashboardTabs = () => {
           defaultMessage: 'Pathways',
           description: 'Title for pathways tab on enterprise dashboard.',
         })}
-        disabled={enterprisePathways.length === 0}
+        disabled={!enableAIPathways && enterprisePathways.length === 0}
       >
-        {activeTab === DASHBOARD_PATHWAYS_TAB && <PathwayProgressListingPage />}
+        {activeTab === DASHBOARD_PATHWAYS_TAB && (
+          enableAIPathways ? (
+            <LearnerPathwaysTab />
+          ) : (
+            <PathwayProgressListingPage />
+          )
+        )}
       </Tab>
     ),
     features.FEATURE_ENABLE_MY_CAREER && (

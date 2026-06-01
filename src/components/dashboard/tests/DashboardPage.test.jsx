@@ -322,10 +322,27 @@ describe('<Dashboard />', () => {
 
   it('renders pathway tab', async () => {
     const user = userEvent.setup();
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
+  });
+
+  it('renders learner pathways tab scaffold in pathways tab when dual AI pathways flags are enabled', async () => {
+    const user = userEvent.setup();
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
+    renderWithRouter(<DashboardWithContext />);
+
+    await user.click(screen.getByText('Pathways'));
+
+    expect(screen.getByTestId('learner-pathways-tab-scaffold')).toBeInTheDocument();
+    expect(screen.getByTestId('learner-pathways-profile-section')).toBeInTheDocument();
+    expect(screen.getByTestId('learner-pathways-action-start-onboarding')).toBeInTheDocument();
+    expect(screen.queryByTestId('pathway-listing-page')).not.toBeInTheDocument();
   });
 
   it('renders programs tab', async () => {
