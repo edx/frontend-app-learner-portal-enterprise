@@ -11,7 +11,7 @@ import messages from '../messages';
 const InitialStateActionButton = () => (
   <div className="text-center">
     <Button
-      variant="secondary"
+      variant="primary"
       data-testid="learner-pathways-action-start-onboarding"
       disabled
     >

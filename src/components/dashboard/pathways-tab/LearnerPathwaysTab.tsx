@@ -6,7 +6,7 @@ import { LearnerPathwaysTabInitialState } from './initial-state';
  * (onboarding/profile/pathway detail) are iterated.
  */
 const LearnerPathwaysTab = () => (
-  <div data-testid="learner-pathways-tab-scaffold" className="mt-4">
+  <div data-testid="learner-pathways-tab-scaffold">
     <LearnerPathwaysTabInitialState />
   </div>
 );
