@@ -349,11 +349,25 @@ describe('<Dashboard />', () => {
     expect(screen.getByText('AI Pathways')).toBeInTheDocument();
   });
 
+  it('renders learner pathways alert scaffold in courses tab when AI learner pathways flag is enabled', () => {
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.getByTestId('learner-pathways-alert')).toBeInTheDocument();
+  });
+
   it('does not render AI Pathways tab when enterpriseAiPathwaysOperatorEnabled is disabled', () => {
     features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
+  });
+
+  it('does not render learner pathways alert scaffold when AI learner pathways flag is disabled', () => {
+    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
   it('does not render AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS is disabled', () => {

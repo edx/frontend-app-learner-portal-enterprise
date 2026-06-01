@@ -3,14 +3,51 @@ import {
   MediaQuery,
   breakpoints,
 } from '@openedx/paragon';
+import PropTypes from 'prop-types';
 import { MainContent, Sidebar } from '../../layout';
 import CourseEnrollmentFailedAlert, { ENROLLMENT_SOURCE } from '../../course/CourseEnrollmentFailedAlert';
 import DashboardMainContent from './DashboardMainContent';
 import { DashboardSidebar } from '../sidebar';
+import { LearnerPathwaysAlert } from './learner-pathways';
 
-const CoursesTabComponent = () => (
+/**
+ * @typedef {Object} CoursesTabComponentProps
+ * @property {(tabName: string) => void} onSelectTab
+ *   Callback used by the learner pathways alert to switch dashboard tabs.
+ * @property {boolean} [hasPathwaysTab=false]
+ *   Indicates whether the Pathways tab is enabled and available.
+ * @property {boolean} [hasAIPathwaysTab=false]
+ *   Indicates whether the AI Pathways tab is enabled and available.
+ * @property {boolean} [showLearnerPathwaysAlert=false]
+ *   Feature-gated toggle to render the learner pathways alert scaffold.
+ */
+
+/**
+ * Courses tab layout wrapper for dashboard content and sidebar.
+ *
+ * The learner pathways alert is intentionally rendered full-width above both
+ * columns to match design behavior and avoid coupling to `MainContent` width.
+ *
+ * @param {CoursesTabComponentProps} props
+ * @returns {JSX.Element}
+ */
+const CoursesTabComponent = ({
+  onSelectTab,
+  hasPathwaysTab,
+  hasAIPathwaysTab,
+  showLearnerPathwaysAlert,
+}) => (
   <Row className="py-5">
-    <CourseEnrollmentFailedAlert className="mt-0 mb-3" enrollmentSource={ENROLLMENT_SOURCE.DASHBOARD} />
+    <div className="w-100">
+      <CourseEnrollmentFailedAlert className="mt-0 mb-3" enrollmentSource={ENROLLMENT_SOURCE.DASHBOARD} />
+      {showLearnerPathwaysAlert && (
+        <LearnerPathwaysAlert
+          onSelectTab={onSelectTab}
+          hasPathwaysTab={hasPathwaysTab}
+          hasAIPathwaysTab={hasAIPathwaysTab}
+        />
+      )}
+    </div>
     <MainContent>
       <DashboardMainContent />
     </MainContent>
@@ -23,5 +60,18 @@ const CoursesTabComponent = () => (
     </MediaQuery>
   </Row>
 );
+
+CoursesTabComponent.propTypes = {
+  onSelectTab: PropTypes.func.isRequired,
+  hasPathwaysTab: PropTypes.bool,
+  hasAIPathwaysTab: PropTypes.bool,
+  showLearnerPathwaysAlert: PropTypes.bool,
+};
+
+CoursesTabComponent.defaultProps = {
+  hasPathwaysTab: false,
+  hasAIPathwaysTab: false,
+  showLearnerPathwaysAlert: false,
+};
 
 export default CoursesTabComponent;

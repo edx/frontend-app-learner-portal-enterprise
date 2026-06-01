@@ -64,6 +64,11 @@ const wrapper = ({ children }) => (
 );
 
 describe('useDashboardTabs', () => {
+  const getCoursesTabChildProps = (tabs) => {
+    const coursesTab = tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
+    return coursesTab?.props?.children?.props;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
@@ -181,6 +186,35 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
       expect(tabKeys).not.toContain(DASHBOARD_AI_PATHWAYS_TAB);
+    });
+  });
+
+  describe('Learner pathways alert feature-flag wiring on courses tab', () => {
+    it('enables learner pathways alert when both AI feature flag and operator flag are true', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(true);
+      expect(coursesProps.hasAIPathwaysTab).toBe(true);
+    });
+
+    it('disables learner pathways alert when AI feature flag is false', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
+      expect(coursesProps.hasAIPathwaysTab).toBe(false);
+    });
+
+    it('disables learner pathways alert when operator flag is false', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
+      expect(coursesProps.hasAIPathwaysTab).toBe(false);
     });
   });
 });
