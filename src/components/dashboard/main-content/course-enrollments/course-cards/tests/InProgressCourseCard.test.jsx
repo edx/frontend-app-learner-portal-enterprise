@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/extend-expect';
 import { renderWithRouter, sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
@@ -7,6 +7,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import InProgressCourseCard, { UpgradeableInProgressCourseCard } from '../InProgressCourseCard';
+import ContinueLearningButton from '../ContinueLearningButton';
 import {
   COUPON_CODE_SUBSIDY_TYPE,
   COURSE_MODES_MAP,
@@ -21,6 +22,7 @@ import {
   authenticatedUserFactory,
   enterpriseCustomerFactory,
 } from '../../../../../app/data/services/data/__factories__';
+import dayjs from '../../../../../../utils/dayjs';
 import { useCourseUpgradeData } from '../../data';
 import { messages } from '../../../../../course/EnrollModal';
 import CourseEnrollmentsContext from '../../CourseEnrollmentsContext';
@@ -223,5 +225,98 @@ describe('<InProgressCourseCard />', () => {
       // Verify upgrade confirmation modal is no longer open
       expect(screen.queryByText(messages.learnerCreditModalTitle.defaultMessage, { selector: 'h2' })).not.toBeInTheDocument();
     }
+  });
+});
+
+describe('<ContinueLearningButton />', () => {
+  const renderContinueLearningButton = (props, locale = 'en', intlMessages = {}) => render(
+    <IntlProvider locale={locale} messages={intlMessages}>
+      <ContinueLearningButton
+        linkToCourse="https://example.com/course"
+        title="My Course"
+        courseRunId="course-v1:test+course+run"
+        {...props}
+      />
+    </IntlProvider>,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
+  });
+
+  it('renders translated start course text when course has not started', () => {
+    const startDate = dayjs().add(2, 'day').toISOString();
+    renderContinueLearningButton(
+      {
+        startDate,
+        resumeCourseRunUrl: null,
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.start_course': 'Empezar curso',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Empezar curso/i })).toBeInTheDocument();
+  });
+
+  it('renders translated resume text when course has started and has a resume url', () => {
+    const startDate = dayjs().subtract(2, 'day').toISOString();
+    renderContinueLearningButton(
+      {
+        startDate,
+        resumeCourseRunUrl: 'https://example.com/resume',
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.resume_course': 'Reanudar',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Reanudar/i })).toBeInTheDocument();
+  });
+
+  it('renders an accessible name with spacing between label and sr-only title', () => {
+    renderContinueLearningButton({
+      startDate: null,
+      resumeCourseRunUrl: null,
+    });
+
+    expect(screen.getByRole('link', { name: 'Start course for My Course' })).toBeInTheDocument();
+  });
+
+  it('renders start course text when startDate is missing and resume url is absent', () => {
+    renderContinueLearningButton(
+      {
+        startDate: null,
+        resumeCourseRunUrl: null,
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.start_course': 'Empezar curso',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Empezar curso/i })).toBeInTheDocument();
+  });
+
+  it('renders start course text when startDate is invalid and resume url is absent', () => {
+    renderContinueLearningButton(
+      {
+        startDate: 'invalid-start-date',
+        resumeCourseRunUrl: null,
+      },
+      'es',
+      {
+        'enterprise.learner_portal.dashboard.enrollments.course.start_course': 'Empezar curso',
+        'enterprise.learner_portal.dashboard.enrollments.course.continue_learning.sr_text': 'para {title}',
+      },
+    );
+
+    expect(screen.getByRole('link', { name: /Empezar curso/i })).toBeInTheDocument();
   });
 });

@@ -16,18 +16,16 @@ frontend-app-learner-portal-enterprise is a React-based micro-frontend within th
 ## Key Principles
 
 - Search the codebase before assuming something isn't implemented
-- Write comprehensive tests for new components using React Testing Library
+- Write comprehensive tests for new components
 - Follow existing code patterns and component structure
-- Use Paragon components from `@openedx/paragon` - invoke the `/paragon` skill for guidance
+- Use Paragon components from `@openedx/paragon` - invoke `/paragon` for guidance
 - Keep changes focused and minimal
-- Follow Test-Driven Development when refactoring or modifying existing functionality
-- Always write tests for new functionality you implement
 
 ## Documentation & Institutional Memory
 
-- Document new functionality in `docs/decisions/` using Architecture Decision Records (ADRs)
+- Document new functionality in `docs/` or a relevant location
 - When you learn something important about how this codebase works (gotchas, non-obvious
-  patterns, integration quirks), capture it in this CLAUDE.md file or in an appropriate ADR
+  patterns, integration quirks), capture it in the appropriate docs
 - These docs are institutional memory - future sessions (yours or others) will benefit
   from what you record here
 
@@ -201,3 +199,16 @@ Routes are organized around enterprise customer slugs:
 - Test route transitions and data loading
 - Verify enterprise-specific functionality
 - Conduct visual review of components
+
+## Before opening a PR or pushing a branch
+
+Run a self-check on the diff before creating a PR or pushing:
+1. Compute effective LoC — exclude lockfiles, generated files, snapshots, and vendor code.
+2. Count effective touched files — exclude the above plus one-to-one test pairs.
+3. If effective LoC > 400 or effective files > 10, stop and propose a split before proceeding.
+4. Report the result inline before continuing.
+
+## Testing Notes
+
+- Uses Jest and React Testing Library
+- Test files co-located with components (`Component.test.jsx`)
