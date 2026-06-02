@@ -17,7 +17,7 @@ const messages = defineMessages({
   },
   subscriptionWillExpire: {
     id: 'enterprise.program.progress.subscription.warning.body.expiration',
-    defaultMessage: 'Your edX subscription access through [{enterpriseName}] will expire before you are projected to complete all of the courses in the program (based on course end dates). If you are not able to complete all of the courses in the program before your access expires, you will not be eligible to view or share your program record.',
+    defaultMessage: 'Your edX subscription access through {enterpriseName} will expire before you are projected to complete all of the courses in the program (based on course end dates). If you are not able to complete all of the courses in the program before your access expires, you will not be eligible to view or share your program record.',
     description: 'Primary explanation in the subscription expiration warning modal.',
   },
   renewalNotice: {
