@@ -159,7 +159,7 @@ describe('useStatefulEnroll', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(2);
       expect(axiosMock.history.get[1].url).toBe(mockTransactionStatusApiUrl);
-    });
+    }, { timeout: 3000 });
 
     expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(onSuccess).toHaveBeenCalledWith({

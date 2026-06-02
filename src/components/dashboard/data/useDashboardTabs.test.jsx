@@ -1,10 +1,12 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
+import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
+import { LearnerPathwaysTab } from '../pathways-tab';
 import {
   useEnterpriseCustomer,
   useEnterpriseFeatures,
@@ -64,6 +66,15 @@ const wrapper = ({ children }) => (
 );
 
 describe('useDashboardTabs', () => {
+  const getCoursesTabChildProps = (tabs) => {
+    const coursesTab = tabs.find(tab => tab.props.eventKey === DASHBOARD_COURSES_TAB);
+    return coursesTab?.props?.children?.props;
+  };
+  const getPathwaysTabChild = (tabs) => {
+    const pathwaysTab = tabs.find(tab => tab.props.eventKey === DASHBOARD_PATHWAYS_TAB);
+    return pathwaysTab?.props?.children;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
@@ -124,6 +135,38 @@ describe('useDashboardTabs', () => {
       const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
       expect(tabKeys).not.toContain(DASHBOARD_PATHWAYS_TAB);
     });
+
+    it('renders learner pathways scaffold in pathways tab when dual AI pathways flags are enabled', () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      useEnterprisePathwaysList.mockReturnValue({ data: [{ uuid: 'test-pathway' }] });
+
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PATHWAYS_TAB);
+      });
+
+      const pathwaysTabChild = getPathwaysTabChild(result.current.tabs);
+      expect(pathwaysTabChild.type).toBe(LearnerPathwaysTab);
+    });
+
+    it('preserves legacy pathways listing in pathways tab when dual AI pathways flags are not enabled', () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      useEnterprisePathwaysList.mockReturnValue({ data: [{ uuid: 'test-pathway' }] });
+
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PATHWAYS_TAB);
+      });
+
+      const pathwaysTabChild = getPathwaysTabChild(result.current.tabs);
+      expect(pathwaysTabChild.type).toBe(PathwayProgressListingPage);
+    });
   });
 
   describe('My Career tab', () => {
@@ -181,6 +224,35 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
       expect(tabKeys).not.toContain(DASHBOARD_AI_PATHWAYS_TAB);
+    });
+  });
+
+  describe('Learner pathways alert feature-flag wiring on courses tab', () => {
+    it('enables learner pathways alert when both AI feature flag and operator flag are true', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(true);
+      expect(coursesProps.hasAIPathwaysTab).toBe(true);
+    });
+
+    it('disables learner pathways alert when AI feature flag is false', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
+      expect(coursesProps.hasAIPathwaysTab).toBe(false);
+    });
+
+    it('disables learner pathways alert when operator flag is false', () => {
+      features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
+      expect(coursesProps.hasAIPathwaysTab).toBe(false);
     });
   });
 });
