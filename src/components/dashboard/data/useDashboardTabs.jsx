@@ -9,6 +9,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
+import { LearnerPathwaysTab } from '../pathways-tab';
 import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
@@ -56,6 +57,7 @@ const useDashboardTabs = () => {
   //      when ai-pathways POC is no longer needed
   const enableAIPathways = features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
     && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
+  const hasPathwaysTab = enterpriseCustomer.enablePathways && enableAIPathways;
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
   // Creates prefetch logic based on loadable-components, "component splitting" capability expose to Tabs component
@@ -91,7 +93,14 @@ const useDashboardTabs = () => {
         description: 'Title for courses tab on enterprise dashboard.',
       })}
     >
-      {activeTab === DASHBOARD_COURSES_TAB && <CoursesTabComponent />}
+      {activeTab === DASHBOARD_COURSES_TAB && (
+        <CoursesTabComponent
+          onSelectTab={onSelectHandler}
+          hasPathwaysTab={hasPathwaysTab}
+          hasAIPathwaysTab={enableAIPathways}
+          showLearnerPathwaysAlert={enableAIPathways}
+        />
+      )}
     </Tab>,
     enterpriseCustomer.enablePrograms && (
       <Tab
@@ -114,9 +123,15 @@ const useDashboardTabs = () => {
           defaultMessage: 'Pathways',
           description: 'Title for pathways tab on enterprise dashboard.',
         })}
-        disabled={enterprisePathways.length === 0}
+        disabled={!enableAIPathways && enterprisePathways.length === 0}
       >
-        {activeTab === DASHBOARD_PATHWAYS_TAB && <PathwayProgressListingPage />}
+        {activeTab === DASHBOARD_PATHWAYS_TAB && (
+          enableAIPathways ? (
+            <LearnerPathwaysTab />
+          ) : (
+            <PathwayProgressListingPage />
+          )
+        )}
       </Tab>
     ),
     features.FEATURE_ENABLE_MY_CAREER && (
