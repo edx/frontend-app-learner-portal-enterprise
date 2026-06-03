@@ -7,9 +7,15 @@ export interface PathwayCoursesContainerProps {
 }
 
 const mockCourses = [
-  { title: 'Intro to Data', level: 'Beginner', length: '4 weeks', why: 'Build foundational skills' },
-  { title: 'Data Analysis', level: 'Intermediate', length: '6 weeks', why: 'Apply skills to projects' },
-  { title: 'Advanced ML', level: 'Advanced', length: '8 weeks', why: 'Prepare for ML roles' },
+  {
+    title: 'Intro to Data', level: 'Beginner', length: '4 weeks', why: 'Build foundational skills',
+  },
+  {
+    title: 'Data Analysis', level: 'Intermediate', length: '6 weeks', why: 'Apply skills to projects',
+  },
+  {
+    title: 'Advanced ML', level: 'Advanced', length: '8 weeks', why: 'Prepare for ML roles',
+  },
 ];
 
 const PathwayCoursesContainer: React.FC<PathwayCoursesContainerProps> = ({ onBackToOnboarding, onBackToProfile }) => (

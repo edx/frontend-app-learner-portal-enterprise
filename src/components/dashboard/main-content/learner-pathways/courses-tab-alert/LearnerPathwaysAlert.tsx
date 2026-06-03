@@ -12,7 +12,7 @@ import {
   LearnerPathwaysProgressCounts,
 } from './types';
 import learnerPathwaysMessages from './messages';
-import { DASHBOARD_PATHWAYS_TAB } from '../../../data';
+import { DASHBOARD_PATHWAYS_TAB } from '../../../data/constants';
 
 /**
  * Props for {@link LearnerPathwaysAlert}.
