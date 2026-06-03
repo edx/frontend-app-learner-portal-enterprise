@@ -1,2 +1,2 @@
-export { default as LearnerPathwaysAlert } from './LearnerPathwaysAlert';
-export * from './types';
+export * from './courses-tab-alert';
+export * from './pathways-tab';

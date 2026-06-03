@@ -9,7 +9,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
-import { LearnerPathwaysTab } from '../pathways-tab';
+import { LearnerPathwaysTab } from '../main-content/learner-pathways';
 import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';

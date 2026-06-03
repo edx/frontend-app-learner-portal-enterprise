@@ -18,7 +18,7 @@ const PathwayCoursesContainer: React.FC<PathwayCoursesContainerProps> = ({ onBac
       <h2>Your Pathway</h2>
       <div data-testid="pathway-course-list">
         {mockCourses.map((c, i) => (
-          <div key={i} data-testid={`pathway-course-${i}`} className="mb-3 p-2 border rounded">
+          <div key={c.title} data-testid={`pathway-course-${i}`} className="mb-3 p-2 border rounded">
             <strong>{c.title}</strong>
             <div>Level: {c.level}</div>
             <div>Length: {c.length}</div>

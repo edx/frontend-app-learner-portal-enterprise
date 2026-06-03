@@ -8,7 +8,7 @@ import { MainContent, Sidebar } from '../../layout';
 import CourseEnrollmentFailedAlert, { ENROLLMENT_SOURCE } from '../../course/CourseEnrollmentFailedAlert';
 import DashboardMainContent from './DashboardMainContent';
 import { DashboardSidebar } from '../sidebar';
-import { LearnerPathwaysAlert } from './learner-pathways';
+import { LearnerPathwaysAlert } from './learner-pathways/courses-tab-alert';
 
 /**
  * @typedef {Object} CoursesTabComponentProps
