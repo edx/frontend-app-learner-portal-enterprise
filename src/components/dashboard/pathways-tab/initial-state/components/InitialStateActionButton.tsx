@@ -1,19 +1,19 @@
+import React from 'react';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { Button } from '@openedx/paragon';
 
 import messages from '../messages';
 
-/**
- * Primary initial-state CTA.
- * The button is stepped out as its own abstraction while onboarding behavior
- * remains intentionally unbound in this scaffold phase.
- */
-const InitialStateActionButton = () => (
+const InitialStateActionButton = ({ onStart }: { onStart?: () => void }) => (
   <div className="text-center">
     <Button
       variant="primary"
       data-testid="learner-pathways-action-start-onboarding"
-      disabled
+      disabled={!onStart}
+      onClick={(e: React.MouseEvent) => {
+        e.preventDefault();
+        onStart && onStart();
+      }}
     >
       <FormattedMessage {...messages.startOnboarding} />
     </Button>
