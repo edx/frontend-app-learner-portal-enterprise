@@ -1,8 +1,9 @@
 import React from 'react';
 import { Breadcrumb } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { View } from '../LearnerPathwaysTab';
+
 import messages from './messages';
+import { View } from '../constants';
 
 type BreadcrumbMessageKey = 'onboardingQuiz' | 'profile' | 'pathway';
 
@@ -11,30 +12,10 @@ interface ParagonLink {
   to?: string;
   onClick?: () => void;
 }
-
 interface Props {
   view: View;
   onNavigate: (v: View) => void;
 }
-
-const LinkAs: React.FC<any> = ({ children, onClick, to, ...rest }) => {
-  const label = typeof children === 'string' ? children : '';
-  const testId = `breadcrumb-link-${label.replace(/\s+/g, '-').toLowerCase()}`;
-
-  return (
-    <a
-      href={typeof to === 'string' ? to : '#'}
-      data-testid={testId}
-      onClick={(e) => {
-        e.preventDefault();
-        if (typeof onClick === 'function') onClick();
-      }}
-      {...rest}
-    >
-      {children}
-    </a>
-  );
-};
 
 function buildBreadcrumbConfig(
   view: View,
@@ -66,24 +47,22 @@ function buildBreadcrumbConfig(
 
 const PathwayBreadcrumbs: React.FC<Props> = ({ view, onNavigate }) => {
   const intl = useIntl();
-
-  if (view === 'initial') {
-    return null;
-  }
-
   const { links, activeLabel } = buildBreadcrumbConfig(view, onNavigate);
 
   const pathwayLinks = links.map((link) => ({
     label: intl.formatMessage(messages[link.label]),
-    to: '#',
-    onClick: link.onClick,
+    href: `#learner-pathways-${link.label}`,
+    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      link.onClick?.();
+    },
   }));
 
   return (
-    <div data-testid="pathway-breadcrumbs" className="mb-3">
+    <div data-testid="pathway-breadcrumbs" className="header-breadcrumbs my-2">
       <Breadcrumb
+        ariaLabel={intl.formatMessage(messages.breadcrumbAriaLabel)}
         links={pathwayLinks}
-        linkAs={LinkAs as any}
         activeLabel={activeLabel ? intl.formatMessage(messages[activeLabel]) : ''}
       />
     </div>

@@ -1,17 +1,9 @@
 import React, { useState } from 'react';
-import { LearnerPathwaysTabInitialState } from './initial-state';
 import PathwayBreadcrumbs from './breadcrumb/PathwayBreadcrumbs';
 import IntakeQuestionsContainer from './IntakeQuestionsContainer';
 import CareerSelectionContainer from './CareerSelectionContainer';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
-
-export const VIEWS = {
-  ONBOARDING: 'onboarding',
-  PROFILE: 'profile',
-  PATHWAY: 'pathway',
-} as const;
-
-export type View = typeof VIEWS[keyof typeof VIEWS];
+import { View, VIEWS } from './constants';
 
 const LearnerPathwaysTab: React.FC = () => {
   const [view, setView] = useState<View>(VIEWS.ONBOARDING);
