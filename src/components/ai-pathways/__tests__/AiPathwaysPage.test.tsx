@@ -39,11 +39,7 @@ const mockUsePromptInterceptor = usePromptInterceptor as jest.Mock;
 const mockUsePathways = usePathways as jest.Mock;
 
 const renderWithIntl = (ui: React.ReactElement) => render(
-<<<<<<< pbitla/ENT-11819
   <IntlProvider locale="en">
-=======
-  <IntlProvider locale="en" messages={{}}>
->>>>>>> master
     {ui}
   </IntlProvider>,
 );
