@@ -143,7 +143,7 @@ export function formatProgramType(programType, intl) {
           description: 'Localized label for the MicroMasters program type',
         });
       }
-      return <>{programType}<sup>&reg;</sup> Program</>;
+      return 'MicroMasters® Program';
     case PROGRAM_TYPE_MAP.MICROBACHELORS:
       if (intl) {
         return intl.formatMessage({
@@ -152,7 +152,7 @@ export function formatProgramType(programType, intl) {
           description: 'Localized label for the MicroBachelors program type',
         });
       }
-      return <>{programType}<sup>&reg;</sup> Program</>;
+      return 'MicroBachelors® Program';
     case PROGRAM_TYPE_MAP.MASTERS:
       if (intl) {
         return intl.formatMessage({

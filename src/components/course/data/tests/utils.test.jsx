@@ -105,10 +105,8 @@ describe('formatProgramType', () => {
     expect(screen.getByText('MicroBachelors® Program')).toBeInTheDocument();
   });
 
-  it('returns a trademarked fallback element for MicroMasters without intl', () => {
-    const { container } = render(<div>{formatProgramType(PROGRAM_TYPE_MAP.MICROMASTERS)}</div>);
-    expect(container.querySelector('sup')).toHaveTextContent('®');
-    expect(container).toHaveTextContent('MicroMasters® Program');
+  it('returns a trademarked fallback string for MicroMasters without intl', () => {
+    expect(formatProgramType(PROGRAM_TYPE_MAP.MICROMASTERS)).toBe('MicroMasters® Program');
   });
 
   it('returns a localized label for Masters when intl is provided', () => {
@@ -149,10 +147,8 @@ describe('formatProgramType', () => {
     expect(formatProgramType(PROGRAM_TYPE_MAP.CREDIT)).toBe(PROGRAM_TYPE_MAP.CREDIT);
   });
 
-  it('returns trademarked fallback element for MicroBachelors without intl', () => {
-    const { container } = render(<div>{formatProgramType(PROGRAM_TYPE_MAP.MICROBACHELORS)}</div>);
-    expect(container.querySelector('sup')).toHaveTextContent('®');
-    expect(container).toHaveTextContent('MicroBachelors® Program');
+  it('returns trademarked fallback string for MicroBachelors without intl', () => {
+    expect(formatProgramType(PROGRAM_TYPE_MAP.MICROBACHELORS)).toBe('MicroBachelors® Program');
   });
 
   it('returns input program type for unknown values', () => {

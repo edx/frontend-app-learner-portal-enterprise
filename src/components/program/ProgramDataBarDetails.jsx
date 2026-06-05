@@ -2,7 +2,7 @@ import {
   useCallback, useRef, useState, useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
-import { useIntl } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { appendProgramToProgramType } from './data/utils';
 import { useProgramDetails } from '../app/data';
 
@@ -62,11 +62,15 @@ const ProgramDataBarDetails = ({ handleStick, handleRelease }) => {
   return (
     <div ref={wrapper} className="program">
       <div className="type">
-        {appendProgramToProgramType(type, intl)} {intl.formatMessage({
-          id: 'enterprise.program.data.bar.details.in',
-          defaultMessage: 'in',
-          description: 'Connector between the program type and title in the sticky program data bar.',
-        })} <div className="title">{title}</div>
+        <FormattedMessage
+          id="enterprise.program.data.bar.details.type.in.title"
+          defaultMessage="{programType} in {title}"
+          description="Program type and title text in the sticky program data bar."
+          values={{
+            programType: appendProgramToProgramType(type, intl),
+            title: <span className="title">{title}</span>,
+          }}
+        />
       </div>
       <div className="institution">{partnerList}</div>
     </div>
