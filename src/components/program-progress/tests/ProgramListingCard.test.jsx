@@ -68,7 +68,7 @@ describe('<ProgramListingCard />', () => {
   it('renders all data for program', () => {
     renderWithRouter(<ProgramListingCardWithContext programData={dummyProgramData} />);
     expect(screen.getByText(dummyProgramData.title)).toBeInTheDocument();
-    expect(screen.getByText(dummyProgramData.type)).toBeInTheDocument();
+    expect(screen.getByText('MicroMasters® Program')).toBeInTheDocument();
     expect(screen.getByText(dummyProgramData.authoringOrganizations[0].key)).toBeInTheDocument();
     const logoImageNode = screen.getByAltText(dummyProgramData.authoringOrganizations[0].key);
     expect(logoImageNode).toHaveAttribute('src', dummyProgramData.authoringOrganizations[0].logoImageUrl);
@@ -136,8 +136,10 @@ describe('<ProgramListingCard />', () => {
     size: 'xSmall',
   }])('tests window size', ({ width, size }) => {
     global.innerWidth = width;
-    renderWithRouter(<ProgramListingCardWithContext programData={dummyProgramData} />);
-    const imageCapSrc = screen.getByAltText('').src;
+    const { container } = renderWithRouter(
+      <ProgramListingCardWithContext programData={dummyProgramData} />,
+    );
+    const imageCapSrc = container.querySelector('.pgn__card-image-cap').src;
     expect(imageCapSrc).toContain(size);
   });
 });
