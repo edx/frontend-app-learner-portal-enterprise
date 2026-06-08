@@ -73,14 +73,14 @@ Learner Pathways Architecture (Layered)
   +-------------------------------------------+
   | Zustand Store                             |
   | State Only                                |
-  | - currentStep                             |
+  | - section                                 |
   | - learnerProfile                          |
   | - careerMatches                           |
-  | - selectedCareer                          |
+  | - selectedCareerId                        |
   | - pathwayCourses                          |
   | - progress                                |
   | - loading                                 |
-  | - error                                   |
+  | - errors                                  |
   +-------------------------------------------+
 
   Rules:

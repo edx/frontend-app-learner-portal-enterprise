@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 import { logInfo } from '@edx/frontend-platform/logging';
 import {
-  CareerMatch, LearnerProfile,
+  CareerMatch,
+  LearnerProfile,
   OnboardingAnswers,
   PathwaysErrorState,
   PathwaysLoadingState,
