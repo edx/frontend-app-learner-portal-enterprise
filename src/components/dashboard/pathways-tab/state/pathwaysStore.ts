@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 
+import { logInfo } from '@edx/frontend-platform/logging';
 import {
-  CareerMatch,
+  CareerMatch, LearnerProfile,
   OnboardingAnswers,
   PathwaysErrorState,
   PathwaysLoadingState,
@@ -90,10 +91,19 @@ export const usePathwaysStore = create<PathwaysStore>((set) => ({
     },
   })),
   setLearnerProfile: (learnerProfile) => set({ learnerProfile }),
-  updateLearnerProfile: (profileUpdates) => set((state) => {
+  updateLearnerProfile: (
+    profileUpdates: Partial<LearnerProfile>,
+  ) => set((state) => {
     if (!state.learnerProfile) {
+      // Invariant/Assumption violation.
+      // updateLearnerProfile should only be called after setLearnerProfile.
+      logInfo(
+        'updateLearnerProfile called before learnerProfile initialization',
+        profileUpdates,
+      );
       return {};
     }
+
     return {
       learnerProfile: {
         ...state.learnerProfile,
