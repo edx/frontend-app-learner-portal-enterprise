@@ -11,7 +11,6 @@ import { queryClient } from '../../../../../utils/tests';
 const defaultProps = {
   onSelectTab: jest.fn(),
   hasPathwaysTab: true,
-  hasAIPathwaysTab: false,
 };
 
 const renderComponent = (props = {}) => render(

@@ -97,7 +97,6 @@ const useDashboardTabs = () => {
         <CoursesTabComponent
           onSelectTab={onSelectHandler}
           hasPathwaysTab={hasPathwaysTab}
-          hasAIPathwaysTab={enableAIPathways}
           showLearnerPathwaysAlert={enableAIPathways}
         />
       )}

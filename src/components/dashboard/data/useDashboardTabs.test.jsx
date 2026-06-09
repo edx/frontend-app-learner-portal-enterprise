@@ -234,7 +234,6 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const coursesProps = getCoursesTabChildProps(result.current.tabs);
       expect(coursesProps.showLearnerPathwaysAlert).toBe(true);
-      expect(coursesProps.hasAIPathwaysTab).toBe(true);
     });
 
     it('disables learner pathways alert when AI feature flag is false', () => {
@@ -243,7 +242,6 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const coursesProps = getCoursesTabChildProps(result.current.tabs);
       expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
-      expect(coursesProps.hasAIPathwaysTab).toBe(false);
     });
 
     it('disables learner pathways alert when operator flag is false', () => {
@@ -252,7 +250,6 @@ describe('useDashboardTabs', () => {
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const coursesProps = getCoursesTabChildProps(result.current.tabs);
       expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
-      expect(coursesProps.hasAIPathwaysTab).toBe(false);
     });
   });
 });
