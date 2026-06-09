@@ -7,7 +7,7 @@ export interface CareerSelectionContainerProps {
 }
 
 const CareerSelectionContainer: React.FC<CareerSelectionContainerProps> = ({ onBack, onNext }) => (
-  <section data-testid="profile-container" className="mt-4">
+  <section data-testid="profile-container">
     <Container fluid>
       <h2>Profile</h2>
       <section data-testid="profile-learner-profile"><h3>Learner Profile</h3><p>Mock profile summary</p></section>

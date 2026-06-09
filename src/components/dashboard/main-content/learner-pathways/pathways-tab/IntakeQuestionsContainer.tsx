@@ -6,7 +6,7 @@ export interface IntakeQuestionsContainerProps {
 }
 
 const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({ onNext }) => (
-  <section data-testid="intake-questions-container" className="mt-4">
+  <section data-testid="intake-questions-container">
     <Container fluid>
       <h2>Onboarding Quiz</h2>
       <section data-testid="intake-motivation"><h3>Motivation</h3><p>Mock motivation</p></section>

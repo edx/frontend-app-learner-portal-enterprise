@@ -1,7 +1,7 @@
 import React from 'react';
 import { Breadcrumb } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
-
+import { Link } from 'react-router-dom';
 import messages from './messages';
 import { View } from '../constants';
 
@@ -36,7 +36,7 @@ const PathwayBreadcrumbs: React.FC<Props> = ({ view, onNavigate }) => {
       .slice(0, activeStepIndex)
       .map((step) => ({
         label: intl.formatMessage(messages[step.label]),
-        href: `#learner-pathways-${step.view}`,
+        to: `#learner-pathways-${step.view}`,
         onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
           event.preventDefault();
           onNavigate(step.view);
@@ -49,10 +49,11 @@ const PathwayBreadcrumbs: React.FC<Props> = ({ view, onNavigate }) => {
     : '';
 
   return (
-    <div data-testid="pathway-breadcrumbs" className="header-breadcrumbs my-2">
+    <div data-testid="pathway-breadcrumbs" className="small mt-3 mx-3">
       <Breadcrumb
         ariaLabel={intl.formatMessage(messages.breadcrumbAriaLabel)}
         links={links}
+        linkAs={Link}
         activeLabel={activeLabel}
       />
     </div>
