@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
+import { Container } from '@openedx/paragon';
 import PathwayBreadcrumbs from './breadcrumb/PathwayBreadcrumbs';
 import IntakeQuestionsContainer from './IntakeQuestionsContainer';
 import CareerSelectionContainer from './CareerSelectionContainer';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { View, VIEWS } from './constants';
-import {breakpoints, Container, MediaQuery} from "@openedx/paragon";
 
 const LearnerPathwaysTab: React.FC = () => {
   const [view, setView] = useState<View>(VIEWS.ONBOARDING);
