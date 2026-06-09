@@ -9,10 +9,10 @@ import { View } from '../constants';
 const MockPathwayBreadcrumbs = ({
   view = 'profile',
   onNavigate = jest.fn(),
-}) => (
+}: { view?: View, onNavigate?: (v: View) => void; }) => (
   <IntlProvider locale="en">
     <PathwayBreadcrumbs
-      view={view as View}
+      view={view}
       onNavigate={onNavigate}
     />
   </IntlProvider>
