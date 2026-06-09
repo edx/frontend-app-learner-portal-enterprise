@@ -11,7 +11,7 @@ const LearnerPathwaysTab: React.FC = () => {
   return (
     <div data-testid="learner-pathways-tab-scaffold">
       <PathwayBreadcrumbs view={view} onNavigate={(v: View) => setView(v)} />
-      <Container size="md" fluid="md" className="mt-4.5">
+      <Container size="md" fluid className="mt-4.5">
         {view === VIEWS.ONBOARDING
           && (
             <IntakeQuestionsContainer

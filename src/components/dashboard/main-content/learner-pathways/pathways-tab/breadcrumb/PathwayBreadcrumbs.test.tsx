@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { MemoryRouter } from 'react-router-dom';
 import PathwayBreadcrumbs from './PathwayBreadcrumbs';
 import { View } from '../constants';
 
@@ -10,12 +11,14 @@ const MockPathwayBreadcrumbs = ({
   view = 'profile',
   onNavigate = jest.fn(),
 }: { view?: View, onNavigate?: (v: View) => void; }) => (
-  <IntlProvider locale="en">
-    <PathwayBreadcrumbs
-      view={view}
-      onNavigate={onNavigate}
-    />
-  </IntlProvider>
+  <MemoryRouter>
+    <IntlProvider locale="en">
+      <PathwayBreadcrumbs
+        view={view}
+        onNavigate={onNavigate}
+      />
+    </IntlProvider>
+  </MemoryRouter>
 );
 
 describe('PathwayBreadcrumbs', () => {

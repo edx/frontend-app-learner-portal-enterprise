@@ -2,13 +2,16 @@ import '@testing-library/jest-dom/extend-expect';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { MemoryRouter } from 'react-router-dom';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
 
 const renderComponent = () => render(
-  <IntlProvider locale="en">
-    <LearnerPathwaysTab />
-  </IntlProvider>,
+  <MemoryRouter>
+    <IntlProvider locale="en">
+      <LearnerPathwaysTab />
+    </IntlProvider>
+  </MemoryRouter>,
 );
 
 describe('LearnerPathwaysTab', () => {
