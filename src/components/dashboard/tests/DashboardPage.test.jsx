@@ -339,10 +339,7 @@ describe('<Dashboard />', () => {
 
     await user.click(screen.getByText('Pathways'));
 
-    expect(screen.getByTestId('learner-pathways-tab-scaffold')).toBeInTheDocument();
-    expect(screen.getByTestId('learner-pathways-profile-section')).toBeInTheDocument();
-    expect(screen.getByTestId('learner-pathways-action-start-onboarding')).toBeInTheDocument();
-    expect(screen.queryByTestId('pathway-listing-page')).not.toBeInTheDocument();
+    expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
   });
 
   it('renders programs tab', async () => {

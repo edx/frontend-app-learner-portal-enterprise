@@ -6,13 +6,13 @@ import {
 } from './data/constants';
 import {
   resolveLearnerPathwaysAlertDescriptor,
-  resolveLearnerPathwaysTabTarget,
 } from './data/utils';
 import {
   LearnerPathwaysAlertStateKey,
   LearnerPathwaysProgressCounts,
 } from './types';
 import learnerPathwaysMessages from './messages';
+import { DASHBOARD_PATHWAYS_TAB } from '../../../data/constants';
 
 /**
  * Props for {@link LearnerPathwaysAlert}.
@@ -26,10 +26,6 @@ type LearnerPathwaysAlertProps = {
    * Whether the classic Pathways tab is available.
    */
   hasPathwaysTab: boolean;
-  /**
-   * Whether the AI Pathways tab is available.
-   */
-  hasAIPathwaysTab: boolean;
   /**
    * Visual state of the learner pathways scaffold card.
    */
@@ -49,7 +45,6 @@ type LearnerPathwaysAlertProps = {
 const LearnerPathwaysAlert = ({
   onSelectTab,
   hasPathwaysTab,
-  hasAIPathwaysTab,
   initialState = DEFAULT_LEARNER_PATHWAYS_ALERT_STATE,
   progressCounts = {
     startedCount: 0,
@@ -62,10 +57,7 @@ const LearnerPathwaysAlert = ({
    */
   const alertDescriptor = resolveLearnerPathwaysAlertDescriptor(initialState);
 
-  /**
-   * Determine the preferred CTA destination tab from currently-enabled tabs.
-   */
-  const targetTab = resolveLearnerPathwaysTabTarget({ hasAIPathwaysTab, hasPathwaysTab });
+  const targetTab = hasPathwaysTab ? DASHBOARD_PATHWAYS_TAB : null;
   const areActionsDisabled = !targetTab;
 
   /**

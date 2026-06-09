@@ -10,7 +10,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
-import { LearnerPathwaysTab } from '../pathways-tab';
+import { LearnerPathwaysTab } from '../main-content/learner-pathways';
 import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
@@ -187,7 +187,6 @@ const useDashboardTabs = () => {
         <CoursesTabComponent
           onSelectTab={onSelectHandler}
           hasPathwaysTab={hasPathwaysTab}
-          hasAIPathwaysTab={enableAIPathways}
           showLearnerPathwaysAlert={enableAIPathways}
         />
       )}
