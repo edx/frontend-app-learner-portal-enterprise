@@ -4,17 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import { queryClient } from '../../../../utils/tests';
-import {
-  DASHBOARD_AI_PATHWAYS_TAB,
-  DASHBOARD_PATHWAYS_TAB,
-} from '../../data/constants';
 import LearnerPathwaysAlert from './LearnerPathwaysAlert';
+import { DASHBOARD_PATHWAYS_TAB } from '../../../data';
+import { queryClient } from '../../../../../utils/tests';
 
 const defaultProps = {
   onSelectTab: jest.fn(),
   hasPathwaysTab: true,
-  hasAIPathwaysTab: false,
 };
 
 const renderComponent = (props = {}) => render(
@@ -75,22 +71,14 @@ describe('LearnerPathwaysAlert', () => {
   });
 
   it('disables actions when pathways tabs are unavailable', () => {
-    renderComponent({ hasPathwaysTab: false, hasAIPathwaysTab: false });
+    renderComponent({ hasPathwaysTab: false });
     expect(screen.getByRole('button', { name: 'Start pathway onboarding' })).toBeDisabled();
   });
 
-  it('uses AI pathways tab when both destinations are available', async () => {
+  it('uses pathways tab on click', async () => {
     const user = userEvent.setup();
     const onSelectTab = jest.fn();
-    renderComponent({ onSelectTab, hasPathwaysTab: true, hasAIPathwaysTab: true });
-    await user.click(screen.getByRole('button', { name: 'Start pathway onboarding' }));
-    expect(onSelectTab).toHaveBeenCalledWith(DASHBOARD_AI_PATHWAYS_TAB);
-  });
-
-  it('uses pathways tab when AI pathways tab is unavailable', async () => {
-    const user = userEvent.setup();
-    const onSelectTab = jest.fn();
-    renderComponent({ onSelectTab, hasPathwaysTab: true, hasAIPathwaysTab: false });
+    renderComponent({ onSelectTab, hasPathwaysTab: true });
     await user.click(screen.getByRole('button', { name: 'Start pathway onboarding' }));
     expect(onSelectTab).toHaveBeenCalledWith(DASHBOARD_PATHWAYS_TAB);
   });

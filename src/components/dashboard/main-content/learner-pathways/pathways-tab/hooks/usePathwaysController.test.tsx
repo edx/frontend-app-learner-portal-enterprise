@@ -60,7 +60,7 @@ describe('usePathwaysController', () => {
     });
 
     const state = usePathwaysStore.getState();
-    expect(state.section).toBe('dashboard');
+    expect(state.section).toBe('onboarding');
     expect(state.experienceStatus).toBe('not_started');
   });
 });

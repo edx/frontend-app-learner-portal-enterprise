@@ -13,7 +13,6 @@ export type PathwaysExperienceStatus =
  * Tab-internal sections for learner pathways content.
  */
 export type PathwaysSection =
-  | 'dashboard'
   | 'onboarding'
   | 'profile'
   | 'pathway';

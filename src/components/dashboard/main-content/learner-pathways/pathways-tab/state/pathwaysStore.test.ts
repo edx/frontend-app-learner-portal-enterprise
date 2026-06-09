@@ -13,7 +13,7 @@ describe('pathwaysStore', () => {
     const state = usePathwaysStore.getState();
 
     expect(state.experienceStatus).toBe('not_started');
-    expect(state.section).toBe('dashboard');
+    expect(state.section).toBe('onboarding');
     expect(state.onboarding.answers).toEqual({
       motivation: '',
       goal: '',
@@ -186,7 +186,7 @@ describe('pathwaysStore', () => {
     expect(currentState.learnerProfile).toBeNull();
 
     expect(selectors.experienceStatus(currentState)).toBe('not_started');
-    expect(selectors.section(currentState)).toBe('dashboard');
+    expect(selectors.section(currentState)).toBe('onboarding');
     expect(selectors.onboardingAnswers(currentState)).toEqual(currentState.onboarding.answers);
     expect(selectors.learnerProfile(currentState)).toBeNull();
     expect(selectors.careerMatches(currentState)).toEqual([]);

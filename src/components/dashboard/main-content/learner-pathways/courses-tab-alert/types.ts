@@ -1,8 +1,3 @@
-import {
-  DASHBOARD_AI_PATHWAYS_TAB,
-  DASHBOARD_PATHWAYS_TAB,
-} from '../../data/constants';
-
 /**
  * Canonical UI states for the learner pathways alert scaffold.
  *
@@ -14,14 +9,6 @@ export type LearnerPathwaysAlertStateKey =
   | 'active_zero_started'
   | 'active_in_progress'
   | 'completed';
-
-/**
- * Supported dashboard tab destinations for alert CTAs.
- */
-export type LearnerPathwaysTabTarget =
-  | typeof DASHBOARD_AI_PATHWAYS_TAB
-  | typeof DASHBOARD_PATHWAYS_TAB
-  | null;
 
 /**
  * Action metadata for a single alert CTA button.

@@ -17,7 +17,7 @@ import {
  */
 export const getInitialPathwaysState = (): PathwaysState => ({
   experienceStatus: 'not_started',
-  section: 'dashboard',
+  section: 'onboarding',
   onboarding: {
     answers: {
       motivation: '',
