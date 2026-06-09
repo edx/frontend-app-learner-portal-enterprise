@@ -27,6 +27,11 @@ const messages = defineMessages({
     defaultMessage: 'Recently added',
     description: 'Title for the new content (recently added) facet filter',
   },
+  translationLanguagesTitle: {
+    id: 'search.facetFilters.translationLanguages.title',
+    defaultMessage: 'Translation Languages',
+    description: 'Title for the translation languages facet filter',
+  },
 });
 
 export function getSearchFacetFilters(intl) {
@@ -59,6 +64,14 @@ export function getSearchFacetFilters(intl) {
       }
       return false;
     });
+  });
+
+  const levelTypeIndex = searchFilters.findIndex(f => f.attribute === 'level_type');
+  const insertAt = levelTypeIndex >= 0 ? levelTypeIndex + 1 : searchFilters.length;
+  searchFilters.splice(insertAt, 0, {
+    attribute: 'translation_languages',
+    title: intl.formatMessage(messages.translationLanguagesTitle),
+    isSortedAlphabetical: true,
   });
 
   if (features.NEW_CONTENT_FACET) {
