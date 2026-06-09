@@ -7,63 +7,53 @@ import { View } from '../constants';
 
 type BreadcrumbMessageKey = 'onboardingQuiz' | 'profile' | 'pathway';
 
-interface ParagonLink {
+interface BreadcrumbStep {
   label: BreadcrumbMessageKey;
-  to?: string;
-  onClick?: () => void;
+  view: View;
 }
+
 interface Props {
   view: View;
-  onNavigate: (v: View) => void;
+  onNavigate: (view: View) => void;
 }
 
-function buildBreadcrumbConfig(
-  view: View,
-  onNavigate: (v: View) => void,
-): { links: ParagonLink[]; activeLabel: BreadcrumbMessageKey | '' } {
-  switch (view) {
-    case 'onboarding':
-      return { links: [], activeLabel: 'onboardingQuiz' };
+const breadcrumbSteps: BreadcrumbStep[] = [
+  { label: 'onboardingQuiz', view: 'onboarding' },
+  { label: 'profile', view: 'profile' },
+  { label: 'pathway', view: 'pathway' },
+];
 
-    case 'profile':
-      return {
-        links: [{ label: 'onboardingQuiz', onClick: () => onNavigate('onboarding') }],
-        activeLabel: 'profile',
-      };
-
-    case 'pathway':
-      return {
-        links: [
-          { label: 'onboardingQuiz', onClick: () => onNavigate('onboarding') },
-          { label: 'profile', onClick: () => onNavigate('profile') },
-        ],
-        activeLabel: 'pathway',
-      };
-
-    default:
-      return { links: [], activeLabel: '' };
-  }
-}
+const getActiveStepIndex = (view: View) => (
+  breadcrumbSteps.findIndex((step) => step.view === view)
+);
 
 const PathwayBreadcrumbs: React.FC<Props> = ({ view, onNavigate }) => {
   const intl = useIntl();
-  const { links, activeLabel } = buildBreadcrumbConfig(view, onNavigate);
+  const activeStepIndex = getActiveStepIndex(view);
 
-  const pathwayLinks = links.map((link) => ({
-    label: intl.formatMessage(messages[link.label]),
-    href: `#learner-pathways-${link.label}`,
-    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      link.onClick?.();
-    },
-  }));
+  const links = activeStepIndex > 0
+    ? breadcrumbSteps
+      .slice(0, activeStepIndex)
+      .map((step) => ({
+        label: intl.formatMessage(messages[step.label]),
+        href: `#learner-pathways-${step.view}`,
+        onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+          event.preventDefault();
+          onNavigate(step.view);
+        },
+      }))
+    : [];
+
+  const activeLabel = activeStepIndex >= 0
+    ? intl.formatMessage(messages[breadcrumbSteps[activeStepIndex].label])
+    : '';
 
   return (
     <div data-testid="pathway-breadcrumbs" className="header-breadcrumbs my-2">
       <Breadcrumb
         ariaLabel={intl.formatMessage(messages.breadcrumbAriaLabel)}
-        links={pathwayLinks}
-        activeLabel={activeLabel ? intl.formatMessage(messages[activeLabel]) : ''}
+        links={links}
+        activeLabel={activeLabel}
       />
     </div>
   );
