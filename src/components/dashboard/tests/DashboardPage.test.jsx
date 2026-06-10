@@ -115,7 +115,7 @@ jest.mock('../../app/data', () => ({
 }));
 
 jest.mock('@edx/frontend-platform/analytics', () => ({
-  ...jest.requireActual('@edx/frontend-platform/analyticss'),
+  ...jest.requireActual('@edx/frontend-platform/analytics'),
   sendPageEvent: jest.fn(),
 }));
 
@@ -457,9 +457,16 @@ describe('<Dashboard />', () => {
     expect(programsTab).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('should send page event when "my-career" tab selected', async () => {
+  it('should not send duplicate page event when the courses tab selected', async () => {
     const user = userEvent.setup();
     renderWithRouter(<DashboardWithContext />);
+    expect(sendPageEvent).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText('Courses'));
+    expect(sendPageEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should send page event when "my-career" tab selected', async () => {
+    const user = userEvent.setup(); renderWithRouter(<DashboardWithContext />);
     expect(sendPageEvent).toHaveBeenCalledTimes(1);
     const myCareerTab = screen.getByText('My Career');
     await user.click(myCareerTab);
