@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container } from '@openedx/paragon';
 import PathwayBreadcrumbs from './breadcrumb/PathwayBreadcrumbs';
-import IntakeQuestionsContainer from './IntakeQuestionsContainer';
+import { IntakePage } from './intake';
 import CareerSelectionContainer from './CareerSelectionContainer';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { View, VIEWS } from './constants';
@@ -14,8 +14,8 @@ const LearnerPathwaysTab: React.FC = () => {
       <Container size="md" fluid className="mt-4.5">
         {view === VIEWS.ONBOARDING
           && (
-            <IntakeQuestionsContainer
-              onNext={() => setView(VIEWS.PROFILE)}
+            <IntakePage
+              onSubmit={() => setView(VIEWS.PROFILE)}
             />
           )}
         {view === VIEWS.PROFILE
