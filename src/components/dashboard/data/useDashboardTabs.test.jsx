@@ -3,6 +3,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
+import { MemoryRouter } from 'react-router-dom';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
@@ -25,7 +26,6 @@ import {
   DASHBOARD_PROGRAMS_TAB,
 } from './constants';
 import { LearnerPathwaysTab } from '../main-content/learner-pathways';
-import {MemoryRouter} from "react-router-dom";
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),

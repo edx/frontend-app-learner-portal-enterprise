@@ -170,7 +170,14 @@ const useDashboardTabs = () => {
 
     lastTrackedPageVisitRef.current = eventKey;
 
-    sendPageEvent();
+    sendPageEvent(
+      'enterprise_learner_portal',
+      getDashboardPageVisitEvent(activeTab),
+      {
+        tab: activeTab,
+        enterpriseCustomerUuid,
+      },
+    );
   }, [activeTab, enterpriseCustomerUuid]);
 
   const allTabs = useMemo(() => ([
