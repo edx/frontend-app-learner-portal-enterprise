@@ -25,6 +25,7 @@ import {
   DASHBOARD_PROGRAMS_TAB,
 } from './constants';
 import { LearnerPathwaysTab } from '../main-content/learner-pathways';
+import {MemoryRouter} from "react-router-dom";
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
@@ -58,9 +59,11 @@ const mockAuthenticatedUser = authenticatedUserFactory();
 const wrapper = ({ children }) => (
   <QueryClientProvider client={queryClient()}>
     <IntlProvider locale="en">
-      <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
-        {children}
-      </AppContext.Provider>
+      <MemoryRouter>
+        <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
+          {children}
+        </AppContext.Provider>
+      </MemoryRouter>
     </IntlProvider>
   </QueryClientProvider>
 );
