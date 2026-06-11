@@ -3,6 +3,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
+import { MemoryRouter } from 'react-router-dom';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
@@ -58,9 +59,11 @@ const mockAuthenticatedUser = authenticatedUserFactory();
 const wrapper = ({ children }) => (
   <QueryClientProvider client={queryClient()}>
     <IntlProvider locale="en">
-      <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
-        {children}
-      </AppContext.Provider>
+      <MemoryRouter>
+        <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
+          {children}
+        </AppContext.Provider>
+      </MemoryRouter>
     </IntlProvider>
   </QueryClientProvider>
 );

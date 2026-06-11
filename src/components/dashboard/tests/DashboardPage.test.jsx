@@ -5,11 +5,11 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { breakpoints } from '@openedx/paragon';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import { camelCaseObject } from '@edx/frontend-platform/utils';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
+import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import { SEEN_SUBSCRIPTION_EXPIRATION_MODAL_COOKIE_PREFIX } from '../../../config/constants';
 import { features } from '../../../config';
 import { queryClient, renderWithRouter } from '../../../utils/tests';
@@ -114,9 +114,9 @@ jest.mock('../../app/data', () => ({
   useSubscriptions: jest.fn(),
 }));
 
-jest.mock('@2uinc/frontend-enterprise-utils', () => ({
-  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
-  sendEnterpriseTrackEvent: jest.fn(),
+jest.mock('@edx/frontend-platform/analytics', () => ({
+  ...jest.requireActual('@edx/frontend-platform/analytics'),
+  sendPageEvent: jest.fn(),
 }));
 
 jest.mock('../../../config', () => ({
@@ -457,12 +457,20 @@ describe('<Dashboard />', () => {
     expect(programsTab).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('should send track event when "my-career" tab selected', async () => {
+  it('should not send duplicate page event when the courses tab selected', async () => {
     const user = userEvent.setup();
     renderWithRouter(<DashboardWithContext />);
+    expect(sendPageEvent).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText('Courses'));
+    expect(sendPageEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should send page event when "my-career" tab selected', async () => {
+    const user = userEvent.setup(); renderWithRouter(<DashboardWithContext />);
+    expect(sendPageEvent).toHaveBeenCalledTimes(1);
     const myCareerTab = screen.getByText('My Career');
     await user.click(myCareerTab);
-    expect(sendEnterpriseTrackEvent).toHaveBeenCalledTimes(1);
+    expect(sendPageEvent).toHaveBeenCalledTimes(2);
   });
 
   describe('SubscriptionExpirationModal', () => {
