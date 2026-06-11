@@ -17,7 +17,7 @@ describe('getSearchFacetFilters', () => {
     const result = getSearchFacetFilters(intl);
     expect(result.find(item => item.attribute === 'is_new_content')).toBeDefined();
   });
-  it('inserts the translation_languages facet after level_type when the feature flag is enabled', () => {
+  it('inserts the translation_languages facet after level_type', () => {
     const result = getSearchFacetFilters(intl);
     const levelTypeIndex = result.findIndex(item => item.attribute === 'level_type');
     const translationIndex = result.findIndex(item => item.attribute === 'translation_languages');
