@@ -182,7 +182,11 @@ const Search = () => {
               index={searchIndex}
               filters={filters}
               enterpriseConfig={enterpriseCustomer}
-              filterComponents={<CustomSearchFilters />}
+              filterComponents={(
+                <div className="d-flex flex-wrap w-100">
+                  <CustomSearchFilters />
+                </div>
+              )}
             />
           </div>
         )}
