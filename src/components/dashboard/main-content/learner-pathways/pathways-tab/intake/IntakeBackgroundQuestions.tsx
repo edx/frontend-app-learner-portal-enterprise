@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import IntakeTextareaQuestionField from './IntakeTextareaQuestionField';
+import { INTAKE_QUESTION_CHARACTER_LIMITS } from './constants';
 import messages from './messages';
 
 const IntakeBackgroundQuestions: React.FC = () => {
@@ -15,6 +16,7 @@ const IntakeBackgroundQuestions: React.FC = () => {
         label={intl.formatMessage(messages.backgroundQuestionLabel)}
         placeholder={intl.formatMessage(messages.backgroundQuestionPlaceholder)}
         requiredErrorMessage={intl.formatMessage(messages.backgroundQuestionRequiredError)}
+        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.background}
         fieldTestId="intake-background-field"
         feedbackTestId="intake-background-feedback"
       />
@@ -24,6 +26,7 @@ const IntakeBackgroundQuestions: React.FC = () => {
         label={intl.formatMessage(messages.industryQuestionLabel)}
         placeholder={intl.formatMessage(messages.industryQuestionPlaceholder)}
         requiredErrorMessage={intl.formatMessage(messages.industryQuestionRequiredError)}
+        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.industry}
         fieldTestId="intake-industry-field"
         feedbackTestId="intake-industry-feedback"
       />

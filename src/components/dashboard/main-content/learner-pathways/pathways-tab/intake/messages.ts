@@ -136,6 +136,11 @@ const messages = defineMessages({
     defaultMessage: 'Please enter an industry or field.',
     description: 'Validation message shown when industry question is left empty.',
   },
+  characterLimitExceeded: {
+    id: 'learner.pathways.intake.question.character.limit.exceeded',
+    defaultMessage: 'Please keep your response under {max} characters.',
+    description: 'Validation message shown when intake question exceeds allowed character limit.',
+  },
   skipToDashboard: {
     id: 'learner.pathways.intake.actions.skip',
     defaultMessage: 'Skip to dashboard',

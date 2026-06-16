@@ -1,7 +1,11 @@
 import React, { useCallback, useRef } from 'react';
+import classNames from 'classnames';
 import { Form } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 import { useFormContext } from 'react-hook-form';
+import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from './constants';
 import type { IntakeFormValues } from './IntakeQuestionsContainer';
+import messages from './messages';
 
 /**
  * Configuration for a reusable intake textarea field.
@@ -23,6 +27,11 @@ import type { IntakeFormValues } from './IntakeQuestionsContainer';
  *   Localized validation message returned when the field is empty or contains
  *   only whitespace.
  *
+ * @property {number} [maxCharacters]
+ *   Optional field-level character limit. The effective limit is capped by
+ *   {@link DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}, so individual fields can
+ *   choose a smaller limit but cannot exceed the default intake hard cap.
+ *
  * @property {string} fieldTestId
  *   Stable test identifier applied to the textarea control.
  *
@@ -35,9 +44,112 @@ interface IntakeTextareaQuestionFieldProps {
   label: string;
   placeholder: string;
   requiredErrorMessage: string;
+  maxCharacters?: number;
   fieldTestId: string;
   feedbackTestId: string;
 }
+
+/**
+ * Props for rendering a single field feedback row.
+ *
+ * @property {string} feedbackId
+ *   Element id used by `aria-describedby` to associate the textarea with its
+ *   validation feedback.
+ *
+ * @property {string} feedbackTestId
+ *   Stable test identifier applied to the Paragon validation feedback element.
+ *
+ * @property {string} counterTestId
+ *   Stable test identifier applied to the character counter.
+ *
+ * @property {string} [errorMessage]
+ *   Current validation message. When present, Paragon invalid feedback is shown.
+ *
+ * @property {number} currentLength
+ *   Current number of characters in the field value.
+ *
+ * @property {number} maxCharacters
+ *   Effective character limit for this field.
+ *
+ * @property {boolean} isInvalid
+ *   Whether the parent field is currently invalid. Used to keep the counter
+ *   visually aligned with the field's validation state.
+ */
+interface IntakeFieldValidationFeedbackProps {
+  feedbackId: string;
+  feedbackTestId: string;
+  counterTestId: string;
+  errorMessage?: string;
+  currentLength: number;
+  maxCharacters: number;
+  isInvalid: boolean;
+}
+
+/**
+ * Renders validation feedback and character count for an intake textarea.
+ *
+ * This component intentionally keeps Paragon's `Form.Control.Feedback` for the
+ * validation message so the field uses the expected Paragon invalid icon and
+ * styling. The character counter is rendered alongside that feedback, rather
+ * than inside the feedback node, because Paragon injects icon markup into
+ * `Form.Control.Feedback`.
+ *
+ * @param {IntakeFieldValidationFeedbackProps} props
+ *   Validation message and counter metadata.
+ *
+ * @returns {React.ReactElement}
+ *   A single row containing optional Paragon validation feedback and the
+ *   character counter.
+ */
+const IntakeFieldValidationFeedback: React.FC<IntakeFieldValidationFeedbackProps> = ({
+  feedbackId,
+  feedbackTestId,
+  counterTestId,
+  errorMessage,
+  currentLength,
+  maxCharacters,
+  isInvalid,
+}: IntakeFieldValidationFeedbackProps): React.ReactElement => {
+  if (errorMessage) {
+    return (
+      <div className="d-flex justify-content-between align-items-center mt-1">
+        <Form.Control.Feedback
+          id={feedbackId}
+          type="invalid"
+          className="mb-0"
+          data-testid={feedbackTestId}
+        >
+          {errorMessage}
+        </Form.Control.Feedback>
+
+        <span
+          className="text-danger small ml-3 flex-shrink-0"
+          data-testid={counterTestId}
+        >
+          {currentLength}
+          /
+          {maxCharacters}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="d-flex justify-content-end mt-1">
+      <span
+        className={classNames('small', {
+          'text-danger': isInvalid,
+          'text-muted': !isInvalid,
+        })}
+        data-testid={counterTestId}
+      >
+        {currentLength}
+        /
+        {maxCharacters}
+      </span>
+    </div>
+  );
+};
 
 /**
  * RHF-backed Paragon textarea used by learner pathway intake questions.
@@ -53,6 +165,7 @@ interface IntakeTextareaQuestionFieldProps {
  * - Register the textarea with React Hook Form.
  * - Render Paragon label, textarea, and validation feedback.
  * - Validate that learners enter non-whitespace content.
+ * - Enforce configurable character limits.
  * - Automatically expand and shrink vertically as content changes.
  * - Preserve accessibility relationships between label, control, and feedback.
  *
@@ -68,15 +181,47 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
   label,
   placeholder,
   requiredErrorMessage,
+  maxCharacters: fieldMaxCharacters,
   fieldTestId,
   feedbackTestId,
 }: IntakeTextareaQuestionFieldProps): React.ReactElement => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const intl = useIntl();
 
   const {
     register,
+    watch,
     formState: { errors },
   } = useFormContext<IntakeFormValues>();
+
+  const currentValue = watch(name) ?? '';
+  const currentLength = currentValue.length;
+
+  const maxCharacters = Math.min(
+    fieldMaxCharacters ?? DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION,
+    DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION,
+  );
+
+  const isOverCharacterLimit = currentLength > maxCharacters;
+
+  const characterLimitMessage = intl.formatMessage(
+    messages.characterLimitExceeded,
+    { max: maxCharacters },
+  );
+
+  const fieldError = errors[name];
+  const fieldErrorMessage = typeof fieldError?.message === 'string'
+    ? fieldError.message
+    : undefined;
+
+  const displayedErrorMessage = isOverCharacterLimit
+    ? characterLimitMessage
+    : fieldErrorMessage;
+
+  const isInvalid = Boolean(displayedErrorMessage);
+
+  const feedbackId = `${controlId}-feedback`;
+  const counterId = `${controlId}-counter`;
 
   /**
    * Adjusts the textarea height to match its content.
@@ -108,25 +253,22 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, []);
 
-  const fieldError = errors[name];
-  const errorMessage = typeof fieldError?.message === 'string'
-    ? fieldError.message
-    : undefined;
-
-  const feedbackId = `${controlId}-feedback`;
-  const isInvalid = Boolean(errorMessage);
-
   /**
    * Field registration returned by React Hook Form for the configured
    * {@link IntakeFormValues} field.
    *
-   * Keeping registration in a variable lets this component compose RHF's
-   * `ref` and `onChange` with local textarea autosizing behavior.
+   * Keeping registration in a variable lets this component compose RHF's `ref`
+   * and `onChange` with local textarea autosizing behavior.
    */
   const registration = register(name, {
-    validate: (value) => (
-      value.trim().length > 0 || requiredErrorMessage
-    ),
+    validate: {
+      required: (value) => (
+        value.trim().length > 0 || requiredErrorMessage
+      ),
+      maxCharacters: (value) => (
+        value.length <= maxCharacters || characterLimitMessage
+      ),
+    },
   });
 
   return (
@@ -136,6 +278,7 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
       className="mb-4"
     >
       <Form.Label>{label}</Form.Label>
+
       <Form.Control
         as="textarea"
         rows={1}
@@ -143,7 +286,7 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
         placeholder={placeholder}
         isInvalid={isInvalid}
         aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? feedbackId : undefined}
+        aria-describedby={`${feedbackId} ${counterId}`}
         controlClassName="intake-textarea-question-field__control"
         {...registration}
         ref={(element: HTMLTextAreaElement | null) => {
@@ -159,15 +302,16 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
           resizeTextarea();
         }}
       />
-      {errorMessage && (
-        <Form.Control.Feedback
-          id={feedbackId}
-          type="invalid"
-          data-testid={feedbackTestId}
-        >
-          {errorMessage}
-        </Form.Control.Feedback>
-      )}
+
+      <IntakeFieldValidationFeedback
+        feedbackId={feedbackId}
+        feedbackTestId={feedbackTestId}
+        counterTestId={`${fieldTestId}-counter`}
+        errorMessage={displayedErrorMessage}
+        currentLength={currentLength}
+        maxCharacters={maxCharacters}
+        isInvalid={isInvalid}
+      />
     </Form.Group>
   );
 };

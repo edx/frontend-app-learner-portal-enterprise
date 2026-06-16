@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
+import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../constants';
 import messages from '../messages';
 import { usePathwaysStore } from '../../state';
 
@@ -53,6 +54,17 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByPlaceholderText(messages.goalQuestionPlaceholder.defaultMessage)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(messages.backgroundQuestionPlaceholder.defaultMessage)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(messages.industryQuestionPlaceholder.defaultMessage)).toBeInTheDocument();
+  });
+
+  it('renders character counters for all fields and updates counter while typing', async () => {
+    const user = userEvent.setup();
+    render(<MockIntakeQuestionsContainer />);
+
+    expect(screen.getAllByText(`0/${DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}`)).toHaveLength(4);
+
+    await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'career');
+
+    expect(screen.getByText(`6/${DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}`)).toBeInTheDocument();
   });
 
   it('hydrates RHF default values from onboarding answers in store', () => {

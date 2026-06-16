@@ -63,4 +63,15 @@
 .intake-textarea-question-field__control {
   overflow-y: hidden;
   resize: none;
+  .pgn__form-control-description-content,
+  > div {
+    width: 100%;
+  }
+}
+
+.intake-textarea-question-field__feedback {
+  .pgn__form-control-description-content,
+  > div {
+    width: 100%;
+  }
 }
