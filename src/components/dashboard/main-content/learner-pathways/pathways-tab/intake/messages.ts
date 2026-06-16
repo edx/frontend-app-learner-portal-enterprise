@@ -73,13 +73,33 @@ const messages = defineMessages({
   },
   motivationQuestionLabel: {
     id: 'learner.pathways.intake.question.motivation.label',
-    defaultMessage: 'What motivates your learning right now?',
+    defaultMessage: 'What\u2019s motivating you to learn right now?',
     description: 'Label for intake motivation question field.',
+  },
+  motivationQuestionPlaceholder: {
+    id: 'learner.pathways.intake.question.motivation.placeholder',
+    defaultMessage: 'Example: I am interested in how AI skills can help me advance...',
+    description: 'Placeholder text for intake motivation question field.',
+  },
+  motivationQuestionRequiredError: {
+    id: 'learner.pathways.intake.question.motivation.required.error',
+    defaultMessage: 'Please enter your motivation.',
+    description: 'Validation message shown when motivation question is left empty.',
   },
   goalQuestionLabel: {
     id: 'learner.pathways.intake.question.goal.label',
-    defaultMessage: 'What is your primary career goal?',
+    defaultMessage: 'What goal would you like to work toward and why?',
     description: 'Label for intake career goal question field.',
+  },
+  goalQuestionPlaceholder: {
+    id: 'learner.pathways.intake.question.goal.placeholder',
+    defaultMessage: 'Example: I want to be a better project manager so I can lead larger initiatives...',
+    description: 'Placeholder text for intake goal question field.',
+  },
+  goalQuestionRequiredError: {
+    id: 'learner.pathways.intake.question.goal.required.error',
+    defaultMessage: 'Please enter a goal.',
+    description: 'Validation message shown when goal question is left empty.',
   },
   backgroundSectionTitle: {
     id: 'learner.pathways.intake.section.background.title',
@@ -88,13 +108,33 @@ const messages = defineMessages({
   },
   backgroundQuestionLabel: {
     id: 'learner.pathways.intake.question.background.label',
-    defaultMessage: 'Tell us about your background and experience.',
+    defaultMessage: 'What\'s your current role or work area, and what relevant skills or experience do you bring?',
     description: 'Label for intake background question field.',
+  },
+  backgroundQuestionPlaceholder: {
+    id: 'learner.pathways.intake.question.background.placeholder',
+    defaultMessage: 'Example: I\u2019ve been in marketing for three years and am strong in content strategy, social media, and comfortable with analytics...',
+    description: 'Placeholder text for intake background question field.',
+  },
+  backgroundQuestionRequiredError: {
+    id: 'learner.pathways.intake.question.background.required.error',
+    defaultMessage: 'Please enter your current role and skills.',
+    description: 'Validation message shown when background question is left empty.',
   },
   industryQuestionLabel: {
     id: 'learner.pathways.intake.question.industry.label',
-    defaultMessage: 'Which industry are you most interested in?',
+    defaultMessage: 'Which industries or fields are you interested in?',
     description: 'Label for intake target industry question field.',
+  },
+  industryQuestionPlaceholder: {
+    id: 'learner.pathways.intake.question.industry.placeholder',
+    defaultMessage: 'Example: I work in financial services, specifically in compliance and risk management...',
+    description: 'Placeholder text for intake industry question field.',
+  },
+  industryQuestionRequiredError: {
+    id: 'learner.pathways.intake.question.industry.required.error',
+    defaultMessage: 'Please enter an industry or field.',
+    description: 'Validation message shown when industry question is left empty.',
   },
   skipToDashboard: {
     id: 'learner.pathways.intake.actions.skip',

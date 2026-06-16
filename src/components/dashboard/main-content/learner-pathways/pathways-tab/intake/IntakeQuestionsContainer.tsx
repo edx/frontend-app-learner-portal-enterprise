@@ -8,6 +8,8 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { usePathwaysStore } from '../state';
 import IntakeFooterActions from './IntakeFooterActions';
 import IntakeQuestionSection from './IntakeQuestionSection';
+import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
+import IntakeGoalsQuestions from './IntakeGoalsQuestions';
 import messages from './messages';
 
 export interface IntakeFormValues {
@@ -36,6 +38,9 @@ const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({
   const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
   const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
   const methods = useForm<IntakeFormValues>({
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
     defaultValues: {
       motivation: onboardingAnswers.motivation ?? '',
       goal: onboardingAnswers.goal ?? '',
@@ -46,10 +51,10 @@ const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({
   const intl = useIntl();
   const handleFormSubmit = methods.handleSubmit((values) => {
     const normalizedValues: IntakeFormValues = {
-      motivation: values.motivation ?? emptyDefaultValues.motivation,
-      goal: values.goal ?? emptyDefaultValues.goal,
-      background: values.background ?? emptyDefaultValues.background,
-      industry: values.industry ?? emptyDefaultValues.industry,
+      motivation: (values.motivation ?? emptyDefaultValues.motivation).trim(),
+      goal: (values.goal ?? emptyDefaultValues.goal).trim(),
+      background: (values.background ?? emptyDefaultValues.background).trim(),
+      industry: (values.industry ?? emptyDefaultValues.industry).trim(),
     };
     setOnboardingAnswers(normalizedValues);
     onSubmit(normalizedValues);
@@ -64,13 +69,13 @@ const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({
               title={intl.formatMessage(messages.goalsSectionTitle)}
               emptyPlaceholderTestId="intake-goals-questions-placeholder"
             >
-              {/* <IntakeGoalsQuestions /> */}
+              <IntakeGoalsQuestions />
             </IntakeQuestionSection>
             <IntakeQuestionSection
               title={intl.formatMessage(messages.backgroundSectionTitle)}
               emptyPlaceholderTestId="intake-background-questions-placeholder"
             >
-              {/* <IntakeBackgroundQuestions /> */}
+              <IntakeBackgroundQuestions />
             </IntakeQuestionSection>
             <IntakeFooterActions onSkip={onSkip} />
           </Stack>

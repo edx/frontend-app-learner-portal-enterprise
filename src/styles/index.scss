@@ -58,3 +58,9 @@
 .text-underline {
   text-decoration: underline;
 }
+
+// overflow-hidden learner pathways
+.intake-textarea-question-field__control {
+  overflow-y: hidden;
+  resize: none;
+}
