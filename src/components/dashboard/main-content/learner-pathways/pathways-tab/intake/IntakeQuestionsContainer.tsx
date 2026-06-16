@@ -31,10 +31,10 @@ const emptyDefaultValues: IntakeFormValues = {
   industry: '',
 };
 
-const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({
+const IntakeQuestionsContainer = ({
   onSubmit,
   onSkip,
-}) => {
+}: IntakeQuestionsContainerProps) => {
   const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
   const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
   const methods = useForm<IntakeFormValues>({

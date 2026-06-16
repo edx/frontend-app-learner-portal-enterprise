@@ -5,7 +5,7 @@ import IntakeTextareaQuestionField from './IntakeTextareaQuestionField';
 import { INTAKE_QUESTION_CHARACTER_LIMITS } from './constants';
 import messages from './messages';
 
-const IntakeBackgroundQuestions: React.FC = () => {
+const IntakeBackgroundQuestions = () => {
   const intl = useIntl();
 
   return (

@@ -101,7 +101,7 @@ interface IntakeFieldValidationFeedbackProps {
  *   A single row containing optional Paragon validation feedback and the
  *   character counter.
  */
-const IntakeFieldValidationFeedback: React.FC<IntakeFieldValidationFeedbackProps> = ({
+const IntakeFieldValidationFeedback = ({
   feedbackId,
   feedbackTestId,
   counterTestId,
@@ -109,7 +109,7 @@ const IntakeFieldValidationFeedback: React.FC<IntakeFieldValidationFeedbackProps
   currentLength,
   maxCharacters,
   isInvalid,
-}: IntakeFieldValidationFeedbackProps): React.ReactElement => {
+}: IntakeFieldValidationFeedbackProps) => {
   if (errorMessage) {
     return (
       <div className="d-flex justify-content-between align-items-center mt-1">
@@ -175,7 +175,7 @@ const IntakeFieldValidationFeedback: React.FC<IntakeFieldValidationFeedbackProps
  * @returns {React.ReactElement}
  *   A Paragon textarea field integrated with React Hook Form.
  */
-const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = ({
+const IntakeTextareaQuestionField = ({
   name,
   controlId,
   label,
@@ -184,7 +184,7 @@ const IntakeTextareaQuestionField: React.FC<IntakeTextareaQuestionFieldProps> = 
   maxCharacters: fieldMaxCharacters,
   fieldTestId,
   feedbackTestId,
-}: IntakeTextareaQuestionFieldProps): React.ReactElement => {
+}: IntakeTextareaQuestionFieldProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const intl = useIntl();
 
