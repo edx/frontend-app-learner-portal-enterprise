@@ -5,6 +5,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { MemoryRouter } from 'react-router-dom';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
+import intakeMessages from './intake/messages';
 
 const renderComponent = () => render(
   <MemoryRouter>
@@ -20,7 +21,7 @@ describe('LearnerPathwaysTab', () => {
     renderComponent();
 
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
-    const start = screen.getByTestId('intake-continue-button');
+    const start = screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage });
     expect(start).toBeEnabled();
     await user.click(start);
 
