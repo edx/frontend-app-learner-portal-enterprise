@@ -7,11 +7,11 @@ interface IntakeQuestionSectionProps {
   emptyPlaceholderTestId: string;
 }
 
-const IntakeQuestionSection: React.FC<IntakeQuestionSectionProps> = ({
+const IntakeQuestionSection = ({
   title,
   children,
   emptyPlaceholderTestId,
-}) => (
+}:IntakeQuestionSectionProps) => (
   <Card as="section" className="rounded">
     <Card.Section>
       <h2 className="h4 mb-3">{title}</h2>

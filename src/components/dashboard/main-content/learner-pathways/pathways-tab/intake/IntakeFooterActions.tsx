@@ -7,7 +7,7 @@ interface IntakeFooterActionsProps {
   onSkip?: () => void;
 }
 
-const IntakeFooterActions: React.FC<IntakeFooterActionsProps> = ({ onSkip }) => {
+const IntakeFooterActions = ({ onSkip }: IntakeFooterActionsProps) => {
   const intl = useIntl();
 
   return (

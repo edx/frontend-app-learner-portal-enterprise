@@ -4,7 +4,7 @@ import IntakeIntroCollapsible from './IntakeIntroCollapsible';
 import IntakePrivacyHelper from './IntakePrivacyHelper';
 import messages from './messages';
 
-const IntakeHeader: React.FC = () => {
+const IntakeHeader = () => {
   const intl = useIntl();
 
   return (

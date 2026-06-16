@@ -3,7 +3,7 @@ import { Collapsible } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from './messages';
 
-const IntakeIntroCollapsible: React.FC = () => {
+const IntakeIntroCollapsible = () => {
   const intl = useIntl();
 
   return (

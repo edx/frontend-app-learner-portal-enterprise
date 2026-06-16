@@ -9,7 +9,7 @@ import { InfoOutline } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from './messages';
 
-const IntakePrivacyHelper: React.FC = () => {
+const IntakePrivacyHelper = () => {
   const intl = useIntl();
 
   return (

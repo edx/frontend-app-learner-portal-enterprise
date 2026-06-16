@@ -18,7 +18,7 @@ const mockCourses = [
   },
 ];
 
-const PathwayCoursesContainer: React.FC<PathwayCoursesContainerProps> = ({ onBackToOnboarding, onBackToProfile }) => (
+const PathwayCoursesContainer = ({ onBackToOnboarding, onBackToProfile }: PathwayCoursesContainerProps) => (
   <section data-testid="pathway-container">
     <Container fluid>
       <h2>Your Pathway</h2>
