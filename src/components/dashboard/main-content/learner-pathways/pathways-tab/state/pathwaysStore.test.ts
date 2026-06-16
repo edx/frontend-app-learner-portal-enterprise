@@ -18,7 +18,7 @@ describe('pathwaysStore', () => {
       motivation: '',
       goal: '',
       background: '',
-      industries: '',
+      industry: '',
     });
     expect(state.onboarding.currentQuestion).toBe(0);
     expect(state.onboarding.isComplete).toBe(false);
@@ -69,7 +69,7 @@ describe('pathwaysStore', () => {
       motivation: 'Grow in my role',
       goal: 'Become a data analyst',
       background: 'Operations',
-      industries: 'Technology',
+      industry: 'Technology',
     });
 
     const state = usePathwaysStore.getState();
@@ -81,7 +81,7 @@ describe('pathwaysStore', () => {
       motivation: 'Grow in my role',
       goal: 'Become a data analyst',
       background: 'Operations',
-      industries: 'Technology',
+      industry: 'Technology',
     });
     expect(selectors.onboarding(state).currentQuestion).toBe(2);
   });

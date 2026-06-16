@@ -3,9 +3,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakePage from '../IntakePage';
+import type { IntakeFormValues } from '../IntakeQuestionsContainer';
 import messages from '../messages';
 
-const MockIntakePage = ({ onSubmit = jest.fn() }: { onSubmit?: () => void; }) => (
+const MockIntakePage = ({
+  onSubmit = jest.fn(),
+}: { onSubmit?: (values: IntakeFormValues) => void; }) => (
   <IntlProvider locale="en">
     <IntakePage onSubmit={onSubmit} />
   </IntlProvider>

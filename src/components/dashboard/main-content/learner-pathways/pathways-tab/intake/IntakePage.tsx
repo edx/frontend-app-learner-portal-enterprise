@@ -6,8 +6,6 @@ import IntakeQuestionsContainer, { IntakeQuestionsContainerProps } from './Intak
 const IntakePage: React.FC<IntakeQuestionsContainerProps> = ({
   onSubmit,
   onSkip,
-  goalsQuestions,
-  backgroundQuestions,
 }) => (
   <section data-testid="intake-page">
     <Stack gap={4}>
@@ -15,8 +13,6 @@ const IntakePage: React.FC<IntakeQuestionsContainerProps> = ({
       <IntakeQuestionsContainer
         onSubmit={onSubmit}
         onSkip={onSkip}
-        goalsQuestions={goalsQuestions}
-        backgroundQuestions={backgroundQuestions}
       />
     </Stack>
   </section>

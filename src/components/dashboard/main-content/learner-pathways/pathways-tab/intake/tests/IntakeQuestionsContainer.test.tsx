@@ -5,28 +5,30 @@ import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
 import messages from '../messages';
+import { usePathwaysStore } from '../../state';
 
 interface MockIntakeQuestionsContainerProps {
   onSubmit?: jest.Mock;
-  goalsQuestions?: React.ReactNode;
-  backgroundQuestions?: React.ReactNode;
+  onSkip?: () => void;
 }
 
 const MockIntakeQuestionsContainer = ({
   onSubmit = jest.fn(),
-  goalsQuestions,
-  backgroundQuestions,
+  onSkip,
 }: MockIntakeQuestionsContainerProps) => (
   <IntlProvider locale="en">
     <IntakeQuestionsContainer
       onSubmit={onSubmit}
-      goalsQuestions={goalsQuestions}
-      backgroundQuestions={backgroundQuestions}
+      onSkip={onSkip}
     />
   </IntlProvider>
 );
 
 describe('IntakeQuestionsContainer', () => {
+  beforeEach(() => {
+    usePathwaysStore.getState().resetPathwaysState();
+  });
+
   it('renders translated question section titles', () => {
     render(<MockIntakeQuestionsContainer />);
 
@@ -34,31 +36,13 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByRole('heading', { name: messages.backgroundSectionTitle.defaultMessage })).toBeInTheDocument();
   });
 
-  it('renders slot content for goals and background questions', () => {
-    render(
-      <MockIntakeQuestionsContainer
-        goalsQuestions={<div data-testid="goals-slot" />}
-        backgroundQuestions={<div data-testid="background-slot" />}
-      />,
-    );
-
-    expect(screen.getByTestId('goals-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('background-slot')).toBeInTheDocument();
-  });
-
-  it('submits RHF default values', async () => {
+  it('calls onSkip when skip action is clicked', async () => {
     const user = userEvent.setup();
-    const onSubmit = jest.fn();
-    render(<MockIntakeQuestionsContainer onSubmit={onSubmit} />);
+    const onSkip = jest.fn();
 
-    await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
+    render(<MockIntakeQuestionsContainer onSkip={onSkip} />);
+    await user.click(screen.getByRole('button', { name: messages.skipToDashboard.defaultMessage }));
 
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit).toHaveBeenCalledWith({
-      motivation: '',
-      goal: '',
-      background: '',
-      industry: '',
-    });
+    expect(onSkip).toHaveBeenCalledTimes(1);
   });
 });

@@ -71,10 +71,30 @@ const messages = defineMessages({
     defaultMessage: 'Start with your goals',
     description: 'Title for the goals intake question section.',
   },
+  motivationQuestionLabel: {
+    id: 'learner.pathways.intake.question.motivation.label',
+    defaultMessage: 'What motivates your learning right now?',
+    description: 'Label for intake motivation question field.',
+  },
+  goalQuestionLabel: {
+    id: 'learner.pathways.intake.question.goal.label',
+    defaultMessage: 'What is your primary career goal?',
+    description: 'Label for intake career goal question field.',
+  },
   backgroundSectionTitle: {
     id: 'learner.pathways.intake.section.background.title',
     defaultMessage: 'Tell us about your background',
     description: 'Title for the background intake question section.',
+  },
+  backgroundQuestionLabel: {
+    id: 'learner.pathways.intake.question.background.label',
+    defaultMessage: 'Tell us about your background and experience.',
+    description: 'Label for intake background question field.',
+  },
+  industryQuestionLabel: {
+    id: 'learner.pathways.intake.question.industry.label',
+    defaultMessage: 'Which industry are you most interested in?',
+    description: 'Label for intake target industry question field.',
   },
   skipToDashboard: {
     id: 'learner.pathways.intake.actions.skip',

@@ -24,7 +24,7 @@ export interface OnboardingAnswers {
   motivation: string;
   goal: string;
   background: string;
-  industries: string;
+  industry: string;
 }
 
 /**

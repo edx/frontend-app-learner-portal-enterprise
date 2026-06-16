@@ -23,7 +23,7 @@ export const getInitialPathwaysState = (): PathwaysState => ({
       motivation: '',
       goal: '',
       background: '',
-      industries: '',
+      industry: '',
     },
     currentQuestion: 0,
     isComplete: false,
