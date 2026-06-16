@@ -27,7 +27,7 @@ const getActiveStepIndex = (view: View) => (
   breadcrumbSteps.findIndex((step) => step.view === view)
 );
 
-const PathwayBreadcrumbs: React.FC<Props> = ({ view, onNavigate }) => {
+const PathwayBreadcrumbs = ({ view, onNavigate }: Props) => {
   const intl = useIntl();
   const activeStepIndex = getActiveStepIndex(view);
 

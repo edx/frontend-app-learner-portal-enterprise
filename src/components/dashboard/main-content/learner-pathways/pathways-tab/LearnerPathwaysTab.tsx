@@ -6,7 +6,7 @@ import CareerSelectionContainer from './CareerSelectionContainer';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { View, VIEWS } from './constants';
 
-const LearnerPathwaysTab: React.FC = () => {
+const LearnerPathwaysTab = () => {
   const [view, setView] = useState<View>(VIEWS.ONBOARDING);
   return (
     <div data-testid="learner-pathways-tab-scaffold">

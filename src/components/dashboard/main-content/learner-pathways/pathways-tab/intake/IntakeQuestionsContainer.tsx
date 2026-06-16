@@ -32,7 +32,7 @@ const emptyDefaultValues: IntakeFormValues = {
 const IntakeQuestionsContainer: React.FC<IntakeQuestionsContainerProps> = ({
   onSubmit,
   onSkip,
-}) => {
+}: IntakeQuestionsContainerProps) => {
   const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
   const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
   const methods = useForm<IntakeFormValues>({
