@@ -3647,6 +3647,8 @@ components:
           type: boolean
         enable_programs:
           type: boolean
+        enable_credit_and_industry_pathways:
+          type: boolean
         enable_demo_data_for_analytics_and_lpr:
           type: boolean
         enable_academies:
@@ -3701,6 +3703,7 @@ components:
         - enable_portal_saml_configuration_screen
         - enable_portal_subscription_management_screen
         - enable_programs
+        - enable_credit_and_industry_pathways
         - enable_slug_login
         - enable_universal_link
         - enforce_data_sharing_consent
