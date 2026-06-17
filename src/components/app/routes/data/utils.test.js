@@ -30,7 +30,7 @@ describe('transformEnterpriseCustomer', () => {
       identityProvider: undefined,
       enableIntegratedCustomerLearnerPortalSearch: false,
       activeIntegrations: [],
-      expectedDisableSearch: false,
+      expectedDisableSearch: true,
       expectedShowIntegrationWarning: false,
     },
     {
