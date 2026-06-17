@@ -23,6 +23,11 @@ describe('LearnerPathwaysTab', () => {
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
     const start = screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage });
     expect(start).toBeEnabled();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
     await user.click(start);
 
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
