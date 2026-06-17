@@ -10,6 +10,7 @@ import SelectedJobSkills from './SelectedJobSkills';
 import JobDescriptions from './JobDescriptions';
 import { isObjEmpty, useAlgoliaSearch } from '../app/data';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
+import { getSupportedLocale } from '../app/data/utils';
 import CardLoadingSkeleton from './CardLoadingSkeleton';
 import SimilarJobs from './SimilarJobs';
 
@@ -163,6 +164,7 @@ const TopSkillsOverview = () => {
     if (currentJob?.length) {
       return new AlgoliaFilterBuilder()
         .and('name', currentJob[0], { stringify: true })
+        .filterByMetadataLanguage(getSupportedLocale())
         .build();
     }
     return '';

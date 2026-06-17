@@ -9,6 +9,7 @@ import JobCardComponent from './JobCardComponent';
 import { JOB_SOURCE_COURSE_SKILL } from './constants';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
 import { useAlgoliaSearch } from '../app/data';
+import { getSupportedLocale } from '../app/data/utils';
 import { SET_KEY_VALUE } from './data/constants';
 
 import { withCamelCasedStateResults } from '../../utils/HOC';
@@ -56,15 +57,18 @@ const SearchJobCard = ({ isSkillQuizV2 = false }) => {
   const { name: jobs, current_job: currentJob } = refinements;
 
   const searchFilters = useMemo(() => {
+    const locale = getSupportedLocale();
     if (jobs?.length) {
       return new AlgoliaFilterBuilder()
         .and('job_sources', JOB_SOURCE_COURSE_SKILL)
         .or('name', jobs, { stringify: true })
+        .filterByMetadataLanguage(locale)
         .build();
     }
     if (currentJob?.length) {
       return new AlgoliaFilterBuilder()
         .and('name', currentJob[0], { stringify: true })
+        .filterByMetadataLanguage(locale)
         .build();
     }
     return null;

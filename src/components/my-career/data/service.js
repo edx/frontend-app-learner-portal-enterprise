@@ -11,11 +11,13 @@ export async function patchProfile(username, params) {
   return camelCaseObject(response.data);
 }
 
-export async function fetchJobDetailsFromAlgolia(searchIndex, jobName) {
+export async function fetchJobDetailsFromAlgolia(searchIndex, jobName, selectedLanguages = []) {
+  const facetFilters = selectedLanguages.length
+    ? [selectedLanguages.map(lang => `metadata_languages:${lang}`)]
+    : [];
   const { hits } = await searchIndex.search('', {
-    facetFilters: [
-      [`name:${jobName}`],
-    ],
+    filters: `name:"${jobName}"`,
+    facetFilters,
   });
   return hits[0];
 }

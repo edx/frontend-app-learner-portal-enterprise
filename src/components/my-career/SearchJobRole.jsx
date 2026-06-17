@@ -14,6 +14,8 @@ import { CURRENT_JOB_FACET, JOB_FILTERS } from '../skills-quiz/constants';
 import { fetchJobDetailsFromAlgolia, patchProfile } from './data/service';
 import { CURRENT_JOB_PROFILE_FIELD_NAME } from './data/constants';
 import { useAlgoliaSearch } from '../app/data';
+import { getSupportedLocale } from '../app/data/utils';
+import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
 import { SearchUnavailableAlert } from '../search-unavailable-alert';
 
 const SearchJobRole = (props) => {
@@ -59,7 +61,7 @@ const SearchJobRole = (props) => {
   const handleSubmit = async () => {
     let resp = {};
     setLoadingRequest(true);
-    const { id: currentJobID } = await fetchJobDetailsFromAlgolia(searchIndex, currentJob);
+    const { id: currentJobID } = await fetchJobDetailsFromAlgolia(searchIndex, currentJob, [getSupportedLocale()]);
     const params = {
       extended_profile: [
         { field_name: CURRENT_JOB_PROFILE_FIELD_NAME, field_value: currentJobID },
@@ -113,7 +115,12 @@ const SearchJobRole = (props) => {
             </p>
             <Configure
               facetingAfterDistinct
-              filters={JOB_FILTERS.JOB_SOURCE_COURSE_SKILL}
+              filters={
+                new AlgoliaFilterBuilder()
+                  .andRaw(JOB_FILTERS.JOB_SOURCE_COURSE_SKILL)
+                  .filterByMetadataLanguage(getSupportedLocale())
+                  .build()
+              }
             />
             <FacetListRefinement
               id="current-job-dropdown"

@@ -2,7 +2,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 
-import { patchProfile } from '../service';
+import { patchProfile, fetchJobDetailsFromAlgolia } from '../service';
 import { fetchLearnerSkillLevels } from '../../../app/data';
 import { CURRENT_JOB_PROFILE_FIELD_NAME } from '../constants';
 
@@ -59,5 +59,34 @@ describe('my career services', () => {
     };
     await patchProfile(USERNAME, params);
     expect(axios.patch).toHaveBeenCalledWith(LEARNER_PROFILE_ENDPOINT, params, header);
+  });
+
+  describe('fetchJobDetailsFromAlgolia', () => {
+    const mockSearchIndex = { search: jest.fn() };
+
+    beforeEach(() => {
+      mockSearchIndex.search.mockResolvedValue({ hits: [{ id: 27, name: 'Software Engineer' }] });
+    });
+
+    it('searches by job name only when no languages provided', async () => {
+      await fetchJobDetailsFromAlgolia(mockSearchIndex, 'Software Engineer');
+      expect(mockSearchIndex.search).toHaveBeenCalledWith('', {
+        filters: 'name:"Software Engineer"',
+        facetFilters: [],
+      });
+    });
+
+    it('includes metadata_languages facetFilters when languages are provided', async () => {
+      await fetchJobDetailsFromAlgolia(mockSearchIndex, 'Software Engineer', ['en', 'es']);
+      expect(mockSearchIndex.search).toHaveBeenCalledWith('', {
+        filters: 'name:"Software Engineer"',
+        facetFilters: [['metadata_languages:en', 'metadata_languages:es']],
+      });
+    });
+
+    it('returns the first hit', async () => {
+      const result = await fetchJobDetailsFromAlgolia(mockSearchIndex, 'Software Engineer');
+      expect(result).toEqual({ id: 27, name: 'Software Engineer' });
+    });
   });
 });
