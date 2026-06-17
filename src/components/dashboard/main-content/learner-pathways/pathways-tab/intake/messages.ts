@@ -138,7 +138,7 @@ const messages = defineMessages({
   },
   characterLimitExceeded: {
     id: 'learner.pathways.intake.question.character.limit.exceeded',
-    defaultMessage: 'Please keep your response under {max} characters.',
+    defaultMessage: 'Please keep your response up to {max} characters.',
     description: 'Validation message shown when intake question exceeds allowed character limit.',
   },
   skipToDashboard: {

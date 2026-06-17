@@ -114,7 +114,7 @@ describe('IntakeTextareaQuestionField', () => {
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Motivation label')).toHaveValue(valueAboveDefaultLimit);
     expect(screen.getByTestId('intake-motivation-field-counter')).toHaveTextContent('301/300');
-    expect(screen.getByTestId('intake-motivation-feedback')).toHaveTextContent('Please keep your response under 300 characters.');
+    expect(screen.getByTestId('intake-motivation-feedback')).toHaveTextContent('Please keep your response up to 300 characters.');
   });
 
   it('respects a smaller field-specific limit', async () => {
@@ -128,7 +128,7 @@ describe('IntakeTextareaQuestionField', () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByTestId('intake-motivation-field-counter')).toHaveTextContent('201/200');
-    expect(screen.getByTestId('intake-motivation-feedback')).toHaveTextContent('Please keep your response under 200 characters.');
+    expect(screen.getByTestId('intake-motivation-feedback')).toHaveTextContent('Please keep your response up to 200 characters.');
   });
 
   it('caps larger field-specific limits at the 300-character hard cap', async () => {
@@ -144,7 +144,7 @@ describe('IntakeTextareaQuestionField', () => {
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByTestId('intake-motivation-field-counter')).toHaveTextContent('301/300');
     expect(screen.getByTestId('intake-motivation-feedback')).toHaveTextContent(
-      'Please keep your response under 300 characters.',
+      'Please keep your response up to 300 characters.',
     );
   });
 
