@@ -55,9 +55,9 @@ const SearchJobCard = ({ isSkillQuizV2 = false }) => {
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME_JOBS);
   const { refinements } = useContext(SearchContext);
   const { name: jobs, current_job: currentJob } = refinements;
+  const locale = getSupportedLocale();
 
   const searchFilters = useMemo(() => {
-    const locale = getSupportedLocale();
     if (jobs?.length) {
       return new AlgoliaFilterBuilder()
         .and('job_sources', JOB_SOURCE_COURSE_SKILL)
@@ -72,7 +72,7 @@ const SearchJobCard = ({ isSkillQuizV2 = false }) => {
         .build();
     }
     return null;
-  }, [currentJob, jobs]);
+  }, [currentJob, jobs, locale]);
 
   return (
     <InstantSearch

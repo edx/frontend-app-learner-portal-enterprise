@@ -76,11 +76,19 @@ describe('my career services', () => {
       });
     });
 
-    it('includes metadata_languages facetFilters when languages are provided', async () => {
+    it('includes metadata_language facetFilters when languages are provided', async () => {
       await fetchJobDetailsFromAlgolia(mockSearchIndex, 'Software Engineer', ['en', 'es']);
       expect(mockSearchIndex.search).toHaveBeenCalledWith('', {
         filters: 'name:"Software Engineer"',
-        facetFilters: [['metadata_languages:en', 'metadata_languages:es']],
+        facetFilters: [['metadata_language:en', 'metadata_language:es']],
+      });
+    });
+
+    it('escapes quotes and backslashes in job name filter', async () => {
+      await fetchJobDetailsFromAlgolia(mockSearchIndex, 'Developer "C\\C++"');
+      expect(mockSearchIndex.search).toHaveBeenCalledWith('', {
+        filters: 'name:"Developer \\"C\\\\C++\\""',
+        facetFilters: [],
       });
     });
 

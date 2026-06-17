@@ -159,16 +159,17 @@ const TopSkillsOverview = () => {
     searchClient: jobSearchClient,
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME_JOBS);
   const { refinements: { current_job: currentJob } } = useContext(SearchContext);
+  const locale = getSupportedLocale();
 
   const searchFilters = useMemo(() => {
     if (currentJob?.length) {
       return new AlgoliaFilterBuilder()
         .and('name', currentJob[0], { stringify: true })
-        .filterByMetadataLanguage(getSupportedLocale())
+        .filterByMetadataLanguage(locale)
         .build();
     }
     return '';
-  }, [currentJob]);
+  }, [currentJob, locale]);
   return (
     <InstantSearch
       indexName={jobIndex.indexName}
