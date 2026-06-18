@@ -24,8 +24,8 @@ const messages = defineMessages({
   },
   newContentTitle: {
     id: 'search.facetFilters.newContent.title',
-    defaultMessage: 'Recently added',
-    description: 'Title for the new content (recently added) facet filter',
+    defaultMessage: 'Latest offering',
+    description: 'Title for the new content (latest offering) facet filter',
   },
   translationLanguagesTitle: {
     id: 'search.facetFilters.translationLanguages.title',
