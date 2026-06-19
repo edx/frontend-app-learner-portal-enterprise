@@ -10,6 +10,7 @@ import SelectedJobSkills from './SelectedJobSkills';
 import JobDescriptions from './JobDescriptions';
 import { isObjEmpty, useAlgoliaSearch } from '../app/data';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
+import { getSupportedLocale } from '../app/data/utils';
 import CardLoadingSkeleton from './CardLoadingSkeleton';
 import SimilarJobs from './SimilarJobs';
 
@@ -158,15 +159,17 @@ const TopSkillsOverview = () => {
     searchClient: jobSearchClient,
   } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME_JOBS);
   const { refinements: { current_job: currentJob } } = useContext(SearchContext);
+  const locale = getSupportedLocale();
 
   const searchFilters = useMemo(() => {
     if (currentJob?.length) {
       return new AlgoliaFilterBuilder()
         .and('name', currentJob[0], { stringify: true })
+        .filterByMetadataLanguage(locale)
         .build();
     }
     return '';
-  }, [currentJob]);
+  }, [currentJob, locale]);
   return (
     <InstantSearch
       indexName={jobIndex.indexName}

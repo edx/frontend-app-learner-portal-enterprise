@@ -86,13 +86,25 @@ MockReactInstantSearch.connectRefinementList = Component => (props) => (
   />
 );
 
+const capturedConfigureProps = [];
+
 MockReactInstantSearch.InstantSearch = function InstantSearch({ children }) { return children; };
-MockReactInstantSearch.Configure = function Configure() { return <div>CONFIGURED</div>; };
+MockReactInstantSearch.Configure = function Configure(props) {
+  capturedConfigureProps.push(props);
+  return <div>CONFIGURED</div>;
+};
 MockReactInstantSearch.Index = function Index({ children }) { return children; };
+
+const getCapturedConfigureProps = () => capturedConfigureProps;
+const resetCapturedConfigureProps = () => {
+  capturedConfigureProps.length = 0;
+};
 
 // It is necessary to export this way, or tests not using the mock will fail
 module.exports = MockReactInstantSearch;
 Object.assign(module.exports, {
   setFakeHits,
   resetMockReactInstantSearch,
+  getCapturedConfigureProps,
+  resetCapturedConfigureProps,
 });

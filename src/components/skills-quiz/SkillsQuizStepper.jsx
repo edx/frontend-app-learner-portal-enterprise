@@ -4,7 +4,7 @@ import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import {
   Button, Container, Form, ModalDialog, Stepper,
 } from '@openedx/paragon';
-import { InstantSearch } from 'react-instantsearch-dom';
+import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { getConfig } from '@edx/frontend-platform/config';
 import { SearchContext } from '@2uinc/frontend-enterprise-catalog-search';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,8 @@ import headerImage from './images/headerImage.png';
 import { saveSkillsGoalsAndJobsUserSelected } from './data/utils';
 import { fetchCourseEnrollments } from './data/service';
 import { useAlgoliaSearch, useEnterpriseCustomer } from '../app/data';
+import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
+import { getSupportedLocale } from '../app/data/utils';
 import SkillsQuizContentCards from './SkillsQuizContentCards';
 import TopSkillsOverview from './TopSkillsOverview';
 
@@ -189,6 +191,7 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
               indexName={jobIndex.indexName}
               searchClient={jobSearchClient}
             >
+              <Configure filters={new AlgoliaFilterBuilder().filterByMetadataLanguage(getSupportedLocale()).build()} />
               <Stepper.Step eventKey="skills-search" title="Skills Search">
                 <div className="skills-quiz-dropdown my-4">
                   <p>

@@ -6,7 +6,7 @@ import { getConfig } from '@edx/frontend-platform/config';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
 import { SkillsContext } from './SkillsContextProvider';
 import JobCardComponent from './JobCardComponent';
-import { useAlgoliaSearch } from '../app/data';
+import { useAlgoliaSearch, getSupportedLocale } from '../app/data';
 
 import { withCamelCasedStateResults } from '../../utils/HOC';
 
@@ -34,6 +34,7 @@ const ConnectedJobHits = withCamelCasedStateResults(JobHits);
 
 const SearchCurrentJobCard = () => {
   const config = getConfig();
+  const locale = getSupportedLocale();
   const {
     searchIndex: jobIndex,
     searchClient: jobSearchClient,
@@ -44,8 +45,9 @@ const SearchCurrentJobCard = () => {
     if (!currentJob?.length) { return null; }
     return new AlgoliaFilterBuilder()
       .and('name', currentJob[0], { stringify: true })
+      .filterByMetadataLanguage(locale)
       .build();
-  }, [currentJob]);
+  }, [currentJob, locale]);
 
   return (
     <InstantSearch
