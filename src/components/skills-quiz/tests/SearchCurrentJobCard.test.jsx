@@ -7,9 +7,11 @@ import { renderWithRouter } from '@2uinc/frontend-enterprise-utils';
 
 import { SkillsContextProvider } from '../SkillsContextProvider';
 import SearchCurrentJobCard from '../SearchCurrentJobCard';
-import { useAlgoliaSearch, useEnterpriseCustomer } from '../../app/data';
+import { useAlgoliaSearch, useEnterpriseCustomer, getSupportedLocale } from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
-import { resetMockReactInstantSearch, setFakeHits } from '../__mocks__/react-instantsearch-dom';
+import {
+  resetMockReactInstantSearch, setFakeHits, getCapturedConfigureProps, resetCapturedConfigureProps,
+} from '../__mocks__/react-instantsearch-dom';
 
 jest.mock('react-loading-skeleton', () => ({
   __esModule: true,
@@ -83,6 +85,7 @@ jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useEnterpriseCustomer: jest.fn(),
   useAlgoliaSearch: jest.fn(),
+  getSupportedLocale: jest.fn(() => 'en'),
 }));
 
 const mockAlgoliaSearch = {
@@ -100,9 +103,11 @@ describe('<SearchCurrentJobCard />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAlgoliaSearch.mockReturnValue(mockAlgoliaSearch);
     setFakeHits(hitObject.hits);
+    resetCapturedConfigureProps();
   });
   afterEach(() => {
     resetMockReactInstantSearch();
+    resetCapturedConfigureProps();
   });
   test('renders the data in job cards correctly', async () => {
     renderWithRouter(
@@ -129,6 +134,54 @@ describe('<SearchCurrentJobCard />', () => {
     await waitFor(() => {
       expect(screen.queryByText(TRANSFORMED_MEDIAN_SALARY)).not.toBeInTheDocument();
       expect(screen.queryByText(TRANSFORMED_JOB_POSTINGS)).not.toBeInTheDocument();
+    });
+  });
+
+  test('applies metadata_language filter to job queries with selected job', async () => {
+    getSupportedLocale.mockImplementation(() => 'en');
+
+    const searchStateWithCurrentJob = {
+      ...initialSearchState,
+      refinements: { current_job: ['Software Engineer'] },
+    };
+
+    renderWithRouter(
+      <SearchCurrentJobCardWithContext
+        initialAppState={initialAppState}
+        initialSearchState={searchStateWithCurrentJob}
+        initialJobsState={initialJobsState}
+      />,
+    );
+
+    await waitFor(() => {
+      const configureProps = getCapturedConfigureProps();
+      expect(configureProps.length).toBeGreaterThan(0);
+      const lastCall = configureProps[configureProps.length - 1];
+      expect(lastCall.filters).toContain('metadata_language:en');
+    });
+  });
+
+  test('applies metadata_language filter with Spanish locale', async () => {
+    getSupportedLocale.mockImplementation(() => 'es');
+
+    const searchStateWithCurrentJob = {
+      ...initialSearchState,
+      refinements: { current_job: ['Ingeniero de Software'] },
+    };
+
+    renderWithRouter(
+      <SearchCurrentJobCardWithContext
+        initialAppState={initialAppState}
+        initialSearchState={searchStateWithCurrentJob}
+        initialJobsState={initialJobsState}
+      />,
+    );
+
+    await waitFor(() => {
+      const configureProps = getCapturedConfigureProps();
+      expect(configureProps.length).toBeGreaterThan(0);
+      const lastCall = configureProps[configureProps.length - 1];
+      expect(lastCall.filters).toContain('metadata_language:es');
     });
   });
 });

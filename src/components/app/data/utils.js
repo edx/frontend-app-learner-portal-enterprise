@@ -293,10 +293,7 @@ export function getAssignmentsByState(assignments = []) {
  */
 export function transformEnterpriseCustomer(enterpriseCustomer) {
   // Otherwise, learner portal is enabled, so transform the enterprise customer data.
-  const disableSearch = !!(
-    !enterpriseCustomer.enableIntegratedCustomerLearnerPortalSearch
-    && enterpriseCustomer.identityProvider
-  );
+  const disableSearch = !enterpriseCustomer.enableIntegratedCustomerLearnerPortalSearch;
   const showIntegrationWarning = !!(!disableSearch && enterpriseCustomer.activeIntegrations?.length > 0);
   const brandColors = getBrandColorsFromCSSVariables();
   const defaultPrimaryColor = brandColors.primary;

@@ -111,6 +111,7 @@ describe('fetchEnterpriseLearnerData', () => {
       uuid: mockEnterpriseId,
       enableLearnerPortal,
       slug: mockEnterpriseSlug,
+      enableIntegratedCustomerLearnerPortalSearch: true,
       brandingConfiguration: {
         logo: 'https://logo.url',
         primaryColor: 'red',

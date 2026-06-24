@@ -9,10 +9,16 @@ import { fetchJobDetailsFromAlgolia, patchProfile } from '../data/service';
 import { renderWithRouter } from '../../../utils/tests';
 import SearchJobRole from '../SearchJobRole';
 import { useAlgoliaSearch } from '../../app/data';
+import { getSupportedLocale } from '../../app/data/utils';
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useAlgoliaSearch: jest.fn(),
+}));
+
+jest.mock('../../app/data/utils', () => ({
+  ...jest.requireActual('../../app/data/utils'),
+  getSupportedLocale: jest.fn().mockReturnValue('en'),
 }));
 // mocks
 jest.mock('@2uinc/frontend-enterprise-catalog-search', () => ({
@@ -118,8 +124,33 @@ describe('<SearchJobRole />', () => {
       />,
     );
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    await expect(fetchJobDetailsFromAlgolia).toHaveBeenCalled();
+    expect(fetchJobDetailsFromAlgolia).toHaveBeenCalledWith(
+      expect.anything(),
+      'Software Engineer',
+      ['en'],
+    );
     await expect(patchProfile).toHaveBeenCalled();
+  });
+
+  it('passes locale from getSupportedLocale to fetchJobDetailsFromAlgolia on save', async () => {
+    const user = userEvent.setup();
+    getSupportedLocale.mockReturnValue('es');
+    const defaultSearchContextWithJob = {
+      refinements: { current_job: 'Software Engineer' },
+      dispatch: () => jest.fn(),
+    };
+    renderWithRouter(
+      <SearchJobRoleWithContext
+        initialProps={initialProps}
+        defaultSearchContext={defaultSearchContextWithJob}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(fetchJobDetailsFromAlgolia).toHaveBeenCalledWith(
+      expect.anything(),
+      'Software Engineer',
+      ['es'],
+    );
   });
 
   it('calls the appropriate methods to remove selection when Cancel button is clicked', async () => {
