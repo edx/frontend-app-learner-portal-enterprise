@@ -1,12 +1,14 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  render, screen, waitFor, within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import type { CareerMatch, LearnerProfile } from '../state';
+import type { CareerMatch, LearnerProfile } from '../../state';
 import CareerSelectionPage, {
   CareerSelectionPageProps,
-} from './CareerSelectionPage';
+} from '../CareerSelectionPage';
 
 const profile: LearnerProfile = {
   summary: 'POC overview that should not render.',
@@ -46,12 +48,11 @@ const defaults: CareerSelectionPageProps = {
   onSelectCareer: jest.fn(),
   onBuildPathway: jest.fn().mockResolvedValue(undefined),
 };
-const renderPage = (props: Partial<CareerSelectionPageProps> = {}) =>
-  render(
-    <IntlProvider locale="en">
-      <CareerSelectionPage {...defaults} {...props} />
-    </IntlProvider>,
-  );
+const renderPage = (props: Partial<CareerSelectionPageProps> = {}) => render(
+  <IntlProvider locale="en">
+    <CareerSelectionPage {...defaults} {...props} />
+  </IntlProvider>,
+);
 
 describe('CareerSelectionPage', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -62,9 +63,7 @@ describe('CareerSelectionPage', () => {
     expect(screen.queryByText(profile.learningStyle)).not.toBeInTheDocument();
     const buttons = screen.getAllByTestId(/^career-match-/);
     expect(buttons).toHaveLength(2);
-    expect(
-      within(buttons[0]).getByText('Reporting Manager'),
-    ).toBeInTheDocument();
+    expect(within(buttons[0]).getByText('Reporting Manager')).toBeInTheDocument();
     expect(within(buttons[0]).getByText('95% match')).toBeInTheDocument();
     expect(screen.queryByText('Inventory Clerk')).not.toBeInTheDocument();
   });
@@ -78,11 +77,9 @@ describe('CareerSelectionPage', () => {
     await user.clear(careerGoal);
     await user.type(careerGoal, 'Director of Analytics');
     await user.click(screen.getByTestId('goal-summary-submit-button'));
-    await waitFor(() =>
-      expect(onSubmitGoalSummary).toHaveBeenCalledWith(
-        expect.objectContaining({ careerGoal: 'Director of Analytics' }),
-      ),
-    );
+    await waitFor(() => expect(onSubmitGoalSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ careerGoal: 'Director of Analytics' }),
+    ));
   });
 
   it('dismisses skills and passes remaining skills to pathway generation', async () => {
@@ -91,12 +88,10 @@ describe('CareerSelectionPage', () => {
     renderPage({ selectedCareerId: 'high', onBuildPathway });
     await user.click(screen.getByLabelText('Dismiss SQL'));
     await user.click(screen.getByTestId('profile-build-pathway-button'));
-    await waitFor(() =>
-      expect(onBuildPathway).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'high' }),
-        ['Data Visualization'],
-      ),
-    );
+    await waitFor(() => expect(onBuildPathway).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'high' }),
+      ['Data Visualization'],
+    ));
   });
 
   it('shows the edit prompt when no match is above the threshold', async () => {
@@ -104,13 +99,56 @@ describe('CareerSelectionPage', () => {
     renderPage({
       careerMatches: [{ id: 'weak', title: 'Weak', matchPercentage: 25 }],
     });
-    expect(
-      screen.getByTestId('career-matches-empty-state'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('career-matches-empty-state')).toBeInTheDocument();
     expect(screen.getByTestId('profile-build-pathway-button')).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Edit goal summary' }));
-    expect(
-      screen.getByTestId('goal-summary-submit-button'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('goal-summary-submit-button')).toBeInTheDocument();
+  });
+
+  it('shows the career-matches loading spinner', () => {
+    renderPage({ isCareerMatchesLoading: true, careerMatches: [] });
+    expect(screen.getByTestId('career-matches-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId(/^career-match-/)).not.toBeInTheDocument();
+  });
+
+  it('shows error alerts for profile and career match errors', () => {
+    renderPage({
+      profileError: 'Profile error message.',
+      careerMatchesError: 'Matches error message.',
+    });
+    expect(screen.getByText('Profile error message.')).toBeInTheDocument();
+    expect(screen.getByText('Matches error message.')).toBeInTheDocument();
+  });
+
+  it('disables the build pathway CTA when no career is selected', () => {
+    renderPage({ careerMatches: [], selectedCareerId: null });
+    expect(screen.getByTestId('profile-build-pathway-button')).toBeDisabled();
+  });
+
+  it('opens the overwrite modal when hasExistingPathway and CTA is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage({ hasExistingPathway: true, selectedCareerId: 'high' });
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
+  });
+
+  it('builds pathway directly when overwrite is confirmed', async () => {
+    const user = userEvent.setup();
+    const onBuildPathway = jest.fn().mockResolvedValue(undefined);
+    renderPage({ hasExistingPathway: true, selectedCareerId: 'high', onBuildPathway });
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    await waitFor(() => expect(onBuildPathway).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'high' }),
+      expect.any(Array),
+    ));
+  });
+
+  it('closes the overwrite modal when keep-pathway is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage({ hasExistingPathway: true, selectedCareerId: 'high' });
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
+    expect(screen.queryByText('Overwrite previous pathway?')).not.toBeInTheDocument();
   });
 });

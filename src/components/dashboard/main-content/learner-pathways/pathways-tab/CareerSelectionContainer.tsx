@@ -9,12 +9,10 @@ import {
   buildCareerSelectionStubProfile,
 } from './career-selection/fixtures';
 import { usePathwaysController } from './hooks';
-import { usePathwaysStore } from './state';
+import { usePathwaysCourses, usePathwaysStore } from './state';
 import type { CareerMatch } from './state';
 
 export interface CareerSelectionContainerProps {
-  /** Retained for the tab integration contract; breadcrumbs own the visible back action. */
-  onBack?: () => void;
   onNext?: () => void;
 }
 
@@ -32,7 +30,6 @@ const CareerSelectionContainer = ({
     learnerProfile,
     careerMatches,
     selectedCareerId,
-    pathwayCourses,
     loading,
     errors,
     setLearnerProfile,
@@ -42,7 +39,6 @@ const CareerSelectionContainer = ({
     setConstructedPayload,
     setLoading,
     setError,
-    setSection,
     setExperienceStatus,
   } = usePathwaysStore(
     useShallow((state) => ({
@@ -50,7 +46,6 @@ const CareerSelectionContainer = ({
       learnerProfile: state.learnerProfile,
       careerMatches: state.careerMatches,
       selectedCareerId: state.selectedCareerId,
-      pathwayCourses: state.pathwayCourses,
       loading: state.loading,
       errors: state.errors,
       setLearnerProfile: state.setLearnerProfile,
@@ -60,20 +55,19 @@ const CareerSelectionContainer = ({
       setConstructedPayload: state.setConstructedPayload,
       setLoading: state.setLoading,
       setError: state.setError,
-      setSection: state.setSection,
       setExperienceStatus: state.setExperienceStatus,
     })),
   );
+
+  // Narrow selector: only subscribes to course count changes, not full course array.
+  const pathwayCourses = usePathwaysCourses();
+  const hasExistingPathway = pathwayCourses.length > 0;
+
   const { generateProfile, generatePathway } = usePathwaysController();
 
   const stubProfile = useMemo(
     () => buildCareerSelectionStubProfile(onboardingAnswers),
-    [
-      onboardingAnswers.background,
-      onboardingAnswers.goal,
-      onboardingAnswers.industry,
-      onboardingAnswers.motivation,
-    ],
+    [onboardingAnswers],
   );
   const displayedProfile = learnerProfile ?? stubProfile;
   const usesStubData = learnerProfile === null && careerMatches.length === 0;
@@ -96,7 +90,8 @@ const CareerSelectionContainer = ({
     setConstructedPayload('learnerProfileRequest', payload);
 
     try {
-      await generateProfile(payload);
+      // Controller reads the staged payload from constructedPayloads.learnerProfileRequest.
+      await generateProfile();
       if (learnerProfile) {
         updateLearnerProfile(updates);
       } else {
@@ -106,7 +101,6 @@ const CareerSelectionContainer = ({
         setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
       }
       setExperienceStatus('profile_ready');
-      setSection('profile');
     } catch (error) {
       setError(
         'learnerProfile',
@@ -137,9 +131,9 @@ const CareerSelectionContainer = ({
     setConstructedPayload('pathwayRequest', payload);
 
     try {
-      await generatePathway(payload);
+      // Controller reads the staged payload from constructedPayloads.pathwayRequest.
+      await generatePathway();
       setExperienceStatus('pathway_ready');
-      setSection('pathway');
       onNext?.();
     } catch (error) {
       setError(
@@ -163,7 +157,7 @@ const CareerSelectionContainer = ({
       isBuildingPathway={loading.pathwayCourses}
       profileError={errors.learnerProfile}
       careerMatchesError={errors.careerMatches}
-      hasExistingPathway={pathwayCourses.length > 0}
+      hasExistingPathway={hasExistingPathway}
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={setSelectedCareerId}
       onBuildPathway={buildPathway}
