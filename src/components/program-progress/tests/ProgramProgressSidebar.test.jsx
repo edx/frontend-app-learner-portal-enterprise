@@ -6,11 +6,12 @@ import { getConfig } from '@edx/frontend-platform/config';
 import ProgramProgressSidebar from '../ProgramProgressSidebar';
 import { getProgramCertImage } from '../data/utils';
 import progSampleCertImage from '../images/sample-cert.png';
-import { useLearnerProgramProgressData } from '../../app/data';
+import { useEnterpriseCustomer, useLearnerProgramProgressData } from '../../app/data';
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useLearnerProgramProgressData: jest.fn(),
+  useEnterpriseCustomer: jest.fn(),
 }));
 
 const ProgramProgressSideBarWithContext = () => (
@@ -75,6 +76,7 @@ describe('<ProgramProgressSideBar />', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     useLearnerProgramProgressData.mockReturnValue({ data: mockProgram });
+    useEnterpriseCustomer.mockReturnValue({ data: { enableCreditAndIndustryPathways: true } });
   });
   it('renders program certificate if it exists', () => {
     const programCertImage = getProgramCertImage(testProgramData.type);
@@ -165,5 +167,24 @@ describe('<ProgramProgressSideBar />', () => {
     expect(screen.getByText(testIndustryPathway.name)).toBeInTheDocument();
     expect(screen.getByText(testIndustryPathway.description)).toBeInTheDocument();
     expect(container.querySelector('.pathway-link')).toHaveAttribute('href', testIndustryPathway.destinationUrl);
+  });
+
+  it('hides credit and industry pathways when the customer flag is disabled', () => {
+    useEnterpriseCustomer.mockReturnValue({ data: { enableCreditAndIndustryPathways: false } });
+    const mockPathways = {
+      programData: testProgramData,
+      certificateData: [testProgramcertificate],
+      creditPathways: [testCreditPathway],
+      industryPathways: [testIndustryPathway],
+      urls: testUrls,
+    };
+    useLearnerProgramProgressData.mockReturnValue({ data: mockPathways });
+
+    const { container } = render(
+      <ProgramProgressSideBarWithContext />,
+    );
+
+    expect(container.querySelector('.program-credit-pathways')).not.toBeInTheDocument();
+    expect(container.querySelector('.program-industry-pathways')).not.toBeInTheDocument();
   });
 });

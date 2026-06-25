@@ -1075,6 +1075,7 @@ export interface components {
       enable_learner_portal_sidebar_message: boolean;
       learner_portal_sidebar_content?: string | null;
       enable_pathways: boolean;
+      enable_credit_and_industry_pathways: boolean;
       enable_programs: boolean;
       enable_demo_data_for_analytics_and_lpr: boolean;
       enable_academies: boolean;

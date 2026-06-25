@@ -9,7 +9,7 @@ import ProgramPathwayOpportunity from './ProgramPathwayOpportunity';
 import { getProgramCertImage } from './data/utils';
 import { formatProgramType } from '../course/data/utils';
 import progSampleCertImage from './images/sample-cert.png';
-import { useLearnerProgramProgressData } from '../app/data';
+import { useEnterpriseCustomer, useLearnerProgramProgressData } from '../app/data';
 
 const ProgramProgressSideBar = () => {
   const {
@@ -21,9 +21,13 @@ const ProgramProgressSideBar = () => {
       urls: { programRecordUrl },
     },
   } = useLearnerProgramProgressData();
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { LMS_BASE_URL } = getConfig();
   const intl = useIntl();
   const localizedProgramType = formatProgramType(programData.type, intl);
+  const enableCreditAndIndustryPathways = !!enterpriseCustomer?.enableCreditAndIndustryPathways;
+  const enableCreditPathways = enableCreditAndIndustryPathways && creditPathways.length > 0;
+  const enableIndustryPathways = enableCreditAndIndustryPathways && industryPathways.length > 0;
   const courseCertificates = useMemo(
     () => {
       if (certificateData) {
@@ -135,7 +139,7 @@ const ProgramProgressSideBar = () => {
           </div>
         )}
       </div>
-      {creditPathways.length > 0 && (
+      {enableCreditPathways && (
         <ProgramPathwayOpportunity
           pathways={creditPathways}
           title={(
@@ -148,7 +152,7 @@ const ProgramProgressSideBar = () => {
           pathwayClass="program-credit-pathways"
         />
       )}
-      {industryPathways.length > 0 && (
+      {enableIndustryPathways && (
         <ProgramPathwayOpportunity
           pathways={industryPathways}
           title={(

@@ -1,7 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { FormattedMessage, IntlProvider } from '@edx/frontend-platform/i18n';
+import { useEnterpriseCustomer } from '../../app/data';
 import ProgramPathwayOpportunity from '../ProgramPathwayOpportunity';
+
+jest.mock('../../app/data', () => ({
+  ...jest.requireActual('../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
 
 describe('<ProgramPathwayOpportunity />', () => {
   const mockPathways = [
@@ -18,6 +24,10 @@ describe('<ProgramPathwayOpportunity />', () => {
       uuid: '2',
     },
   ];
+
+  beforeEach(() => {
+    useEnterpriseCustomer.mockReturnValue({ data: { enableCreditAndIndustryPathways: true } });
+  });
 
   it('renders the correct content', () => {
     render(
@@ -42,5 +52,28 @@ describe('<ProgramPathwayOpportunity />', () => {
       expect(screen.getByText(pathway.name)).toBeInTheDocument();
       expect(screen.getByText(pathway.description)).toBeInTheDocument();
     });
+    expect(screen.getAllByText('Learn more')).toHaveLength(2);
+  });
+
+  it('hides learn more when the enterprise flag is disabled', () => {
+    useEnterpriseCustomer.mockReturnValue({ data: { enableCreditAndIndustryPathways: false } });
+
+    render(
+      <IntlProvider locale="en">
+        <ProgramPathwayOpportunity
+          pathways={mockPathways}
+          title={(
+            <FormattedMessage
+              id="enterprise.dashboard.program.sidebar.credit.opportunities"
+              defaultMessage="Additional Credit Opportunities"
+              description="Title for additional credit opportunities on program sidebar"
+            />
+          )}
+          pathwayClass="mock-class"
+        />
+      </IntlProvider>,
+    );
+
+    expect(screen.queryByText('Learn more')).not.toBeInTheDocument();
   });
 });
