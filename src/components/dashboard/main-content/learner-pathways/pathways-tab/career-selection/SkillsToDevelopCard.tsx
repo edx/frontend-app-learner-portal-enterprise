@@ -5,6 +5,18 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from './messages';
 
+const SkillsEmptyState = () => {
+  const intl = useIntl();
+  return (
+    <p
+      className="text-muted small"
+      data-testid="skills-empty-state"
+    >
+      {intl.formatMessage(messages.noSkills)}
+    </p>
+  );
+};
+
 export interface SkillsToDevelopCardProps {
   visibleSkills: string[];
   dismissedSkillCount: number;
@@ -42,7 +54,7 @@ const SkillsToDevelopCard = ({
         <p className="text-muted small mb-4">
           {intl.formatMessage(messages.skillsHelp)}
         </p>
-        {visibleSkills.length > 0 ? (
+        {visibleSkills.length > 0 && (
           <div className="d-flex flex-wrap" data-testid="skills-list">
             {visibleSkills.map((skill) => (
               <Chip
@@ -59,14 +71,8 @@ const SkillsToDevelopCard = ({
               </Chip>
             ))}
           </div>
-        ) : (
-          <p
-            className="text-muted small"
-            data-testid="skills-empty-state"
-          >
-            {intl.formatMessage(messages.noSkills)}
-          </p>
         )}
+        {visibleSkills.length === 0 && <SkillsEmptyState />}
       </Card.Body>
     </Card>
   );
