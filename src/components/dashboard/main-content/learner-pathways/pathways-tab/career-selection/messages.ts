@@ -3,7 +3,7 @@ import { defineMessages } from '@edx/frontend-platform/i18n';
 const messages = defineMessages({
   heading: {
     id: 'learner.pathways.career.selection.heading',
-    defaultMessage: 'Career Match',
+    defaultMessage: 'Career Profile',
     description: 'Heading for the learner pathways career selection page.',
   },
   beta: {

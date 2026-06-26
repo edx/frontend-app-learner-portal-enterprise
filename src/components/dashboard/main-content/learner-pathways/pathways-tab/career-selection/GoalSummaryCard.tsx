@@ -30,7 +30,7 @@ const GoalSummaryCard = ({
   profile,
   isEditing,
   isProfileSubmitting = false,
-  profileError = null,
+  profileError = 'true',
   onBeginEditing,
   onEndEditing,
   onSubmitGoalSummary,
@@ -87,8 +87,8 @@ const GoalSummaryCard = ({
     <Card className="mb-3 shadow-sm" data-testid="goal-summary-card">
       <Form onSubmit={submitGoalSummary}>
         <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-start mb-4">
-            <h2 className="h4 mb-0">
+          <div className="d-flex justify-content-between align-items-start mb-4.5">
+            <h2 className="mb-0">
               {intl.formatMessage(messages.goalSummary)}
             </h2>
             {isEditing ? (
@@ -149,7 +149,7 @@ const GoalSummaryCard = ({
                 <Col md={6}>
                   <Form.Group controlId="career-selection-career-goal">
                     <Form.Label>
-                      {intl.formatMessage(messages.careerGoal)}
+                      <span className="h3">{intl.formatMessage(messages.careerGoal)}</span>
                     </Form.Label>
                     <Form.Control
                       as="textarea"
@@ -165,7 +165,7 @@ const GoalSummaryCard = ({
                 <Col md={6}>
                   <Form.Group controlId="career-selection-target-industry">
                     <Form.Label>
-                      {intl.formatMessage(messages.targetIndustry)}
+                      <span className="h3">{intl.formatMessage(messages.targetIndustry)}</span>
                     </Form.Label>
                     <Form.Control
                       as="textarea"
@@ -181,7 +181,7 @@ const GoalSummaryCard = ({
               </Row>
               <Form.Group controlId="career-selection-background">
                 <Form.Label>
-                  {intl.formatMessage(messages.background)}
+                  <span className="h3">{intl.formatMessage(messages.background)}</span>
                 </Form.Label>
                 <Form.Control
                   as="textarea"
@@ -198,7 +198,7 @@ const GoalSummaryCard = ({
                 className="mb-0"
               >
                 <Form.Label>
-                  {intl.formatMessage(messages.motivation)}
+                  <span className="h3">{intl.formatMessage(messages.motivation)}</span>
                 </Form.Label>
                 <Form.Control
                   as="textarea"
@@ -219,20 +219,20 @@ const GoalSummaryCard = ({
                   className="mb-3 mb-md-0"
                   data-testid="profile-career-goal"
                 >
-                  <h3 className="h6 mb-1">
+                  <h3 className="h3 mb-1">
                     {intl.formatMessage(messages.careerGoal)}
                   </h3>
                   <p className="mb-0">{renderValue(profile.careerGoal)}</p>
                 </Col>
                 <Col md={6} data-testid="profile-target-industry">
-                  <h3 className="h6 mb-1">
+                  <h3 className="h3 mb-1">
                     {intl.formatMessage(messages.targetIndustry)}
                   </h3>
                   <p className="mb-0">{renderValue(profile.targetIndustry)}</p>
                 </Col>
               </Row>
               <div className="mb-3" data-testid="profile-background">
-                <h3 className="h6 mb-1">
+                <h3 className="h3 mb-1">
                   {intl.formatMessage(messages.background)}
                 </h3>
                 <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
@@ -240,7 +240,7 @@ const GoalSummaryCard = ({
                 </p>
               </div>
               <div data-testid="profile-motivation">
-                <h3 className="h6 mb-1">
+                <h3 className="h3 mb-1">
                   {intl.formatMessage(messages.motivation)}
                 </h3>
                 <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
