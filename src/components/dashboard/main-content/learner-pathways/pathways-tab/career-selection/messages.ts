@@ -41,6 +41,26 @@ const messages = defineMessages({
     defaultMessage: 'Motivation',
     description: 'Motivation label.',
   },
+  careerGoalRequiredError: {
+    id: 'learner.pathways.career.selection.career.goal.required.error',
+    defaultMessage: 'Please enter a career goal.',
+    description: 'Validation message shown when the career goal field is empty.',
+  },
+  targetIndustryRequiredError: {
+    id: 'learner.pathways.career.selection.target.industry.required.error',
+    defaultMessage: 'Please enter a target industry.',
+    description: 'Validation message shown when the target industry field is empty.',
+  },
+  backgroundRequiredError: {
+    id: 'learner.pathways.career.selection.background.required.error',
+    defaultMessage: 'Please enter your background.',
+    description: 'Validation message shown when the background field is empty.',
+  },
+  motivationRequiredError: {
+    id: 'learner.pathways.career.selection.motivation.required.error',
+    defaultMessage: 'Please enter your motivation.',
+    description: 'Validation message shown when the motivation field is empty.',
+  },
   edit: {
     id: 'learner.pathways.career.selection.edit',
     defaultMessage: 'Edit',

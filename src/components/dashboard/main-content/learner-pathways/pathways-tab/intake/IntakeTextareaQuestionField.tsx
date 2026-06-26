@@ -1,7 +1,7 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { Path } from 'react-hook-form';
-import { AutoExpandingTextareaField } from '../shared';
+import { AutoExpandingTextareaField, requiredNonWhitespace } from '../shared';
 import type { IntakeFormValues } from './IntakeQuestionsContainer';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from './constants';
 
@@ -56,7 +56,7 @@ const IntakeTextareaQuestionField = ({
 
   const rules = {
     validate: {
-      required: (value: string) => value.trim().length > 0 || requiredErrorMessage,
+      required: requiredNonWhitespace(requiredErrorMessage),
     },
   };
 

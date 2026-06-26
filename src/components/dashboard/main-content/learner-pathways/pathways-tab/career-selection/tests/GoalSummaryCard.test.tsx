@@ -195,4 +195,46 @@ describe('GoalSummaryCard', () => {
       expect.objectContaining({ careerGoal: 'Director of Analytics' }),
     ));
   });
+
+  it('shows required error and blocks submit when a field is cleared to empty', async () => {
+    const user = userEvent.setup();
+    const onSubmitGoalSummary = jest.fn();
+    render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    await user.clear(screen.getByLabelText('Career Goal'));
+
+    expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
+      'Please enter a career goal.',
+    );
+    expect(screen.getByTestId('goal-summary-career-goal-field')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByTestId('goal-summary-submit-button')).toBeDisabled();
+  });
+
+  it('does not call onSubmitGoalSummary when a required field is empty', async () => {
+    const user = userEvent.setup();
+    const onSubmitGoalSummary = jest.fn();
+    render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    await user.clear(screen.getByLabelText('Career Goal'));
+    await user.click(screen.getByTestId('goal-summary-submit-button'));
+
+    expect(onSubmitGoalSummary).not.toHaveBeenCalled();
+  });
+
+  it('shows required error for whitespace-only input', async () => {
+    const user = userEvent.setup();
+    render(<ControlledCard />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    const goalInput = screen.getByLabelText('Career Goal');
+    await user.clear(goalInput);
+    await user.type(goalInput, '   ');
+
+    expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
+      'Please enter a career goal.',
+    );
+    expect(screen.getByTestId('goal-summary-submit-button')).toBeDisabled();
+  });
 });

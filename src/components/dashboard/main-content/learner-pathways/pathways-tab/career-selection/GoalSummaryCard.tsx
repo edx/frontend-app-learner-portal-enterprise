@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form';
 
 import type { LearnerProfile } from '../state';
 import type { GoalSummaryFields } from './CareerSelectionPage';
-import { AutoExpandingTextareaField } from '../shared';
+import { AutoExpandingTextareaField, requiredNonWhitespace } from '../shared';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../intake/constants';
 import messages from './messages';
 
@@ -112,7 +112,7 @@ const GoalSummaryCard = ({
                   type="submit"
                   variant="outline-primary"
                   size="sm"
-                  disabled={!formState.isDirty || isProfileSubmitting}
+                  disabled={!formState.isDirty || isProfileSubmitting || !formState.isValid}
                   data-testid="goal-summary-submit-button"
                 >
                   {isProfileSubmitting && (
@@ -155,6 +155,13 @@ const GoalSummaryCard = ({
                   <AutoExpandingTextareaField
                     name="careerGoal"
                     control={control}
+                    rules={{
+                      validate: {
+                        required: requiredNonWhitespace(
+                          intl.formatMessage(messages.careerGoalRequiredError),
+                        ),
+                      },
+                    }}
                     controlId="career-selection-career-goal"
                     label={intl.formatMessage(messages.careerGoal)}
                     labelClassName="h3"
@@ -168,6 +175,13 @@ const GoalSummaryCard = ({
                   <AutoExpandingTextareaField
                     name="targetIndustry"
                     control={control}
+                    rules={{
+                      validate: {
+                        required: requiredNonWhitespace(
+                          intl.formatMessage(messages.targetIndustryRequiredError),
+                        ),
+                      },
+                    }}
                     controlId="career-selection-target-industry"
                     label={intl.formatMessage(messages.targetIndustry)}
                     labelClassName="h3"
@@ -181,6 +195,13 @@ const GoalSummaryCard = ({
               <AutoExpandingTextareaField
                 name="background"
                 control={control}
+                rules={{
+                  validate: {
+                    required: requiredNonWhitespace(
+                      intl.formatMessage(messages.backgroundRequiredError),
+                    ),
+                  },
+                }}
                 controlId="career-selection-background"
                 label={intl.formatMessage(messages.background)}
                 labelClassName="h3"
@@ -192,6 +213,13 @@ const GoalSummaryCard = ({
               <AutoExpandingTextareaField
                 name="motivation"
                 control={control}
+                rules={{
+                  validate: {
+                    required: requiredNonWhitespace(
+                      intl.formatMessage(messages.motivationRequiredError),
+                    ),
+                  },
+                }}
                 controlId="career-selection-motivation"
                 label={intl.formatMessage(messages.motivation)}
                 labelClassName="h3"
