@@ -1,37 +1,36 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Container } from '@openedx/paragon';
 import PathwayBreadcrumbs from './breadcrumb/PathwayBreadcrumbs';
 import { IntakePage } from './intake';
 import CareerSelectionContainer from './CareerSelectionContainer';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
-import { View, VIEWS } from './constants';
+import { VIEWS } from './constants';
+import { usePathwaysStore, selectors } from './state';
+import type { PathwaysSection } from './state';
 
 const LearnerPathwaysTab = () => {
-  const [view, setView] = useState<View>(VIEWS.ONBOARDING);
+  const section = usePathwaysStore(selectors.section);
+  const setSection = usePathwaysStore((state) => state.setSection);
+
   return (
     <div data-testid="learner-pathways-tab-scaffold">
-      <PathwayBreadcrumbs view={view} onNavigate={(v: View) => setView(v)} />
+      <PathwayBreadcrumbs
+        view={section}
+        onNavigate={(v: PathwaysSection) => setSection(v)}
+      />
       <Container size="md" fluid className="mt-4.5">
-        {view === VIEWS.ONBOARDING
-          && (
-            <IntakePage
-              onSubmit={() => setView(VIEWS.PROFILE)}
-            />
-          )}
-        {view === VIEWS.PROFILE
-          && (
-            <CareerSelectionContainer
-              onBack={() => setView(VIEWS.ONBOARDING)}
-              onNext={() => setView(VIEWS.PATHWAY)}
-            />
-          )}
-        {view === VIEWS.PATHWAY
-          && (
-            <PathwayCoursesContainer
-              onBackToOnboarding={() => setView(VIEWS.ONBOARDING)}
-              onBackToProfile={() => setView(VIEWS.PROFILE)}
-            />
-          )}
+        {section === VIEWS.ONBOARDING && (
+          <IntakePage onSubmit={() => setSection('profile')} />
+        )}
+        {section === VIEWS.PROFILE && (
+          <CareerSelectionContainer onNext={() => setSection('pathway')} />
+        )}
+        {section === VIEWS.PATHWAY && (
+          <PathwayCoursesContainer
+            onBackToOnboarding={() => setSection('onboarding')}
+            onBackToProfile={() => setSection('profile')}
+          />
+        )}
       </Container>
     </div>
   );
