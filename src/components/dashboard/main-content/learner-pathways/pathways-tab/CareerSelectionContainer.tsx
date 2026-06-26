@@ -1,28 +1,261 @@
-import React from 'react';
-import { Container, Button } from '@openedx/paragon';
+import React, {
+  useCallback, useEffect, useMemo, useRef, useState,
+} from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import CareerSelectionPage, {
+  GoalSummaryFields,
+} from './career-selection/CareerSelectionPage';
+import {
+  CAREER_SELECTION_STUB_MATCHES,
+  buildCareerSelectionStubProfile,
+} from './career-selection/fixtures';
+import careerMessages from './career-selection/messages';
+import { usePathwaysController } from './hooks';
+import { usePathwaysCourses, usePathwaysStore } from './state';
+import { usePathwaysActionBar } from './action-bar';
 
 export interface CareerSelectionContainerProps {
-  onBack?: () => void;
   onNext?: () => void;
 }
 
-const CareerSelectionContainer: React.FC<CareerSelectionContainerProps> = ({ onBack, onNext }) => (
-  <section data-testid="profile-container">
-    <Container fluid>
-      <h2>Profile</h2>
-      <section data-testid="profile-learner-profile"><h3>Learner Profile</h3><p>Mock profile summary</p></section>
-      <section data-testid="profile-career-goal"><h3>Career Goal</h3><p>Mock career goal</p></section>
-      <section data-testid="profile-target-industry"><h3>Target Industry</h3><p>Mock industry</p></section>
-      <section data-testid="profile-background"><h3>Background</h3><p>Mock background</p></section>
-      <section data-testid="profile-motivation"><h3>Motivation</h3><p>Mock motivation</p></section>
-      <section data-testid="profile-career-matches"><h3>Career Matches</h3><p>Mock career matches</p></section>
-      <section data-testid="profile-skills"><h3>Skills</h3><p>Mock skills</p></section>
-      <div className="d-flex justify-content-between mt-3">
-        <Button variant="secondary" data-testid="profile-view-onboarding-button" onClick={onBack}>View Onboarding Quiz</Button>
-        <Button variant="primary" data-testid="profile-build-pathway-button" onClick={onNext}>Build My Learning Pathway</Button>
-      </div>
-    </Container>
-  </section>
-);
+const errorMessage = (
+  error: unknown,
+  fallback: string,
+) => (error instanceof Error && error.message ? error.message : fallback);
+
+/** UI adapter to the learner-pathways store/controller/workflow seams. */
+const CareerSelectionContainer = ({
+  onNext,
+}: CareerSelectionContainerProps) => {
+  const {
+    onboardingAnswers,
+    learnerProfile,
+    careerMatches,
+    selectedCareerId,
+    loading,
+    errors,
+    setLearnerProfile,
+    updateLearnerProfile,
+    setCareerMatches,
+    setSelectedCareerId,
+    setConstructedPayload,
+    setLoading,
+    setError,
+    setExperienceStatus,
+  } = usePathwaysStore(
+    useShallow((state) => ({
+      onboardingAnswers: state.onboarding.answers,
+      learnerProfile: state.learnerProfile,
+      careerMatches: state.careerMatches,
+      selectedCareerId: state.selectedCareerId,
+      loading: state.loading,
+      errors: state.errors,
+      setLearnerProfile: state.setLearnerProfile,
+      updateLearnerProfile: state.updateLearnerProfile,
+      setCareerMatches: state.setCareerMatches,
+      setSelectedCareerId: state.setSelectedCareerId,
+      setConstructedPayload: state.setConstructedPayload,
+      setLoading: state.setLoading,
+      setError: state.setError,
+      setExperienceStatus: state.setExperienceStatus,
+    })),
+  );
+
+  // Narrow selector: only subscribes to course count, not full array.
+  const pathwayCourses = usePathwaysCourses();
+  const hasExistingPathway = pathwayCourses.length > 0;
+
+  const { generateProfile, generatePathway } = usePathwaysController();
+  const { registerActions, clearActions } = usePathwaysActionBar();
+
+  // Ref shared between the portaled action bar button and OverwritePathwayModal.
+  const buildButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Modal + skills state lifted from CareerSelectionPage.
+  const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
+  const [dismissedSkills, setDismissedSkills] = useState<Set<string>>(new Set<string>());
+
+  const stubProfile = useMemo(
+    () => buildCareerSelectionStubProfile(onboardingAnswers),
+    [onboardingAnswers],
+  );
+  const displayedProfile = learnerProfile ?? stubProfile;
+  const usesStubData = learnerProfile === null && careerMatches.length === 0;
+  const displayedMatches = usesStubData
+    ? CAREER_SELECTION_STUB_MATCHES
+    : careerMatches;
+
+  // Derive selected career from displayed matches; fall back to first.
+  const selectedCareer = useMemo(
+    () => displayedMatches.find((m) => m.id === selectedCareerId)
+      ?? displayedMatches[0]
+      ?? null,
+    [displayedMatches, selectedCareerId],
+  );
+
+  // Available skills: career-specific first, then profile skills.
+  const availableSkills = useMemo(() => {
+    const raw = selectedCareer?.skillsToDevelop?.length
+      ? selectedCareer.skillsToDevelop
+      : displayedProfile.skills;
+    return Array.from(new Set(raw.map((s: string) => s.trim()).filter(Boolean)));
+  }, [selectedCareer, displayedProfile.skills]);
+
+  // Reset dismissed skills whenever the career or available skill set changes.
+  const availableSkillsKey = availableSkills.join('\x00');
+  useEffect(() => {
+    setDismissedSkills(new Set<string>());
+  }, [selectedCareer?.id, availableSkillsKey]);
+
+  const visibleSkills = useMemo(
+    () => availableSkills.filter((s) => !dismissedSkills.has(s)),
+    [availableSkills, dismissedSkills],
+  );
+
+  const submitGoalSummary = async (updates: GoalSummaryFields) => {
+    const nextProfile = { ...displayedProfile, ...updates };
+    const payload = {
+      source: 'career_selection_goal_summary',
+      onboardingAnswers,
+      learnerProfile: nextProfile,
+    };
+
+    setError('learnerProfile', null);
+    setError('careerMatches', null);
+    setLoading('learnerProfile', true);
+    setLoading('careerMatches', true);
+    setConstructedPayload('learnerProfileRequest', payload);
+
+    try {
+      await generateProfile();
+      if (learnerProfile) {
+        updateLearnerProfile(updates);
+      } else {
+        setLearnerProfile(nextProfile);
+      }
+      if (usesStubData) {
+        setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
+      }
+      setExperienceStatus('profile_ready');
+    } catch (error) {
+      setError(
+        'learnerProfile',
+        errorMessage(error, 'Unable to update the learner profile.'),
+      );
+      throw error;
+    } finally {
+      setLoading('learnerProfile', false);
+      setLoading('careerMatches', false);
+    }
+  };
+
+  // buildPathway uses container-owned selectedCareer and visibleSkills.
+  const buildPathway = useCallback(async () => {
+    if (!selectedCareer || loading.pathwayCourses) {
+      return;
+    }
+    const payload = {
+      source: 'career_selection',
+      learnerProfile: displayedProfile,
+      selectedCareer,
+      selectedCareerId: selectedCareer.id,
+      skillsToDevelop: visibleSkills,
+    };
+
+    setSelectedCareerId(selectedCareer.id);
+    setError('pathwayCourses', null);
+    setLoading('pathwayCourses', true);
+    setConstructedPayload('pathwayRequest', payload);
+    setIsOverwriteOpen(false);
+
+    try {
+      await generatePathway();
+      setExperienceStatus('pathway_ready');
+      onNext?.();
+    } catch (error) {
+      setError(
+        'pathwayCourses',
+        errorMessage(error, 'Unable to build the learning pathway.'),
+      );
+    } finally {
+      setLoading('pathwayCourses', false);
+    }
+  }, [
+    selectedCareer,
+    loading.pathwayCourses,
+    displayedProfile,
+    visibleSkills,
+    setSelectedCareerId,
+    setError,
+    setLoading,
+    setConstructedPayload,
+    generatePathway,
+    setExperienceStatus,
+    onNext,
+  ]);
+
+  const handleBuildOrOverwrite = useCallback(() => {
+    if (hasExistingPathway) {
+      setIsOverwriteOpen(true);
+    } else {
+      buildPathway();
+    }
+  }, [hasExistingPathway, buildPathway]);
+
+  // Register primary CTA in the page-level action bar.
+  useEffect(() => {
+    registerActions({
+      primary: {
+        id: 'career-build-pathway',
+        label: careerMessages.buildPathway,
+        loadingLabel: careerMessages.buildingPathway,
+        variant: 'primary',
+        type: 'button',
+        disabled: !selectedCareer || loading.pathwayCourses || loading.careerMatches,
+        loading: loading.pathwayCourses,
+        onClick: handleBuildOrOverwrite,
+        buttonRef: buildButtonRef,
+        testId: 'profile-build-pathway-button',
+      },
+      alignment: 'end',
+    });
+    return () => clearActions();
+  }, [
+    selectedCareer,
+    loading.pathwayCourses,
+    loading.careerMatches,
+    handleBuildOrOverwrite,
+    registerActions,
+    clearActions,
+  ]);
+
+  return (
+    <CareerSelectionPage
+      profile={displayedProfile}
+      careerMatches={displayedMatches}
+      selectedCareerId={selectedCareerId}
+      isProfileSubmitting={loading.learnerProfile || loading.careerMatches}
+      isCareerMatchesLoading={
+        loading.careerMatches && displayedMatches.length === 0
+      }
+      isBuildingPathway={loading.pathwayCourses}
+      profileError={errors.learnerProfile}
+      careerMatchesError={errors.careerMatches}
+      onSubmitGoalSummary={submitGoalSummary}
+      onSelectCareer={setSelectedCareerId}
+      isOverwriteOpen={isOverwriteOpen}
+      onCloseOverwrite={() => setIsOverwriteOpen(false)}
+      onConfirmOverwrite={buildPathway}
+      buildButtonRef={buildButtonRef}
+      visibleSkills={visibleSkills}
+      dismissedSkillCount={dismissedSkills.size}
+      onDismissSkill={(skill) => setDismissedSkills(
+        (current) => new Set([...current, skill]),
+      )}
+      onRestoreSkills={() => setDismissedSkills(new Set<string>())}
+    />
+  );
+};
 
 export default CareerSelectionContainer;

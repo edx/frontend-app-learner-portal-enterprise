@@ -1,5 +1,8 @@
-import React from 'react';
-import { Container, Button } from '@openedx/paragon';
+import React, { useCallback, useEffect } from 'react';
+import { Container } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
+import { usePathwaysActionBar } from './action-bar';
+import messages from './messages';
 
 export interface PathwayCoursesContainerProps {
   onBackToOnboarding?: () => void;
@@ -18,29 +21,71 @@ const mockCourses = [
   },
 ];
 
-const PathwayCoursesContainer = ({ onBackToOnboarding, onBackToProfile }: PathwayCoursesContainerProps) => (
-  <section data-testid="pathway-container">
-    <Container fluid>
-      <h2>Your Pathway</h2>
-      <div data-testid="pathway-course-list">
-        {mockCourses.map((c, i) => (
-          <div key={c.title} data-testid={`pathway-course-${i}`} className="mb-3 p-2 border rounded">
-            <strong>{c.title}</strong>
-            <div>Level: {c.level}</div>
-            <div>Length: {c.length}</div>
-            <div>Why this fits you: {c.why}</div>
-          </div>
-        ))}
-      </div>
-      <div className="d-flex justify-content-between mt-3">
-        <Button variant="secondary" data-testid="pathway-adjust-button" onClick={onBackToOnboarding}>Adjust My Pathway</Button>
-        <div>
-          <Button variant="secondary" className="mr-2" data-testid="pathway-view-profile-button" onClick={onBackToProfile}>View Profile</Button>
-          <Button variant="secondary" data-testid="pathway-view-onboarding-button" onClick={onBackToOnboarding}>View Onboarding Quiz</Button>
+const PathwayCoursesContainer = ({
+  onBackToOnboarding,
+  onBackToProfile,
+}: PathwayCoursesContainerProps) => {
+  const intl = useIntl();
+  const { registerActions, clearActions } = usePathwaysActionBar();
+
+  const handleBackToOnboarding = useCallback(() => {
+    onBackToOnboarding?.();
+  }, [onBackToOnboarding]);
+
+  const handleBackToProfile = useCallback(() => {
+    onBackToProfile?.();
+  }, [onBackToProfile]);
+
+  useEffect(() => {
+    registerActions({
+      primary: {
+        id: 'pathway-adjust',
+        label: messages.adjustMyPathway,
+        variant: 'secondary',
+        type: 'button',
+        onClick: handleBackToOnboarding,
+        testId: 'pathway-adjust-button',
+      },
+      secondary: [
+        {
+          id: 'pathway-view-profile',
+          label: messages.viewProfile,
+          variant: 'secondary',
+          type: 'button',
+          onClick: handleBackToProfile,
+          testId: 'pathway-view-profile-button',
+        },
+        {
+          id: 'pathway-view-quiz',
+          label: messages.viewOnboardingQuiz,
+          variant: 'tertiary',
+          type: 'button',
+          onClick: handleBackToOnboarding,
+          testId: 'pathway-view-onboarding-button',
+        },
+      ],
+      alignment: 'split',
+    });
+    return () => clearActions();
+  }, [handleBackToOnboarding, handleBackToProfile, registerActions, clearActions, intl]);
+
+  return (
+    <section data-testid="pathway-container">
+      <Container fluid>
+        <h2>Your Pathway</h2>
+        <div data-testid="pathway-course-list">
+          {mockCourses.map((c, i) => (
+            <div key={c.title} data-testid={`pathway-course-${i}`} className="mb-3 p-2 border rounded">
+              <strong>{c.title}</strong>
+              <div>Level: {c.level}</div>
+              <div>Length: {c.length}</div>
+              <div>Why this fits you: {c.why}</div>
+            </div>
+          ))}
         </div>
-      </div>
-    </Container>
-  </section>
-);
+      </Container>
+    </section>
+  );
+};
 
 export default PathwayCoursesContainer;
