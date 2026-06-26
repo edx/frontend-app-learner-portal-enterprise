@@ -24,7 +24,7 @@ const SkillsToDevelopCard = ({
     <Card className="h-100 shadow-sm" data-testid="profile-skills">
       <Card.Body className="p-4">
         <div className="d-flex justify-content-between align-items-start mb-3">
-          <h2 className="h4 mb-0">
+          <h2 className="mb-0">
             {intl.formatMessage(messages.skills)}
           </h2>
           {dismissedSkillCount > 0 && (
@@ -47,7 +47,8 @@ const SkillsToDevelopCard = ({
             {visibleSkills.map((skill) => (
               <Chip
                 key={skill}
-                className="mr-2 mb-2"
+                variant="light"
+                className="mr-2 mb-2 bg-light-500"
                 iconAfter={Close}
                 iconAfterAlt={intl.formatMessage(messages.dismissSkill, {
                   skill,
