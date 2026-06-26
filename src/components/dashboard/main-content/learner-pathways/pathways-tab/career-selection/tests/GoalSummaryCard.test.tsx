@@ -140,4 +140,59 @@ describe('GoalSummaryCard', () => {
     await user.click(screen.getByTestId('goal-summary-edit-button'));
     expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
   });
+
+  it('shows pre-filled profile values in edit mode textarea fields', async () => {
+    const user = userEvent.setup();
+    render(<ControlledCard />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+
+    expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
+    expect(screen.getByLabelText('Target Industry')).toHaveValue('EdTech');
+    expect(screen.getByLabelText('Background')).toHaveValue('Data analyst with five years experience.');
+    expect(screen.getByLabelText('Motivation')).toHaveValue('Upskill for promotion.');
+  });
+
+  it('renders character counters for all edit mode fields', async () => {
+    const user = userEvent.setup();
+    render(<ControlledCard />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+
+    expect(screen.getByTestId('goal-summary-career-goal-field-counter')).toBeInTheDocument();
+    expect(screen.getByTestId('goal-summary-target-industry-field-counter')).toBeInTheDocument();
+    expect(screen.getByTestId('goal-summary-background-field-counter')).toBeInTheDocument();
+    expect(screen.getByTestId('goal-summary-motivation-field-counter')).toBeInTheDocument();
+  });
+
+  it('shows character limit error when a field exceeds 300 characters', async () => {
+    const user = userEvent.setup();
+    render(<ControlledCard />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    const goalInput = screen.getByLabelText('Career Goal');
+    await user.clear(goalInput);
+    await user.type(goalInput, 'a'.repeat(301));
+
+    expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
+      'Please keep your response up to 300 characters.',
+    );
+    expect(screen.getByTestId('goal-summary-career-goal-field')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('trims leading and trailing whitespace from field values on submit', async () => {
+    const user = userEvent.setup();
+    const onSubmitGoalSummary = jest.fn().mockResolvedValue(undefined);
+    render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    const goalInput = screen.getByLabelText('Career Goal');
+    await user.clear(goalInput);
+    await user.type(goalInput, '  Director of Analytics  ');
+    await user.click(screen.getByTestId('goal-summary-submit-button'));
+
+    await waitFor(() => expect(onSubmitGoalSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ careerGoal: 'Director of Analytics' }),
+    ));
+  });
 });

@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Alert,
   Button,
@@ -11,9 +10,12 @@ import {
 } from '@openedx/paragon';
 import { Edit } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { useForm } from 'react-hook-form';
 
 import type { LearnerProfile } from '../state';
 import type { GoalSummaryFields } from './CareerSelectionPage';
+import { AutoExpandingTextareaField } from '../shared';
+import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../intake/constants';
 import messages from './messages';
 
 export interface GoalSummaryCardProps {
@@ -30,50 +32,53 @@ const GoalSummaryCard = ({
   profile,
   isEditing,
   isProfileSubmitting = false,
-  profileError = 'true',
+  profileError = null,
   onBeginEditing,
   onEndEditing,
   onSubmitGoalSummary,
 }: GoalSummaryCardProps) => {
   const intl = useIntl();
-  const [draft, setDraft] = useState<GoalSummaryFields>({
-    careerGoal: profile.careerGoal,
-    targetIndustry: profile.targetIndustry,
-    background: profile.background,
-    motivation: profile.motivation,
+
+  const {
+    control,
+    formState,
+    handleSubmit,
+    reset,
+  } = useForm<GoalSummaryFields>({
+    defaultValues: {
+      careerGoal: profile.careerGoal,
+      targetIndustry: profile.targetIndustry,
+      background: profile.background,
+      motivation: profile.motivation,
+    },
+    mode: 'onChange',
   });
 
-  // Track previous isEditing value to detect when edit mode opens.
+  // Track previous isEditing to detect when edit mode opens and reset the form.
   const prevIsEditingRef = useRef(isEditing);
   useEffect(() => {
     const wasEditing = prevIsEditingRef.current;
     prevIsEditingRef.current = isEditing;
     if (!wasEditing && isEditing) {
-      setDraft({
+      reset({
         careerGoal: profile.careerGoal,
         targetIndustry: profile.targetIndustry,
         background: profile.background,
         motivation: profile.motivation,
       });
     }
-  }, [isEditing, profile.careerGoal, profile.targetIndustry, profile.background, profile.motivation]);
+  }, [isEditing, profile.careerGoal, profile.targetIndustry, profile.background, profile.motivation, reset]);
 
-  const isDirty = draft.careerGoal !== profile.careerGoal
-    || draft.targetIndustry !== profile.targetIndustry
-    || draft.background !== profile.background
-    || draft.motivation !== profile.motivation;
-
-  const submitGoalSummary = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!isDirty || isProfileSubmitting) {
+  const onValidSubmit = async (values: GoalSummaryFields) => {
+    if (isProfileSubmitting) {
       return;
     }
     try {
       await onSubmitGoalSummary({
-        careerGoal: draft.careerGoal.trim(),
-        targetIndustry: draft.targetIndustry.trim(),
-        background: draft.background.trim(),
-        motivation: draft.motivation.trim(),
+        careerGoal: values.careerGoal.trim(),
+        targetIndustry: values.targetIndustry.trim(),
+        background: values.background.trim(),
+        motivation: values.motivation.trim(),
       });
       onEndEditing();
     } catch {
@@ -85,7 +90,7 @@ const GoalSummaryCard = ({
 
   return (
     <Card className="mb-3 shadow-sm" data-testid="goal-summary-card">
-      <Form onSubmit={submitGoalSummary}>
+      <Form onSubmit={handleSubmit(onValidSubmit)}>
         <Card.Body className="p-4">
           <div className="d-flex justify-content-between align-items-start mb-4.5">
             <h2 className="mb-0">
@@ -107,7 +112,7 @@ const GoalSummaryCard = ({
                   type="submit"
                   variant="outline-primary"
                   size="sm"
-                  disabled={!isDirty || isProfileSubmitting}
+                  disabled={!formState.isDirty || isProfileSubmitting}
                   data-testid="goal-summary-submit-button"
                 >
                   {isProfileSubmitting && (
@@ -147,69 +152,55 @@ const GoalSummaryCard = ({
             <>
               <Row>
                 <Col md={6}>
-                  <Form.Group controlId="career-selection-career-goal">
-                    <Form.Label>
-                      <span className="h3">{intl.formatMessage(messages.careerGoal)}</span>
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={draft.careerGoal}
-                      onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(
-                        { ...draft, careerGoal: event.target.value },
-                      )}
-                      disabled={isProfileSubmitting}
-                    />
-                  </Form.Group>
+                  <AutoExpandingTextareaField
+                    name="careerGoal"
+                    control={control}
+                    controlId="career-selection-career-goal"
+                    label={intl.formatMessage(messages.careerGoal)}
+                    labelClassName="h3"
+                    maxCharacters={DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}
+                    disabled={isProfileSubmitting}
+                    fieldTestId="goal-summary-career-goal-field"
+                    feedbackTestId="goal-summary-career-goal-feedback"
+                  />
                 </Col>
                 <Col md={6}>
-                  <Form.Group controlId="career-selection-target-industry">
-                    <Form.Label>
-                      <span className="h3">{intl.formatMessage(messages.targetIndustry)}</span>
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={draft.targetIndustry}
-                      onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(
-                        { ...draft, targetIndustry: event.target.value },
-                      )}
-                      disabled={isProfileSubmitting}
-                    />
-                  </Form.Group>
+                  <AutoExpandingTextareaField
+                    name="targetIndustry"
+                    control={control}
+                    controlId="career-selection-target-industry"
+                    label={intl.formatMessage(messages.targetIndustry)}
+                    labelClassName="h3"
+                    maxCharacters={DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}
+                    disabled={isProfileSubmitting}
+                    fieldTestId="goal-summary-target-industry-field"
+                    feedbackTestId="goal-summary-target-industry-feedback"
+                  />
                 </Col>
               </Row>
-              <Form.Group controlId="career-selection-background">
-                <Form.Label>
-                  <span className="h3">{intl.formatMessage(messages.background)}</span>
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={draft.background}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(
-                    { ...draft, background: event.target.value },
-                  )}
-                  disabled={isProfileSubmitting}
-                />
-              </Form.Group>
-              <Form.Group
+              <AutoExpandingTextareaField
+                name="background"
+                control={control}
+                controlId="career-selection-background"
+                label={intl.formatMessage(messages.background)}
+                labelClassName="h3"
+                maxCharacters={DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}
+                disabled={isProfileSubmitting}
+                fieldTestId="goal-summary-background-field"
+                feedbackTestId="goal-summary-background-feedback"
+              />
+              <AutoExpandingTextareaField
+                name="motivation"
+                control={control}
                 controlId="career-selection-motivation"
+                label={intl.formatMessage(messages.motivation)}
+                labelClassName="h3"
+                maxCharacters={DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}
+                disabled={isProfileSubmitting}
                 className="mb-0"
-              >
-                <Form.Label>
-                  <span className="h3">{intl.formatMessage(messages.motivation)}</span>
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={draft.motivation}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(
-                    { ...draft, motivation: event.target.value },
-                  )}
-                  disabled={isProfileSubmitting}
-                />
-              </Form.Group>
+                fieldTestId="goal-summary-motivation-field"
+                feedbackTestId="goal-summary-motivation-feedback"
+              />
             </>
           ) : (
             <>
