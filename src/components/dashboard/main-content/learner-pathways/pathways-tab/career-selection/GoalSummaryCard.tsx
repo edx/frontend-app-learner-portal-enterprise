@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   Alert,
   Button,
@@ -55,19 +55,16 @@ const GoalSummaryCard = ({
     mode: 'onChange',
   });
 
-  // Track previous isEditing to detect when edit mode opens and reset the form.
-  const prevIsEditingRef = useRef(isEditing);
   useEffect(() => {
-    const wasEditing = prevIsEditingRef.current;
-    prevIsEditingRef.current = isEditing;
-    if (!wasEditing && isEditing) {
-      reset({
-        careerGoal: profile.careerGoal,
-        targetIndustry: profile.targetIndustry,
-        background: profile.background,
-        motivation: profile.motivation,
-      });
+    if (!isEditing) {
+      return;
     }
+    reset({
+      careerGoal: profile.careerGoal,
+      targetIndustry: profile.targetIndustry,
+      background: profile.background,
+      motivation: profile.motivation,
+    });
   }, [isEditing, profile.careerGoal, profile.targetIndustry, profile.background, profile.motivation, reset]);
 
   const onValidSubmit = async (values: GoalSummaryFields) => {
