@@ -46,7 +46,7 @@ interface AutoExpandingTextareaFieldProps<
 }
 
 /**
- * Generic auto-expanding textarea backed by React Hook Form's useController.
+ * Generic auto-expanding textarea backed by React Hook Form's (RHF) useController
  *
  * Responsibilities:
  * - Bind to a RHF form field via control + name.
