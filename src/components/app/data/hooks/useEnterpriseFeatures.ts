@@ -13,7 +13,7 @@ export default function useEnterpriseFeatures(
   options: UseEnterpriseFeaturesQueryOptions = {},
 ) {
   const { select } = options;
-  return useEnterpriseLearner({
+  return useEnterpriseLearner<EnterpriseFeatures>({
     select: (data) => {
       const transformedData = data.transformed.enterpriseFeatures;
       if (select) {

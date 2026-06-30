@@ -72,6 +72,7 @@ declare global {
     ALGOLIA_APP_ID: string | null;
     ALGOLIA_SEARCH_API_KEY: string | null;
     ALGOLIA_INDEX_NAME: string | null;
+    ALGOLIA_INDEX_NAME_V2: string | null;
     ALGOLIA_INDEX_NAME_JOBS: string | null;
     ALGOLIA_REPLICA_INDEX_NAME: string | null;
   };
@@ -139,6 +140,7 @@ declare global {
     enterpriseLearnerBffEnabled?: boolean;
     enableMultiLicenseEntitlementsBff?: boolean;
     enterpriseAiPathwaysOperatorEnabled?: boolean;
+    useAlgoliaIndexV2?: boolean;
   };
 
   type EnterpriseCustomerUserRaw = enterpriseAccessOpenApi.components['schemas']['EnterpriseCustomerUser'];

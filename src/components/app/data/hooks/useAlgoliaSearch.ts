@@ -6,6 +6,7 @@ import { SearchClient, SearchIndex } from 'algoliasearch/lite';
 import { UseSuspenseQueryResult } from '@tanstack/react-query';
 import { useSuspenseBFF } from './useBFF';
 import useEnterpriseCustomer from './useEnterpriseCustomer';
+import useEnterpriseFeatures from './useEnterpriseFeatures';
 import { queryDefaultEmptyFallback } from '../queries';
 
 type AlgoliaFeatureFlags = {
@@ -169,12 +170,20 @@ const useSecuredAlgoliaMetadata = (indexName: string | null): SecuredAlgoliaApiM
  */
 const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFilters => {
   const config: Configuration = getConfig();
+  const { data: enterpriseFeatures } = useEnterpriseFeatures();
+
+  // When no explicit index is given, pick v2 or v1 based on the Django Waffle flag.
+  // Falls back to v1 if use_algolia_index_v2 is true but the env var isn't configured.
+  const defaultIndexName = enterpriseFeatures?.useAlgoliaIndexV2
+    ? config.ALGOLIA_INDEX_NAME_V2 || config.ALGOLIA_INDEX_NAME
+    : config.ALGOLIA_INDEX_NAME;
+  const resolvedIndexName = indexName || defaultIndexName;
 
   const {
     securedAlgoliaMetadata,
     isCatalogQueryFiltersEnabled,
     isIndexSupported,
-  } = useSecuredAlgoliaMetadata(indexName);
+  } = useSecuredAlgoliaMetadata(resolvedIndexName);
 
   // Update instantiate search client with or without a secured
   // algolia api key and retrieve the initialized algolia index
@@ -195,7 +204,7 @@ const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFi
       ? securedAlgoliaMetadata.algolia.securedAlgoliaApiKey!
       : config.ALGOLIA_SEARCH_API_KEY;
 
-    if (!algoliaSearchApiKey || !config.ALGOLIA_APP_ID || !config.ALGOLIA_INDEX_NAME) {
+    if (!algoliaSearchApiKey || !config.ALGOLIA_APP_ID || !resolvedIndexName) {
       return {
         searchClient: null,
         searchIndex: null,
@@ -207,7 +216,7 @@ const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFi
       config.ALGOLIA_APP_ID,
       algoliaSearchApiKey,
     );
-    const searchIndex = searchClient.initIndex(indexName || config.ALGOLIA_INDEX_NAME);
+    const searchIndex = searchClient.initIndex(resolvedIndexName);
     return {
       searchClient,
       searchIndex,
@@ -216,9 +225,8 @@ const useAlgoliaSearch = (indexName: string | null = null): AlgoliaWithCatalogFi
     };
   }, [
     config.ALGOLIA_APP_ID,
-    config.ALGOLIA_INDEX_NAME,
+    resolvedIndexName,
     config.ALGOLIA_SEARCH_API_KEY,
-    indexName,
     isCatalogQueryFiltersEnabled,
     isIndexSupported,
     securedAlgoliaMetadata.catalogUuidsToCatalogQueryUuids,
