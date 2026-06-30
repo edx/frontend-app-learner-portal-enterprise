@@ -1,0 +1,35 @@
+src/components/app/data/hooks/useAlgoliaSearch.ts
+  s_6c5f5df9bbc3ad::t_2c2920006ea1db 173,177
+  s_6c5f5df9bbc3ad::t_3bbc327e7193f7 174-176,178-180,186,207,219,228
+  s_6c5f5df9bbc3ad::t_67a6b9275bdfe9 9
+src/types/types.d.ts
+  s_6c5f5df9bbc3ad::t_6f006fa265c848 143
+  s_6c5f5df9bbc3ad::t_31af1b0c77fdaf 75
+src/index.tsx
+  s_6c5f5df9bbc3ad::t_69b03adbcd4ea2 43
+.env.development-stage
+  s_6c5f5df9bbc3ad::t_8a71378db2f181 67
+src/components/app/data/hooks/useAlgoliaSearch.test.tsx
+  s_6c5f5df9bbc3ad::t_45b7d3a49e5b18 225-309
+  s_6c5f5df9bbc3ad::t_398ec18d2f82a2 25
+src/components/app/data/hooks/useEnterpriseFeatures.ts
+  s_6c5f5df9bbc3ad::t_ec0c6087bb3b96 16
+.env.development
+  s_6c5f5df9bbc3ad::t_95bb3df6662571 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.4",
+  "base_commit_sha": "5a4d06a1d74106cd3547f8539a47eac803609f4c",
+  "prompts": {},
+  "sessions": {
+    "s_6c5f5df9bbc3ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71767732-9e03-4bc8-8ee4-c29aba634829",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": null
+    }
+  }
+}
