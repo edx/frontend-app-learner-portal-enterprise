@@ -102,9 +102,28 @@ describe('GoalSummaryCard', () => {
     expect(screen.queryByTestId('goal-summary-submit-button')).not.toBeInTheDocument();
   });
 
-  it('shows the profile error alert', () => {
+  it('shows the profile error alert in read-only mode', () => {
     render(<ControlledCard profileError="Unable to update profile." />);
     expect(screen.getByText('Unable to update profile.')).toBeInTheDocument();
+  });
+
+  it('shows the profile error alert in edit mode', async () => {
+    const user = userEvent.setup();
+    render(<ControlledCard profileError="Unable to update profile." />);
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    expect(screen.getByText('Unable to update profile.')).toBeInTheDocument();
+  });
+
+  it('read-only view does not render a form element', () => {
+    const { container } = render(<ControlledCard />);
+    expect(container.querySelector('form')).not.toBeInTheDocument();
+  });
+
+  it('edit view wraps content in a form element', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ControlledCard />);
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    expect(container.querySelector('form')).toBeInTheDocument();
   });
 
   it('shows spinner and disables submit when isProfileSubmitting', () => {

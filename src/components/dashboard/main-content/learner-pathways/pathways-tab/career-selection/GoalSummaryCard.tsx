@@ -1,19 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Alert,
-  Button,
   Card,
   Form,
-  Spinner,
 } from '@openedx/paragon';
-import { Edit } from '@openedx/paragon/icons';
-import { useIntl } from '@edx/frontend-platform/i18n';
 import { useForm } from 'react-hook-form';
 
 import type { LearnerProfile } from '../state';
 import GoalSummaryEditForm from './GoalSummaryEditForm';
 import GoalSummaryReadOnly from './GoalSummaryReadOnly';
-import messages from './messages';
+import GoalSummaryEditHeader from './GoalSummaryEditHeader';
+import GoalSummaryReadOnlyHeader from './GoalSummaryReadOnlyHeader';
+import GoalSummaryErrorAlert from './GoalSummaryErrorAlert';
 
 export type GoalSummaryFields = Pick<LearnerProfile, 'careerGoal' | 'targetIndustry' | 'background' | 'motivation'>;
 
@@ -36,8 +33,6 @@ const GoalSummaryCard = ({
   onEndEditing,
   onSubmitGoalSummary,
 }: GoalSummaryCardProps) => {
-  const intl = useIntl();
-
   const {
     control,
     formState,
@@ -87,71 +82,26 @@ const GoalSummaryCard = ({
 
   return (
     <Card className="mb-3 shadow-sm" data-testid="goal-summary-card">
-      <Form onSubmit={handleSubmit(onValidSubmit)}>
-        <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-start mb-4.5">
-            <h2 className="mb-0">
-              {intl.formatMessage(messages.goalSummary)}
-            </h2>
-            {isEditing ? (
-              <div className="d-flex align-items-center">
-                <Button
-                  type="button"
-                  variant="tertiary"
-                  size="sm"
-                  className="mr-2"
-                  onClick={onEndEditing}
-                  disabled={isProfileSubmitting}
-                >
-                  {intl.formatMessage(messages.cancel)}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="outline-primary"
-                  size="sm"
-                  disabled={!formState.isDirty || isProfileSubmitting || !formState.isValid}
-                  data-testid="goal-summary-submit-button"
-                >
-                  {isProfileSubmitting && (
-                    <Spinner
-                      animation="border"
-                      size="sm"
-                      className="mr-2"
-                      screenReaderText={intl.formatMessage(messages.submitting)}
-                    />
-                  )}
-                  {intl.formatMessage(
-                    isProfileSubmitting ? messages.submitting : messages.submit,
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline-primary"
-                size="sm"
-                iconBefore={Edit}
-                onClick={onBeginEditing}
-                data-testid="goal-summary-edit-button"
-              >
-                {intl.formatMessage(messages.edit)}
-              </Button>
-            )}
-          </div>
-
-          {profileError && (
-            <Alert variant="danger" className="mb-4">
-              {profileError}
-            </Alert>
-          )}
-
-          {isEditing ? (
+      <Card.Body className="p-4">
+        {isEditing ? (
+          <Form onSubmit={handleSubmit(onValidSubmit)}>
+            <GoalSummaryEditHeader
+              isProfileSubmitting={isProfileSubmitting}
+              isDirty={formState.isDirty}
+              isValid={formState.isValid}
+              onCancel={onEndEditing}
+            />
+            <GoalSummaryErrorAlert error={profileError} />
             <GoalSummaryEditForm control={control} isProfileSubmitting={isProfileSubmitting} />
-          ) : (
+          </Form>
+        ) : (
+          <>
+            <GoalSummaryReadOnlyHeader onBeginEditing={onBeginEditing} />
+            <GoalSummaryErrorAlert error={profileError} />
             <GoalSummaryReadOnly profile={profile} />
-          )}
-        </Card.Body>
-      </Form>
+          </>
+        )}
+      </Card.Body>
     </Card>
   );
 };
