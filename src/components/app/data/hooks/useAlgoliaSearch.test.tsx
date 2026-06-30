@@ -22,6 +22,7 @@ const APP_CONFIG = {
   ALGOLIA_SEARCH_API_KEY: 'test-algolia-api-key',
   ALGOLIA_INDEX_NAME_JOBS: 'unsupported-index-name',
   ALGOLIA_INDEX_NAME: 'test-algolia-index',
+  ALGOLIA_INDEX_NAME_V2: 'test-algolia-index-v2',
   ALGOLIA_APP_ID: 'test-algolia-app-id',
 };
 
@@ -219,6 +220,91 @@ describe('useAlgoliaSearch', () => {
       expect(result.current).toEqual(
         expect.objectContaining(expectedData),
       );
+    });
+  });
+
+  describe('index selection based on use_algolia_index_v2 flag', () => {
+    const searchRoute = `/${mockEnterpriseCustomer.slug}/search/`;
+
+    it('uses ALGOLIA_INDEX_NAME_V2 when flag is true', async () => {
+      getConfig.mockReturnValue(APP_CONFIG);
+      mockedUseEnterpriseFeatures.mockReturnValue({ data: { useAlgoliaIndexV2: true } });
+
+      const { result } = renderHook(
+        () => useAlgoliaSearch(),
+        {
+          wrapper: ({ children }) => (
+            <Wrapper initialEntries={[searchRoute]}>{children}</Wrapper>
+          ),
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.searchIndex).toEqual(
+          expect.objectContaining({ indexName: APP_CONFIG.ALGOLIA_INDEX_NAME_V2 }),
+        );
+      });
+    });
+
+    it('uses ALGOLIA_INDEX_NAME when flag is false', async () => {
+      getConfig.mockReturnValue(APP_CONFIG);
+      mockedUseEnterpriseFeatures.mockReturnValue({ data: { useAlgoliaIndexV2: false } });
+
+      const { result } = renderHook(
+        () => useAlgoliaSearch(),
+        {
+          wrapper: ({ children }) => (
+            <Wrapper initialEntries={[searchRoute]}>{children}</Wrapper>
+          ),
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.searchIndex).toEqual(
+          expect.objectContaining({ indexName: APP_CONFIG.ALGOLIA_INDEX_NAME }),
+        );
+      });
+    });
+
+    it('falls back to ALGOLIA_INDEX_NAME when flag is true but v2 env var is unset', async () => {
+      getConfig.mockReturnValue({ ...APP_CONFIG, ALGOLIA_INDEX_NAME_V2: null });
+      mockedUseEnterpriseFeatures.mockReturnValue({ data: { useAlgoliaIndexV2: true } });
+
+      const { result } = renderHook(
+        () => useAlgoliaSearch(),
+        {
+          wrapper: ({ children }) => (
+            <Wrapper initialEntries={[searchRoute]}>{children}</Wrapper>
+          ),
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.searchIndex).toEqual(
+          expect.objectContaining({ indexName: APP_CONFIG.ALGOLIA_INDEX_NAME }),
+        );
+      });
+    });
+
+    it('respects an explicit indexName argument regardless of the flag', async () => {
+      const explicitIndex = 'explicit-override-index';
+      getConfig.mockReturnValue(APP_CONFIG);
+      mockedUseEnterpriseFeatures.mockReturnValue({ data: { useAlgoliaIndexV2: true } });
+
+      const { result } = renderHook(
+        () => useAlgoliaSearch(explicitIndex),
+        {
+          wrapper: ({ children }) => (
+            <Wrapper initialEntries={[searchRoute]}>{children}</Wrapper>
+          ),
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.searchIndex).toEqual(
+          expect.objectContaining({ indexName: explicitIndex }),
+        );
+      });
     });
   });
 });
