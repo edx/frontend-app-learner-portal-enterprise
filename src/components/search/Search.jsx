@@ -219,13 +219,14 @@ const Search = () => {
                   filter={videoFilter}
                   showVideosBanner={showVideosBanner}
                   hideVideosBanner={hideVideosBanner}
+                  indexName={searchIndex.indexName}
                 />
               )}
             </Stack>
           )
         /* render a single contentType if the refinement
             exists and is either a course, program or learnerpathway */
-          : <ContentTypeSearchResultsContainer contentType={contentType[0]} />}
+          : <ContentTypeSearchResultsContainer contentType={contentType[0]} indexName={searchIndex.indexName} />}
       </InstantSearch>
       <IntegrationWarningModal isEnabled={enterpriseCustomer.showIntegrationWarning} />
     </>

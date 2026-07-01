@@ -29,6 +29,7 @@ const SearchCourse = ({ filter, indexName }) => {
       <SearchResults
         hitComponent={SearchCourseCard}
         title={COURSE_TITLE}
+        indexName={indexName}
         translatedTitle={
           intl.formatMessage({
             id: 'enterprise.search.page.course.section.translated.title',

@@ -30,6 +30,7 @@ const SearchProgram = ({ filter, indexName }) => {
       <SearchResults
         hitComponent={SearchProgramCard}
         title={PROGRAM_TITLE}
+        indexName={indexName}
         translatedTitle={
           intl.formatMessage({
             id: 'enterprise.search.page.program.section.translated.title',

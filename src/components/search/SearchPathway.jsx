@@ -31,6 +31,7 @@ const SearchPathway = ({ filter, indexName }) => {
       <SearchResults
         hitComponent={SearchPathwayCard}
         title={PATHWAY_TITLE}
+        indexName={indexName}
         translatedTitle={
           intl.formatMessage({
             id: 'enterprise.search.page.pathway.section.translated.title',
