@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
-import { getConfig } from '@edx/frontend-platform/config';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import { NUM_RESULTS_PATHWAY, PATHWAY_TITLE } from './constants';
@@ -12,18 +11,18 @@ import SearchPathwayCard from '../pathway/SearchPathwayCard';
  * Renders the pathway-specific Algolia search results section.
  *
  * @component
- * @param {{ filter: string }} props
+ * @param {{ filter: string, indexName: string }} props
  * @param {string} props.filter - A fully formed Algolia filter string that already includes
  * the `content_type:pathway` clause. This ensures only pathway records are shown in results.
+ * @param {string} props.indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
  *
  * @example
- * <SearchPathway filter="content_type:pathway AND topic:ai" />
+ * <SearchPathway filter="content_type:pathway AND topic:ai" indexName="enterprise_catalog" />
  */
-const SearchPathway = ({ filter }) => {
-  const config = getConfig();
+const SearchPathway = ({ filter, indexName }) => {
   const intl = useIntl();
   return (
-    <Index indexName={config.ALGOLIA_INDEX_NAME} indexId={SEARCH_INDEX_IDS.PATHWAYS}>
+    <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.PATHWAYS}>
       <Configure
         hitsPerPage={NUM_RESULTS_PATHWAY}
         filters={filter}
@@ -48,6 +47,7 @@ const SearchPathway = ({ filter }) => {
 
 SearchPathway.propTypes = {
   filter: PropTypes.string.isRequired,
+  indexName: PropTypes.string.isRequired,
 };
 
 export default SearchPathway;

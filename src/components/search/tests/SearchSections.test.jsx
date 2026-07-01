@@ -97,7 +97,7 @@ describe('SearchSections', () => {
   test('renders the course section with the correct title', () => {
     renderWithRouter(
       <SearchWrapper>
-        <SearchCourse filter={mockFilter} />
+        <SearchCourse filter={mockFilter} indexName="mock-index-name" />
       </SearchWrapper>,
     );
     expect(screen.getByText('Courses (2 results)')).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe('SearchSections', () => {
   test('renders the program section with the correct title', () => {
     renderWithRouter(
       <SearchWrapper>
-        <SearchProgram filter={mockFilter} />
+        <SearchProgram filter={mockFilter} indexName="mock-index-name" />
       </SearchWrapper>,
     );
     expect(screen.getByText('Programs (2 results)')).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('SearchSections', () => {
   test('renders the pathways section with the correct title', () => {
     renderWithRouter(
       <SearchWrapper>
-        <SearchPathway filter={mockFilter} />
+        <SearchPathway filter={mockFilter} indexName="mock-index-name" />
       </SearchWrapper>,
     );
     expect(screen.getByText('Pathways (2 results)')).toBeInTheDocument();

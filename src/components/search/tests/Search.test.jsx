@@ -119,6 +119,7 @@ describe('<Search />', () => {
   }) => {
     useAlgoliaSearch.mockReturnValue({
       searchClient,
+      searchIndex: searchClient ? mockSearchIndex : null,
     });
     useCanOnlyViewHighlights.mockReturnValue({ data: canOnlyViewHighlights });
     renderWithRouter(

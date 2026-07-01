@@ -4,7 +4,6 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
-import { getConfig } from '@edx/frontend-platform/config';
 import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -56,7 +55,6 @@ function useSearchPathwayModal() {
 }
 
 const Search = () => {
-  const config = getConfig();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const hasValidLicenseOrSubRequest = useHasValidLicenseOrSubscriptionRequestsEnabled();
   const intl = useIntl();
@@ -163,7 +161,7 @@ const Search = () => {
       <CustomSubscriptionExpirationModal />
       <Helmet title={PAGE_TITLE} />
       <InstantSearch
-        indexName={config.ALGOLIA_INDEX_NAME}
+        indexName={searchIndex.indexName}
         searchClient={searchClient}
       >
         <Configure facetingAfterDistinct filters={filters} />
@@ -211,11 +209,11 @@ const Search = () => {
               {canOnlyViewHighlightSets === false && enterpriseCustomer.enableAcademies
               && <SearchAcademy />}
               {features.ENABLE_PATHWAYS && (canOnlyViewHighlightSets === false)
-              && <SearchPathway filter={pathwayFilter} />}
+              && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
               {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
-              && <SearchProgram filter={programFilter} />}
+              && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
               {canOnlyViewHighlightSets === false
-              && <SearchCourse filter={courseFilter} />}
+              && <SearchCourse filter={courseFilter} indexName={searchIndex.indexName} />}
               {enableVideos && (
                 <SearchVideo
                   filter={videoFilter}
