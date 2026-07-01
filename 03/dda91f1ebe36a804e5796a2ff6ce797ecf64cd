@@ -1,0 +1,46 @@
+src/components/search/SearchProgram.jsx
+  s_defe3b712dc525::t_9a2303b05cf943 33
+src/components/search/SearchPathway.jsx
+  s_defe3b712dc525::t_61e09b88340981 34
+src/components/search/popular-results/PopularResultsIndex.jsx
+  s_defe3b712dc525::t_c87a687cfd6ab1 30,35
+  s_defe3b712dc525::t_7da466660b54e2 6,8
+  s_defe3b712dc525::t_330531fcbe0c16 20
+src/components/search/SearchResults.jsx
+  s_defe3b712dc525::t_52c51caa2e6c23 233
+  s_defe3b712dc525::t_cb04a99f2526f9 39
+  s_defe3b712dc525::t_2cb718267e213e 142
+  s_defe3b712dc525::t_6481aed2f612e9 217
+src/components/search/ContentTypeSearchResultsContainer.jsx
+  s_defe3b712dc525::t_419227f6886113 17
+  s_defe3b712dc525::t_c00988621a07fc 33
+  s_defe3b712dc525::t_ac161162f82fc5 84
+  s_defe3b712dc525::t_6af1c24ea8da42 67
+  s_defe3b712dc525::t_feb152e17a16c5 95-99
+  s_defe3b712dc525::t_674f66f4c92bac 50
+src/components/search/SearchNoResults.jsx
+  s_defe3b712dc525::t_24d97cf10400a5 8,23,30-34
+src/components/search/Search.jsx
+  s_defe3b712dc525::t_e0b7fefa807990 229
+  s_defe3b712dc525::t_3c157f359e1b5d 222
+src/components/search/SearchVideo.jsx
+  s_defe3b712dc525::t_1169ddd7c13f16 37,60,75-79
+src/components/search/SearchCourse.jsx
+  s_defe3b712dc525::t_5a602e5d6bcfa0 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "03dda91f1ebe36a804e5796a2ff6ce797ecf64cd",
+  "prompts": {},
+  "sessions": {
+    "s_defe3b712dc525": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcf05fa3-f510-4071-b9c7-eb86a5a28140",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
