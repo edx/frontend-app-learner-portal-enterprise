@@ -36,6 +36,7 @@ const SearchResults = ({
   showBetaBadge,
   componentId,
   handlers,
+  indexName,
 }) => {
   const { refinements, dispatch } = useContext(SearchContext);
   const nbHits = useNbHitsFromSearchResults(searchResults);
@@ -138,7 +139,7 @@ const SearchResults = ({
     }
     return (
       <Container size="lg" className="search-results">
-        <SearchNoResults title={title} />
+        <SearchNoResults title={title} indexName={indexName} />
       </Container>
     );
   }
@@ -213,6 +214,7 @@ SearchResults.propTypes = {
   isPathwaySearchResults: PropTypes.bool,
   showBetaBadge: PropTypes.bool,
   componentId: PropTypes.string.isRequired,
+  indexName: PropTypes.string,
   handlers: PropTypes.shape({
     searchResults: PropTypes.func,
     noSearchResults: PropTypes.func,
@@ -228,6 +230,7 @@ SearchResults.defaultProps = {
   translatedTitle: undefined,
   isPathwaySearchResults: false,
   showBetaBadge: false,
+  indexName: undefined,
   handlers: {
     searchResults: () => {},
     noSearchResults: () => {},

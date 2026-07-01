@@ -5,7 +5,7 @@ import { ZoomOut } from '@openedx/paragon/icons';
 import { PopularResults } from './popular-results';
 import { getNoResultsMessage } from '../utils/search';
 
-const SearchNoResults = ({ title }) => {
+const SearchNoResults = ({ title, indexName }) => {
   const noResultsMessage = getNoResultsMessage(title);
 
   return (
@@ -20,13 +20,18 @@ const SearchNoResults = ({ title }) => {
         <Alert.Heading>{noResultsMessage.messageTitle}</Alert.Heading>
         {noResultsMessage.messageContent}
       </Alert>
-      <PopularResults title={title} />
+      <PopularResults title={title} indexName={indexName} />
     </>
   );
 };
 
 SearchNoResults.propTypes = {
   title: PropTypes.string.isRequired,
+  indexName: PropTypes.string,
+};
+
+SearchNoResults.defaultProps = {
+  indexName: undefined,
 };
 
 export default SearchNoResults;

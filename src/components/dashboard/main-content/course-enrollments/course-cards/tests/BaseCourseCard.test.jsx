@@ -237,7 +237,7 @@ describe('<BaseCourseCard />', () => {
   });
 
   it.each([{
-    startDate: dayjs().toISOString(),
+    startDate: dayjs().add(1, 'hour').toISOString(),
     endDate: dayjs().add(5, 'days').toISOString(),
     isStarted: false,
   }, {
