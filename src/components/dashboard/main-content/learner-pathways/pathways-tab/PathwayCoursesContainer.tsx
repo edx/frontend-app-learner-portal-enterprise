@@ -1,36 +1,30 @@
-import React, { useCallback, useEffect } from 'react';
-import { Container } from '@openedx/paragon';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { usePathwaysActionBar } from './action-bar';
-import messages from './messages';
+import { usePathwaysCourses } from './state';
+import { PathwayCoursesPage, derivePathwayProgress, getDisplayedPathwayCourses } from './pathway-courses';
+import messages from './pathway-courses/messages';
 
 export interface PathwayCoursesContainerProps {
-  onBackToOnboarding?: () => void;
   onBackToProfile?: () => void;
 }
 
-const mockCourses = [
-  {
-    title: 'Intro to Data', level: 'Beginner', length: '4 weeks', why: 'Build foundational skills',
-  },
-  {
-    title: 'Data Analysis', level: 'Intermediate', length: '6 weeks', why: 'Apply skills to projects',
-  },
-  {
-    title: 'Advanced ML', level: 'Advanced', length: '8 weeks', why: 'Prepare for ML roles',
-  },
-];
+const noOp = () => {};
 
 const PathwayCoursesContainer = ({
-  onBackToOnboarding,
   onBackToProfile,
 }: PathwayCoursesContainerProps) => {
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
+  const storeCourses = usePathwaysCourses();
 
-  const handleBackToOnboarding = useCallback(() => {
-    onBackToOnboarding?.();
-  }, [onBackToOnboarding]);
+  const courses = getDisplayedPathwayCourses(storeCourses);
+  // `state.progress` is reserved for a future workflow-computed value (see
+  // generatePathwayWorkflow.ts) that may not be derivable client-side from
+  // the displayed course list alone. Until that workflow exists, derive
+  // progress from the same courses shown in the table so the summary card
+  // and table never disagree.
+  const progress = useMemo(() => derivePathwayProgress(courses), [courses]);
 
   const handleBackToProfile = useCallback(() => {
     onBackToProfile?.();
@@ -40,52 +34,36 @@ const PathwayCoursesContainer = ({
     registerActions({
       primary: {
         id: 'pathway-adjust',
-        label: messages.adjustMyPathway,
+        label: messages.adjustPathway,
         variant: 'secondary',
         type: 'button',
-        onClick: handleBackToOnboarding,
+        onClick: handleBackToProfile,
         testId: 'pathway-adjust-button',
       },
       secondary: [
         {
-          id: 'pathway-view-profile',
-          label: messages.viewProfile,
-          variant: 'secondary',
+          id: 'pathway-view-pathway',
+          label: messages.viewPathway,
+          variant: 'tertiary',
           type: 'button',
-          onClick: handleBackToProfile,
-          testId: 'pathway-view-profile-button',
+          onClick: noOp,
+          testId: 'pathway-view-pathway-button',
         },
         {
           id: 'pathway-view-quiz',
-          label: messages.viewOnboardingQuiz,
+          label: messages.viewQuiz,
           variant: 'tertiary',
           type: 'button',
-          onClick: handleBackToOnboarding,
-          testId: 'pathway-view-onboarding-button',
+          onClick: noOp,
+          testId: 'pathway-view-quiz-button',
         },
       ],
       alignment: 'split',
     });
     return () => clearActions();
-  }, [handleBackToOnboarding, handleBackToProfile, registerActions, clearActions, intl]);
+  }, [handleBackToProfile, registerActions, clearActions, intl]);
 
-  return (
-    <section data-testid="pathway-container">
-      <Container fluid>
-        <h2>Your Pathway</h2>
-        <div data-testid="pathway-course-list">
-          {mockCourses.map((c, i) => (
-            <div key={c.title} data-testid={`pathway-course-${i}`} className="mb-3 p-2 border rounded">
-              <strong>{c.title}</strong>
-              <div>Level: {c.level}</div>
-              <div>Length: {c.length}</div>
-              <div>Why this fits you: {c.why}</div>
-            </div>
-          ))}
-        </div>
-      </Container>
-    </section>
-  );
+  return <PathwayCoursesPage courses={courses} progress={progress} />;
 };
 
 export default PathwayCoursesContainer;
