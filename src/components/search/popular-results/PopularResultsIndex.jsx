@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
-import { getConfig } from '@edx/frontend-platform/';
 import PopularResults from './PopularResults';
 import { NUM_RESULTS_TO_DISPLAY } from './data/constants';
 import { getContentTypeFromTitle } from '../../utils/search';
-import { useContentTypeFilter, useDefaultSearchFilters } from '../../app/data';
+import {
+  useAlgoliaSearch, useContentTypeFilter, useDefaultSearchFilters,
+} from '../../app/data';
 
 const PopularResultsIndex = ({ title, numberResultsToDisplay }) => {
   const filters = useDefaultSearchFilters();
-  const config = getConfig();
+  const { searchIndex } = useAlgoliaSearch();
   const contentType = getContentTypeFromTitle(title);
   const {
     contentTypeFilter: defaultFilter,
@@ -19,7 +20,7 @@ const PopularResultsIndex = ({ title, numberResultsToDisplay }) => {
     filters: defaultFilter,
   };
   return (
-    <Index indexName={config.ALGOLIA_INDEX_NAME} indexId={`popular-${title}`}>
+    <Index indexName={searchIndex?.indexName} indexId={`popular-${title}`}>
       <Configure {...searchConfig} />
       <PopularResults title={title} numberResultsToDisplay={numberResultsToDisplay} />
     </Index>
