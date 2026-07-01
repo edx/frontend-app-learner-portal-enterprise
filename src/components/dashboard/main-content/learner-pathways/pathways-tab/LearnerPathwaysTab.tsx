@@ -13,7 +13,6 @@ const LearnerPathwaysTab = () => {
   const section = usePathwaysStore(selectors.section);
   const setSection = usePathwaysStore((state) => state.setSection);
 
-  const handleBackToOnboarding = useCallback(() => setSection('onboarding'), [setSection]);
   const handleBackToProfile = useCallback(() => setSection('profile'), [setSection]);
   const handleNext = useCallback(() => setSection('pathway'), [setSection]);
 
@@ -32,10 +31,7 @@ const LearnerPathwaysTab = () => {
             <CareerSelectionContainer onNext={handleNext} />
           )}
           {section === VIEWS.PATHWAY && (
-            <PathwayCoursesContainer
-              onBackToOnboarding={handleBackToOnboarding}
-              onBackToProfile={handleBackToProfile}
-            />
+            <PathwayCoursesContainer onBackToProfile={handleBackToProfile} />
           )}
         </Container>
       </div>
