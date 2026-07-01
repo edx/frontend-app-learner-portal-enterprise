@@ -2,7 +2,12 @@ import { screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { SearchContext } from '@2uinc/frontend-enterprise-catalog-search';
 import { AppContext } from '@edx/frontend-platform/react';
-import { resetMockReactInstantSearch, setFakeHits } from '../../skills-quiz/__mocks__/react-instantsearch-dom';
+import {
+  resetMockReactInstantSearch,
+  setFakeHits,
+  getCapturedInstantSearchProps,
+  resetCapturedInstantSearchProps,
+} from '../../skills-quiz/__mocks__/react-instantsearch-dom';
 import { generateTestPermutations, renderWithRouter } from '../../../utils/tests';
 import '@testing-library/jest-dom';
 import Search from '../Search';
@@ -87,6 +92,7 @@ describe('<Search />', () => {
   });
   afterEach(() => {
     resetMockReactInstantSearch();
+    resetCapturedInstantSearchProps();
   });
   it('renders the video beta banner component', () => {
     features.FEATURE_ENABLE_VIDEO_CATALOG = true;
@@ -107,6 +113,41 @@ describe('<Search />', () => {
     );
 
     expect(screen.queryByText('Videos Now Available with Your Subscription')).toBeNull();
+  });
+  it('renders SearchPathway with the resolved index name when ENABLE_PATHWAYS is true', () => {
+    const originalEnablePathways = features.ENABLE_PATHWAYS;
+    features.ENABLE_PATHWAYS = true;
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+    expect(screen.getByText('Pathways (2 results)')).toBeInTheDocument();
+    features.ENABLE_PATHWAYS = originalEnablePathways;
+  });
+  it('renders SearchProgram with the resolved index name when ENABLE_PROGRAMS is true', () => {
+    const originalEnablePrograms = features.ENABLE_PROGRAMS;
+    features.ENABLE_PROGRAMS = true;
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+    expect(screen.getByText('Programs (2 results)')).toBeInTheDocument();
+    features.ENABLE_PROGRAMS = originalEnablePrograms;
+  });
+  it('passes the resolved index name from useAlgoliaSearch to InstantSearch', () => {
+    useAlgoliaSearch.mockReturnValue({
+      searchClient: mockSearchClient,
+      searchIndex: { indexName: 'enterprise_catalog_v2' },
+    });
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+    const [instantSearchProps] = getCapturedInstantSearchProps();
+    expect(instantSearchProps.indexName).toBe('enterprise_catalog_v2');
   });
   it.each(
     generateTestPermutations({
