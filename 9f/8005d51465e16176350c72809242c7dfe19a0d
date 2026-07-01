@@ -1,0 +1,35 @@
+src/components/search/SearchCourse.jsx
+  s_defe3b712dc525::t_338e684ee4b2d7 47
+  s_defe3b712dc525::t_130bd7ab46514e 12,15,18,20,23
+src/components/search/Search.jsx
+  s_defe3b712dc525::t_e375c95c54b5b0 212,214,216
+  s_defe3b712dc525::t_3dae34183bd43d 164
+src/components/search/SearchProgram.jsx
+  s_defe3b712dc525::t_035ab3b8ed5407 48
+  s_defe3b712dc525::t_496bfc6bead680 13,16,19,21,24
+src/components/search/SearchPathway.jsx
+  s_defe3b712dc525::t_5dd96db1be65e7 14,17,20,22,25
+  s_defe3b712dc525::t_e11e702a1388b6 50
+src/components/search/tests/SearchSections.test.jsx
+  s_defe3b712dc525::t_5a6b2b95a2f6ef 117
+  s_defe3b712dc525::t_1ed9622f105d52 100
+  s_defe3b712dc525::t_e6769498074176 126
+src/components/search/tests/Search.test.jsx
+  s_defe3b712dc525::t_ff5e434ead1986 122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "9f8005d51465e16176350c72809242c7dfe19a0d",
+  "prompts": {},
+  "sessions": {
+    "s_defe3b712dc525": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcf05fa3-f510-4071-b9c7-eb86a5a28140",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
