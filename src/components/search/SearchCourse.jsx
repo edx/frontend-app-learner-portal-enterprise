@@ -30,10 +30,14 @@ import SearchCourseCard from './SearchCourseCard';
  *   handlers={{ searchResults: onResults, noSearchResults: onEmpty }}
  * />
  */
-const SearchCourse = ({
-  filter, indexName, handlers,
-}) => {
+const SearchCourse = ({ filter, indexName, sectionTitle }) => {
   const intl = useIntl();
+  const translatedTitle = intl.formatMessage({
+    id: 'enterprise.search.page.course.section.translated.title',
+    defaultMessage: 'Courses',
+    description: 'Translated title for the enterprise search page course section.',
+  });
+
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
       <Configure
@@ -45,14 +49,7 @@ const SearchCourse = ({
         hitComponent={SearchCourseCard}
         title={COURSE_TITLE}
         indexName={indexName}
-        handlers={handlers}
-        translatedTitle={
-          intl.formatMessage({
-            id: 'enterprise.search.page.course.section.translated.title',
-            defaultMessage: 'Courses',
-            description: 'Translated title for the enterprise search page course section.',
-          })
-        }
+        translatedTitle={sectionTitle || translatedTitle}
         componentId={SEARCH_INDEX_IDS.COURSE}
       />
     </Index>
@@ -62,14 +59,11 @@ const SearchCourse = ({
 SearchCourse.propTypes = {
   filter: PropTypes.string.isRequired,
   indexName: PropTypes.string.isRequired,
-  handlers: PropTypes.shape({
-    searchResults: PropTypes.func,
-    noSearchResults: PropTypes.func,
-  }),
+  sectionTitle: PropTypes.string,
 };
 
 SearchCourse.defaultProps = {
-  handlers: undefined,
+  sectionTitle: undefined,
 };
 
 export default SearchCourse;
