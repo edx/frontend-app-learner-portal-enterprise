@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
+import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -61,7 +62,18 @@ const Search = () => {
   const navigate = useNavigate();
 
   const { refinements } = useContext(SearchContext);
-  const { content_type: contentType } = refinements;
+  const {
+    content_type: contentType,
+    learning_type: learningType,
+  } = refinements;
+  const isExecutiveEducationSelected = learningType?.includes(LEARNING_TYPE_EXECUTIVE_EDUCATION);
+
+  const executiveEducationSectionTitle = intl.formatMessage({
+    id: 'enterprise.search.page.executive.education.section.translated.title',
+    defaultMessage: 'Executive Education',
+    description: 'Translated title for the enterprise search page executive education section.',
+  });
+
   const filters = useDefaultSearchFilters();
   const {
     courseFilter,
@@ -206,15 +218,25 @@ const Search = () => {
             <Stack className="my-5" gap={5}>
               {shouldShowVideosBanner && <VideoBanner />}
               {!hasRefinements && <ContentHighlights />}
-              {canOnlyViewHighlightSets === false && enterpriseCustomer.enableAcademies
+              {canOnlyViewHighlightSets === false
+              && enterpriseCustomer.enableAcademies
+              && !isExecutiveEducationSelected
               && <SearchAcademy />}
-              {features.ENABLE_PATHWAYS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PATHWAYS
+              && (canOnlyViewHighlightSets === false)
+              && !isExecutiveEducationSelected
               && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
-              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false) && !isExecutiveEducationSelected
               && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
               {canOnlyViewHighlightSets === false
-              && <SearchCourse filter={courseFilter} indexName={searchIndex.indexName} />}
-              {enableVideos && (
+              && (
+                <SearchCourse
+                  filter={courseFilter}
+                  indexName={searchIndex.indexName}
+                  sectionTitle={isExecutiveEducationSelected ? executiveEducationSectionTitle : undefined}
+                />
+              )}
+              {enableVideos && !isExecutiveEducationSelected && (
                 <SearchVideo
                   filter={videoFilter}
                   showVideosBanner={showVideosBanner}
