@@ -17,8 +17,14 @@ import SearchCourseCard from './SearchCourseCard';
  * @example
  * <SearchCourse filter="content_type:course AND level:beginner" indexName="enterprise_catalog" />
  */
-const SearchCourse = ({ filter, indexName }) => {
+const SearchCourse = ({ filter, indexName, sectionTitle }) => {
   const intl = useIntl();
+  const translatedTitle = intl.formatMessage({
+    id: 'enterprise.search.page.course.section.translated.title',
+    defaultMessage: 'Courses',
+    description: 'Translated title for the enterprise search page course section.',
+  });
+
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
       <Configure
@@ -30,13 +36,7 @@ const SearchCourse = ({ filter, indexName }) => {
         hitComponent={SearchCourseCard}
         title={COURSE_TITLE}
         indexName={indexName}
-        translatedTitle={
-          intl.formatMessage({
-            id: 'enterprise.search.page.course.section.translated.title',
-            defaultMessage: 'Courses',
-            description: 'Translated title for the enterprise search page course section.',
-          })
-        }
+        translatedTitle={sectionTitle || translatedTitle}
         componentId={SEARCH_INDEX_IDS.COURSE}
       />
     </Index>
@@ -46,6 +46,11 @@ const SearchCourse = ({ filter, indexName }) => {
 SearchCourse.propTypes = {
   filter: PropTypes.string.isRequired,
   indexName: PropTypes.string.isRequired,
+  sectionTitle: PropTypes.string,
+};
+
+SearchCourse.defaultProps = {
+  sectionTitle: undefined,
 };
 
 export default SearchCourse;
