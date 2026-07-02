@@ -248,7 +248,13 @@ const Search = () => {
           )
         /* render a single contentType if the refinement
             exists and is either a course, program or learnerpathway */
-          : <ContentTypeSearchResultsContainer contentType={contentType[0]} indexName={searchIndex.indexName} />}
+          : (
+            <ContentTypeSearchResultsContainer
+              contentType={contentType[0]}
+              indexName={searchIndex.indexName}
+              sectionTitle={isExecutiveEducationSelected && contentType[0] === 'course' ? executiveEducationSectionTitle : undefined}
+            />
+          )}
       </InstantSearch>
       <IntegrationWarningModal isEnabled={enterpriseCustomer.showIntegrationWarning} />
     </>

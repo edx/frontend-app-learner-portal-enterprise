@@ -111,8 +111,7 @@ const SearchResults = ({
         </div>
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nbHits, query, title],
+    [nbHits, query, title, translatedTitle, showBetaBadge, componentId, intl],
   );
 
   useEffect(() => {
