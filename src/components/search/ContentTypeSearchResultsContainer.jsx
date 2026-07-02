@@ -14,7 +14,7 @@ import SearchProgramCard from './SearchProgramCard';
 import SearchCourseCard from './SearchCourseCard';
 import SearchVideoCard from './SearchVideoCard';
 
-const ContentTypeSearchResultsContainer = ({ contentType }) => {
+const ContentTypeSearchResultsContainer = ({ contentType, indexName }) => {
   const intl = useIntl();
 
   // Specified content type is pathways
@@ -30,6 +30,7 @@ const ContentTypeSearchResultsContainer = ({ contentType }) => {
           description: 'Translated title for the enterprise search page show all pathways section',
         })}
         contentType={CONTENT_TYPE_PATHWAY}
+        indexName={indexName}
       />
     );
   }
@@ -46,6 +47,7 @@ const ContentTypeSearchResultsContainer = ({ contentType }) => {
           description: 'Translated title for the enterprise search page show all programs section.',
         })}
         contentType={CONTENT_TYPE_PROGRAM}
+        indexName={indexName}
       />
     );
   }
@@ -62,6 +64,7 @@ const ContentTypeSearchResultsContainer = ({ contentType }) => {
           description: 'Translated title for the enterprise search page show all courses section.',
         })}
         contentType={CONTENT_TYPE_COURSE}
+        indexName={indexName}
       />
     );
   }
@@ -78,6 +81,7 @@ const ContentTypeSearchResultsContainer = ({ contentType }) => {
           description: 'Translated title for the enterprise search page show all videos section.',
         })}
         contentType={CONTENT_TYPE_VIDEO}
+        indexName={indexName}
       />
     );
   }
@@ -88,6 +92,11 @@ ContentTypeSearchResultsContainer.propTypes = {
   contentType: PropTypes.oneOf(
     [CONTENT_TYPE_PROGRAM, CONTENT_TYPE_PATHWAY, CONTENT_TYPE_COURSE, CONTENT_TYPE_VIDEO],
   ).isRequired,
+  indexName: PropTypes.string,
+};
+
+ContentTypeSearchResultsContainer.defaultProps = {
+  indexName: undefined,
 };
 
 export default ContentTypeSearchResultsContainer;

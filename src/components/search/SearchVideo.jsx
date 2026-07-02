@@ -34,7 +34,7 @@ import SearchVideoCard from './SearchVideoCard';
  * />
  */
 const SearchVideo = ({
-  filter, showVideosBanner, hideVideosBanner,
+  filter, showVideosBanner, hideVideosBanner, indexName,
 }) => {
   const config = getConfig();
   const intl = useIntl();
@@ -57,6 +57,7 @@ const SearchVideo = ({
           })
         }
         componentId={SEARCH_INDEX_IDS.VIDEOS}
+        indexName={indexName}
         handlers={{
           searchResults: showVideosBanner,
           noSearchResults: hideVideosBanner,
@@ -71,6 +72,11 @@ SearchVideo.propTypes = {
   filter: PropTypes.string.isRequired,
   showVideosBanner: PropTypes.func.isRequired,
   hideVideosBanner: PropTypes.func.isRequired,
+  indexName: PropTypes.string,
+};
+
+SearchVideo.defaultProps = {
+  indexName: undefined,
 };
 
 export default SearchVideo;
