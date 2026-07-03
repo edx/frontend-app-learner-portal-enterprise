@@ -5,6 +5,7 @@ import {
   CONTENT_TYPE_PROGRAM,
   CONTENT_TYPE_VIDEO,
   COURSE_TITLE,
+  EXECUTIVE_EDUCATION_TITLE,
   NUM_RESULTS_ACADEMY,
   NUM_RESULTS_COURSE,
   NUM_RESULTS_PATHWAY,
@@ -25,6 +26,7 @@ export const getContentTypeFromTitle = (title) => {
     case PROGRAM_TITLE:
       return CONTENT_TYPE_PROGRAM;
     case COURSE_TITLE:
+    case EXECUTIVE_EDUCATION_TITLE:
       return CONTENT_TYPE_COURSE;
     case PATHWAY_TITLE:
       return CONTENT_TYPE_PATHWAY;
@@ -38,6 +40,7 @@ export const getContentTypeFromTitle = (title) => {
 export const getHitComponentFromTitle = (title) => {
   switch (title) {
     case COURSE_TITLE:
+    case EXECUTIVE_EDUCATION_TITLE:
       return SearchCourseCard;
     case PROGRAM_TITLE:
       return SearchProgramCard;
@@ -53,6 +56,7 @@ export const getHitComponentFromTitle = (title) => {
 export const getNoOfResultsFromTitle = (title) => {
   switch (title) {
     case COURSE_TITLE:
+    case EXECUTIVE_EDUCATION_TITLE:
       return NUM_RESULTS_COURSE;
     case PROGRAM_TITLE:
       return NUM_RESULTS_PROGRAM;
@@ -70,6 +74,7 @@ export const getNoOfResultsFromTitle = (title) => {
 export const getSkeletonCardFromTitle = (title) => {
   switch (title) {
     case COURSE_TITLE:
+    case EXECUTIVE_EDUCATION_TITLE:
       return SearchCourseCard.Skeleton;
     case PROGRAM_TITLE:
       return SearchProgramCard.Skeleton;
