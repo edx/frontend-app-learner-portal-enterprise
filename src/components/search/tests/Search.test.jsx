@@ -21,6 +21,7 @@ import {
 } from '../../app/data';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 import { features } from '../../../config';
+import { CONTENT_TYPE_COURSE } from '../constants';
 import { messages } from '../../search-unavailable-alert/SearchUnavailableAlert';
 
 jest.mock('../../app/data', () => ({
@@ -168,10 +169,29 @@ describe('<Search />', () => {
     expect(screen.queryByText('Pathways (2 results)')).not.toBeInTheDocument();
     expect(screen.queryByText('Videos (2 results)')).not.toBeInTheDocument();
     expect(screen.queryByText('Academies (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show/i })).not.toBeInTheDocument();
 
     features.ENABLE_PROGRAMS = originalEnablePrograms;
     features.ENABLE_PATHWAYS = originalEnablePathways;
     features.FEATURE_ENABLE_VIDEO_CATALOG = originalEnableVideoCatalog;
+  });
+  it('renders executive education results for course content type when Executive Education is selected', () => {
+    renderWithRouter(
+      <SearchWrapper
+        searchContext={{
+          refinements: {
+            content_type: [CONTENT_TYPE_COURSE],
+            learning_type: [LEARNING_TYPE_EXECUTIVE_EDUCATION],
+          },
+          dispatch: () => null,
+        }}
+      >
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.getByText('Executive Education (2 results)')).toBeInTheDocument();
+    expect(screen.queryByText('Courses (2 results)')).not.toBeInTheDocument();
   });
   it('passes the resolved index name from useAlgoliaSearch to InstantSearch', () => {
     useAlgoliaSearch.mockReturnValue({
