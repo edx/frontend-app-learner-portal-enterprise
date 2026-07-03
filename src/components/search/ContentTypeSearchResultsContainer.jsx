@@ -14,7 +14,7 @@ import SearchProgramCard from './SearchProgramCard';
 import SearchCourseCard from './SearchCourseCard';
 import SearchVideoCard from './SearchVideoCard';
 
-const ContentTypeSearchResultsContainer = ({ contentType, indexName, sectionTitle }) => {
+const ContentTypeSearchResultsContainer = ({ contentType, indexName }) => {
   const intl = useIntl();
 
   // Specified content type is pathways
@@ -58,7 +58,7 @@ const ContentTypeSearchResultsContainer = ({ contentType, indexName, sectionTitl
         className="py-5"
         hitComponent={SearchCourseCard}
         title={COURSE_TITLE}
-        translatedTitle={sectionTitle || intl.formatMessage({
+        translatedTitle={intl.formatMessage({
           id: 'enterprise.search.page.show.more.course.section.translated.title',
           defaultMessage: 'Courses',
           description: 'Translated title for the enterprise search page show all courses section.',
@@ -93,12 +93,10 @@ ContentTypeSearchResultsContainer.propTypes = {
     [CONTENT_TYPE_PROGRAM, CONTENT_TYPE_PATHWAY, CONTENT_TYPE_COURSE, CONTENT_TYPE_VIDEO],
   ).isRequired,
   indexName: PropTypes.string,
-  sectionTitle: PropTypes.string,
 };
 
 ContentTypeSearchResultsContainer.defaultProps = {
   indexName: undefined,
-  sectionTitle: undefined,
 };
 
 export default ContentTypeSearchResultsContainer;
