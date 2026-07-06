@@ -151,4 +151,56 @@ describe('CareerSelectionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
     expect(screen.queryByText('Overwrite previous pathway?')).not.toBeInTheDocument();
   });
+
+  it('falls back to the top match when selectedCareerId does not match any visible career', () => {
+    renderPage({ selectedCareerId: 'stale-id-not-in-matches' });
+    expect(screen.getByTestId('career-match-high')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('career-match-medium')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('profile-build-pathway-button')).not.toBeDisabled();
+  });
+
+  it('resets dismissed skills when the selected career changes', async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderPage({ selectedCareerId: 'high' });
+    await user.click(screen.getByLabelText('Dismiss SQL'));
+    expect(screen.queryByText('SQL')).not.toBeInTheDocument();
+
+    rerender(
+      <IntlProvider locale="en">
+        <CareerSelectionPage {...defaults} selectedCareerId="medium" />
+      </IntlProvider>,
+    );
+    expect(screen.getByText('Stakeholder Management')).toBeInTheDocument();
+
+    rerender(
+      <IntlProvider locale="en">
+        <CareerSelectionPage {...defaults} selectedCareerId="high" />
+      </IntlProvider>,
+    );
+    expect(screen.getByText('SQL')).toBeInTheDocument();
+  });
+
+  it('restores dismissed skills when the restore action is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage({ selectedCareerId: 'high' });
+    await user.click(screen.getByLabelText('Dismiss SQL'));
+    expect(screen.queryByText('SQL')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Restore skills' }));
+    expect(screen.getByText('SQL')).toBeInTheDocument();
+    expect(screen.getByText('Data Visualization')).toBeInTheDocument();
+  });
+
+  it('clamps out-of-range match percentages and omits the badge when percentage is missing', () => {
+    renderPage({
+      careerMatches: [
+        { id: 'no-pct', title: 'No Percentage Role' },
+        { id: 'over', title: 'Over Max Role', matchPercentage: 150 },
+        { id: 'under', title: 'Under Min Role', matchPercentage: -10 },
+      ],
+    });
+    const noPctButton = screen.getByTestId('career-match-no-pct');
+    expect(within(noPctButton).queryByText(/% match/)).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('career-match-over')).getByText('100% match')).toBeInTheDocument();
+    expect(screen.queryByTestId('career-match-under')).not.toBeInTheDocument();
+  });
 });

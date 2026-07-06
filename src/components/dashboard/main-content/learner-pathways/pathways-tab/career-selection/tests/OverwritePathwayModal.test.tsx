@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/extend-expect';
+import { createRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -51,5 +52,34 @@ describe('OverwritePathwayModal', () => {
     renderModal({ isOpen: true, isBuildingPathway: true });
     expect(screen.getByRole('button', { name: 'Keep previous pathway' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Build new pathway' })).toBeDisabled();
+  });
+
+  it('returns focus to the trigger element when the modal closes', () => {
+    const triggerRef = createRef<HTMLButtonElement>();
+    const { rerender } = render(
+      <IntlProvider locale="en">
+        <button type="button" ref={triggerRef}>Open</button>
+        <OverwritePathwayModal
+          isOpen
+          onClose={jest.fn()}
+          onConfirm={jest.fn().mockResolvedValue(undefined)}
+          triggerRef={triggerRef}
+        />
+      </IntlProvider>,
+    );
+
+    rerender(
+      <IntlProvider locale="en">
+        <button type="button" ref={triggerRef}>Open</button>
+        <OverwritePathwayModal
+          isOpen={false}
+          onClose={jest.fn()}
+          onConfirm={jest.fn().mockResolvedValue(undefined)}
+          triggerRef={triggerRef}
+        />
+      </IntlProvider>,
+    );
+
+    expect(triggerRef.current).toHaveFocus();
   });
 });
