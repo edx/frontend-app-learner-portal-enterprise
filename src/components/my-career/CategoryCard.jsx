@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Card, useToggle } from '@openedx/paragon';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
-import algoliasearch from 'algoliasearch/lite';
-import { getConfig } from '@edx/frontend-platform/config';
 
 import LevelBars from './LevelBars';
 import SkillsRecommendationCourses from './SkillsRecommendationCourses';
 import { features } from '../../config';
-import { useEnterpriseCustomer, useIsAssignmentsOnlyLearner } from '../app/data';
+import {
+  useAlgoliaSearch, useEnterpriseCustomer, useIsAssignmentsOnlyLearner,
+} from '../app/data';
 
 const CategoryCard = ({ topCategory }) => {
   const { skillsSubcategories } = topCategory;
@@ -19,21 +19,11 @@ const CategoryCard = ({ topCategory }) => {
   const [showSkills, setShowSkillsOn, , toggleShowSkills] = useToggle(false);
   const [showAll, setShowAllOn, setShowAllOff, toggleShowAll] = useToggle(false);
   const [showLess, , setShowLessOff, toggleShowLess] = useToggle(false);
-  const config = getConfig();
   const isAssignmentsLearnerOnly = useIsAssignmentsOnlyLearner();
   const featuredIsCourseSearchDisabled = features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT && isAssignmentsLearnerOnly;
 
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
-  const courseIndex = useMemo(
-    () => {
-      const client = algoliasearch(
-        config.ALGOLIA_APP_ID,
-        config.ALGOLIA_SEARCH_API_KEY,
-      );
-      return client.initIndex(config.ALGOLIA_INDEX_NAME);
-    },
-    [config.ALGOLIA_APP_ID, config.ALGOLIA_INDEX_NAME, config.ALGOLIA_SEARCH_API_KEY],
-  );
+  const { searchIndex: courseIndex } = useAlgoliaSearch();
 
   const filterRenderableSkills = (skills) => {
     const renderableSkills = [];
