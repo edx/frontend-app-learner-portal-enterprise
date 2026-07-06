@@ -1,19 +1,18 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
-import algoliasearch from 'algoliasearch/lite';
 import '@testing-library/jest-dom/extend-expect';
 
 import { renderWithRouter } from '../../../utils/tests';
 import CategoryCard from '../CategoryCard';
 import {
+  useAlgoliaSearch,
   useDefaultSearchFilters,
   useEnterpriseCustomer,
   useIsAssignmentsOnlyLearner,
 } from '../../app/data';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 
-jest.mock('algoliasearch/lite');
 jest.mock('@edx/frontend-platform/i18n', () => ({
   ...jest.requireActual('@edx/frontend-platform/i18n'),
   getLocale: () => 'en',
@@ -79,10 +78,8 @@ describe('<CategoryCard />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useIsAssignmentsOnlyLearner.mockReturnValue(false);
     useDefaultSearchFilters.mockReturnValue(`enterprise_customer_uuids:${mockEnterpriseCustomer.uuid}`);
-    algoliasearch.mockReturnValue({
-      initIndex: jest.fn().mockReturnValue({
-        search: jest.fn().mockResolvedValue({ hits: [] }),
-      }),
+    useAlgoliaSearch.mockReturnValue({
+      searchIndex: { search: jest.fn().mockResolvedValue({ hits: [] }) },
     });
   });
   it('renders the CategoryCard component', async () => {
