@@ -130,7 +130,7 @@ export const usePathways = () => {
     searchIndex: catalogIndex,
     catalogUuidsToCatalogQueryUuids,
     shouldUseSecuredAlgoliaApiKey,
-  } = useAlgoliaSearch(config.ALGOLIA_INDEX_NAME);
+  } = useAlgoliaSearch();
 
   const { searchIndex: catalogAlgoliaSearchIndex } = useCatalogAlgoliaSearch();
 
