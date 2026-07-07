@@ -324,14 +324,14 @@ const Search = () => {
             exists and is either a course, program or learnerpathway */
           : (
             <>
-              {isExecutiveEducationSelected && contentType[0] === CONTENT_TYPE_COURSE && (
+              {isExecutiveEducationSelected && (
                 <SearchExecutiveEducation
                   filter={courseFilter}
                   indexName={searchIndex.indexName}
                   contentType={CONTENT_TYPE_COURSE}
                 />
               )}
-              {(!isExecutiveEducationSelected || contentType[0] !== CONTENT_TYPE_COURSE) && (
+              {!isExecutiveEducationSelected && (
                 <ContentTypeSearchResultsContainer
                   contentType={contentType[0]}
                   indexName={searchIndex.indexName}
