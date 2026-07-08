@@ -56,7 +56,7 @@ describe('LearnerPathwaysTab', () => {
     expect(within(breadcrumbs).getByText('Onboarding Quiz')).toBeInTheDocument();
   });
 
-  it('navigates back from the pathway view using its own back controls', async () => {
+  it('navigates back from the pathway view using its own back control', async () => {
     const user = userEvent.setup();
     renderComponent();
 
@@ -70,15 +70,8 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByTestId('profile-build-pathway-button'));
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
-    // pathway view's own "View Profile" control, not the breadcrumb link
-    await user.click(screen.getByTestId('pathway-view-profile-button'));
+    // pathway view's own "Adjust pathway" control, not the breadcrumb link
+    await user.click(screen.getByTestId('pathway-adjust-button'));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
-
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
-    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
-
-    // pathway view's own "View Onboarding Quiz" control, not the breadcrumb link
-    await user.click(screen.getByTestId('pathway-view-onboarding-button'));
-    expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
   });
 });
