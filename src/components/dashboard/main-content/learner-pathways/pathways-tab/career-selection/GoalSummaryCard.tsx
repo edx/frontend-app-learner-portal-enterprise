@@ -11,8 +11,9 @@ import GoalSummaryReadOnly from './GoalSummaryReadOnly';
 import GoalSummaryEditHeader from './GoalSummaryEditHeader';
 import GoalSummaryReadOnlyHeader from './GoalSummaryReadOnlyHeader';
 import GoalSummaryErrorAlert from './GoalSummaryErrorAlert';
+import type { GoalSummaryFields } from './types';
 
-export type GoalSummaryFields = Pick<LearnerProfile, 'careerGoal' | 'targetIndustry' | 'background' | 'motivation'>;
+export type { GoalSummaryFields } from './types';
 
 export interface GoalSummaryCardProps {
   profile: LearnerProfile;

@@ -3,7 +3,7 @@ import { Col, Row } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import type { Control } from 'react-hook-form';
 
-import type { GoalSummaryFields } from './GoalSummaryCard';
+import type { GoalSummaryFields } from './types';
 import { AutoExpandingTextareaField, requiredNonWhitespace } from '../shared';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../intake/constants';
 import messages from './messages';
