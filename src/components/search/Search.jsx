@@ -3,7 +3,9 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Configure, InstantSearch, connectStateResults } from 'react-instantsearch-dom';
+import {
+  Configure, Index, InstantSearch, connectStateResults,
+} from 'react-instantsearch-dom';
 import { SearchContext, SearchHeader, setRefinementAction } from '@2uinc/frontend-enterprise-catalog-search';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -67,6 +69,8 @@ const hasLatestOfferingFacetHits = (searchResults) => {
   return false;
 };
 
+// connectStateResults binds to the nearest <Index>, so this component must be
+// rendered inside the course <Index> to read course-filtered facet counts only.
 const LatestOfferingsFacetBanner = connectStateResults(
   ({ searchResults, onSeeWhatsNew }) => (
     hasLatestOfferingFacetHits(searchResults)
@@ -132,6 +136,7 @@ const Search = () => {
 
   // Flag to toggle highlights visibility
   const { data: canOnlyViewHighlightSets } = useCanOnlyViewHighlights();
+  const canViewCatalog = canOnlyViewHighlightSets === false;
   const isAssignmentOnlyLearner = useIsAssignmentsOnlyLearner();
   const {
     data: {
@@ -149,25 +154,26 @@ const Search = () => {
   } = useSearchPathwayModal();
 
   const enableVideos = (
-    canOnlyViewHighlightSets === false
+    canViewCatalog
     && features.FEATURE_ENABLE_VIDEO_CATALOG
     && hasValidLicenseOrSubRequest
   );
-  const [pendingCourseScroll, setPendingCourseScroll] = useState(false);
+  const [, setPendingCourseScroll] = useState(false);
 
   const handleCourseSectionUpdated = useCallback(() => {
-    if (!pendingCourseScroll) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      scrollToCourseSection();
-      setPendingCourseScroll(false);
+    setPendingCourseScroll((wasPending) => {
+      if (!wasPending) {
+        return false;
+      }
+      window.requestAnimationFrame(() => {
+        scrollToCourseSection();
+      });
+      return false;
     });
-  }, [pendingCourseScroll]);
+  }, []);
 
   const handleSeeWhatsNew = useCallback(() => {
-    dispatch(setRefinementAction('is_new_content', ['true']));
+    dispatch(setRefinementAction(LATEST_OFFERINGS_ATTRIBUTE, [RECENTLY_ADDED_FACET_VALUE]));
     setPendingCourseScroll(true);
   }, [dispatch]);
 
@@ -206,7 +212,7 @@ const Search = () => {
             <EnterpriseOffersBalanceAlert hasNoEnterpriseOffersBalance={hasNoEnterpriseOffersBalance} />
           )}
           {!hasRefinements && <ContentHighlights />}
-          {canOnlyViewHighlightSets === false
+          {canViewCatalog
             && (
               <Container data-testid="search-unavailable-alert-container" size="lg">
                 <SearchUnavailableAlert />
@@ -233,7 +239,7 @@ const Search = () => {
             clickAnalytics
           />
         )}
-        {canOnlyViewHighlightSets === false && (
+        {canViewCatalog && (
           <div className="search-header-wrapper">
             <SearchHeader
               containerSize="lg"
@@ -260,20 +266,26 @@ const Search = () => {
         {canEnrollWithEnterpriseOffers && shouldDisplayBalanceAlert && (
           <EnterpriseOffersBalanceAlert hasNoEnterpriseOffersBalance={hasNoEnterpriseOffersBalance} />
         )}
+        {canViewCatalog && !contentType?.length && (
+          <Index indexName={searchIndex.indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
+            <Container size="lg" className="mt-4">
+              <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
+            </Container>
+          </Index>
+        )}
 
         {/* No content type refinement  */}
         {!contentType?.length
           ? (
             <Stack className="my-5" gap={5}>
-              <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
               {!hasRefinements && <ContentHighlights />}
-              {canOnlyViewHighlightSets === false && enterpriseCustomer.enableAcademies
+              {canViewCatalog && enterpriseCustomer.enableAcademies
               && <SearchAcademy />}
-              {features.ENABLE_PATHWAYS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PATHWAYS && canViewCatalog
               && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
-              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PROGRAMS && canViewCatalog
               && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
-              {canOnlyViewHighlightSets === false
+              {canViewCatalog
               && (
                 <SearchCourse
                   filter={courseFilter}

@@ -9,15 +9,30 @@ import SearchCourseCard from './SearchCourseCard';
 /**
  * Renders the course-specific Algolia search results.
  *
- * @param {{ filter: string, indexName: string }} props
+ * @param {{
+ *   filter: string,
+ *   indexName: string,
+ *   handlers?: {
+ *     searchResults?: Function,
+ *     noSearchResults?: Function,
+ *   },
+ * }} props
  * @param {string} props.filter - A fully constructed Algolia filter string that already includes the
  * `content_type:course` condition. This filter is applied to restrict results to relevant courses.
  * @param {string} props.indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
+ * @param {{ searchResults?: Function, noSearchResults?: Function }} [props.handlers] - Optional callbacks
+ * forwarded to `SearchResults` and invoked when this section has results or no results.
  *
  * @example
- * <SearchCourse filter="content_type:course AND level:beginner" indexName="enterprise_catalog" />
+ * <SearchCourse
+ *   filter="content_type:course AND level:beginner"
+ *   indexName="enterprise_catalog"
+ *   handlers={{ searchResults: onResults, noSearchResults: onEmpty }}
+ * />
  */
-const SearchCourse = ({ filter, indexName, handlers }) => {
+const SearchCourse = ({
+  filter, indexName, handlers,
+}) => {
   const intl = useIntl();
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.COURSE}>

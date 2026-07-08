@@ -10,6 +10,9 @@ const VideoBanner = ({ onSeeWhatsNew }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
 
   useEffect(() => {
+    if (!enterpriseCustomer?.uuid) {
+      return;
+    }
     sendEnterpriseTrackEvent(
       enterpriseCustomer.uuid,
       'edx.ui.enterprise.learner_portal.latest_offerings_banner.viewed',
@@ -17,15 +20,17 @@ const VideoBanner = ({ onSeeWhatsNew }) => {
   }, [enterpriseCustomer]);
 
   const handleSeeWhatsNew = () => {
-    sendEnterpriseTrackEvent(
-      enterpriseCustomer.uuid,
-      'edx.ui.enterprise.learner_portal.latest_offerings_banner.see_whats_new_clicked',
-    );
+    if (enterpriseCustomer?.uuid) {
+      sendEnterpriseTrackEvent(
+        enterpriseCustomer.uuid,
+        'edx.ui.enterprise.learner_portal.latest_offerings_banner.see_whats_new_clicked',
+      );
+    }
 
     onSeeWhatsNew?.();
   };
   return (
-    <div data-testid="video-banner" className="d-flex justify-content-center">
+    <div data-testid="latest-offerings-banner" className="d-flex justify-content-center">
       <Card orientation="horizontal" className="video-banner-class bg-light-300">
         <Card.Section className="col-9">
           <span className="d-flex justify-content-center align-items-end">

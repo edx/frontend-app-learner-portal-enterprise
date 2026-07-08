@@ -6,6 +6,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 import {
   resetMockReactInstantSearch,
   setFakeHits,
+  setFakeSearchResultsOverride,
   getCapturedInstantSearchProps,
   resetCapturedInstantSearchProps,
 } from '../../skills-quiz/__mocks__/react-instantsearch-dom';
@@ -90,6 +91,7 @@ describe('<Search />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useDefaultSearchFilters.mockReturnValue(mockFilter);
     useHasValidLicenseOrSubscriptionRequestsEnabled.mockReturnValue(true);
+    useCanOnlyViewHighlights.mockReturnValue({ data: false });
     useAlgoliaSearch.mockReturnValue({
       searchClient: mockSearchClient,
       searchIndex: mockSearchIndex,
@@ -105,7 +107,7 @@ describe('<Search />', () => {
         <Search />
       </SearchWrapper>,
     );
-    expect(screen.getByTestId('video-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('latest-offerings-banner')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: "See what's new" })).toBeInTheDocument();
   });
   it('renders correctly when no search results are found', () => {
@@ -117,13 +119,17 @@ describe('<Search />', () => {
       </SearchWrapper>,
     );
 
-    expect(screen.queryByTestId('video-banner')).toBeNull();
+    expect(screen.queryByTestId('latest-offerings-banner')).toBeNull();
   });
 
-  it('dispatches the recently added refinement and scrolls to the course section when the banner CTA is clicked', async () => {
-    const user = userEvent.setup();
-    const mockScrollIntoView = jest.fn();
-    HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
+  it('does not render banner when facet count for recently added is numeric zero', () => {
+    setFakeSearchResultsOverride({
+      facets: {
+        is_new_content: {
+          true: 0,
+        },
+      },
+    });
 
     renderWithRouter(
       <SearchWrapper>
@@ -131,16 +137,117 @@ describe('<Search />', () => {
       </SearchWrapper>,
     );
 
-    await user.click(screen.getByRole('button', { name: "See what's new" }));
+    expect(screen.queryByTestId('latest-offerings-banner')).toBeNull();
+  });
 
-    expect(mockSetRefinementAction).toHaveBeenCalledWith('is_new_content', ['true']);
-    expect(searchContext4.dispatch).toHaveBeenCalledWith({
-      type: 'SET_REFINEMENT',
-      args: ['is_new_content', ['true']],
+  it('does not render banner when learner can only view highlight sets', () => {
+    useCanOnlyViewHighlights.mockReturnValue({ data: true });
+
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.queryByTestId('latest-offerings-banner')).toBeNull();
+  });
+
+  it('renders banner when getFacetValues fallback reports recently added content', () => {
+    setFakeSearchResultsOverride({
+      facets: {
+        is_new_content: {
+          true: 'not-a-number',
+        },
+      },
+      getFacetValues: () => [{ name: 'true', count: 2 }],
     });
-    await waitFor(() => {
-      expect(mockScrollIntoView).toHaveBeenCalled();
+
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.getByTestId('latest-offerings-banner')).toBeInTheDocument();
+  });
+
+  it('does not render banner when getFacetValues fallback has no recently added facet', () => {
+    setFakeSearchResultsOverride({
+      facets: {
+        is_new_content: {
+          true: 'not-a-number',
+        },
+      },
+      getFacetValues: () => [],
     });
+
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.queryByTestId('latest-offerings-banner')).toBeNull();
+  });
+
+  it('does not render banner when latest offerings facet count is not numeric and no fallback is available', () => {
+    setFakeSearchResultsOverride({
+      facets: {
+        is_new_content: {
+          true: 'not-a-number',
+        },
+      },
+      getFacetValues: undefined,
+    });
+
+    renderWithRouter(
+      <SearchWrapper>
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.queryByTestId('latest-offerings-banner')).toBeNull();
+  });
+
+  it('dispatches the recently added refinement and scrolls to the course section when the banner CTA is clicked', async () => {
+    const user = userEvent.setup();
+    const hadScrollIntoView = Object.prototype.hasOwnProperty.call(HTMLElement.prototype, 'scrollIntoView');
+
+    if (!hadScrollIntoView) {
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+        configurable: true,
+        writable: true,
+        value: () => {},
+      });
+    }
+
+    const scrollIntoViewSpy = jest
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => {});
+
+    try {
+      renderWithRouter(
+        <SearchWrapper>
+          <Search />
+        </SearchWrapper>,
+      );
+
+      await user.click(screen.getByRole('button', { name: "See what's new" }));
+
+      expect(mockSetRefinementAction).toHaveBeenCalledWith('is_new_content', ['true']);
+      expect(searchContext4.dispatch).toHaveBeenCalledWith({
+        type: 'SET_REFINEMENT',
+        args: ['is_new_content', ['true']],
+      });
+      await waitFor(() => {
+        expect(scrollIntoViewSpy).toHaveBeenCalled();
+      });
+    } finally {
+      scrollIntoViewSpy.mockRestore();
+      if (!hadScrollIntoView) {
+        delete HTMLElement.prototype.scrollIntoView;
+      }
+    }
   });
   it('renders SearchPathway with the resolved index name when ENABLE_PATHWAYS is true', () => {
     const originalEnablePathways = features.ENABLE_PATHWAYS;
