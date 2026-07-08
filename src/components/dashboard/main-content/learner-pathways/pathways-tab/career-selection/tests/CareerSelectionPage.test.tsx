@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/extend-expect';
+import React from 'react';
 import {
   render, screen, waitFor, within,
 } from '@testing-library/react';
@@ -41,13 +42,23 @@ const matches: CareerMatch[] = [
     skillsToDevelop: ['SQL', 'Data Visualization'],
   },
 ];
+
+const noop = jest.fn();
 const defaults: CareerSelectionPageProps = {
   profile,
   careerMatches: matches,
   onSubmitGoalSummary: jest.fn().mockResolvedValue(undefined),
-  onSelectCareer: jest.fn(),
-  onBuildPathway: jest.fn().mockResolvedValue(undefined),
+  onSelectCareer: noop,
+  isOverwriteOpen: false,
+  onCloseOverwrite: noop,
+  onConfirmOverwrite: jest.fn().mockResolvedValue(undefined),
+  buildButtonRef: React.createRef(),
+  visibleSkills: ['SQL', 'Data Visualization'],
+  dismissedSkillCount: 0,
+  onDismissSkill: noop,
+  onRestoreSkills: noop,
 };
+
 const renderPage = (props: Partial<CareerSelectionPageProps> = {}) => render(
   <IntlProvider locale="en">
     <CareerSelectionPage {...defaults} {...props} />
@@ -82,27 +93,12 @@ describe('CareerSelectionPage', () => {
     ));
   });
 
-  it('dismisses skills and passes remaining skills to pathway generation', async () => {
-    const user = userEvent.setup();
-    const onBuildPathway = jest.fn().mockResolvedValue(undefined);
-    renderPage({ selectedCareerId: 'high', onBuildPathway });
-    await user.click(screen.getByLabelText('Dismiss SQL'));
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
-    await waitFor(() => expect(onBuildPathway).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'high' }),
-      ['Data Visualization'],
-    ));
-  });
-
-  it('shows the edit prompt when no match is above the threshold', async () => {
-    const user = userEvent.setup();
+  it('shows the edit prompt when no match is above the threshold', () => {
     renderPage({
       careerMatches: [{ id: 'weak', title: 'Weak', matchPercentage: 25 }],
+      visibleSkills: [],
     });
     expect(screen.getByTestId('career-matches-empty-state')).toBeInTheDocument();
-    expect(screen.getByTestId('profile-build-pathway-button')).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Edit goal summary' }));
-    expect(screen.getByTestId('goal-summary-submit-button')).toBeInTheDocument();
   });
 
   it('shows the career-matches loading spinner', () => {
@@ -120,87 +116,37 @@ describe('CareerSelectionPage', () => {
     expect(screen.getByText('Matches error message.')).toBeInTheDocument();
   });
 
-  it('disables the build pathway CTA when no career is selected', () => {
-    renderPage({ careerMatches: [], selectedCareerId: null });
-    expect(screen.getByTestId('profile-build-pathway-button')).toBeDisabled();
+  it('renders visible skills passed from the container', () => {
+    renderPage({ visibleSkills: ['Python', 'SQL'] });
+    expect(screen.getByText('Python')).toBeInTheDocument();
+    expect(screen.getByText('SQL')).toBeInTheDocument();
   });
 
-  it('opens the overwrite modal when hasExistingPathway and CTA is clicked', async () => {
-    const user = userEvent.setup();
-    renderPage({ hasExistingPathway: true, selectedCareerId: 'high' });
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
+  it('shows the overwrite modal when isOverwriteOpen is true', () => {
+    renderPage({ isOverwriteOpen: true });
     expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
   });
 
-  it('builds pathway directly when overwrite is confirmed', async () => {
+  it('calls onCloseOverwrite when keep-pathway is clicked', async () => {
     const user = userEvent.setup();
-    const onBuildPathway = jest.fn().mockResolvedValue(undefined);
-    renderPage({ hasExistingPathway: true, selectedCareerId: 'high', onBuildPathway });
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
-    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
-    await waitFor(() => expect(onBuildPathway).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'high' }),
-      expect.any(Array),
-    ));
+    const onCloseOverwrite = jest.fn();
+    renderPage({ isOverwriteOpen: true, onCloseOverwrite });
+    await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
+    expect(onCloseOverwrite).toHaveBeenCalledTimes(1);
   });
 
-  it('closes the overwrite modal when keep-pathway is clicked', async () => {
+  it('calls onConfirmOverwrite when build-new-pathway is clicked', async () => {
     const user = userEvent.setup();
-    renderPage({ hasExistingPathway: true, selectedCareerId: 'high' });
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
-    await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
-    expect(screen.queryByText('Overwrite previous pathway?')).not.toBeInTheDocument();
+    const onConfirmOverwrite = jest.fn().mockResolvedValue(undefined);
+    renderPage({ isOverwriteOpen: true, onConfirmOverwrite });
+    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    expect(onConfirmOverwrite).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the top match when selectedCareerId does not match any visible career', () => {
     renderPage({ selectedCareerId: 'stale-id-not-in-matches' });
     expect(screen.getByTestId('career-match-high')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('career-match-medium')).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByTestId('profile-build-pathway-button')).not.toBeDisabled();
-  });
-
-  it('resets dismissed skills when the selected career changes', async () => {
-    const user = userEvent.setup();
-    const { rerender } = renderPage({ selectedCareerId: 'high' });
-    await user.click(screen.getByLabelText('Dismiss SQL'));
-    expect(screen.queryByText('SQL')).not.toBeInTheDocument();
-
-    rerender(
-      <IntlProvider locale="en">
-        <CareerSelectionPage {...defaults} selectedCareerId="medium" />
-      </IntlProvider>,
-    );
-    expect(screen.getByText('Stakeholder Management')).toBeInTheDocument();
-
-    rerender(
-      <IntlProvider locale="en">
-        <CareerSelectionPage {...defaults} selectedCareerId="high" />
-      </IntlProvider>,
-    );
-    expect(screen.getByText('SQL')).toBeInTheDocument();
-  });
-
-  it('restores dismissed skills when the restore action is clicked', async () => {
-    const user = userEvent.setup();
-    renderPage({ selectedCareerId: 'high' });
-    await user.click(screen.getByLabelText('Dismiss SQL'));
-    expect(screen.queryByText('SQL')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Restore skills' }));
-    expect(screen.getByText('SQL')).toBeInTheDocument();
-    expect(screen.getByText('Data Visualization')).toBeInTheDocument();
-  });
-
-  it('does not fall back to profile skills when the selected career has an empty skillsToDevelop array', () => {
-    renderPage({
-      careerMatches: [
-        {
-          id: 'no-skills', title: 'No Skills Role', matchPercentage: 90, skillsToDevelop: [],
-        },
-      ],
-      selectedCareerId: 'no-skills',
-    });
-    expect(screen.getByTestId('skills-empty-state')).toBeInTheDocument();
-    expect(screen.queryByText('Fallback Skill')).not.toBeInTheDocument();
   });
 
   it('clamps out-of-range match percentages and omits the badge when percentage is missing', () => {
