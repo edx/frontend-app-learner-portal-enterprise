@@ -13,6 +13,7 @@ import {
   CAREER_SELECTION_STUB_PROFILE,
 } from './career-selection/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
+import { PathwaysActionBarProvider } from './action-bar';
 
 jest.mock('./workflows', () => ({
   generateProfileWorkflow: jest.fn().mockResolvedValue(undefined),
@@ -21,7 +22,9 @@ jest.mock('./workflows', () => ({
 
 const renderContainer = (props: Partial<CareerSelectionContainerProps> = {}) => render(
   <IntlProvider locale="en">
-    <CareerSelectionContainer {...props} />
+    <PathwaysActionBarProvider>
+      <CareerSelectionContainer {...props} />
+    </PathwaysActionBarProvider>
   </IntlProvider>,
 );
 
@@ -99,6 +102,24 @@ describe('CareerSelectionContainer', () => {
     await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
     expect(usePathwaysStore.getState().experienceStatus).toBe('pathway_ready');
     expect(usePathwaysStore.getState().selectedCareerId).toBe('reporting-data-analysis-manager');
+  });
+
+  it('does not fall back to profile skills when the selected career has an empty skillsToDevelop array', () => {
+    act(() => {
+      usePathwaysStore.setState({
+        learnerProfile: { ...CAREER_SELECTION_STUB_PROFILE, skills: ['Fallback Skill'] },
+        careerMatches: [
+          {
+            id: 'no-skills', title: 'No Skills Role', matchPercentage: 90, skillsToDevelop: [],
+          },
+        ],
+        selectedCareerId: 'no-skills',
+      });
+    });
+    renderContainer();
+
+    expect(screen.getByTestId('skills-empty-state')).toBeInTheDocument();
+    expect(screen.queryByText('Fallback Skill')).not.toBeInTheDocument();
   });
 
   it('sets a fallback pathway error without surfacing it in the UI when generatePathway rejects', async () => {

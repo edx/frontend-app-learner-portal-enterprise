@@ -57,6 +57,15 @@ const Layout = () => {
           <Outlet />
         </main>
       </ErrorBoundary>
+      <div
+        id="page-action-bar"
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          width: '100%',
+        }}
+      />
       <FooterSlot />
     </EnterprisePage>
   );

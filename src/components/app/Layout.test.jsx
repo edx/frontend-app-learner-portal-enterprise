@@ -194,6 +194,7 @@ describe('Layout', () => {
     expect(screen.getByTestId('site-header')).toBeInTheDocument();
     expect(screen.getByTestId('enterprise-banner')).toBeInTheDocument();
     expect(screen.getByTestId('child-route')).toBeInTheDocument();
+    expect(document.getElementById('page-action-bar')).toBeInTheDocument();
     expect(screen.getByTestId('site-footer')).toBeInTheDocument();
 
     if (isSystemMaintenanceAlertOpen) {

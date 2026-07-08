@@ -1,12 +1,9 @@
-import React from 'react';
-import {
-  Form,
-  Stack,
-} from '@openedx/paragon';
+import React, { useEffect } from 'react';
+import { Form, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { FormProvider, useForm } from 'react-hook-form';
 import { usePathwaysStore } from '../state';
-import IntakeFooterActions from './IntakeFooterActions';
+import { usePathwaysActionBar } from '../action-bar';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
 import IntakeGoalsQuestions from './IntakeGoalsQuestions';
@@ -31,12 +28,17 @@ const emptyDefaultValues: IntakeFormValues = {
   industry: '',
 };
 
+const FORM_ID = 'pathways-intake-form';
+
 const IntakeQuestionsContainer = ({
   onSubmit,
   onSkip,
 }: IntakeQuestionsContainerProps) => {
   const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
   const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
+  const intl = useIntl();
+  const { registerActions, clearActions } = usePathwaysActionBar();
+
   const methods = useForm<IntakeFormValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -48,7 +50,7 @@ const IntakeQuestionsContainer = ({
       industry: onboardingAnswers.industry ?? '',
     },
   });
-  const intl = useIntl();
+
   const handleFormSubmit = methods.handleSubmit((values) => {
     const normalizedValues: IntakeFormValues = {
       motivation: (values.motivation ?? emptyDefaultValues.motivation).trim(),
@@ -60,10 +62,38 @@ const IntakeQuestionsContainer = ({
     onSubmit(normalizedValues);
   });
 
+  // Register submit (and optional skip) in the page-level action bar.
+  // External <button type="submit" form={FORM_ID}> triggers handleFormSubmit
+  // via the native form submit event — react-hook-form validates as normal.
+  useEffect(() => {
+    registerActions({
+      primary: {
+        id: 'intake-submit',
+        label: messages.submitAndReviewProfile,
+        variant: 'primary',
+        type: 'submit',
+        form: FORM_ID,
+        testId: 'intake-submit-button',
+      },
+      secondary: onSkip
+        ? [{
+          id: 'intake-skip',
+          label: messages.skipToDashboard,
+          variant: 'tertiary',
+          type: 'button',
+          onClick: onSkip,
+          testId: 'intake-skip-button',
+        }]
+        : [],
+      alignment: 'end',
+    });
+    return () => clearActions();
+  }, [onSkip, registerActions, clearActions, intl]);
+
   return (
     <section data-testid="intake-questions-container">
       <FormProvider {...methods}>
-        <Form onSubmit={handleFormSubmit} data-testid="intake-form">
+        <Form id={FORM_ID} onSubmit={handleFormSubmit} data-testid="intake-form">
           <Stack gap={4}>
             <IntakeQuestionSection
               title={intl.formatMessage(messages.goalsSectionTitle)}
@@ -77,7 +107,6 @@ const IntakeQuestionsContainer = ({
             >
               <IntakeBackgroundQuestions />
             </IntakeQuestionSection>
-            <IntakeFooterActions onSkip={onSkip} />
           </Stack>
         </Form>
       </FormProvider>

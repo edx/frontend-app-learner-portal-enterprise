@@ -7,6 +7,7 @@ import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../constants';
 import messages from '../messages';
 import { usePathwaysStore } from '../../state';
+import { PathwaysActionBarProvider } from '../../action-bar';
 
 interface MockIntakeQuestionsContainerProps {
   onSubmit?: jest.Mock;
@@ -18,10 +19,12 @@ const MockIntakeQuestionsContainer = ({
   onSkip,
 }: MockIntakeQuestionsContainerProps) => (
   <IntlProvider locale="en">
-    <IntakeQuestionsContainer
-      onSubmit={onSubmit}
-      onSkip={onSkip}
-    />
+    <PathwaysActionBarProvider>
+      <IntakeQuestionsContainer
+        onSubmit={onSubmit}
+        onSkip={onSkip}
+      />
+    </PathwaysActionBarProvider>
   </IntlProvider>
 );
 
