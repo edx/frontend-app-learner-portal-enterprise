@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { AppContext } from '@edx/frontend-platform/react';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -23,10 +23,10 @@ describe('VideoBanner', () => {
   const mockAuthenticatedUser = {
     userId: 'test-user-id',
   };
-  const VideoBannerWrapper = () => (
+  const VideoBannerWrapper = ({ onSeeWhatsNew = jest.fn() }) => (
     <IntlProvider locale="en">
       <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
-        <VideoBanner />
+        <VideoBanner onSeeWhatsNew={onSeeWhatsNew} />
       </AppContext.Provider>
     </IntlProvider>
   );
@@ -39,45 +39,36 @@ describe('VideoBanner', () => {
   it('renders the video banner with correct title and description', () => {
     renderWithRouter(<VideoBannerWrapper />);
     expect(screen.getByText('New!')).toBeInTheDocument();
-    expect(screen.getByText('Videos Now Available with Your Subscription')).toBeInTheDocument();
-    expect(screen.getByText('Transform your potential into success.')).toBeInTheDocument();
+    expect(screen.getByText('Just dropped')).toBeInTheDocument();
+    expect(screen.getByText('Expand your skills with the latest courses and professional certificates.')).toBeInTheDocument();
   });
 
-  it('renders the explore videos button', () => {
+  it('renders the See what\'s new button', () => {
     renderWithRouter(<VideoBannerWrapper />);
 
-    expect(screen.getByText('Explore videos')).toBeInTheDocument();
+    expect(screen.getByText("See what's new")).toBeInTheDocument();
   });
 
   it('calls sendEnterpriseTrackEvent when banner is rendered', () => {
     renderWithRouter(<VideoBannerWrapper />);
     expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
       mockEnterpriseCustomer.uuid,
-      'edx.ui.enterprise.learner_portal.video_banner.viewed',
+      'edx.ui.enterprise.learner_portal.latest_offerings_banner.viewed',
     );
   });
 
-  it('calls sendEnterpriseTrackEvent when explore videos button is clicked', async () => {
+  it('calls sendEnterpriseTrackEvent and the CTA callback when clicked', async () => {
     const user = userEvent.setup();
-    renderWithRouter(<VideoBannerWrapper />);
+    const onSeeWhatsNew = jest.fn();
+    renderWithRouter(<VideoBannerWrapper onSeeWhatsNew={onSeeWhatsNew} />);
 
-    const exploreVideosButton = screen.getByText('Explore videos');
+    const exploreVideosButton = screen.getByText("See what's new");
     await user.click(exploreVideosButton);
 
     expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
       mockEnterpriseCustomer.uuid,
-      'edx.ui.enterprise.learner_portal.video_banner.explore_videos_clicked',
+      'edx.ui.enterprise.learner_portal.latest_offerings_banner.see_whats_new_clicked',
     );
-  });
-
-  it('hover on Beta badge', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<VideoBannerWrapper />);
-    await act(async () => {
-      await user.hover(screen.getByText('Beta'));
-    });
-    await waitFor(() => {
-      expect(screen.getByText('Beta version of the Videos.')).toBeVisible();
-    });
+    expect(onSeeWhatsNew).toHaveBeenCalledTimes(1);
   });
 });

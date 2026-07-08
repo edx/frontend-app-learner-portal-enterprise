@@ -70,8 +70,8 @@ const SearchVideo = ({
 
 SearchVideo.propTypes = {
   filter: PropTypes.string.isRequired,
-  showVideosBanner: PropTypes.func.isRequired,
-  hideVideosBanner: PropTypes.func.isRequired,
+  showVideosBanner: PropTypes.func,
+  hideVideosBanner: PropTypes.func,
   indexName: PropTypes.string,
 };
 

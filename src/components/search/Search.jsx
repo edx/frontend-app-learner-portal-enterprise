@@ -3,8 +3,8 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Configure, InstantSearch } from 'react-instantsearch-dom';
-import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
+import { Configure, InstantSearch, connectStateResults } from 'react-instantsearch-dom';
+import { SearchContext, SearchHeader, setRefinementAction } from '@2uinc/frontend-enterprise-catalog-search';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -36,8 +36,62 @@ import SearchVideo from './SearchVideo';
 import VideoBanner from '../microlearning/VideoBanner';
 import CustomSubscriptionExpirationModal from '../custom-expired-subscription-modal';
 import { SearchUnavailableAlert } from '../search-unavailable-alert';
+import { SEARCH_INDEX_IDS } from '../../constants';
 
-function useSearchPathwayModal() {
+const LATEST_OFFERINGS_ATTRIBUTE = 'is_new_content';
+const RECENTLY_ADDED_FACET_VALUE = 'true';
+
+const hasLatestOfferingFacetHits = (searchResults) => {
+  if (!searchResults) {
+    return false;
+  }
+
+  const rawFacetCount = Number(
+    searchResults.facets?.[LATEST_OFFERINGS_ATTRIBUTE]?.[RECENTLY_ADDED_FACET_VALUE],
+  );
+  if (Number.isFinite(rawFacetCount)) {
+    return rawFacetCount > 0;
+  }
+
+  if (typeof searchResults.getFacetValues === 'function') {
+    const facetValues = searchResults.getFacetValues(LATEST_OFFERINGS_ATTRIBUTE);
+    const values = Array.isArray(facetValues)
+      ? facetValues
+      : facetValues?.data || [];
+    const recentlyAddedFacet = values.find(
+      ({ name }) => String(name) === RECENTLY_ADDED_FACET_VALUE,
+    );
+    return Number(recentlyAddedFacet?.count) > 0;
+  }
+
+  return false;
+};
+
+const LatestOfferingsFacetBanner = connectStateResults(
+  ({ searchResults, onSeeWhatsNew }) => (
+    hasLatestOfferingFacetHits(searchResults)
+      ? <VideoBanner onSeeWhatsNew={onSeeWhatsNew} />
+      : null
+  ),
+);
+
+const scrollToCourseSection = () => {
+  const courseHeading = document.getElementById(SEARCH_INDEX_IDS.COURSE);
+  const courseSection = courseHeading?.closest('.search-results') || courseHeading;
+
+  if (!courseSection) {
+    return false;
+  }
+
+  courseSection.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  });
+
+  return true;
+};
+
+const useSearchPathwayModal = () => {
   const [isLearnerPathwayModalOpen, openLearnerPathwayModal, close] = useToggle(false);
   const { pathwayUUID } = useParams();
   // If a pathwayUUID exists, open the pathway modal.
@@ -52,7 +106,7 @@ function useSearchPathwayModal() {
     isLearnerPathwayModalOpen,
     closePathwayModal: close,
   };
-}
+};
 
 const Search = () => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
@@ -60,7 +114,7 @@ const Search = () => {
   const intl = useIntl();
   const navigate = useNavigate();
 
-  const { refinements } = useContext(SearchContext);
+  const { refinements, dispatch } = useContext(SearchContext);
   const { content_type: contentType } = refinements;
   const filters = useDefaultSearchFilters();
   const {
@@ -94,21 +148,28 @@ const Search = () => {
     closePathwayModal,
   } = useSearchPathwayModal();
 
-  const [shouldShowVideosBanner, setShouldShowVideosBanner] = useState(false);
-
   const enableVideos = (
     canOnlyViewHighlightSets === false
     && features.FEATURE_ENABLE_VIDEO_CATALOG
     && hasValidLicenseOrSubRequest
   );
+  const [pendingCourseScroll, setPendingCourseScroll] = useState(false);
 
-  const showVideosBanner = useCallback(() => {
-    setShouldShowVideosBanner(true);
-  }, []);
+  const handleCourseSectionUpdated = useCallback(() => {
+    if (!pendingCourseScroll) {
+      return;
+    }
 
-  const hideVideosBanner = useCallback(() => {
-    setShouldShowVideosBanner(false);
-  }, []);
+    window.requestAnimationFrame(() => {
+      scrollToCourseSection();
+      setPendingCourseScroll(false);
+    });
+  }, [pendingCourseScroll]);
+
+  const handleSeeWhatsNew = useCallback(() => {
+    dispatch(setRefinementAction('is_new_content', ['true']));
+    setPendingCourseScroll(true);
+  }, [dispatch]);
 
   const PAGE_TITLE = intl.formatMessage({
     id: 'enterprise.search.page.title',
@@ -204,7 +265,7 @@ const Search = () => {
         {!contentType?.length
           ? (
             <Stack className="my-5" gap={5}>
-              {shouldShowVideosBanner && <VideoBanner />}
+              <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
               {!hasRefinements && <ContentHighlights />}
               {canOnlyViewHighlightSets === false && enterpriseCustomer.enableAcademies
               && <SearchAcademy />}
@@ -213,12 +274,19 @@ const Search = () => {
               {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
               && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
               {canOnlyViewHighlightSets === false
-              && <SearchCourse filter={courseFilter} indexName={searchIndex.indexName} />}
+              && (
+                <SearchCourse
+                  filter={courseFilter}
+                  indexName={searchIndex.indexName}
+                  handlers={{
+                    searchResults: handleCourseSectionUpdated,
+                    noSearchResults: handleCourseSectionUpdated,
+                  }}
+                />
+              )}
               {enableVideos && (
                 <SearchVideo
                   filter={videoFilter}
-                  showVideosBanner={showVideosBanner}
-                  hideVideosBanner={hideVideosBanner}
                   indexName={searchIndex.indexName}
                 />
               )}

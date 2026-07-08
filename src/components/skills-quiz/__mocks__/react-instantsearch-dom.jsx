@@ -52,6 +52,11 @@ MockReactInstantSearch.connectStateResults = Component => (props) => (
   <Component
     searchResults={{
       hits: mockState.hits,
+      facets: {
+        is_new_content: {
+          true: mockState.nbHits,
+        },
+      },
       hitsPerPage: 25,
       nbHits: mockState.nbHits,
       nbPages: mockState.nbHits === 0 ? 0 : 1,
