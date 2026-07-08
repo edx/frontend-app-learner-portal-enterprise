@@ -5,14 +5,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
-import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import { CONTENT_TYPE_COURSE, NUM_RESULTS_PER_PAGE } from './constants';
+import { NUM_RESULTS_PER_PAGE } from './constants';
 import SearchProgram from './SearchProgram';
 import SearchCourse from './SearchCourse';
-import SearchExecutiveEducation from './SearchExecutiveEducation';
 import { ContentHighlights } from './content-highlights';
 import CustomSearchFilters from './CustomSearchFilters';
 import { features } from '../../config';
@@ -67,11 +65,6 @@ const Search = () => {
     content_type: contentType,
     learning_type: learningType,
   } = refinements;
-  console.log(refinements);
-  // const updatedContentType = learningType?.includes(LEARNING_TYPE_EXECUTIVE_EDUCATION)
-  //   ? [LEARNING_TYPE_EXECUTIVE_EDUCATION]
-  //   : contentType;
-  console.log(learningType);
   const filters = useDefaultSearchFilters();
   const {
     courseFilter,
@@ -79,6 +72,7 @@ const Search = () => {
     pathwayFilter,
     videoFilter,
     contentTypeFilter,
+    learningTypeFilter,
   } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0], learningType: learningType?.[0] });
 
   const {
@@ -243,13 +237,12 @@ const Search = () => {
         /* render a single contentType if the refinement
             exists and is either a course, program or learnerpathway */
           : (
-            <>
-              <ContentTypeSearchResultsContainer
-                contentType={contentType?.[0]}
-                learningType={learningType?.[0]}
-                indexName={searchIndex.indexName}
-              />
-            </>
+            <ContentTypeSearchResultsContainer
+              contentType={contentType?.[0]}
+              learningType={learningType?.[0]}
+              learningTypeFilter={learningTypeFilter}
+              indexName={searchIndex.indexName}
+            />
           )}
       </InstantSearch>
       <IntegrationWarningModal isEnabled={enterpriseCustomer.showIntegrationWarning} />

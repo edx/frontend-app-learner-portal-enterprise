@@ -1,7 +1,7 @@
+import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import {
   CONTENT_TYPE_COURSE,
   EXECUTIVE_EDUCATION_TITLE,
@@ -10,27 +10,25 @@ import {
 import { SEARCH_INDEX_IDS } from '../../constants';
 import SearchResults from './SearchResults';
 import SearchCourseCard from './SearchCourseCard';
-import { useAlgoliaSearch, useContentTypeFilter, useDefaultSearchFilters } from '../app/data';
 
-const SearchExecutiveEducation = () => {
+/**
+ * Renders the Executive Education-specific Algolia search results.
+ *
+ * @param {{ filter: string, indexName: string }} props
+ * @param {string} props.filter - A fully constructed Algolia filter string that already includes the
+ * `learning_type:"Executive Education"` condition. This filter is applied to restrict results to
+ * relevant Executive Education courses.
+ * @param {string} props.indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
+ */
+const SearchExecutiveEducation = ({ filter, indexName }) => {
   const intl = useIntl();
-  const { indexName } = useAlgoliaSearch();
-  const { filters } = useDefaultSearchFilters();
-  const {
-    learningTypeFilter,
-    contentTypeFilter,
-  } = useContentTypeFilter(
-    {
-      filter: filters,
-      contentType: CONTENT_TYPE_COURSE,
-      learningType: LEARNING_TYPE_EXECUTIVE_EDUCATION,
-    },
-  );
+
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.EXECUTIVE_EDUCATION}>
       <Configure
         hitsPerPage={NUM_RESULTS_COURSE}
-        filters={learningTypeFilter}
+        filters={filter}
+        clickAnalytics
       />
       <SearchResults
         hitComponent={SearchCourseCard}
@@ -42,10 +40,15 @@ const SearchExecutiveEducation = () => {
           description: 'Translated title for the enterprise search page executive education section.',
         })}
         componentId={SEARCH_INDEX_IDS.EXECUTIVE_EDUCATION}
-        contentType={contentTypeFilter}
+        contentType={CONTENT_TYPE_COURSE}
       />
     </Index>
   );
+};
+
+SearchExecutiveEducation.propTypes = {
+  filter: PropTypes.string.isRequired,
+  indexName: PropTypes.string.isRequired,
 };
 
 export default SearchExecutiveEducation;

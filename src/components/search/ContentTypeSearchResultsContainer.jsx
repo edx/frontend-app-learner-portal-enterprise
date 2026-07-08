@@ -1,9 +1,10 @@
 import { useIntl } from '@edx/frontend-platform/i18n';
 import PropTypes from 'prop-types';
+import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import {
   CONTENT_TYPE_COURSE,
   CONTENT_TYPE_PATHWAY,
-  CONTENT_TYPE_PROGRAM, CONTENT_TYPE_VIDEO, COURSE_TITLE, EXECUTIVE_EDUCATION_TITLE,
+  CONTENT_TYPE_PROGRAM, CONTENT_TYPE_VIDEO, COURSE_TITLE,
   PATHWAY_TITLE,
   PROGRAM_TITLE,
   VIDEO_TITLE,
@@ -13,12 +14,21 @@ import SearchPathwayCard from '../pathway/SearchPathwayCard';
 import SearchProgramCard from './SearchProgramCard';
 import SearchCourseCard from './SearchCourseCard';
 import SearchVideoCard from './SearchVideoCard';
-import {LEARNING_TYPE_EXECUTIVE_EDUCATION} from "@2uinc/frontend-enterprise-catalog-search/data/constants";
-import SearchExecutiveEducation from "./SearchExecutiveEducation";
+import SearchExecutiveEducation from './SearchExecutiveEducation';
 
-const ContentTypeSearchResultsContainer = ({ contentType, learningType, indexName }) => {
+const ContentTypeSearchResultsContainer = ({
+  contentType, learningType, learningTypeFilter, indexName,
+}) => {
   const intl = useIntl();
-  console.log({contentType, learningType});
+
+  // Executive Education takes priority: the "Executive Education" refinement is
+  // often accompanied by a `content_type: course` refinement, so this check must
+  // run before the content-type-specific branches below.
+  if (learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
+    return (
+      <SearchExecutiveEducation filter={learningTypeFilter} indexName={indexName} />
+    );
+  }
   // Specified content type is pathways
   if (contentType === CONTENT_TYPE_PATHWAY) {
     return (
@@ -87,23 +97,22 @@ const ContentTypeSearchResultsContainer = ({ contentType, learningType, indexNam
       />
     );
   }
-  // Specified content type is video
-  if (!contentType && learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
-    return (
-      <SearchExecutiveEducation />
-    );
-  }
   return null;
 };
 
 ContentTypeSearchResultsContainer.propTypes = {
   contentType: PropTypes.oneOf(
     [CONTENT_TYPE_PROGRAM, CONTENT_TYPE_PATHWAY, CONTENT_TYPE_COURSE, CONTENT_TYPE_VIDEO],
-  ).isRequired,
+  ),
+  learningType: PropTypes.string,
+  learningTypeFilter: PropTypes.string,
   indexName: PropTypes.string,
 };
 
 ContentTypeSearchResultsContainer.defaultProps = {
+  contentType: undefined,
+  learningType: undefined,
+  learningTypeFilter: undefined,
   indexName: undefined,
 };
 
