@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {
   CONTENT_TYPE_COURSE,
   CONTENT_TYPE_PATHWAY,
-  CONTENT_TYPE_PROGRAM, CONTENT_TYPE_VIDEO, COURSE_TITLE,
+  CONTENT_TYPE_PROGRAM, CONTENT_TYPE_VIDEO, COURSE_TITLE, EXECUTIVE_EDUCATION_TITLE,
   PATHWAY_TITLE,
   PROGRAM_TITLE,
   VIDEO_TITLE,
@@ -13,10 +13,12 @@ import SearchPathwayCard from '../pathway/SearchPathwayCard';
 import SearchProgramCard from './SearchProgramCard';
 import SearchCourseCard from './SearchCourseCard';
 import SearchVideoCard from './SearchVideoCard';
+import {LEARNING_TYPE_EXECUTIVE_EDUCATION} from "@2uinc/frontend-enterprise-catalog-search/data/constants";
+import SearchExecutiveEducation from "./SearchExecutiveEducation";
 
-const ContentTypeSearchResultsContainer = ({ contentType, indexName }) => {
+const ContentTypeSearchResultsContainer = ({ contentType, learningType, indexName }) => {
   const intl = useIntl();
-
+  console.log({contentType, learningType});
   // Specified content type is pathways
   if (contentType === CONTENT_TYPE_PATHWAY) {
     return (
@@ -83,6 +85,12 @@ const ContentTypeSearchResultsContainer = ({ contentType, indexName }) => {
         contentType={CONTENT_TYPE_VIDEO}
         indexName={indexName}
       />
+    );
+  }
+  // Specified content type is video
+  if (!contentType && learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
+    return (
+      <SearchExecutiveEducation />
     );
   }
   return null;

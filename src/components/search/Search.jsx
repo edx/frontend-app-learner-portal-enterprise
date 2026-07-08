@@ -67,8 +67,11 @@ const Search = () => {
     content_type: contentType,
     learning_type: learningType,
   } = refinements;
-  const isExecutiveEducationSelected = learningType?.includes(LEARNING_TYPE_EXECUTIVE_EDUCATION);
-
+  console.log(refinements);
+  // const updatedContentType = learningType?.includes(LEARNING_TYPE_EXECUTIVE_EDUCATION)
+  //   ? [LEARNING_TYPE_EXECUTIVE_EDUCATION]
+  //   : contentType;
+  console.log(learningType);
   const filters = useDefaultSearchFilters();
   const {
     courseFilter,
@@ -76,7 +79,7 @@ const Search = () => {
     pathwayFilter,
     videoFilter,
     contentTypeFilter,
-  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0] });
+  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0], learningType: learningType?.[0] });
 
   const {
     searchIndex,
@@ -162,7 +165,6 @@ const Search = () => {
       </>
     );
   }
-
   return (
     <>
       <CustomSubscriptionExpirationModal />
@@ -208,44 +210,33 @@ const Search = () => {
         )}
 
         {/* No content type refinement  */}
-        {!contentType?.length
+        {(!contentType?.length && !learningType?.length)
           ? (
             <Stack className="my-5" gap={5}>
               {shouldShowVideosBanner && <VideoBanner />}
               {!hasRefinements && <ContentHighlights />}
-              {isExecutiveEducationSelected && canOnlyViewHighlightSets === false && (
-                <SearchExecutiveEducation
-                  filter={courseFilter}
-                  indexName={searchIndex.indexName}
-                  contentType={CONTENT_TYPE_COURSE}
-                />
-              )}
-              {!isExecutiveEducationSelected && (
-                <>
-                  {canOnlyViewHighlightSets === false
+              {canOnlyViewHighlightSets === false
                   && enterpriseCustomer.enableAcademies
                   && <SearchAcademy />}
-                  {features.ENABLE_PATHWAYS
+              {features.ENABLE_PATHWAYS
                   && (canOnlyViewHighlightSets === false)
                   && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
-                  {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
                   && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
-                  {canOnlyViewHighlightSets === false
+              {canOnlyViewHighlightSets === false
                   && (
                     <SearchCourse
                       filter={courseFilter}
                       indexName={searchIndex.indexName}
                     />
                   )}
-                  {enableVideos && (
-                    <SearchVideo
-                      filter={videoFilter}
-                      showVideosBanner={showVideosBanner}
-                      hideVideosBanner={hideVideosBanner}
-                      indexName={searchIndex.indexName}
-                    />
-                  )}
-                </>
+              {enableVideos && (
+                <SearchVideo
+                  filter={videoFilter}
+                  showVideosBanner={showVideosBanner}
+                  hideVideosBanner={hideVideosBanner}
+                  indexName={searchIndex.indexName}
+                />
               )}
             </Stack>
           )
@@ -253,19 +244,11 @@ const Search = () => {
             exists and is either a course, program or learnerpathway */
           : (
             <>
-              {isExecutiveEducationSelected && contentType[0] === CONTENT_TYPE_COURSE && (
-                <SearchExecutiveEducation
-                  filter={courseFilter}
-                  indexName={searchIndex.indexName}
-                  contentType={CONTENT_TYPE_COURSE}
-                />
-              )}
-              {(!isExecutiveEducationSelected || contentType[0] !== CONTENT_TYPE_COURSE) && (
-                <ContentTypeSearchResultsContainer
-                  contentType={contentType[0]}
-                  indexName={searchIndex.indexName}
-                />
-              )}
+              <ContentTypeSearchResultsContainer
+                contentType={contentType?.[0]}
+                learningType={learningType?.[0]}
+                indexName={searchIndex.indexName}
+              />
             </>
           )}
       </InstantSearch>

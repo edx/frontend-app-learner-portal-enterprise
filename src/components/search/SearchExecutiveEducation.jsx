@@ -1,24 +1,36 @@
-import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
+import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import {
+  CONTENT_TYPE_COURSE,
   EXECUTIVE_EDUCATION_TITLE,
   NUM_RESULTS_COURSE,
 } from './constants';
 import { SEARCH_INDEX_IDS } from '../../constants';
 import SearchResults from './SearchResults';
 import SearchCourseCard from './SearchCourseCard';
+import { useAlgoliaSearch, useContentTypeFilter, useDefaultSearchFilters } from '../app/data';
 
-const SearchExecutiveEducation = ({ filter, indexName, contentType }) => {
+const SearchExecutiveEducation = () => {
   const intl = useIntl();
-
+  const { indexName } = useAlgoliaSearch();
+  const { filters } = useDefaultSearchFilters();
+  const {
+    learningTypeFilter,
+    contentTypeFilter,
+  } = useContentTypeFilter(
+    {
+      filter: filters,
+      contentType: CONTENT_TYPE_COURSE,
+      learningType: LEARNING_TYPE_EXECUTIVE_EDUCATION,
+    },
+  );
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.EXECUTIVE_EDUCATION}>
       <Configure
         hitsPerPage={NUM_RESULTS_COURSE}
-        filters={filter}
-        clickAnalytics
+        filters={learningTypeFilter}
       />
       <SearchResults
         hitComponent={SearchCourseCard}
@@ -30,20 +42,10 @@ const SearchExecutiveEducation = ({ filter, indexName, contentType }) => {
           description: 'Translated title for the enterprise search page executive education section.',
         })}
         componentId={SEARCH_INDEX_IDS.EXECUTIVE_EDUCATION}
-        contentType={contentType}
+        contentType={contentTypeFilter}
       />
     </Index>
   );
-};
-
-SearchExecutiveEducation.propTypes = {
-  filter: PropTypes.string.isRequired,
-  indexName: PropTypes.string.isRequired,
-  contentType: PropTypes.string,
-};
-
-SearchExecutiveEducation.defaultProps = {
-  contentType: undefined,
 };
 
 export default SearchExecutiveEducation;
