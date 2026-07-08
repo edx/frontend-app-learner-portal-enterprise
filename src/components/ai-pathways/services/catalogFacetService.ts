@@ -66,7 +66,7 @@ export const catalogFacetService = {
         appConfig.ALGOLIA_APP_ID,
         appConfig.ALGOLIA_SEARCH_API_KEY,
       );
-      return searchClient.initIndex(appConfig.ALGOLIA_INDEX_NAME);
+      return searchClient.initIndex(appConfig.ALGOLIA_INDEX_NAME_V2 || appConfig.ALGOLIA_INDEX_NAME);
     })();
 
     // Build facetFilters to scope the snapshot to the enterprise catalog.

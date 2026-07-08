@@ -24,7 +24,7 @@ export default function useCatalogAlgoliaSearch(
   return useMemo(() => {
     const appId = config.ALGOLIA_STAGE_APP_ID_OVERRIDE;
     const apiKey = config.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE;
-    const resolvedIndex = indexName || config.ALGOLIA_INDEX_NAME;
+    const resolvedIndex = indexName || config.ALGOLIA_INDEX_NAME_V2 || config.ALGOLIA_INDEX_NAME;
 
     if (!appId || !apiKey || !resolvedIndex) {
       return { searchClient: null, searchIndex: null };
@@ -38,6 +38,7 @@ export default function useCatalogAlgoliaSearch(
   }, [
     config.ALGOLIA_STAGE_APP_ID_OVERRIDE,
     config.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE,
+    config.ALGOLIA_INDEX_NAME_V2,
     config.ALGOLIA_INDEX_NAME,
     indexName,
   ]);

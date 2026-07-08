@@ -31,6 +31,7 @@ const SearchExecutiveEducation = ({ filter, indexName }) => {
         clickAnalytics
       />
       <SearchResults
+        className="py-5"
         hitComponent={SearchCourseCard}
         title={EXECUTIVE_EDUCATION_TITLE}
         indexName={indexName}

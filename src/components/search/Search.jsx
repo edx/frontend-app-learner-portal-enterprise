@@ -5,12 +5,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Configure, InstantSearch } from 'react-instantsearch-dom';
 import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
+import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import { NUM_RESULTS_PER_PAGE } from './constants';
+import { CONTENT_TYPE_COURSE, NUM_RESULTS_PER_PAGE } from './constants';
 import SearchProgram from './SearchProgram';
 import SearchCourse from './SearchCourse';
+import SearchExecutiveEducation from './SearchExecutiveEducation';
 import { ContentHighlights } from './content-highlights';
 import CustomSearchFilters from './CustomSearchFilters';
 import { features } from '../../config';
@@ -209,6 +211,30 @@ const Search = () => {
             <Stack className="my-5" gap={5}>
               {shouldShowVideosBanner && <VideoBanner />}
               {!hasRefinements && <ContentHighlights />}
+              {canOnlyViewHighlightSets === false
+                  && enterpriseCustomer.enableAcademies
+                  && <SearchAcademy />}
+              {features.ENABLE_PATHWAYS
+                  && (canOnlyViewHighlightSets === false)
+                  && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
+              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+                  && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
+              {canOnlyViewHighlightSets === false
+                  && (
+                    <SearchCourse
+                      filter={courseFilter}
+                      indexName={searchIndex.indexName}
+                    />
+                  )}
+              {enableVideos && (
+                <SearchVideo
+                  filter={videoFilter}
+                  showVideosBanner={showVideosBanner}
+                  hideVideosBanner={hideVideosBanner}
+                  indexName={searchIndex.indexName}
+                  contentType={CONTENT_TYPE_COURSE}
+                />
+              )}
               {canOnlyViewHighlightSets === false
                   && enterpriseCustomer.enableAcademies
                   && <SearchAcademy />}
