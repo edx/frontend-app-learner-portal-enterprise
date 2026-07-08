@@ -190,6 +190,19 @@ describe('CareerSelectionPage', () => {
     expect(screen.getByText('Data Visualization')).toBeInTheDocument();
   });
 
+  it('does not fall back to profile skills when the selected career has an empty skillsToDevelop array', () => {
+    renderPage({
+      careerMatches: [
+        {
+          id: 'no-skills', title: 'No Skills Role', matchPercentage: 90, skillsToDevelop: [],
+        },
+      ],
+      selectedCareerId: 'no-skills',
+    });
+    expect(screen.getByTestId('skills-empty-state')).toBeInTheDocument();
+    expect(screen.queryByText('Fallback Skill')).not.toBeInTheDocument();
+  });
+
   it('clamps out-of-range match percentages and omits the badge when percentage is missing', () => {
     renderPage({
       careerMatches: [

@@ -61,7 +61,13 @@ const OverwritePathwayModal = ({
         <Button
           type="button"
           variant="primary"
-          onClick={() => { onConfirm(); }}
+          onClick={async () => {
+            try {
+              await onConfirm();
+            } catch {
+              // Error state is owned by the parent container; keep modal open for retry.
+            }
+          }}
           disabled={isBuildingPathway}
         >
           {intl.formatMessage(messages.buildNewPathway)}

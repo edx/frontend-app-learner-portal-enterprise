@@ -26,11 +26,15 @@ const BuildPathwayFooter = ({
 }: BuildPathwayFooterProps) => {
   const intl = useIntl();
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (hasExistingPathway) {
       onOpenOverwrite();
-    } else {
-      onBuildPathway();
+      return;
+    }
+    try {
+      await onBuildPathway();
+    } catch {
+      // Error state is owned by the parent container; keep footer available for retry.
     }
   };
 

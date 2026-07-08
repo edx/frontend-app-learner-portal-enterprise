@@ -48,6 +48,15 @@ describe('OverwritePathwayModal', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it('does not throw an unhandled rejection when onConfirm rejects', async () => {
+    const user = userEvent.setup();
+    const onConfirm = jest.fn().mockRejectedValue(new Error('build failed'));
+    renderModal({ isOpen: true, onConfirm });
+    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
+  });
+
   it('disables both action buttons when isBuildingPathway', () => {
     renderModal({ isOpen: true, isBuildingPathway: true });
     expect(screen.getByRole('button', { name: 'Keep previous pathway' })).toBeDisabled();

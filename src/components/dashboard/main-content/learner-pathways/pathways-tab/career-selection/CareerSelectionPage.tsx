@@ -88,11 +88,7 @@ const CareerSelectionPage = ({
   );
 
   const availableSkills = useMemo(
-    () => uniqueSkills(
-      selectedCareer?.skillsToDevelop?.length
-        ? selectedCareer.skillsToDevelop
-        : profile.skills,
-    ),
+    () => uniqueSkills(selectedCareer?.skillsToDevelop ?? profile.skills),
     [profile.skills, selectedCareer],
   );
   const skillsSignature = availableSkills.join(' ');

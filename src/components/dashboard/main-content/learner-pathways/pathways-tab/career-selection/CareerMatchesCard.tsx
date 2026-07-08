@@ -77,31 +77,32 @@ const CareerMatchesCard = ({
                   {orderedMatches.map(({ match, percentage }) => {
                     const isSelected = selectedCareer?.id === match.id;
                     return (
-                      <Button
-                        key={match.id}
-                        type="button"
-                        variant={isSelected ? 'primary' : 'outline-primary'}
-                        className="w-100 d-flex justify-content-between align-items-center text-left mb-2 p-3"
-                        style={{ whiteSpace: 'normal' }}
-                        aria-pressed={isSelected}
-                        onClick={() => onSelectCareer(match.id)}
-                        disabled={isBuildingPathway}
-                        data-testid={`career-match-${match.id}`}
-                      >
-                        <span className="font-weight-bold pr-3">
-                          {match.title}
-                        </span>
-                        {percentage !== null && (
-                          <Badge
-                            variant={isSelected ? 'light' : 'info'}
-                            className="font-weight-bold flex-shrink-0"
-                          >
-                            {intl.formatMessage(messages.matchPercentage, {
-                              percentage,
-                            })}
-                          </Badge>
-                        )}
-                      </Button>
+                      <div key={match.id} role="listitem">
+                        <Button
+                          type="button"
+                          variant={isSelected ? 'primary' : 'outline-primary'}
+                          className="w-100 d-flex justify-content-between align-items-center text-left mb-2 p-3"
+                          style={{ whiteSpace: 'normal' }}
+                          aria-pressed={isSelected}
+                          onClick={() => onSelectCareer(match.id)}
+                          disabled={isBuildingPathway}
+                          data-testid={`career-match-${match.id}`}
+                        >
+                          <span className="font-weight-bold pr-3">
+                            {match.title}
+                          </span>
+                          {percentage !== null && (
+                            <Badge
+                              variant={isSelected ? 'light' : 'info'}
+                              className="font-weight-bold flex-shrink-0"
+                            >
+                              {intl.formatMessage(messages.matchPercentage, {
+                                percentage,
+                              })}
+                            </Badge>
+                          )}
+                        </Button>
+                      </div>
                     );
                   })}
                 </div>

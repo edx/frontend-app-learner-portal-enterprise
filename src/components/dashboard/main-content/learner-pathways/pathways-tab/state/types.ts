@@ -52,11 +52,6 @@ export interface LearnerProfile {
 }
 
 /**
- * Readable alias for an individual skill name string.
- */
-export type Skill = string;
-
-/**
  * Career option presented to the learner as a potential pathway anchor.
  */
 export interface CareerMatch {
@@ -64,7 +59,7 @@ export interface CareerMatch {
   title: string;
   matchPercentage?: number;
   laborMarketTrend?: string;
-  skillsToDevelop?: Skill[];
+  skillsToDevelop?: string[];
 }
 
 /**

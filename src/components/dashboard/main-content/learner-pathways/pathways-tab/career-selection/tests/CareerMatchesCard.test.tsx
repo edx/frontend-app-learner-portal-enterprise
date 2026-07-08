@@ -41,6 +41,12 @@ describe('CareerMatchesCard', () => {
     expect(within(analystBtn).getByText('90% match')).toBeInTheDocument();
   });
 
+  it('exposes each career match as a listitem within the list container', () => {
+    renderCard();
+    expect(screen.getByRole('list', { name: 'Career Matches' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(testMatches.length);
+  });
+
   it('marks the selected career as aria-pressed', () => {
     renderCard({ selectedCareer });
     expect(screen.getByTestId('career-match-analyst')).toHaveAttribute('aria-pressed', 'true');

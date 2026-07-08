@@ -65,6 +65,15 @@ describe('BuildPathwayFooter', () => {
     expect(onBuildPathway).not.toHaveBeenCalled();
   });
 
+  it('does not throw an unhandled rejection when onBuildPathway rejects', async () => {
+    const user = userEvent.setup();
+    const onBuildPathway = jest.fn().mockRejectedValue(new Error('build failed'));
+    renderFooter({ hasExistingPathway: false, onBuildPathway });
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    expect(onBuildPathway).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('career-selection-sticky-footer')).toBeInTheDocument();
+  });
+
   it('shows building spinner and updated label when isBuildingPathway', () => {
     renderFooter({ isBuildingPathway: true });
     expect(screen.getByTestId('profile-build-pathway-button')).toHaveTextContent('Building pathway...');
