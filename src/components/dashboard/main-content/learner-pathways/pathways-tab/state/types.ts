@@ -1,3 +1,5 @@
+import type { LearningIntentResponse } from '../../../../../app/data/services';
+
 /**
  * Experience-level states shown in the learner pathways dashboard flow.
  */
@@ -132,6 +134,8 @@ export interface PathwaysState {
   experienceStatus: PathwaysExperienceStatus;
   section: PathwaysSection;
   onboarding: OnboardingState;
+  /** Learning Intent response, stored so Stage 2 (course search + Recommendation Feedback) can reuse its skills. */
+  learningIntent: LearningIntentResponse | null;
   learnerProfile: LearnerProfile | null;
   careerMatches: CareerMatch[];
   selectedCareerId: string | null;
@@ -153,6 +157,7 @@ export interface PathwaysActions {
   setOnboardingComplete: (isComplete: boolean) => void;
   setOnboardingAnswer: <K extends keyof OnboardingAnswers>(questionKey: K, value: OnboardingAnswers[K]) => void;
   setOnboardingAnswers: (answers: OnboardingAnswers) => void;
+  setLearningIntent: (learningIntent: LearningIntentResponse | null) => void;
   setLearnerProfile: (profile: LearnerProfile | null) => void;
   updateLearnerProfile: (profileUpdates: Partial<LearnerProfile>) => void;
   setCareerMatches: (matches: CareerMatch[]) => void;

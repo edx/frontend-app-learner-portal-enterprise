@@ -5,6 +5,7 @@ export {
   usePathwaysErrors,
   usePathwaysExperienceStatus,
   usePathwaysCareerMatches,
+  usePathwaysLearningIntent,
   usePathwaysLearnerProfile,
   usePathwaysLoading,
   usePathwaysOnboardingAnswers,

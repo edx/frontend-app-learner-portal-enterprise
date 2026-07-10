@@ -16,14 +16,47 @@ import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
 jest.mock('./workflows', () => ({
-  generateProfileWorkflow: jest.fn().mockResolvedValue(undefined),
-  generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
+  generateProfileWorkflow: jest.fn().mockResolvedValue({
+    learningIntent: { skillsRequired: [], skillsPreferred: [], condensedAlgoliaQuery: '' },
+    learnerProfile: {
+      summary: '',
+      careerGoal: '',
+      targetIndustry: '',
+      background: '',
+      motivation: '',
+      learningStyle: '',
+      weeklyTimeCommitment: '',
+      certificatePreference: '',
+      skills: [],
+    },
+    careerMatches: [],
+  }),
+  generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
+
+const mockJobIndex = {} as CareerSelectionContainerProps['jobIndex'];
+const mockCatalogIndex = {} as CareerSelectionContainerProps['catalogIndex'];
+
+const mockGenerateProfileResult = {
+  learningIntent: { skillsRequired: [], skillsPreferred: [], condensedAlgoliaQuery: '' },
+  learnerProfile: {
+    summary: '',
+    careerGoal: '',
+    targetIndustry: '',
+    background: '',
+    motivation: '',
+    learningStyle: '',
+    weeklyTimeCommitment: '',
+    certificatePreference: '',
+    skills: [],
+  },
+  careerMatches: [],
+};
 
 const renderContainer = (props: Partial<CareerSelectionContainerProps> = {}) => render(
   <IntlProvider locale="en">
     <PathwaysActionBarProvider>
-      <CareerSelectionContainer {...props} />
+      <CareerSelectionContainer jobIndex={mockJobIndex} catalogIndex={mockCatalogIndex} {...props} />
     </PathwaysActionBarProvider>
   </IntlProvider>,
 );
@@ -43,8 +76,8 @@ describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     jest.clearAllMocks();
-    jest.mocked(generateProfileWorkflow).mockResolvedValue(undefined);
-    jest.mocked(generatePathwayWorkflow).mockResolvedValue(undefined);
+    jest.mocked(generateProfileWorkflow).mockResolvedValue(mockGenerateProfileResult);
+    jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: [] });
   });
 
   it('hydrates the learner profile and stub career matches on first goal-summary submission', async () => {
@@ -67,6 +100,14 @@ describe('CareerSelectionContainer', () => {
         learnerProfile: { ...CAREER_SELECTION_STUB_PROFILE },
         careerMatches: CAREER_SELECTION_STUB_MATCHES,
       });
+    });
+    // generateProfile now also commits state (see usePathwaysController); this
+    // profile-edit path (submitGoalSummary) is still out of scope for real Learning
+    // Intent reuse, so the mock reflects a workflow call that returns the same
+    // skills the learner already had, rather than the generic empty-skills default.
+    jest.mocked(generateProfileWorkflow).mockResolvedValueOnce({
+      ...mockGenerateProfileResult,
+      learnerProfile: { ...CAREER_SELECTION_STUB_PROFILE },
     });
     renderContainer();
 
@@ -92,14 +133,13 @@ describe('CareerSelectionContainer', () => {
     expect(usePathwaysStore.getState().experienceStatus).not.toBe('profile_ready');
   });
 
-  it('calls onNext and marks the pathway ready when generatePathway resolves', async () => {
+  it('navigates to the pathway section and marks the pathway ready when generatePathway resolves', async () => {
     const user = userEvent.setup();
-    const onNext = jest.fn();
-    renderContainer({ onNext });
+    renderContainer();
 
     await user.click(screen.getByTestId('profile-build-pathway-button'));
 
-    await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(usePathwaysStore.getState().section).toBe('pathway'));
     expect(usePathwaysStore.getState().experienceStatus).toBe('pathway_ready');
     expect(usePathwaysStore.getState().selectedCareerId).toBe('reporting-data-analysis-manager');
   });
@@ -122,19 +162,59 @@ describe('CareerSelectionContainer', () => {
     expect(screen.queryByText('Fallback Skill')).not.toBeInTheDocument();
   });
 
-  it('sets a fallback pathway error without surfacing it in the UI when generatePathway rejects', async () => {
+  it('sets a fallback pathway error without surfacing it in the UI and does not navigate when generatePathway rejects', async () => {
     const user = userEvent.setup();
-    jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce('boom');
-    const onNext = jest.fn();
-    renderContainer({ onNext });
+    jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce(new Error('boom'));
+    renderContainer();
 
     await user.click(screen.getByTestId('profile-build-pathway-button'));
 
     await waitFor(() => {
-      expect(usePathwaysStore.getState().errors.pathwayCourses).toBe('Unable to build the learning pathway.');
+      expect(usePathwaysStore.getState().errors.pathwayCourses).toBe('boom');
     });
-    expect(onNext).not.toHaveBeenCalled();
-    expect(screen.queryByText('Unable to build the learning pathway.')).not.toBeInTheDocument();
+    expect(usePathwaysStore.getState().section).not.toBe('pathway');
+    expect(screen.queryByText('boom')).not.toBeInTheDocument();
     expect(screen.getByTestId('profile-build-pathway-button')).not.toBeDisabled();
+  });
+
+  it('submits the actual selected rendered career, not the first career, when a second career is selected', async () => {
+    const user = userEvent.setup();
+    act(() => {
+      usePathwaysStore.setState({
+        learnerProfile: { ...CAREER_SELECTION_STUB_PROFILE },
+        careerMatches: CAREER_SELECTION_STUB_MATCHES,
+      });
+    });
+    renderContainer();
+
+    await user.click(screen.getByTestId(`career-match-${CAREER_SELECTION_STUB_MATCHES[1].id}`));
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+
+    await waitFor(() => expect(usePathwaysStore.getState().section).toBe('pathway'));
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith(expect.objectContaining({
+      selectedCareer: expect.objectContaining({ id: CAREER_SELECTION_STUB_MATCHES[1].id }),
+    }));
+    expect(usePathwaysStore.getState().selectedCareerId).toBe(CAREER_SELECTION_STUB_MATCHES[1].id);
+  });
+
+  it('disables Build Pathway while the workflow is running and prevents duplicate submissions', async () => {
+    const user = userEvent.setup();
+    let resolveWorkflow: (value: { courses: [] }) => void = () => {};
+    jest.mocked(generatePathwayWorkflow).mockReturnValue(
+      new Promise((resolve) => { resolveWorkflow = resolve; }),
+    );
+    renderContainer();
+
+    const buildButton = screen.getByTestId('profile-build-pathway-button');
+    await user.click(buildButton);
+
+    expect(buildButton).toBeDisabled();
+    expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
+
+    await user.click(buildButton);
+    expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
+
+    resolveWorkflow({ courses: [] });
+    await waitFor(() => expect(usePathwaysStore.getState().section).toBe('pathway'));
   });
 });
