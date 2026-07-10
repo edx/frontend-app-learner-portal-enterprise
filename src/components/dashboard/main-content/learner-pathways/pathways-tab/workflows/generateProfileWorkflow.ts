@@ -1,13 +1,19 @@
 import type { GenerateProfileWorkflowInput } from './types';
 
 /**
- * Workflow layer placeholder between controller actions and service calls.
+ * Integration seam: owns intake/profile-edit -> Learning Intent -> profile mapping.
  *
- * Future workflow (not implemented in this scaffold ticket):
- * 1. Build learner intent payload.
- * 2. Call profile-generation service endpoint(s).
- * 3. Receive learner profile/career-match response.
- * 4. Map response and hydrate Zustand state.
+ * Future flow:
+ * 1. Map intake fields (goal, motivation, background, industry) to a
+ *    LearningIntentRequest (selectedGoals, freeText, knownContext). This mapping
+ *    belongs here, not in the form component or the transport service, and must
+ *    follow the production serializer contract rather than copying the
+ *    ai-pathways prototype's array-combining approach verbatim.
+ * 2. Call fetchLearningIntent (src/components/app/data/services/xpert.ts).
+ * 3. Use the returned skillsRequired/skillsPreferred/condensedAlgoliaQuery to
+ *    perform career/taxonomy retrieval.
+ * 4. Map the results into a LearnerProfile and CareerMatch[] and return them for
+ *    the controller to commit to store state.
  */
 export const generateProfileWorkflow = async (
   input?: GenerateProfileWorkflowInput,
