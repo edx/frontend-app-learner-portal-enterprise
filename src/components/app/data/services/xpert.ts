@@ -4,10 +4,13 @@ import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 
 const LEARNER_PATHWAYS_BASE_PATH = '/api/v1/learner-pathways';
 
+// selectedGoals/knownContext are plain strings, not arrays: the backend's
+// LearningIntentRequestSerializer declares both as CharField (allow_blank=False),
+// so an array here fails validation with "Not a valid string."
 export interface LearningIntentRequest {
-  selectedGoals: string[];
+  selectedGoals: string;
   freeText: string;
-  knownContext?: string[];
+  knownContext: string;
 }
 
 export interface LearningIntentResponse {

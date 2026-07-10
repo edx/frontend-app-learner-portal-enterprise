@@ -29,9 +29,9 @@ describe('fetchLearningIntent', () => {
   });
 
   const mockRequest = {
-    selectedGoals: ['Become a data analyst', 'Software Engineering'],
+    selectedGoals: 'Become a data analyst',
     freeText: 'I want to learn data analysis to switch careers.',
-    knownContext: ['5 years of accounting experience'],
+    knownContext: '5 years of accounting experience',
   };
 
   const mockResponseRaw = {
@@ -54,17 +54,6 @@ describe('fetchLearningIntent', () => {
       selected_goals: mockRequest.selectedGoals,
       free_text: mockRequest.freeText,
       known_context: mockRequest.knownContext,
-    });
-  });
-
-  it('omits known_context cleanly when not provided', async () => {
-    axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
-    const { knownContext, ...requestWithoutKnownContext } = mockRequest;
-    await fetchLearningIntent(requestWithoutKnownContext);
-    expect(JSON.parse(axiosMock.history.post[0].data)).toEqual({
-      selected_goals: mockRequest.selectedGoals,
-      free_text: mockRequest.freeText,
-      known_context: undefined,
     });
   });
 
