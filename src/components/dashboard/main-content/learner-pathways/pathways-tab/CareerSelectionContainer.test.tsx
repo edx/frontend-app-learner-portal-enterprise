@@ -12,46 +12,16 @@ import {
   CAREER_SELECTION_STUB_MATCHES,
   CAREER_SELECTION_STUB_PROFILE,
 } from './career-selection/fixtures';
-import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
+import { generatePathwayWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
 jest.mock('./workflows', () => ({
-  generateProfileWorkflow: jest.fn().mockResolvedValue({
-    learningIntent: { skillsRequired: [], skillsPreferred: [], condensedAlgoliaQuery: '' },
-    learnerProfile: {
-      summary: '',
-      careerGoal: '',
-      targetIndustry: '',
-      background: '',
-      motivation: '',
-      learningStyle: '',
-      weeklyTimeCommitment: '',
-      certificatePreference: '',
-      skills: [],
-    },
-    careerMatches: [],
-  }),
+  generateProfileWorkflow: jest.fn(),
   generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
 
 const mockJobIndex = {} as CareerSelectionContainerProps['jobIndex'];
 const mockCatalogIndex = {} as CareerSelectionContainerProps['catalogIndex'];
-
-const mockGenerateProfileResult = {
-  learningIntent: { skillsRequired: [], skillsPreferred: [], condensedAlgoliaQuery: '' },
-  learnerProfile: {
-    summary: '',
-    careerGoal: '',
-    targetIndustry: '',
-    background: '',
-    motivation: '',
-    learningStyle: '',
-    weeklyTimeCommitment: '',
-    certificatePreference: '',
-    skills: [],
-  },
-  careerMatches: [],
-};
 
 const renderContainer = (props: Partial<CareerSelectionContainerProps> = {}) => render(
   <IntlProvider locale="en">
@@ -76,7 +46,6 @@ describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     jest.clearAllMocks();
-    jest.mocked(generateProfileWorkflow).mockResolvedValue(mockGenerateProfileResult);
     jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: [] });
   });
 
@@ -101,14 +70,6 @@ describe('CareerSelectionContainer', () => {
         careerMatches: CAREER_SELECTION_STUB_MATCHES,
       });
     });
-    // generateProfile now also commits state (see usePathwaysController); this
-    // profile-edit path (submitGoalSummary) is still out of scope for real Learning
-    // Intent reuse, so the mock reflects a workflow call that returns the same
-    // skills the learner already had, rather than the generic empty-skills default.
-    jest.mocked(generateProfileWorkflow).mockResolvedValueOnce({
-      ...mockGenerateProfileResult,
-      learnerProfile: { ...CAREER_SELECTION_STUB_PROFILE },
-    });
     renderContainer();
 
     await submitGoalSummaryEdit(user, 'Director of Analytics');
@@ -119,18 +80,17 @@ describe('CareerSelectionContainer', () => {
     expect(usePathwaysStore.getState().learnerProfile?.skills).toEqual(CAREER_SELECTION_STUB_PROFILE.skills);
   });
 
-  it('surfaces a profile error and does not advance the experience status when generateProfile rejects', async () => {
+  it('applies the edit immediately without any network dependency', async () => {
     const user = userEvent.setup();
-    jest.mocked(generateProfileWorkflow).mockRejectedValueOnce(new Error('network down'));
     renderContainer();
 
     await submitGoalSummaryEdit(user, 'Director of Analytics');
 
     await waitFor(() => {
-      expect(screen.getByText('network down')).toBeInTheDocument();
+      expect(usePathwaysStore.getState().learnerProfile?.careerGoal).toBe('Director of Analytics');
     });
-    expect(usePathwaysStore.getState().errors.learnerProfile).toBe('network down');
-    expect(usePathwaysStore.getState().experienceStatus).not.toBe('profile_ready');
+    expect(usePathwaysStore.getState().experienceStatus).toBe('profile_ready');
+    expect(usePathwaysStore.getState().errors.learnerProfile).toBeNull();
   });
 
   it('navigates to the pathway section and marks the pathway ready when generatePathway resolves', async () => {

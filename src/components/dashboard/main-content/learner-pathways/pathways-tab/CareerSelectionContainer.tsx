@@ -21,11 +21,6 @@ export interface CareerSelectionContainerProps {
   catalogIndex: SearchIndex | null;
 }
 
-const errorMessage = (
-  error: unknown,
-  fallback: string,
-) => (error instanceof Error && error.message ? error.message : fallback);
-
 /** UI adapter to the learner-pathways store/controller/workflow seams. */
 const CareerSelectionContainer = ({
   jobIndex,
@@ -43,9 +38,6 @@ const CareerSelectionContainer = ({
     updateLearnerProfile,
     setCareerMatches,
     setSelectedCareerId,
-    setConstructedPayload,
-    setLoading,
-    setError,
     setExperienceStatus,
   } = usePathwaysStore(
     useShallow((state) => ({
@@ -60,9 +52,6 @@ const CareerSelectionContainer = ({
       updateLearnerProfile: state.updateLearnerProfile,
       setCareerMatches: state.setCareerMatches,
       setSelectedCareerId: state.setSelectedCareerId,
-      setConstructedPayload: state.setConstructedPayload,
-      setLoading: state.setLoading,
-      setError: state.setError,
       setExperienceStatus: state.setExperienceStatus,
     })),
   );
@@ -71,7 +60,7 @@ const CareerSelectionContainer = ({
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
 
-  const { generateProfile, generatePathway } = usePathwaysController({ jobIndex, catalogIndex });
+  const { generatePathway } = usePathwaysController({ jobIndex, catalogIndex });
   const { registerActions, clearActions } = usePathwaysActionBar();
 
   // Ref shared between the portaled action bar button and OverwritePathwayModal.
@@ -116,50 +105,25 @@ const CareerSelectionContainer = ({
     [availableSkills, dismissedSkills],
   );
 
-  // Integration seam: profile edits (careerGoal, targetIndustry, background,
-  // motivation) should route through generateProfileWorkflow — the same path as
-  // intake — not call fetchLearningIntent directly. The workflow recomputes
-  // intent-derived career matches; only commit displayedProfile/careerMatches
-  // after that orchestration succeeds.
-  const submitGoalSummary = async (updates: GoalSummaryFields) => {
+  // Integration seam: a purely local, synchronous edit for now. Recomputing
+  // career matches from an edited profile via Learning Intent + taxonomy search
+  // is intentionally NOT done here yet (see the productionization doc's "Career
+  // profile-edit recomputation" ticket) — reusing generateProfile previously
+  // caused edits to silently fail whenever the (unrelated, stale-input)
+  // Learning Intent/taxonomy call failed, since that async call gated whether
+  // the local update below ever ran.
+  const submitGoalSummary = (updates: GoalSummaryFields) => {
     const nextProfile = { ...displayedProfile, ...updates };
-    const payload = {
-      source: 'career_selection_goal_summary',
-      onboardingAnswers,
-      learnerProfile: nextProfile,
-    };
 
-    setError('learnerProfile', null);
-    setError('careerMatches', null);
-    setLoading('learnerProfile', true);
-    setLoading('careerMatches', true);
-    setConstructedPayload('learnerProfileRequest', payload);
-
-    try {
-      // Integration spike (ENT-12007 verification, uncommitted): generateProfile now
-      // requires explicit answers. Profile-edit -> Learning Intent reuse is still future
-      // work (see the seam comment above); onboardingAnswers is passed here only to
-      // satisfy the new required signature without changing this method's behavior.
-      await generateProfile(onboardingAnswers);
-      if (learnerProfile) {
-        updateLearnerProfile(updates);
-      } else {
-        setLearnerProfile(nextProfile);
-      }
-      if (usesStubData) {
-        setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
-      }
-      setExperienceStatus('profile_ready');
-    } catch (error) {
-      setError(
-        'learnerProfile',
-        errorMessage(error, 'Unable to update the learner profile.'),
-      );
-      throw error;
-    } finally {
-      setLoading('learnerProfile', false);
-      setLoading('careerMatches', false);
+    if (learnerProfile) {
+      updateLearnerProfile(updates);
+    } else {
+      setLearnerProfile(nextProfile);
     }
+    if (usesStubData) {
+      setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
+    }
+    setExperienceStatus('profile_ready');
   };
 
   // buildPathway uses container-owned selectedCareer and visibleSkills. Build
