@@ -20,7 +20,7 @@ jest.mock('@edx/frontend-platform/auth', () => ({
   getAuthenticatedHttpClient: jest.fn(),
 }));
 
-const LEARNING_INTENT_URL = `${APP_CONFIG.ENTERPRISE_ACCESS_BASE_URL}/api/v1/learner-pathways/learning-intent`;
+const LEARNING_INTENT_URL = `${APP_CONFIG.ENTERPRISE_ACCESS_BASE_URL}/api/v1/learner-pathways/learning-intent/`;
 
 describe('fetchLearningIntent', () => {
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('fetchLearningIntent', () => {
     condensed_algolia_query: 'data analysis python sql',
   };
 
-  it('uses the authenticated HTTP client to post to the exact Learning Intent URL without a trailing slash', async () => {
+  it('uses the authenticated HTTP client to post to the exact Learning Intent URL, matching the DRF router\'s registered route', async () => {
     axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
     await fetchLearningIntent(mockRequest);
     expect(getAuthenticatedHttpClient).toHaveBeenCalled();

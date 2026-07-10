@@ -30,7 +30,12 @@ interface LearningIntentResponseRaw {
 export async function fetchLearningIntent(
   request: LearningIntentRequest,
 ): Promise<LearningIntentResponse> {
-  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/learning-intent`;
+  // Trailing slash required: enterprise-access registers this action on a DRF
+  // DefaultRouter with the default trailing_slash=True, so the real route is
+  // `learner-pathways/learning-intent/`. Omitting the slash triggers Django's
+  // APPEND_SLASH redirect, which downgrades the POST to a GET and the view
+  // rejects with a 405.
+  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/learning-intent/`;
   const payload = {
     selected_goals: request.selectedGoals,
     free_text: request.freeText,
