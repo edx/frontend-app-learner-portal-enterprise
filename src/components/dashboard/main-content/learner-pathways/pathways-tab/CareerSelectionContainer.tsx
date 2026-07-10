@@ -34,11 +34,7 @@ const CareerSelectionContainer = ({
     learningIntent,
     loading,
     errors,
-    setLearnerProfile,
-    updateLearnerProfile,
-    setCareerMatches,
     setSelectedCareerId,
-    setExperienceStatus,
   } = usePathwaysStore(
     useShallow((state) => ({
       onboardingAnswers: state.onboarding.answers,
@@ -48,11 +44,7 @@ const CareerSelectionContainer = ({
       learningIntent: state.learningIntent,
       loading: state.loading,
       errors: state.errors,
-      setLearnerProfile: state.setLearnerProfile,
-      updateLearnerProfile: state.updateLearnerProfile,
-      setCareerMatches: state.setCareerMatches,
       setSelectedCareerId: state.setSelectedCareerId,
-      setExperienceStatus: state.setExperienceStatus,
     })),
   );
 
@@ -60,7 +52,7 @@ const CareerSelectionContainer = ({
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
 
-  const { generatePathway } = usePathwaysController({ jobIndex, catalogIndex });
+  const { generateProfile, generatePathway } = usePathwaysController({ jobIndex, catalogIndex });
   const { registerActions, clearActions } = usePathwaysActionBar();
 
   // Ref shared between the portaled action bar button and OverwritePathwayModal.
@@ -105,25 +97,20 @@ const CareerSelectionContainer = ({
     [availableSkills, dismissedSkills],
   );
 
-  // Integration seam: a purely local, synchronous edit for now. Recomputing
-  // career matches from an edited profile via Learning Intent + taxonomy search
-  // is intentionally NOT done here yet (see the productionization doc's "Career
-  // profile-edit recomputation" ticket) — reusing generateProfile previously
-  // caused edits to silently fail whenever the (unrelated, stale-input)
-  // Learning Intent/taxonomy call failed, since that async call gated whether
-  // the local update below ever ran.
-  const submitGoalSummary = (updates: GoalSummaryFields) => {
-    const nextProfile = { ...displayedProfile, ...updates };
-
-    if (learnerProfile) {
-      updateLearnerProfile(updates);
-    } else {
-      setLearnerProfile(nextProfile);
-    }
-    if (usesStubData) {
-      setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
-    }
-    setExperienceStatus('profile_ready');
+  // Integration seam: profile edits (careerGoal, targetIndustry, background,
+  // motivation) route through the same generateProfile -> generateProfileWorkflow
+  // -> Learning Intent -> taxonomy career search path as intake, using the
+  // learner's just-edited values (not the stale original intake answers). The
+  // controller owns committing the returned learnerProfile/careerMatches; on
+  // failure it records errors.learnerProfile and rethrows, so GoalSummaryCard
+  // stays in edit mode with a visible error and the learner can retry.
+  const submitGoalSummary = async (updates: GoalSummaryFields) => {
+    await generateProfile({
+      goal: updates.careerGoal,
+      industry: updates.targetIndustry,
+      background: updates.background,
+      motivation: updates.motivation,
+    });
   };
 
   // buildPathway uses container-owned selectedCareer and visibleSkills. Build

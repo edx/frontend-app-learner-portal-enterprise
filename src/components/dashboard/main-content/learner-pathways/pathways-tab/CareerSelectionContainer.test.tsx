@@ -12,7 +12,7 @@ import {
   CAREER_SELECTION_STUB_MATCHES,
   CAREER_SELECTION_STUB_PROFILE,
 } from './career-selection/fixtures';
-import { generatePathwayWorkflow } from './workflows';
+import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
 jest.mock('./workflows', () => ({
@@ -22,6 +22,24 @@ jest.mock('./workflows', () => ({
 
 const mockJobIndex = {} as CareerSelectionContainerProps['jobIndex'];
 const mockCatalogIndex = {} as CareerSelectionContainerProps['catalogIndex'];
+
+const mockEditedProfileWorkflowResult = {
+  learningIntent: { skillsRequired: ['SQL'], skillsPreferred: [], condensedAlgoliaQuery: 'sql' },
+  learnerProfile: {
+    summary: '',
+    careerGoal: 'Director of Analytics',
+    targetIndustry: CAREER_SELECTION_STUB_PROFILE.targetIndustry,
+    background: CAREER_SELECTION_STUB_PROFILE.background,
+    motivation: CAREER_SELECTION_STUB_PROFILE.motivation,
+    learningStyle: '',
+    weeklyTimeCommitment: '',
+    certificatePreference: '',
+    skills: ['SQL'],
+  },
+  careerMatches: [
+    { id: 'director-of-analytics', title: 'Director of Analytics', skillsToDevelop: ['SQL'] },
+  ],
+};
 
 const renderContainer = (props: Partial<CareerSelectionContainerProps> = {}) => render(
   <IntlProvider locale="en">
@@ -46,10 +64,25 @@ describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     jest.clearAllMocks();
+    jest.mocked(generateProfileWorkflow).mockResolvedValue(mockEditedProfileWorkflowResult);
     jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: [] });
   });
 
-  it('hydrates the learner profile and stub career matches on first goal-summary submission', async () => {
+  it('sends the edited goal-summary fields, mapped to the Learning Intent request shape, to the profile workflow', async () => {
+    const user = userEvent.setup();
+    renderContainer();
+
+    await submitGoalSummaryEdit(user, 'Director of Analytics');
+
+    await waitFor(() => {
+      expect(generateProfileWorkflow).toHaveBeenCalledWith({
+        answers: expect.objectContaining({ goal: 'Director of Analytics' }),
+        jobIndex: mockJobIndex,
+      });
+    });
+  });
+
+  it('hydrates the learner profile and career matches from the Learning Intent workflow result on submission', async () => {
     const user = userEvent.setup();
     renderContainer();
 
@@ -59,10 +92,10 @@ describe('CareerSelectionContainer', () => {
       expect(usePathwaysStore.getState().learnerProfile?.careerGoal).toBe('Director of Analytics');
     });
     expect(usePathwaysStore.getState().experienceStatus).toBe('profile_ready');
-    expect(usePathwaysStore.getState().careerMatches).toEqual(CAREER_SELECTION_STUB_MATCHES);
+    expect(usePathwaysStore.getState().careerMatches).toEqual(mockEditedProfileWorkflowResult.careerMatches);
   });
 
-  it('preserves existing profile fields when updating an already-set learner profile', async () => {
+  it('sends the edit and updates the profile again when editing an already-set learner profile', async () => {
     const user = userEvent.setup();
     act(() => {
       usePathwaysStore.setState({
@@ -77,20 +110,23 @@ describe('CareerSelectionContainer', () => {
     await waitFor(() => {
       expect(usePathwaysStore.getState().learnerProfile?.careerGoal).toBe('Director of Analytics');
     });
-    expect(usePathwaysStore.getState().learnerProfile?.skills).toEqual(CAREER_SELECTION_STUB_PROFILE.skills);
+    expect(generateProfileWorkflow).toHaveBeenCalledTimes(1);
   });
 
-  it('applies the edit immediately without any network dependency', async () => {
+  it('surfaces a profile error and stays in edit mode when generateProfile rejects', async () => {
     const user = userEvent.setup();
+    jest.mocked(generateProfileWorkflow).mockRejectedValueOnce(new Error('network down'));
     renderContainer();
 
     await submitGoalSummaryEdit(user, 'Director of Analytics');
 
     await waitFor(() => {
-      expect(usePathwaysStore.getState().learnerProfile?.careerGoal).toBe('Director of Analytics');
+      expect(screen.getByText('network down')).toBeInTheDocument();
     });
-    expect(usePathwaysStore.getState().experienceStatus).toBe('profile_ready');
-    expect(usePathwaysStore.getState().errors.learnerProfile).toBeNull();
+    expect(usePathwaysStore.getState().errors.learnerProfile).toBe('network down');
+    expect(usePathwaysStore.getState().experienceStatus).not.toBe('profile_ready');
+    // Still in edit mode: the career-goal input is present and retains the typed value.
+    expect(screen.getByLabelText('Career Goal')).toHaveValue('Director of Analytics');
   });
 
   it('navigates to the pathway section and marks the pathway ready when generatePathway resolves', async () => {
