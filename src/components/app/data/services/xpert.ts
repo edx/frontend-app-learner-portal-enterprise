@@ -76,7 +76,8 @@ interface RecommendationFeedbackResponseRaw {
 export async function fetchRecommendationFeedback(
   request: RecommendationFeedbackRequest,
 ): Promise<RecommendationFeedbackResponse> {
-  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback`;
+  // Trailing slash required — see fetchLearningIntent above.
+  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback/`;
   const payload = {
     selected_career: request.selectedCareer,
     course_keys: request.courseKeys,

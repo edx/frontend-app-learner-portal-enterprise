@@ -73,7 +73,7 @@ describe('fetchLearningIntent', () => {
   });
 });
 
-const RECOMMENDATION_FEEDBACK_URL = `${APP_CONFIG.ENTERPRISE_ACCESS_BASE_URL}/api/v1/learner-pathways/recommendation-feedback`;
+const RECOMMENDATION_FEEDBACK_URL = `${APP_CONFIG.ENTERPRISE_ACCESS_BASE_URL}/api/v1/learner-pathways/recommendation-feedback/`;
 
 describe('fetchRecommendationFeedback', () => {
   beforeEach(() => {
@@ -100,7 +100,7 @@ describe('fetchRecommendationFeedback', () => {
     },
   };
 
-  it('uses the authenticated HTTP client to post to the exact Recommendation Feedback URL without a trailing slash', async () => {
+  it('uses the authenticated HTTP client to post to the exact Recommendation Feedback URL, matching the DRF router\'s registered route', async () => {
     axiosMock.onPost(RECOMMENDATION_FEEDBACK_URL).reply(200, mockResponseRaw);
     await fetchRecommendationFeedback(mockRequest);
     expect(getAuthenticatedHttpClient).toHaveBeenCalled();
