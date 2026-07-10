@@ -35,7 +35,21 @@ const originalState = {
 const mockState = {
   hits: originalState.hits,
   nbHits: originalState.nbHits,
+  searchResultsOverride: null,
 };
+
+const getDefaultSearchResults = () => ({
+  hits: mockState.hits,
+  facets: {
+    is_new_content: {
+      true: mockState.nbHits,
+    },
+  },
+  hitsPerPage: 25,
+  nbHits: mockState.nbHits,
+  nbPages: mockState.nbHits === 0 ? 0 : 1,
+  page: 1,
+});
 
 // This allows you to override the built-in hits object
 const setFakeHits = hits => {
@@ -46,16 +60,18 @@ const setFakeHits = hits => {
 const resetMockReactInstantSearch = () => {
   mockState.hits = originalState.hits;
   mockState.nbHits = originalState.nbHits;
+  mockState.searchResultsOverride = null;
+};
+
+const setFakeSearchResultsOverride = searchResultsOverride => {
+  mockState.searchResultsOverride = searchResultsOverride;
 };
 
 MockReactInstantSearch.connectStateResults = Component => (props) => (
   <Component
     searchResults={{
-      hits: mockState.hits,
-      hitsPerPage: 25,
-      nbHits: mockState.nbHits,
-      nbPages: mockState.nbHits === 0 ? 0 : 1,
-      page: 1,
+      ...getDefaultSearchResults(),
+      ...(mockState.searchResultsOverride || {}),
     }}
     isSearchStalled={false}
     searchState={{
@@ -113,6 +129,7 @@ const resetCapturedInstantSearchProps = () => {
 module.exports = MockReactInstantSearch;
 Object.assign(module.exports, {
   setFakeHits,
+  setFakeSearchResultsOverride,
   resetMockReactInstantSearch,
   getCapturedConfigureProps,
   resetCapturedConfigureProps,

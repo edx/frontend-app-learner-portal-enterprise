@@ -1,75 +1,81 @@
 import { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Card, Button } from '@openedx/paragon';
-import { Link } from 'react-router-dom';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
-import BetaBadge from './BetaBadge';
 import { useEnterpriseCustomer } from '../app/data';
 import './styles/VideoDetailPage.scss';
-import { SEARCH_INDEX_IDS } from '../../constants';
 
-const VideoBanner = () => {
+const VideoBanner = ({ onSeeWhatsNew }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
 
   useEffect(() => {
+    if (!enterpriseCustomer?.uuid) {
+      return;
+    }
     sendEnterpriseTrackEvent(
       enterpriseCustomer.uuid,
-      'edx.ui.enterprise.learner_portal.video_banner.viewed',
+      'edx.ui.enterprise.learner_portal.latest_offerings_banner.viewed',
     );
   }, [enterpriseCustomer]);
 
-  const sendPushEvent = () => {
-    sendEnterpriseTrackEvent(
-      enterpriseCustomer.uuid,
-      'edx.ui.enterprise.learner_portal.video_banner.explore_videos_clicked',
-    );
+  const handleSeeWhatsNew = () => {
+    if (enterpriseCustomer?.uuid) {
+      sendEnterpriseTrackEvent(
+        enterpriseCustomer.uuid,
+        'edx.ui.enterprise.learner_portal.latest_offerings_banner.see_whats_new_clicked',
+      );
+    }
+
+    onSeeWhatsNew?.();
   };
   return (
-    <div data-testid="video-banner" className="d-flex justify-content-center">
+    <div data-testid="latest-offerings-banner" className="d-flex justify-content-center">
       <Card orientation="horizontal" className="video-banner-class bg-light-300">
         <Card.Section className="col-9">
           <span className="d-flex justify-content-center align-items-end">
             <h3 className="text-brand-500 pr-1 m-0">
               <FormattedMessage
-                id="enterprise.microlearning.video.banner.new"
+                id="enterprise.microlearning.latestOfferings.banner.new"
                 defaultMessage="New!"
-                description="New badge for the video banner on the video page."
+                description="New badge for the latest offerings banner."
               />
             </h3>
             <h3 className="p-0 m-0">
               <FormattedMessage
-                id="enterprise.microlearning.videoBanner.title"
-                defaultMessage="Videos Now Available with Your Subscription"
-                description="Title for the video banner on the video page."
+                id="enterprise.microlearning.latestOfferingsBanner.title"
+                defaultMessage="Just dropped"
+                description="Title for the latest offerings banner on the search page."
               />
             </h3>
-            <BetaBadge />
           </span>
           <p className="d-flex justify-content-center">
             <FormattedMessage
-              id="enterprise.microlearning.videoBanner.description"
-              defaultMessage="Transform your potential into success."
-              description="Description for the video banner on the video page."
+              id="enterprise.microlearning.latestOfferingsBanner.description"
+              defaultMessage="Expand your skills with the latest courses and professional certificates."
+              description="Description for the latest offerings banner on the search page."
             />
           </p>
         </Card.Section>
         <Card.Footer className="col-3 justify-content-end">
           <Button
-            as={Link}
-            to={`#${SEARCH_INDEX_IDS.VIDEOS}`}
             variant="outline-primary"
-            onClick={sendPushEvent}
+            onClick={handleSeeWhatsNew}
           >
             <FormattedMessage
-              id="enterprise.microlearning.videoBanner.exploreVideos"
-              defaultMessage="Explore videos"
-              description="Button text for the Explore CTA within video banner on the video page."
+              id="enterprise.microlearning.latestOfferingsBanner.exploreVideos"
+              defaultMessage="See what's new"
+              description="Button text for the latest offerings CTA on the search page."
             />
           </Button>
         </Card.Footer>
       </Card>
     </div>
   );
+};
+
+VideoBanner.propTypes = {
+  onSeeWhatsNew: PropTypes.func,
 };
 
 export default VideoBanner;

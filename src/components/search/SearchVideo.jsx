@@ -39,6 +39,11 @@ const SearchVideo = ({
   const config = getConfig();
   const intl = useIntl();
 
+  const handlers = (showVideosBanner || hideVideosBanner) ? {
+    searchResults: showVideosBanner,
+    noSearchResults: hideVideosBanner,
+  } : undefined;
+
   return (
     <Index indexName={config.ALGOLIA_REPLICA_INDEX_NAME} indexId={SEARCH_INDEX_IDS.VIDEOS}>
       <Configure
@@ -58,10 +63,7 @@ const SearchVideo = ({
         }
         componentId={SEARCH_INDEX_IDS.VIDEOS}
         indexName={indexName}
-        handlers={{
-          searchResults: showVideosBanner,
-          noSearchResults: hideVideosBanner,
-        }}
+        handlers={handlers}
         showBetaBadge
       />
     </Index>
@@ -70,8 +72,8 @@ const SearchVideo = ({
 
 SearchVideo.propTypes = {
   filter: PropTypes.string.isRequired,
-  showVideosBanner: PropTypes.func.isRequired,
-  hideVideosBanner: PropTypes.func.isRequired,
+  showVideosBanner: PropTypes.func,
+  hideVideosBanner: PropTypes.func,
   indexName: PropTypes.string,
 };
 
