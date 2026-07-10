@@ -1,13 +1,22 @@
 import type { GeneratePathwayWorkflowInput } from './types';
 
 /**
- * Workflow layer placeholder between controller actions and service calls.
+ * Integration seam: owns selected-career -> course retrieval -> Recommendation
+ * Feedback -> enriched PathwayCourse[] mapping.
  *
- * Future workflow (not implemented in this scaffold ticket):
- * 1. Submit selected career/profile signals.
- * 2. Request pathway recommendations.
- * 3. Transform recommendations to pathway-course state shape.
- * 4. Hydrate Zustand state slices for pathway/progress.
+ * Future flow:
+ * 1. Build an Algolia course query from the selected career, learner profile,
+ *    and skill signals.
+ * 2. Retrieve candidate course hits and normalize to PathwayCourse[], reading
+ *    hit.key (not objectID) as the stable courseKey join field.
+ * 3. Call fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
+ *    (src/components/app/data/services/xpert.ts), sending a deliberate
+ *    learner-profile projection rather than the entire Zustand store.
+ * 4. Merge reasons[courseKey] into each course's whyThisFitsYou.
+ * 5. Return the enriched courses and progress for the controller to commit.
+ *
+ * This workflow owns ordering, projection, and joining; the application
+ * service owns only HTTP transport.
  */
 export const generatePathwayWorkflow = async (
   input?: GeneratePathwayWorkflowInput,

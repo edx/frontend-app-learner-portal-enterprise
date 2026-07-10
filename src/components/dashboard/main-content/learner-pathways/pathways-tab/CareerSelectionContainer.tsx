@@ -153,6 +153,13 @@ const CareerSelectionContainer = ({
   };
 
   // buildPathway uses container-owned selectedCareer and visibleSkills.
+  // Integration seam: Build Pathway should call controller.generatePathway(explicit input)
+  // -> Algolia course retrieval -> normalize hits, keeping hit.key as the stable
+  // courseKey -> fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
+  // -> merge reasons[courseKey] into each course's whyThisFitsYou -> update pathway
+  // state -> navigate. Recommendation Feedback cannot run before Algolia returns
+  // candidate courses. Verify against the serializer whether selectedCareer should
+  // be the career title or an id.
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || loading.pathwayCourses) {
       return;

@@ -52,3 +52,37 @@ export async function fetchLearningIntent(
     condensedAlgoliaQuery: response.data.condensed_algolia_query,
   };
 }
+
+export interface RecommendationFeedbackRequest {
+  selectedCareer: string;
+  courseKeys: string[];
+  learnerProfile: Record<string, unknown>;
+}
+
+export interface RecommendationFeedbackResponse {
+  reasons: Record<string, string>;
+}
+
+interface RecommendationFeedbackResponseRaw {
+  reasons: Record<string, string>;
+}
+
+/**
+ * Submits the selected career, candidate course keys, and learner-profile context to
+ * Enterprise Access so it can run the Recommendation Feedback Xpert prompt server-side.
+ * `learnerProfile` and the returned `reasons` map carry business data with dynamic keys
+ * (course keys), so they are passed through as-is rather than deep-transformed.
+ */
+export async function fetchRecommendationFeedback(
+  request: RecommendationFeedbackRequest,
+): Promise<RecommendationFeedbackResponse> {
+  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback`;
+  const payload = {
+    selected_career: request.selectedCareer,
+    course_keys: request.courseKeys,
+    learner_profile: request.learnerProfile,
+  };
+  const response: AxiosResponse<RecommendationFeedbackResponseRaw> = await getAuthenticatedHttpClient()
+    .post(url, payload);
+  return { reasons: response.data.reasons };
+}
