@@ -238,4 +238,95 @@ describe('pathwaysStore', () => {
     state.setSection('profile');
     expect(usePathwaysStore.getState().section).toBe('profile');
   });
+
+  describe('selectCareer', () => {
+    it('sets the selected career and resets dismissed skills atomically', () => {
+      usePathwaysStore.getState().dismissSkill('SQL');
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual(['SQL']);
+
+      usePathwaysStore.getState().selectCareer('career-2');
+
+      const state = usePathwaysStore.getState();
+      expect(state.selectedCareerId).toBe('career-2');
+      expect(state.dismissedSkillKeys).toEqual([]);
+    });
+
+    it('preserves dismissed skills when reselecting the already-selected career', () => {
+      usePathwaysStore.getState().setSelectedCareerId('career-1');
+      usePathwaysStore.getState().dismissSkill('SQL');
+
+      usePathwaysStore.getState().selectCareer('career-1');
+
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual(['SQL']);
+    });
+  });
+
+  describe('dismissSkill / restoreSkills', () => {
+    it('adds a skill to the dismissed set without duplicating it', () => {
+      const { dismissSkill } = usePathwaysStore.getState();
+      dismissSkill('SQL');
+      dismissSkill('SQL');
+      dismissSkill('Python');
+
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual(['SQL', 'Python']);
+    });
+
+    it('clears the dismissed set on restoreSkills', () => {
+      usePathwaysStore.getState().dismissSkill('SQL');
+      usePathwaysStore.getState().restoreSkills();
+
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual([]);
+    });
+  });
+
+  describe('commitProfileSuccess', () => {
+    const profile = {
+      summary: 's',
+      careerGoal: 'Director of Analytics',
+      targetIndustry: 'Tech',
+      background: 'Ops',
+      motivation: 'Growth',
+      learningStyle: 'Hands-on',
+      weeklyTimeCommitment: '5 hours',
+      certificatePreference: 'Preferred',
+      skills: ['SQL'],
+    };
+    const matches = [
+      { id: 'career-1', title: 'Data Analyst' },
+      { id: 'career-2', title: 'Business Analyst' },
+    ];
+
+    it('replaces the profile, career matches, and the corresponding onboarding answers', () => {
+      usePathwaysStore.getState().commitProfileSuccess({ learnerProfile: profile, careerMatches: matches });
+
+      const state = usePathwaysStore.getState();
+      expect(state.learnerProfile).toEqual(profile);
+      expect(state.careerMatches).toEqual(matches);
+      expect(state.onboarding.answers).toEqual({
+        goal: 'Director of Analytics',
+        industry: 'Tech',
+        background: 'Ops',
+        motivation: 'Growth',
+      });
+    });
+
+    it('keeps a still-valid selected career and resets dismissed skills', () => {
+      usePathwaysStore.getState().setSelectedCareerId('career-2');
+      usePathwaysStore.getState().dismissSkill('SQL');
+
+      usePathwaysStore.getState().commitProfileSuccess({ learnerProfile: profile, careerMatches: matches });
+
+      const state = usePathwaysStore.getState();
+      expect(state.selectedCareerId).toBe('career-2');
+      expect(state.dismissedSkillKeys).toEqual([]);
+    });
+
+    it('falls back to the first match when the previously selected career is no longer present', () => {
+      usePathwaysStore.getState().setSelectedCareerId('stale-career');
+
+      usePathwaysStore.getState().commitProfileSuccess({ learnerProfile: profile, careerMatches: matches });
+
+      expect(usePathwaysStore.getState().selectedCareerId).toBe('career-1');
+    });
+  });
 });

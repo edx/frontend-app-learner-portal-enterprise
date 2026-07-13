@@ -16,10 +16,17 @@ import {
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
-jest.mock('./workflows', () => ({
-  generateProfileWorkflow: jest.fn().mockResolvedValue(undefined),
-  generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock('./workflows', () => {
+  // eslint-disable-next-line global-require
+  const { CAREER_SELECTION_STUB_MATCHES: matches } = require('./career-selection/fixtures');
+  return {
+    generateProfileWorkflow: jest.fn((input) => Promise.resolve({
+      learnerProfile: input.learnerProfile,
+      careerMatches: matches,
+    })),
+    generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
+  };
+});
 
 const SELECTED_CAREER_ID = 'reporting-data-analysis-manager';
 const OTHER_CAREER_ID = 'business-data-analyst';
@@ -68,7 +75,10 @@ describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     jest.clearAllMocks();
-    jest.mocked(generateProfileWorkflow).mockResolvedValue(undefined);
+    jest.mocked(generateProfileWorkflow).mockImplementation((input) => Promise.resolve({
+      learnerProfile: input.learnerProfile,
+      careerMatches: CAREER_SELECTION_STUB_MATCHES,
+    }));
     jest.mocked(generatePathwayWorkflow).mockResolvedValue(undefined);
   });
 
@@ -83,6 +93,17 @@ describe('CareerSelectionContainer', () => {
     });
     expect(usePathwaysStore.getState().experienceStatus).toBe('profile_ready');
     expect(usePathwaysStore.getState().careerMatches).toEqual(CAREER_SELECTION_STUB_MATCHES);
+  });
+
+  it('syncs the corresponding persisted Intake answer when a Goal Summary edit succeeds', async () => {
+    const user = userEvent.setup();
+    renderContainer();
+
+    await submitGoalSummaryEdit(user, 'Director of Analytics');
+
+    await waitFor(() => {
+      expect(usePathwaysStore.getState().onboarding.answers.goal).toBe('Director of Analytics');
+    });
   });
 
   it('preserves existing profile fields when updating an already-set learner profile', async () => {
@@ -350,6 +371,54 @@ describe('CareerSelectionContainer', () => {
 
       expect(screen.getByTestId('career-build-pathway-button')).toBeInTheDocument();
       expect(screen.queryByTestId('career-view-current-pathway-button')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('skills persist in the store, not component state', () => {
+    it('dismissing a skill updates the persisted dismissedSkillKeys', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toContain('SQL');
+      expect(screen.queryByText('SQL')).not.toBeInTheDocument();
+    });
+
+    it('dismissed skills survive unmounting and remounting the container', async () => {
+      const user = userEvent.setup();
+      const { unmount } = renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+      unmount();
+
+      renderContainer();
+
+      expect(screen.queryByText('SQL')).not.toBeInTheDocument();
+    });
+
+    it('restoring skills clears the persisted dismissedSkillKeys', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+      await user.click(screen.getByRole('button', { name: 'Restore skills' }));
+
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual([]);
+      expect(screen.getByText('SQL')).toBeInTheDocument();
+    });
+
+    it('selecting a different career resets dismissed skills, but reselecting the same one does not', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+      await user.click(screen.getByTestId(`career-match-${SELECTED_CAREER_ID}`));
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toContain('SQL');
+
+      await user.click(screen.getByTestId(`career-match-${OTHER_CAREER_ID}`));
+      expect(usePathwaysStore.getState().dismissedSkillKeys).toEqual([]);
     });
   });
 

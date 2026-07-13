@@ -1,10 +1,12 @@
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePathwaysStore } from '../state';
+import type { LearnerProfile } from '../state';
 import {
   generatePathwayWorkflow,
   generateProfileWorkflow,
 } from '../workflows';
+import type { GenerateProfileWorkflowResult } from '../workflows';
 
 /**
  * Controller-layer facade for Pathways tab actions.
@@ -34,15 +36,9 @@ export const usePathwaysController = () => {
     setExperienceStatus('onboarding_in_progress');
   };
 
-  // Integration seam: generateProfile should accept explicit intake/profile-edit
-  // input instead of reading constructedPayloads.learnerProfileRequest, which
-  // callers currently stage into the store immediately before invoking this action.
-  const generateProfile = async () => {
-    // TODO: Trigger full profile workflow orchestration in a follow-up ticket.
-    await generateProfileWorkflow({
-      payload: constructedPayloads.learnerProfileRequest ?? undefined,
-    });
-  };
+  const generateProfile = (
+    learnerProfile: LearnerProfile,
+  ): Promise<GenerateProfileWorkflowResult> => generateProfileWorkflow({ learnerProfile });
 
   // Integration seam: generatePathway should accept explicit selected-career/profile
   // input instead of reading constructedPayloads.pathwayRequest, which callers

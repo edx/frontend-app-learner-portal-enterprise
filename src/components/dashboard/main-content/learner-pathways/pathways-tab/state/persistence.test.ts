@@ -17,6 +17,10 @@ const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore 
   updateLearnerProfile: noop,
   setCareerMatches: noop,
   setSelectedCareerId: noop,
+  selectCareer: noop,
+  dismissSkill: noop,
+  restoreSkills: noop,
+  commitProfileSuccess: noop,
   setPathwayCourses: noop,
   updatePathwayCourse: noop,
   setProgress: noop,
@@ -45,6 +49,7 @@ describe('partializePathwaysState', () => {
 
     expect(Object.keys(persisted).sort()).toEqual([
       'careerMatches',
+      'dismissedSkillKeys',
       'experienceStatus',
       'learnerProfile',
       'onboarding',

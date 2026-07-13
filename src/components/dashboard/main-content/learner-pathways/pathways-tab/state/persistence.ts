@@ -22,6 +22,7 @@ PathwaysState,
 | 'selectedCareerId'
 | 'pathwayCourses'
 | 'pathwayBaseline'
+| 'dismissedSkillKeys'
 >;
 
 export const partializePathwaysState = (state: PathwaysStore): PersistedPathwaysState => ({
@@ -33,6 +34,7 @@ export const partializePathwaysState = (state: PathwaysStore): PersistedPathways
   selectedCareerId: state.selectedCareerId,
   pathwayCourses: state.pathwayCourses,
   pathwayBaseline: state.pathwayBaseline,
+  dismissedSkillKeys: state.dismissedSkillKeys,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (

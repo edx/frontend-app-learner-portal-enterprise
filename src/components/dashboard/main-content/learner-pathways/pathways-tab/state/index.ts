@@ -16,10 +16,14 @@ export {
   usePathwaysConstructedPayloads,
   useSelectedCareerMatch,
   usePathwayBaseline,
+  useDismissedSkillKeys,
 } from './pathwaysStore';
+
+export { normalizeSelectedCareerId } from './normalize';
 
 export type {
   CareerMatch,
+  CommitProfileSuccessInput,
   LearnerProfile,
   OnboardingAnswers,
   OnboardingState,

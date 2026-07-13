@@ -9,6 +9,7 @@ import type { OrderedMatch } from './CareerMatchesCard';
 import SkillsToDevelopCard from './SkillsToDevelopCard';
 import OverwritePathwayModal from './OverwritePathwayModal';
 import RetakeQuizModal from './RetakeQuizModal';
+import { deriveSelectedCareer } from './selectors';
 import messages from './messages';
 
 const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
@@ -92,9 +93,7 @@ const CareerSelectionPage = ({
   );
 
   const selectedCareer = useMemo(
-    () => orderedMatches.find(({ match }) => match.id === selectedCareerId)?.match
-      ?? orderedMatches[0]?.match
-      ?? null,
+    () => deriveSelectedCareer(orderedMatches.map(({ match }) => match), selectedCareerId),
     [orderedMatches, selectedCareerId],
   );
 

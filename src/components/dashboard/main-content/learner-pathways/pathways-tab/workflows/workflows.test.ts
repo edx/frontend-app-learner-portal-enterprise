@@ -3,15 +3,24 @@ import {
   generateProfileWorkflow,
 } from './index';
 
-describe('pathways workflows scaffolds', () => {
-  it('resolves profile workflow without payload', async () => {
-    await expect(generateProfileWorkflow()).resolves.toBeUndefined();
-  });
+const stubProfile = {
+  summary: 's',
+  careerGoal: 'Data Analyst',
+  targetIndustry: 'Tech',
+  background: 'Ops',
+  motivation: 'career growth',
+  learningStyle: 'Hands-on',
+  weeklyTimeCommitment: '5 hours',
+  certificatePreference: 'Preferred',
+  skills: [] as string[],
+};
 
-  it('resolves profile workflow with payload', async () => {
-    await expect(generateProfileWorkflow({
-      payload: { motivation: 'career growth' },
-    })).resolves.toBeUndefined();
+describe('pathways workflows scaffolds', () => {
+  it('resolves profile workflow with the given profile echoed back, plus stub career matches', async () => {
+    const result = await generateProfileWorkflow({ learnerProfile: stubProfile });
+
+    expect(result.learnerProfile).toEqual(stubProfile);
+    expect(result.careerMatches.length).toBeGreaterThan(0);
   });
 
   it('resolves pathway workflow without payload', async () => {

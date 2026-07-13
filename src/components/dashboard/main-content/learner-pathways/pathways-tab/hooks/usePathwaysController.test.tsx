@@ -8,9 +8,21 @@ import {
 import { usePathwaysController } from './usePathwaysController';
 
 jest.mock('../workflows', () => ({
-  generateProfileWorkflow: jest.fn().mockResolvedValue(undefined),
+  generateProfileWorkflow: jest.fn().mockResolvedValue({ learnerProfile: null, careerMatches: [] }),
   generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
 }));
+
+const stubProfile = {
+  summary: 's',
+  careerGoal: 'Data Analyst',
+  targetIndustry: 'Tech',
+  background: 'Ops',
+  motivation: 'Growth',
+  learningStyle: 'Hands-on',
+  weeklyTimeCommitment: '5 hours',
+  certificatePreference: 'Preferred',
+  skills: [] as string[],
+};
 
 describe('usePathwaysController', () => {
   beforeEach(() => {
@@ -30,14 +42,15 @@ describe('usePathwaysController', () => {
     expect(state.experienceStatus).toBe('onboarding_in_progress');
   });
 
-  it('delegates profile generation to workflow placeholder', async () => {
+  it('delegates profile generation to the workflow with the given profile', async () => {
     const { result } = renderHook(() => usePathwaysController());
 
     await act(async () => {
-      await result.current.generateProfile();
+      await result.current.generateProfile(stubProfile);
     });
 
     expect(generateProfileWorkflow).toHaveBeenCalledTimes(1);
+    expect(generateProfileWorkflow).toHaveBeenCalledWith({ learnerProfile: stubProfile });
   });
 
   it('delegates pathway generation to workflow placeholder', async () => {

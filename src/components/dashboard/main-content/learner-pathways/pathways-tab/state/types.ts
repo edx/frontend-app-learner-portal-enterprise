@@ -154,6 +154,19 @@ export interface PathwaysState {
   errors: PathwaysErrorState;
   constructedPayloads: PathwaysConstructedPayloads;
   pathwayBaseline: PathwayBaselineSnapshot | null;
+  /**
+   * Skills the learner has dismissed from the current career's "skills to develop"
+   * list. The canonical fact is the exclusion set, not the resulting visible list —
+   * an empty inclusion list would be ambiguous between "nothing computed yet" and
+   * "learner dismissed everything," whereas an empty exclusion set is unambiguous.
+   */
+  dismissedSkillKeys: string[];
+}
+
+/** Input for the atomic Goal Summary / profile-generation success commit. */
+export interface CommitProfileSuccessInput {
+  learnerProfile: LearnerProfile;
+  careerMatches: CareerMatch[];
 }
 
 /**
@@ -171,6 +184,17 @@ export interface PathwaysActions {
   updateLearnerProfile: (profileUpdates: Partial<LearnerProfile>) => void;
   setCareerMatches: (matches: CareerMatch[]) => void;
   setSelectedCareerId: (careerId: string | null) => void;
+  /** Atomically selects a career and resets dismissed-skill state for it. */
+  selectCareer: (careerId: string | null) => void;
+  dismissSkill: (skill: string) => void;
+  restoreSkills: () => void;
+  /**
+   * Atomically commits a successful Goal Summary / profile-generation result:
+   * replaces the profile, the corresponding intake answers, and career matches,
+   * re-validates the selected career against the new matches, and resets dismissed
+   * skills — all in one commit rather than a sequence of setters.
+   */
+  commitProfileSuccess: (input: CommitProfileSuccessInput) => void;
   setPathwayCourses: (courses: PathwayCourse[]) => void;
   updatePathwayCourse: (courseId: string, updates: Partial<Omit<PathwayCourse, 'id'>>) => void;
   setProgress: (progress: PathwayProgress) => void;

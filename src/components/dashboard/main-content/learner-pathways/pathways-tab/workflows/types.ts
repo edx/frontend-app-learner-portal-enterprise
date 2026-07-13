@@ -1,9 +1,18 @@
+import type { CareerMatch, LearnerProfile } from '../state';
+
 /**
- * Workflow-layer placeholder input for profile generation.
- * Payload contract will be finalized when service integration lands.
+ * Explicit profile-generation input: the caller (CareerSelectionContainer) computes
+ * the merged/edited profile; the workflow owns turning it into a committable result
+ * (currently a stub passthrough — see generateProfileWorkflow.ts).
  */
 export interface GenerateProfileWorkflowInput {
-  payload?: Record<string, unknown>;
+  learnerProfile: LearnerProfile;
+}
+
+/** Result the controller/container commits atomically via commitProfileSuccess. */
+export interface GenerateProfileWorkflowResult {
+  learnerProfile: LearnerProfile;
+  careerMatches: CareerMatch[];
 }
 
 /**

@@ -17,6 +17,8 @@ import {
   mergePathwaysState,
   partializePathwaysState,
 } from './persistence';
+import { normalizeSelectedCareerId } from './normalize';
+import { mapProfileToOnboardingAnswers } from './mappers';
 
 /**
  * Factory for creating a fresh pathways initial state object.
@@ -62,6 +64,7 @@ export const getInitialPathwaysState = (): PathwaysState => ({
     pathwayRequest: null,
   },
   pathwayBaseline: null,
+  dismissedSkillKeys: [],
 });
 
 /**
@@ -125,6 +128,27 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
   }),
   setCareerMatches: (careerMatches) => set({ careerMatches }),
   setSelectedCareerId: (selectedCareerId) => set({ selectedCareerId }),
+  selectCareer: (selectedCareerId) => set((state) => (
+    state.selectedCareerId === selectedCareerId
+      ? { selectedCareerId }
+      : { selectedCareerId, dismissedSkillKeys: [] }
+  )),
+  dismissSkill: (skill) => set((state) => (
+    state.dismissedSkillKeys.includes(skill)
+      ? {}
+      : { dismissedSkillKeys: [...state.dismissedSkillKeys, skill] }
+  )),
+  restoreSkills: () => set({ dismissedSkillKeys: [] }),
+  commitProfileSuccess: ({ learnerProfile, careerMatches }) => set((state) => ({
+    learnerProfile,
+    onboarding: {
+      ...state.onboarding,
+      answers: mapProfileToOnboardingAnswers(learnerProfile),
+    },
+    careerMatches,
+    selectedCareerId: normalizeSelectedCareerId(careerMatches, state.selectedCareerId),
+    dismissedSkillKeys: [],
+  })),
   setPathwayCourses: (pathwayCourses) => set({ pathwayCourses }),
   updatePathwayCourse: (courseId, updates) => set((state) => ({
     pathwayCourses: state.pathwayCourses.map((course) => (
@@ -185,6 +209,7 @@ export const selectors = {
   errors: (state: PathwaysStore) => state.errors,
   constructedPayloads: (state: PathwaysStore) => state.constructedPayloads,
   pathwayBaseline: (state: PathwaysStore) => state.pathwayBaseline,
+  dismissedSkillKeys: (state: PathwaysStore) => state.dismissedSkillKeys,
 };
 
 /**
@@ -204,6 +229,7 @@ export const usePathwaysLoading = () => usePathwaysStore(selectors.loading);
 export const usePathwaysErrors = () => usePathwaysStore(selectors.errors);
 export const usePathwaysConstructedPayloads = () => usePathwaysStore(selectors.constructedPayloads);
 export const usePathwayBaseline = () => usePathwaysStore(selectors.pathwayBaseline);
+export const useDismissedSkillKeys = () => usePathwaysStore(selectors.dismissedSkillKeys);
 
 /**
  * Typed helper exports used by tests and consuming modules.

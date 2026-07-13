@@ -7,13 +7,16 @@ import { ArrowBack } from '@openedx/paragon/icons';
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
 import type { GoalSummaryFields } from './career-selection/GoalSummaryCard';
 import { getCareerActionState, isPathwayEdited } from './career-selection/careerActionState';
+import { deriveSelectedCareer } from './career-selection/selectors';
 import {
   CAREER_SELECTION_STUB_MATCHES,
   buildCareerSelectionStubProfile,
 } from './career-selection/fixtures';
 import careerMessages from './career-selection/messages';
 import { usePathwaysController } from './hooks';
-import { usePathwayBaseline, usePathwaysCourses, usePathwaysStore } from './state';
+import {
+  useDismissedSkillKeys, usePathwayBaseline, usePathwaysCourses, usePathwaysStore,
+} from './state';
 import { usePathwaysActionBar } from './action-bar';
 import type { PathwaysAction } from './action-bar';
 
@@ -39,14 +42,15 @@ const CareerSelectionContainer = ({
     selectedCareerId,
     loading,
     errors,
-    setLearnerProfile,
-    updateLearnerProfile,
-    setCareerMatches,
     setSelectedCareerId,
-    setConstructedPayload,
+    selectCareer,
+    dismissSkill,
+    restoreSkills,
+    commitProfileSuccess,
     setLoading,
     setError,
     setExperienceStatus,
+    setConstructedPayload,
   } = usePathwaysStore(
     useShallow((state) => ({
       onboardingAnswers: state.onboarding.answers,
@@ -55,14 +59,15 @@ const CareerSelectionContainer = ({
       selectedCareerId: state.selectedCareerId,
       loading: state.loading,
       errors: state.errors,
-      setLearnerProfile: state.setLearnerProfile,
-      updateLearnerProfile: state.updateLearnerProfile,
-      setCareerMatches: state.setCareerMatches,
       setSelectedCareerId: state.setSelectedCareerId,
-      setConstructedPayload: state.setConstructedPayload,
+      selectCareer: state.selectCareer,
+      dismissSkill: state.dismissSkill,
+      restoreSkills: state.restoreSkills,
+      commitProfileSuccess: state.commitProfileSuccess,
       setLoading: state.setLoading,
       setError: state.setError,
       setExperienceStatus: state.setExperienceStatus,
+      setConstructedPayload: state.setConstructedPayload,
     })),
   );
 
@@ -72,6 +77,7 @@ const CareerSelectionContainer = ({
 
   const pathwayBaseline = usePathwayBaseline();
   const setPathwayBaseline = usePathwaysStore((state) => state.setPathwayBaseline);
+  const dismissedSkillKeys = useDismissedSkillKeys();
 
   const { generateProfile, generatePathway } = usePathwaysController();
   const { registerActions, clearActions } = usePathwaysActionBar();
@@ -81,10 +87,9 @@ const CareerSelectionContainer = ({
   // Ref shared between the portaled retake-quiz button and RetakeQuizModal.
   const retakeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Modal + skills state lifted from CareerSelectionPage.
+  // Modal state lifted from CareerSelectionPage.
   const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
   const [isRetakeOpen, setIsRetakeOpen] = useState(false);
-  const [dismissedSkills, setDismissedSkills] = useState<Set<string>>(new Set<string>());
 
   const stubProfile = useMemo(
     () => buildCareerSelectionStubProfile(onboardingAnswers),
@@ -96,11 +101,8 @@ const CareerSelectionContainer = ({
     ? CAREER_SELECTION_STUB_MATCHES
     : careerMatches;
 
-  // Derive selected career from displayed matches; fall back to first.
   const selectedCareer = useMemo(
-    () => displayedMatches.find((m) => m.id === selectedCareerId)
-      ?? displayedMatches[0]
-      ?? null,
+    () => deriveSelectedCareer(displayedMatches, selectedCareerId),
     [displayedMatches, selectedCareerId],
   );
 
@@ -110,15 +112,12 @@ const CareerSelectionContainer = ({
     return Array.from(new Set(raw.map((s: string) => s.trim()).filter(Boolean)));
   }, [selectedCareer, displayedProfile.skills]);
 
-  // Reset dismissed skills whenever the career or available skill set changes.
-  const availableSkillsKey = availableSkills.join('\x00');
-  useEffect(() => {
-    setDismissedSkills(new Set<string>());
-  }, [selectedCareer?.id, availableSkillsKey]);
-
+  // The canonical dismissed-skill set lives in the store (persisted); "effective"
+  // visible skills are always derived fresh from it, never persisted themselves —
+  // see state/types.ts for why.
   const visibleSkills = useMemo(
-    () => availableSkills.filter((s) => !dismissedSkills.has(s)),
-    [availableSkills, dismissedSkills],
+    () => availableSkills.filter((s) => !dismissedSkillKeys.includes(s)),
+    [availableSkills, dismissedSkillKeys],
   );
 
   // If an existing pathway was loaded without a recorded baseline (e.g. fresh page
@@ -158,35 +157,21 @@ const CareerSelectionContainer = ({
     ? displayedCareerActionStateRef.current
     : rawCareerActionState;
 
-  // Integration seam: profile edits (careerGoal, targetIndustry, background,
-  // motivation) should route through generateProfileWorkflow — the same path as
-  // intake — not call fetchLearningIntent directly. The workflow recomputes
-  // intent-derived career matches; only commit displayedProfile/careerMatches
-  // after that orchestration succeeds.
+  // Atomically commits the profile/career-matches success result — see
+  // state/pathwaysStore.ts:commitProfileSuccess. Always replaces career matches
+  // (previously this only happened on the very first submission) and re-validates
+  // the selected career against them.
   const submitGoalSummary = async (updates: GoalSummaryFields) => {
     const nextProfile = { ...displayedProfile, ...updates };
-    const payload = {
-      source: 'career_selection_goal_summary',
-      onboardingAnswers,
-      learnerProfile: nextProfile,
-    };
 
     setError('learnerProfile', null);
     setError('careerMatches', null);
     setLoading('learnerProfile', true);
     setLoading('careerMatches', true);
-    setConstructedPayload('learnerProfileRequest', payload);
 
     try {
-      await generateProfile();
-      if (learnerProfile) {
-        updateLearnerProfile(updates);
-      } else {
-        setLearnerProfile(nextProfile);
-      }
-      if (usesStubData) {
-        setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
-      }
+      const result = await generateProfile(nextProfile);
+      commitProfileSuccess(result);
       setExperienceStatus('profile_ready');
     } catch (error) {
       setError(
@@ -369,7 +354,7 @@ const CareerSelectionContainer = ({
       profileError={errors.learnerProfile}
       careerMatchesError={errors.careerMatches}
       onSubmitGoalSummary={submitGoalSummary}
-      onSelectCareer={setSelectedCareerId}
+      onSelectCareer={selectCareer}
       isOverwriteOpen={isOverwriteOpen}
       onCloseOverwrite={closeRebuildModal}
       onConfirmOverwrite={buildPathway}
@@ -379,11 +364,9 @@ const CareerSelectionContainer = ({
       onConfirmRetake={confirmRetakeQuiz}
       retakeButtonRef={retakeButtonRef}
       visibleSkills={visibleSkills}
-      dismissedSkillCount={dismissedSkills.size}
-      onDismissSkill={(skill) => setDismissedSkills(
-        (current) => new Set([...current, skill]),
-      )}
-      onRestoreSkills={() => setDismissedSkills(new Set<string>())}
+      dismissedSkillCount={dismissedSkillKeys.length}
+      onDismissSkill={dismissSkill}
+      onRestoreSkills={restoreSkills}
     />
   );
 };
