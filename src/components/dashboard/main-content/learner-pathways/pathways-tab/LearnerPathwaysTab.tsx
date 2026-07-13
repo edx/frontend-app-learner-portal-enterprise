@@ -26,6 +26,11 @@ const LearnerPathwaysTab = () => {
         />
         <Container size="md" fluid className="mt-4.5">
           {section === VIEWS.ONBOARDING && (
+            // Integration seam: IntakePage.onSubmit currently only advances the section.
+            // Future: normalized IntakeFormValues should flow through
+            // controller.generateProfile(explicitValues) -> generateProfileWorkflow
+            // -> fetchLearningIntent -> career/taxonomy retrieval -> profile store update,
+            // and navigate to the profile section only after that orchestration succeeds.
             <IntakePage onSubmit={() => setSection('profile')} />
           )}
           {section === VIEWS.PROFILE && (

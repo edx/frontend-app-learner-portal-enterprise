@@ -158,6 +158,11 @@ const CareerSelectionContainer = ({
     ? displayedCareerActionStateRef.current
     : rawCareerActionState;
 
+  // Integration seam: profile edits (careerGoal, targetIndustry, background,
+  // motivation) should route through generateProfileWorkflow — the same path as
+  // intake — not call fetchLearningIntent directly. The workflow recomputes
+  // intent-derived career matches; only commit displayedProfile/careerMatches
+  // after that orchestration succeeds.
   const submitGoalSummary = async (updates: GoalSummaryFields) => {
     const nextProfile = { ...displayedProfile, ...updates };
     const payload = {
@@ -195,9 +200,14 @@ const CareerSelectionContainer = ({
     }
   };
 
-  // buildPathway uses container-owned selectedCareer and visibleSkills. Used both for the
-  // initial build (no existing pathway) and the rebuild confirmation (existing pathway with
-  // relevant edits) — same workflow, gated differently in the UI.
+  // buildPathway uses container-owned selectedCareer and visibleSkills.
+  // Integration seam: Build Pathway should call controller.generatePathway(explicit input)
+  // -> Algolia course retrieval -> normalize hits, keeping hit.key as the stable
+  // courseKey -> fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
+  // -> merge reasons[courseKey] into each course's whyThisFitsYou -> update pathway
+  // state -> navigate. Recommendation Feedback cannot run before Algolia returns
+  // candidate courses. Verify against the serializer whether selectedCareer should
+  // be the career title or an id.
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || loading.pathwayCourses) {
       return;

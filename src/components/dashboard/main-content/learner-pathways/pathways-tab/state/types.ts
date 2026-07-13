@@ -77,9 +77,11 @@ export interface PathwayCourse {
   id: string;
   title: string;
   provider?: string;
+  /** Stable backend/catalog join key used to match Recommendation Feedback `reasons` entries. */
   courseKey?: string;
   level?: string;
   length?: string;
+  /** Populated from the Recommendation Feedback response's `reasons[courseKey]` entry. */
   whyThisFitsYou?: string;
   status: PathwayCourseStatus;
 }
