@@ -15,6 +15,8 @@ type UseContentTypeFilterParams = {
   filter: string;
   /** Optional array of content types to filter by */
   contentType: string | null;
+  /** Optional learning type to filter by */
+  learningType: string | null;
 };
 
 /**
@@ -31,6 +33,8 @@ type ContentTypeFilterResult = {
   videoFilter: string;
   /** Filter string for the first content type in the contentTypes array, or null if none provided */
   contentTypeFilter: string | null;
+  /** Filter string combining learning type and content type, or null if no learning type provided */
+  learningTypeFilter: string | null;
 };
 
 /**
@@ -47,6 +51,16 @@ const buildContentTypeFilter = (filter: string, contentType: string): string => 
   return baseFilter.build();
 };
 
+const buildLearningTypeFilter = (filter: string, learningType: string): string => {
+  const baseFilter = new AlgoliaFilterBuilder().and('learning_type', learningType, {
+    stringify: true,
+  });
+  if (filter) {
+    baseFilter.andRaw(filter);
+  }
+  return baseFilter.build();
+};
+
 /**
  * A hook that generates filter strings for different content types
  * @param params - The parameters for the hook
@@ -55,13 +69,21 @@ const buildContentTypeFilter = (filter: string, contentType: string): string => 
  * @returns An object containing filter strings for different content types
  */
 const useContentTypeFilter = (
-  { filter, contentType = null }: UseContentTypeFilterParams,
+  { filter, contentType = null, learningType = null }: UseContentTypeFilterParams,
 ): ContentTypeFilterResult => useMemo(() => ({
   courseFilter: buildContentTypeFilter(filter, CONTENT_TYPE_COURSE),
   programFilter: buildContentTypeFilter(filter, CONTENT_TYPE_PROGRAM),
   pathwayFilter: buildContentTypeFilter(filter, CONTENT_TYPE_PATHWAY),
   videoFilter: buildContentTypeFilter(filter, CONTENT_TYPE_VIDEO),
-  contentTypeFilter: contentType ? buildContentTypeFilter(filter, contentType) : null,
-}), [contentType, filter]);
+  contentTypeFilter: contentType
+    ? buildContentTypeFilter(filter, contentType)
+    : null,
+  learningTypeFilter: learningType
+    ? buildLearningTypeFilter(
+      contentType ? buildContentTypeFilter(filter, contentType) : filter,
+      learningType,
+    )
+    : null,
+}), [contentType, filter, learningType]);
 
 export default useContentTypeFilter;

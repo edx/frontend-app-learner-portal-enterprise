@@ -3,16 +3,16 @@ import {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Configure, InstantSearch } from 'react-instantsearch-dom';
-import { SearchContext, SearchHeader } from '@2uinc/frontend-enterprise-catalog-search';
-import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
+import {
+  Configure, Index, InstantSearch, connectStateResults,
+} from 'react-instantsearch-dom';
+import { SearchContext, SearchHeader, setRefinementAction } from '@2uinc/frontend-enterprise-catalog-search';
 import { Container, Stack, useToggle } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import { CONTENT_TYPE_COURSE, NUM_RESULTS_PER_PAGE } from './constants';
+import { NUM_RESULTS_PER_PAGE } from './constants';
 import SearchProgram from './SearchProgram';
 import SearchCourse from './SearchCourse';
-import SearchExecutiveEducation from './SearchExecutiveEducation';
 import { ContentHighlights } from './content-highlights';
 import CustomSearchFilters from './CustomSearchFilters';
 import { features } from '../../config';
@@ -118,13 +118,11 @@ const Search = () => {
   const intl = useIntl();
   const navigate = useNavigate();
 
-  const { refinements } = useContext(SearchContext);
+  const { refinements, dispatch } = useContext(SearchContext);
   const {
     content_type: contentType,
     learning_type: learningType,
   } = refinements;
-  const isExecutiveEducationSelected = learningType?.includes(LEARNING_TYPE_EXECUTIVE_EDUCATION);
-
   const filters = useDefaultSearchFilters();
   const {
     courseFilter,
@@ -132,7 +130,8 @@ const Search = () => {
     pathwayFilter,
     videoFilter,
     contentTypeFilter,
-  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0] });
+    learningTypeFilter,
+  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0], learningType: learningType?.[0] });
 
   const {
     searchIndex,
@@ -271,7 +270,7 @@ const Search = () => {
         {canEnrollWithEnterpriseOffers && shouldDisplayBalanceAlert && (
           <EnterpriseOffersBalanceAlert hasNoEnterpriseOffersBalance={hasNoEnterpriseOffersBalance} />
         )}
-        {canViewCatalog && !contentType?.length && (
+        {canViewCatalog && !contentType?.length && !learningType?.length && (
           <Index indexName={searchIndex.indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
             <Container size="lg" className="mt-4">
               <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
@@ -280,64 +279,46 @@ const Search = () => {
         )}
 
         {/* No content type refinement  */}
-        {!contentType?.length
+        {(!contentType?.length && !learningType?.length)
           ? (
             <Stack className="my-5" gap={5}>
               {!hasRefinements && <ContentHighlights />}
-              {isExecutiveEducationSelected && canOnlyViewHighlightSets === false && (
-                <SearchExecutiveEducation
-                  filter={courseFilter}
-                  indexName={searchIndex.indexName}
-                  contentType={CONTENT_TYPE_COURSE}
-                />
-              )}
-              {!isExecutiveEducationSelected && (
-                <>
-                  {canOnlyViewHighlightSets === false
+              {canOnlyViewHighlightSets === false
                   && enterpriseCustomer.enableAcademies
                   && <SearchAcademy />}
-                  {features.ENABLE_PATHWAYS
+              {features.ENABLE_PATHWAYS
                   && (canOnlyViewHighlightSets === false)
                   && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
-                  {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
                   && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
-                  {canOnlyViewHighlightSets === false
+              {canOnlyViewHighlightSets === false
                   && (
                     <SearchCourse
                       filter={courseFilter}
                       indexName={searchIndex.indexName}
+                      handlers={{
+                        searchResults: handleCourseSectionUpdated,
+                        noSearchResults: handleCourseSectionUpdated,
+                      }}
                     />
                   )}
-                  {enableVideos && (
-                    <SearchVideo
-                      filter={videoFilter}
-                      showVideosBanner={showVideosBanner}
-                      hideVideosBanner={hideVideosBanner}
-                      indexName={searchIndex.indexName}
-                    />
-                  )}
-                </>
+              {enableVideos && (
+                <SearchVideo
+                  filter={videoFilter}
+                  indexName={searchIndex.indexName}
+                />
               )}
             </Stack>
           )
         /* render a single contentType if the refinement
             exists and is either a course, program or learnerpathway */
           : (
-            <>
-              {isExecutiveEducationSelected && (
-                <SearchExecutiveEducation
-                  filter={courseFilter}
-                  indexName={searchIndex.indexName}
-                  contentType={CONTENT_TYPE_COURSE}
-                />
-              )}
-              {!isExecutiveEducationSelected && (
-                <ContentTypeSearchResultsContainer
-                  contentType={contentType[0]}
-                  indexName={searchIndex.indexName}
-                />
-              )}
-            </>
+            <ContentTypeSearchResultsContainer
+              contentType={contentType?.[0]}
+              learningType={learningType?.[0]}
+              learningTypeFilter={learningTypeFilter}
+              indexName={searchIndex.indexName}
+            />
           )}
       </InstantSearch>
       <IntegrationWarningModal isEnabled={enterpriseCustomer.showIntegrationWarning} />

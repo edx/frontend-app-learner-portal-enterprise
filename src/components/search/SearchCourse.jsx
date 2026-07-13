@@ -30,7 +30,9 @@ import SearchCourseCard from './SearchCourseCard';
  *   handlers={{ searchResults: onResults, noSearchResults: onEmpty }}
  * />
  */
-const SearchCourse = ({ filter, indexName }) => {
+const SearchCourse = ({
+  filter, indexName, handlers,
+}) => {
   const intl = useIntl();
   const translatedTitle = intl.formatMessage({
     id: 'enterprise.search.page.course.section.translated.title',
@@ -49,6 +51,7 @@ const SearchCourse = ({ filter, indexName }) => {
         hitComponent={SearchCourseCard}
         title={COURSE_TITLE}
         indexName={indexName}
+        handlers={handlers}
         translatedTitle={translatedTitle}
         componentId={SEARCH_INDEX_IDS.COURSE}
       />
@@ -59,6 +62,14 @@ const SearchCourse = ({ filter, indexName }) => {
 SearchCourse.propTypes = {
   filter: PropTypes.string.isRequired,
   indexName: PropTypes.string.isRequired,
+  handlers: PropTypes.shape({
+    searchResults: PropTypes.func,
+    noSearchResults: PropTypes.func,
+  }),
+};
+
+SearchCourse.defaultProps = {
+  handlers: undefined,
 };
 
 export default SearchCourse;
