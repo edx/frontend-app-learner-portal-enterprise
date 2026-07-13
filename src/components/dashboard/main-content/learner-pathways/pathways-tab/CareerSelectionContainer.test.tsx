@@ -434,6 +434,20 @@ describe('CareerSelectionContainer', () => {
       expect(onRetakeQuiz).toHaveBeenCalledTimes(1);
     });
 
+    it('does not clear the existing saved pathway when confirming retake', async () => {
+      const user = userEvent.setup();
+      const onRetakeQuiz = jest.fn();
+      seedExistingUnchangedPathway();
+      renderContainer({ onRetakeQuiz });
+
+      await user.click(screen.getByTestId('career-retake-quiz-button'));
+      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+      expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]);
+      expect(usePathwaysStore.getState().pathwayBaseline).toEqual(unchangedBaseline);
+      expect(usePathwaysStore.getState().learnerProfile).not.toBeNull();
+    });
+
     it('returns focus to the trigger after the modal closes', async () => {
       const user = userEvent.setup();
       renderContainer();

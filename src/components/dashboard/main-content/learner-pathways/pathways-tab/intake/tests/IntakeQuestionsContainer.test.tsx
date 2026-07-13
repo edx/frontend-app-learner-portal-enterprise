@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
@@ -173,5 +173,63 @@ describe('IntakeQuestionsContainer', () => {
     await user.click(screen.getByRole('button', { name: messages.skipToDashboard.defaultMessage }));
 
     expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  describe('draft persistence', () => {
+    it('debounces draft keystrokes into the store, preserving in-progress whitespace', async () => {
+      const user = userEvent.setup();
+      render(<MockIntakeQuestionsContainer />);
+
+      await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'Grow  ');
+
+      await waitFor(() => {
+        expect(usePathwaysStore.getState().onboarding.answers.motivation).toBe('Grow  ');
+      });
+    });
+
+    it('restores draft values on remount (e.g. after Retake Quiz)', async () => {
+      const user = userEvent.setup();
+      const { unmount } = render(<MockIntakeQuestionsContainer />);
+
+      await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), 'Become a data analyst');
+      await waitFor(() => {
+        expect(usePathwaysStore.getState().onboarding.answers.goal).toBe('Become a data analyst');
+      });
+      unmount();
+
+      render(<MockIntakeQuestionsContainer />);
+
+      expect(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage))
+        .toHaveValue('Become a data analyst');
+    });
+
+    it('overwrites the draft with trimmed values on valid submit, even with a debounced sync still pending', async () => {
+      const user = userEvent.setup();
+      render(<MockIntakeQuestionsContainer />);
+
+      await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), '  Motivation answer  ');
+      await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), '  Goal answer  ');
+      await user.type(screen.getByLabelText(messages.backgroundQuestionLabel.defaultMessage), '  Background answer  ');
+      await user.type(screen.getByLabelText(messages.industryQuestionLabel.defaultMessage), '  Healthcare  ');
+      // Submit immediately, without waiting out the debounce window, so the pending
+      // draft-sync call is still scheduled when submit fires.
+      await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
+
+      expect(usePathwaysStore.getState().onboarding.answers).toEqual({
+        motivation: 'Motivation answer',
+        goal: 'Goal answer',
+        background: 'Background answer',
+        industry: 'Healthcare',
+      });
+
+      // The canceled draft sync must never fire and clobber the trimmed submit values.
+      await new Promise((resolve) => { setTimeout(resolve, 400); });
+      expect(usePathwaysStore.getState().onboarding.answers).toEqual({
+        motivation: 'Motivation answer',
+        goal: 'Goal answer',
+        background: 'Background answer',
+        industry: 'Healthcare',
+      });
+    });
   });
 });

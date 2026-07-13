@@ -1,13 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Form, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { FormProvider, useForm } from 'react-hook-form';
+import { debounce } from 'lodash-es';
 import { usePathwaysStore } from '../state';
 import { usePathwaysActionBar } from '../action-bar';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
 import IntakeGoalsQuestions from './IntakeGoalsQuestions';
 import messages from './messages';
+
+/**
+ * Every Zustand update now triggers a localStorage write (see state/persistence.ts),
+ * so draft persistence is debounced rather than synced on every keystroke.
+ */
+const DRAFT_SYNC_DEBOUNCE_MS = 300;
 
 export interface IntakeFormValues {
   motivation: string;
@@ -51,7 +58,26 @@ const IntakeQuestionsContainer = ({
     },
   });
 
+  // Live-sync drafts into Zustand (and therefore localStorage) so Retake Quiz or a
+  // refresh restores in-progress answers. Values are persisted raw (whitespace
+  // preserved while typing); only the valid-submit path below trims. Debounced to
+  // avoid a localStorage write on every keystroke.
+  const syncDraft = useMemo(
+    () => debounce((values: Partial<IntakeFormValues>) => {
+      setOnboardingAnswers({
+        motivation: values.motivation ?? emptyDefaultValues.motivation,
+        goal: values.goal ?? emptyDefaultValues.goal,
+        background: values.background ?? emptyDefaultValues.background,
+        industry: values.industry ?? emptyDefaultValues.industry,
+      });
+    }, DRAFT_SYNC_DEBOUNCE_MS),
+    [setOnboardingAnswers],
+  );
+
   const handleFormSubmit = methods.handleSubmit((values) => {
+    // Cancel any pending debounced draft sync so it can never fire after submit and
+    // clobber the trimmed, authoritative values committed below.
+    syncDraft.cancel();
     const normalizedValues: IntakeFormValues = {
       motivation: (values.motivation ?? emptyDefaultValues.motivation).trim(),
       goal: (values.goal ?? emptyDefaultValues.goal).trim(),
@@ -61,6 +87,14 @@ const IntakeQuestionsContainer = ({
     setOnboardingAnswers(normalizedValues);
     onSubmit(normalizedValues);
   });
+
+  useEffect(() => {
+    const subscription = methods.watch((values) => syncDraft(values));
+    return () => {
+      subscription.unsubscribe();
+      syncDraft.cancel();
+    };
+  }, [methods, syncDraft]);
 
   // Register submit (and optional skip) in the page-level action bar.
   // External <button type="submit" form={FORM_ID}> triggers handleFormSubmit
