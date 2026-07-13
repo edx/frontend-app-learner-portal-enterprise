@@ -2,7 +2,7 @@ import { logError } from '@edx/frontend-platform/logging';
 
 import { fetchRecommendationFeedback } from '../../../../../app/data/services';
 import { mapAlgoliaHitToPathwayCourse, searchLearnerPathwaysCourses } from '../services/catalogCourseSearch';
-import { buildRecommendationProfile } from './mappers';
+import { buildCourseSearchQuery, buildRecommendationProfile } from './mappers';
 import type { GeneratePathwayWorkflowInput, GeneratePathwayWorkflowResult } from './types';
 
 const dedupe = (values: string[]): string[] => Array.from(new Set(values));
@@ -12,11 +12,23 @@ const dedupe = (values: string[]): string[] => Array.from(new Set(values));
  * Feedback -> enriched PathwayCourse[] mapping.
  *
  * Flow:
- * 1. Build course-search optional skill signals from visibleSkills (the learner's
- *    dismissal-filtered skill list) plus Learning Intent's required/preferred
- *    skills — NOT selectedCareer.skillsToDevelop directly, so that dismissing a
- *    skill in the UI actually affects the query.
- * 2. Search the catalog index with selectedCareer.title as the query.
+ * 1. Split course-search skill signals into a strict list (Learning Intent's
+ *    required skills — the learner's stated must-haves) and a boost list
+ *    (visibleSkills, the learner's dismissal-filtered "skills to develop"
+ *    list, plus Learning Intent's preferred skills) — NOT
+ *    selectedCareer.skillsToDevelop directly, so that dismissing a skill in
+ *    the UI actually affects the query. This mirrors ai-pathways' broad-anchor
+ *    (hard facetFilters) vs narrow-signal (soft optionalFilters) split; a
+ *    skill in both lists counts only as strict, since a hard filter already
+ *    covers it.
+ * 2. Derive a skill-anchored query via buildCourseSearchQuery (top strict
+ *    skills, lowercased and joined, falling back to selectedCareer.title,
+ *    with the career title carried as a query alternate when the two
+ *    differ), then run it through the catalog service's multi-step retrieval
+ *    ladder (hybrid skill+text search -> boosted text fallback -> career-text
+ *    fallback across query alternates -> scope-only fallback), which
+ *    reranks the first two steps' hits by strict/boost skill match count —
+ *    a port of ai-pathways' proven course-retrieval approach.
  * 3. Zero hits is a valid, successful empty result — return immediately without
  *    calling Recommendation Feedback (the backend rejects an empty course_keys
  *    list).
@@ -37,16 +49,23 @@ export const generatePathwayWorkflow = async (
     selectedCareer, learnerProfile, learningIntent, visibleSkills, catalogIndex,
   }: GeneratePathwayWorkflowInput,
 ): Promise<GeneratePathwayWorkflowResult> => {
-  const optionalSkills = dedupe([
+  const strictSkills = dedupe(learningIntent?.skillsRequired ?? []);
+  const boostSkills = dedupe([
     ...visibleSkills,
-    ...(learningIntent?.skillsRequired ?? []),
     ...(learningIntent?.skillsPreferred ?? []),
-  ]);
+  ]).filter((skill) => !strictSkills.includes(skill));
+
+  const { query, queryAlternates } = buildCourseSearchQuery({
+    strictSkills,
+    careerTitle: selectedCareer.title,
+  });
 
   const courseHits = await searchLearnerPathwaysCourses({
     index: catalogIndex,
-    query: selectedCareer.title,
-    optionalSkills,
+    query,
+    queryAlternates,
+    strictSkills,
+    boostSkills,
   });
 
   if (courseHits.length === 0) {

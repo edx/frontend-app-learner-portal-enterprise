@@ -184,23 +184,45 @@ describe('generatePathwayWorkflow', () => {
     ...overrides,
   });
 
-  it('searches the catalog with the selected career title as the query', async () => {
+  it('searches the catalog with a skill-anchored query and the career title as a query alternate', async () => {
     await invoke();
 
     expect(searchLearnerPathwaysCourses).toHaveBeenCalledWith(expect.objectContaining({
-      query: 'Data Analyst',
+      query: 'sql python',
+      queryAlternates: ['Data Analyst'],
     }));
   });
 
-  it('builds optional skill signals from visibleSkills plus Learning Intent skills, not selectedCareer.skillsToDevelop directly', async () => {
+  it('falls back to the career title as the query, with no query alternates, when Learning Intent has no required skills', async () => {
+    await invoke({ learningIntent: { ...mockLearningIntentResponse, skillsRequired: [] } });
+
+    expect(searchLearnerPathwaysCourses).toHaveBeenCalledWith(expect.objectContaining({
+      query: 'Data Analyst',
+      queryAlternates: [],
+    }));
+  });
+
+  it('builds strict skills from Learning Intent required skills, and boost skills from visibleSkills plus preferred skills, not selectedCareer.skillsToDevelop directly', async () => {
     await invoke({ visibleSkills: ['Tableau Dismissed Test'] });
 
     const callArgs = jest.mocked(searchLearnerPathwaysCourses).mock.calls[0][0];
-    expect(callArgs.optionalSkills).toEqual(
-      expect.arrayContaining(['Tableau Dismissed Test', 'SQL', 'Python', 'Data Visualization']),
+    expect(callArgs.strictSkills).toEqual(['SQL', 'Python']);
+    expect(callArgs.boostSkills).toEqual(
+      expect.arrayContaining(['Tableau Dismissed Test', 'Data Visualization']),
     );
     // selectedCareer.skillsToDevelop's 'Tableau' must NOT silently override a dismissed visibleSkills list.
-    expect(callArgs.optionalSkills).not.toContain('Tableau');
+    expect(callArgs.boostSkills).not.toContain('Tableau');
+  });
+
+  it('excludes a skill from boostSkills when it already appears in strictSkills', async () => {
+    await invoke({
+      visibleSkills: ['SQL', 'Tableau'],
+      learningIntent: { skillsRequired: ['SQL'], skillsPreferred: ['Data Viz'], condensedAlgoliaQuery: 'x' },
+    });
+
+    const callArgs = jest.mocked(searchLearnerPathwaysCourses).mock.calls[0][0];
+    expect(callArgs.strictSkills).toEqual(['SQL']);
+    expect(callArgs.boostSkills).toEqual(['Tableau', 'Data Viz']);
   });
 
   it('calls course search before Recommendation Feedback', async () => {

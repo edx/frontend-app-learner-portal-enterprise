@@ -3,6 +3,43 @@ import type { CareerMatch, LearnerProfile, OnboardingAnswers } from '../state';
 
 const dedupe = (values: string[]): string[] => Array.from(new Set(values));
 
+// Distinct from catalogCourseSearch.ts's MAX_STRICT_SKILLS (=4, the facetFilters
+// cap) — this caps how many skill terms feed the search query text itself,
+// matching ai-pathways' catalogTranslationService.ts query-building formula.
+const MAX_QUERY_SKILL_TERMS = 3;
+
+export interface CourseSearchQuery {
+  query: string;
+  queryAlternates: string[];
+}
+
+/**
+ * Simplified port of ai-pathways' processTranslation query/queryAlternates
+ * formula: the query is anchored on the learner's top required skills
+ * (lowercased, space-joined), falling back to the career title when there
+ * are none; the career title is carried as a fallback queryAlternate when it
+ * differs from the skill-derived query. ai-pathways adds an extra
+ * hasMappedFacets gate that forces query = careerTitle / queryAlternates = []
+ * when strict AND boost skill *facets* are both empty — that gate is
+ * redundant here: with no strictSkills, broadTerms is '' (falsy), so query
+ * already falls back to careerTitle, and query === careerTitle already
+ * forces queryAlternates to [] via the ternary below. The gate only mattered
+ * there because strictSkillFilters is a catalog-vocabulary-matched subset
+ * that can diverge from raw required skills — a step this codebase doesn't
+ * have (skill names go straight to Algolia, no catalog-matching step).
+ */
+export function buildCourseSearchQuery(
+  { strictSkills, careerTitle }: { strictSkills: string[]; careerTitle: string },
+): CourseSearchQuery {
+  const broadTerms = strictSkills
+    .slice(0, MAX_QUERY_SKILL_TERMS)
+    .map((skill) => skill.toLowerCase())
+    .join(' ');
+  const query = broadTerms || careerTitle;
+  const queryAlternates = query !== careerTitle ? [careerTitle] : [];
+  return { query, queryAlternates };
+}
+
 export interface TaxonomySearchInput {
   query: string;
   skillsRequired: string[];

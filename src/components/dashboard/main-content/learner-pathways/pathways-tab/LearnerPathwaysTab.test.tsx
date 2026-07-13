@@ -9,6 +9,7 @@ import intakeMessages from './intake/messages';
 import { usePathwaysStore } from './state';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import useAlgoliaSearch from '../../../../app/data/hooks/useAlgoliaSearch';
+import useCatalogAlgoliaSearch from './hooks/useCatalogAlgoliaSearch';
 
 // Integration spike (uncommitted): mock the workflow layer (not the transport
 // service) so these tests exercise the real controller/workflow wiring while
@@ -19,6 +20,11 @@ jest.mock('./workflows', () => ({
 }));
 
 jest.mock('../../../../app/data/hooks/useAlgoliaSearch', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('./hooks/useCatalogAlgoliaSearch', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -74,6 +80,10 @@ describe('LearnerPathwaysTab', () => {
       searchClient: {} as unknown as ReturnType<typeof useAlgoliaSearch>['searchClient'],
       shouldUseSecuredAlgoliaApiKey: true,
       catalogUuidsToCatalogQueryUuids: {},
+    });
+    jest.mocked(useCatalogAlgoliaSearch).mockReturnValue({
+      searchIndex: null,
+      searchClient: null,
     });
     jest.mocked(generateProfileWorkflow).mockResolvedValue({
       learningIntent: mockLearningIntentResponse,
@@ -233,6 +243,47 @@ describe('LearnerPathwaysTab', () => {
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
     expect(screen.queryByTestId('profile-container')).not.toBeInTheDocument();
     expect(usePathwaysStore.getState().errors.learnerProfile).toBe('Enterprise Access is unavailable');
+  });
+
+  it('prefers the ai-pathways-style catalog override index over the production Algolia index when both are available', async () => {
+    const mockOverrideIndex = { indexName: 'override' } as unknown as ReturnType<typeof useAlgoliaSearch>['searchIndex'];
+    jest.mocked(useCatalogAlgoliaSearch).mockReturnValue({
+      searchIndex: mockOverrideIndex,
+      searchClient: {} as unknown as ReturnType<typeof useAlgoliaSearch>['searchClient'],
+    });
+    const user = userEvent.setup();
+    renderComponent();
+
+    await fillIntakeForm(user, {
+      motivation: 'Motivation', goal: 'Goal', background: 'Background', industry: 'Industry',
+    });
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await screen.findByTestId('profile-container');
+
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await screen.findByTestId('pathway-container');
+
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith(expect.objectContaining({
+      catalogIndex: mockOverrideIndex,
+    }));
+  });
+
+  it('falls back to the production Algolia catalog index when the override is not configured', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await fillIntakeForm(user, {
+      motivation: 'Motivation', goal: 'Goal', background: 'Background', industry: 'Industry',
+    });
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await screen.findByTestId('profile-container');
+
+    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await screen.findByTestId('pathway-container');
+
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith(expect.objectContaining({
+      catalogIndex: mockSearchIndex,
+    }));
   });
 
   it('does not call the Recommendation Feedback (pathway) workflow during intake submission alone', async () => {

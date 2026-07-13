@@ -1,5 +1,5 @@
 import {
-  buildLearnerProfile, buildRecommendationProfile, mapLearningIntentToTaxonomyInput,
+  buildCourseSearchQuery, buildLearnerProfile, buildRecommendationProfile, mapLearningIntentToTaxonomyInput,
 } from './mappers';
 
 const mockLearningIntent = {
@@ -24,6 +24,44 @@ describe('mapLearningIntentToTaxonomyInput', () => {
       skillsRequired: ['SQL', 'Python'],
       skillsPreferred: ['Data Visualization', 'SQL'],
     });
+  });
+});
+
+describe('buildCourseSearchQuery', () => {
+  it('joins the lowercased top 3 strict skills, space-separated, as the query', () => {
+    const result = buildCourseSearchQuery({
+      strictSkills: ['SQL', 'Python', 'Tableau'],
+      careerTitle: 'Data Analyst',
+    });
+
+    expect(result.query).toBe('sql python tableau');
+  });
+
+  it('caps at 3 skill terms even with more strict skills, distinct from the facet cap of 4', () => {
+    const result = buildCourseSearchQuery({
+      strictSkills: ['SQL', 'Python', 'Tableau', 'Excel', 'R'],
+      careerTitle: 'Data Analyst',
+    });
+
+    expect(result.query).toBe('sql python tableau');
+  });
+
+  it('falls back to careerTitle as the query when there are no strict skills', () => {
+    const result = buildCourseSearchQuery({ strictSkills: [], careerTitle: 'Data Analyst' });
+
+    expect(result.query).toBe('Data Analyst');
+  });
+
+  it('sets queryAlternates to [careerTitle] when the derived query differs from careerTitle', () => {
+    const result = buildCourseSearchQuery({ strictSkills: ['SQL'], careerTitle: 'Data Analyst' });
+
+    expect(result.queryAlternates).toEqual(['Data Analyst']);
+  });
+
+  it('sets queryAlternates to [] when the query equals careerTitle (no strict skills)', () => {
+    const result = buildCourseSearchQuery({ strictSkills: [], careerTitle: 'Data Analyst' });
+
+    expect(result.queryAlternates).toEqual([]);
   });
 });
 

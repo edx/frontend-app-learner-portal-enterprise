@@ -11,7 +11,7 @@ import { VIEWS } from './constants';
 import { usePathwaysStore, selectors } from './state';
 import type { OnboardingAnswers, PathwaysSection } from './state';
 import { PathwaysActionBarProvider } from './action-bar';
-import { usePathwaysController } from './hooks';
+import { useCatalogAlgoliaSearch, usePathwaysController } from './hooks';
 
 const LearnerPathwaysTab = () => {
   const section = usePathwaysStore(selectors.section);
@@ -20,10 +20,17 @@ const LearnerPathwaysTab = () => {
   // Single top-level owner of both Algolia indexes — passed down as explicit
   // props/hook-args rather than obtained separately by every controller
   // consumer, to avoid redundant Algolia-hook mounts (see usePathwaysController).
+  // The catalog index prefers the ai-pathways-style stage-override client
+  // (a real prod Algolia app referenced via ALGOLIA_STAGE_*_OVERRIDE, for
+  // realistic demo data) and falls back to the production BFF-secured index
+  // when the override isn't configured — mirrors ai-pathways' usePathways.ts
+  // `catalogAlgoliaSearchIndex ?? catalogIndex` pattern exactly.
   const { searchIndex: jobIndex } = useAlgoliaSearch(getConfig().ALGOLIA_INDEX_NAME_JOBS);
-  const { searchIndex: catalogIndex } = useAlgoliaSearch(
+  const { searchIndex: productionCatalogIndex } = useAlgoliaSearch(
     getConfig().ALGOLIA_INDEX_NAME_V2 || getConfig().ALGOLIA_INDEX_NAME,
   );
+  const { searchIndex: catalogOverrideIndex } = useCatalogAlgoliaSearch();
+  const catalogIndex = catalogOverrideIndex ?? productionCatalogIndex;
 
   const { generateProfile } = usePathwaysController({ jobIndex, catalogIndex });
 
