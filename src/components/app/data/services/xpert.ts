@@ -4,6 +4,8 @@ import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { camelCaseObject, snakeCaseObject } from '@edx/frontend-platform/utils';
 
 const LEARNER_PATHWAYS_BASE_PATH = '/api/v1/learner-pathways';
+const LEARNING_INTENT_API_PATH = `${LEARNER_PATHWAYS_BASE_PATH}/learning-intent/`;
+const RECOMMENDATIONS_FEEDBACK_API_PATH = `${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback/`;
 
 /**
  * Learner intake answers submitted to the Learning Intent endpoint so the backend can infer
@@ -52,7 +54,7 @@ interface LearningIntentResponseRaw {
 export async function fetchLearningIntent(
   request: LearningIntentRequest,
 ): Promise<LearningIntentResponse> {
-  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/learning-intent/`;
+  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNING_INTENT_API_PATH}`;
   const payload = snakeCaseObject(request);
   const response: AxiosResponse<LearningIntentResponseRaw> = await getAuthenticatedHttpClient()
     .post(url, payload);
@@ -106,7 +108,7 @@ interface RecommendationFeedbackResponseRaw {
 export async function fetchRecommendationFeedback(
   request: RecommendationFeedbackRequest,
 ): Promise<RecommendationFeedbackResponse> {
-  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback/`;
+  const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${RECOMMENDATIONS_FEEDBACK_API_PATH}`;
   const payload = {
     selected_career: request.selectedCareer,
     course_keys: request.courseKeys,
