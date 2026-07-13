@@ -96,10 +96,10 @@ const messages = defineMessages({
     defaultMessage: 'Register',
     description: 'Row action label for a not-started course.',
   },
-  adjustPathway: {
-    id: 'learner.pathways.courses.actions.adjustPathway',
-    defaultMessage: 'Adjust pathway',
-    description: 'Primary action to return to the pathway profile step.',
+  rebuildPathway: {
+    id: 'learner.pathways.courses.actions.rebuildPathway',
+    defaultMessage: 'Rebuild pathway',
+    description: 'Leading action to navigate back to the Career Profile page.',
   },
   viewPathway: {
     id: 'learner.pathways.courses.actions.viewPathway',
