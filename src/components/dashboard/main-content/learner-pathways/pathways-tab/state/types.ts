@@ -130,15 +130,6 @@ export interface PathwaysErrorState {
 }
 
 /**
- * Request payload placeholders used for future API integrations.
- * These remain generic in the scaffold phase until contracts are finalized.
- */
-export interface PathwaysConstructedPayloads {
-  learnerProfileRequest: Record<string, unknown> | null;
-  pathwayRequest: Record<string, unknown> | null;
-}
-
-/**
  * Read-only slice of learner pathways store values.
  */
 export interface PathwaysState {
@@ -152,7 +143,6 @@ export interface PathwaysState {
   progress: PathwayProgress;
   loading: PathwaysLoadingState;
   errors: PathwaysErrorState;
-  constructedPayloads: PathwaysConstructedPayloads;
   pathwayBaseline: PathwayBaselineSnapshot | null;
   /**
    * Skills the learner has dismissed from the current career's "skills to develop"
@@ -167,6 +157,12 @@ export interface PathwaysState {
 export interface CommitProfileSuccessInput {
   learnerProfile: LearnerProfile;
   careerMatches: CareerMatch[];
+}
+
+/** Input for the atomic pathway build/rebuild success commit. */
+export interface CommitPathwayBuildInput {
+  courses: PathwayCourse[];
+  baseline: PathwayBaselineSnapshot;
 }
 
 /**
@@ -200,12 +196,13 @@ export interface PathwaysActions {
   setProgress: (progress: PathwayProgress) => void;
   setLoading: (key: keyof PathwaysLoadingState, isLoading: boolean) => void;
   setError: (key: keyof PathwaysErrorState, errorMessage: string | null) => void;
-  setConstructedPayload: <K extends keyof PathwaysConstructedPayloads>(
-    key: K,
-    payload: PathwaysConstructedPayloads[K]
-  ) => void;
-  clearConstructedPayloads: () => void;
   setPathwayBaseline: (baseline: PathwayBaselineSnapshot | null) => void;
+  /**
+   * Atomically commits a successful pathway build/rebuild: replaces the complete
+   * course set (removing stale courses and their feedback in the same replace) and
+   * updates the generation baseline together, rather than as separate setter calls.
+   */
+  commitPathwayBuild: (input: CommitPathwayBuildInput) => void;
   resetPathwaysState: () => void;
 }
 

@@ -59,10 +59,6 @@ export const getInitialPathwaysState = (): PathwaysState => ({
     pathwayCourses: null,
     pathwayProgress: null,
   },
-  constructedPayloads: {
-    learnerProfileRequest: null,
-    pathwayRequest: null,
-  },
   pathwayBaseline: null,
   dismissedSkillKeys: [],
 });
@@ -168,19 +164,12 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
       [key]: errorMessage,
     },
   })),
-  setConstructedPayload: (key, payload) => set((state) => ({
-    constructedPayloads: {
-      ...state.constructedPayloads,
-      [key]: payload,
-    },
-  })),
-  clearConstructedPayloads: () => set({
-    constructedPayloads: {
-      learnerProfileRequest: null,
-      pathwayRequest: null,
-    },
-  }),
   setPathwayBaseline: (pathwayBaseline) => set({ pathwayBaseline }),
+  commitPathwayBuild: ({ courses, baseline }) => set({
+    pathwayCourses: courses,
+    pathwayBaseline: baseline,
+    experienceStatus: 'pathway_ready',
+  }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
 }), {
   name: PATHWAYS_STORAGE_KEY,
@@ -207,7 +196,6 @@ export const selectors = {
   progress: (state: PathwaysStore) => state.progress,
   loading: (state: PathwaysStore) => state.loading,
   errors: (state: PathwaysStore) => state.errors,
-  constructedPayloads: (state: PathwaysStore) => state.constructedPayloads,
   pathwayBaseline: (state: PathwaysStore) => state.pathwayBaseline,
   dismissedSkillKeys: (state: PathwaysStore) => state.dismissedSkillKeys,
 };
@@ -227,7 +215,6 @@ export const usePathwaysCourses = () => usePathwaysStore(selectors.pathwayCourse
 export const usePathwaysProgress = () => usePathwaysStore(selectors.progress);
 export const usePathwaysLoading = () => usePathwaysStore(selectors.loading);
 export const usePathwaysErrors = () => usePathwaysStore(selectors.errors);
-export const usePathwaysConstructedPayloads = () => usePathwaysStore(selectors.constructedPayloads);
 export const usePathwayBaseline = () => usePathwaysStore(selectors.pathwayBaseline);
 export const useDismissedSkillKeys = () => usePathwaysStore(selectors.dismissedSkillKeys);
 

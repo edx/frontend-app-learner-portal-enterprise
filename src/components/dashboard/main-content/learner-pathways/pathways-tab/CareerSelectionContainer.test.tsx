@@ -13,18 +13,21 @@ import {
   CAREER_SELECTION_STUB_MATCHES,
   CAREER_SELECTION_STUB_PROFILE,
 } from './career-selection/fixtures';
+import { PATHWAY_COURSES_STUB } from './pathway-courses/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
 jest.mock('./workflows', () => {
   // eslint-disable-next-line global-require
   const { CAREER_SELECTION_STUB_MATCHES: matches } = require('./career-selection/fixtures');
+  // eslint-disable-next-line global-require
+  const { PATHWAY_COURSES_STUB: courses } = require('./pathway-courses/fixtures');
   return {
     generateProfileWorkflow: jest.fn((input) => Promise.resolve({
       learnerProfile: input.learnerProfile,
       careerMatches: matches,
     })),
-    generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
+    generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses }),
   };
 });
 
@@ -79,7 +82,7 @@ describe('CareerSelectionContainer', () => {
       learnerProfile: input.learnerProfile,
       careerMatches: CAREER_SELECTION_STUB_MATCHES,
     }));
-    jest.mocked(generatePathwayWorkflow).mockResolvedValue(undefined);
+    jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: PATHWAY_COURSES_STUB });
   });
 
   it('hydrates the learner profile and stub career matches on first goal-summary submission', async () => {
@@ -146,6 +149,12 @@ describe('CareerSelectionContainer', () => {
       expect(screen.queryByTestId('career-rebuild-pathway-button')).not.toBeInTheDocument();
     });
 
+    it('never persists fixture/stub data as a real pathway before a build succeeds', () => {
+      renderContainer();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayBaseline).toBeNull();
+    });
+
     it('calls onNext and marks the pathway ready when generatePathway resolves', async () => {
       const user = userEvent.setup();
       const onNext = jest.fn();
@@ -200,7 +209,7 @@ describe('CareerSelectionContainer', () => {
       const user = userEvent.setup();
       let resolveWorkflow: () => void = () => {};
       jest.mocked(generatePathwayWorkflow).mockImplementationOnce(() => new Promise((resolve) => {
-        resolveWorkflow = () => resolve(undefined);
+        resolveWorkflow = () => resolve({ courses: PATHWAY_COURSES_STUB });
       }));
       renderContainer();
 
@@ -319,6 +328,42 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
       expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
       expect(usePathwaysStore.getState().pathwayBaseline?.careerGoal).toBe('Director of Analytics');
+      // The stale seeded course ('course-1') is fully replaced, not merged with the new set.
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
+      expect(usePathwaysStore.getState().pathwayCourses.find((c) => c.id === 'course-1')).toBeUndefined();
+    });
+
+    it('a failed rebuild preserves the prior courses and baseline', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      const priorCourses = usePathwaysStore.getState().pathwayCourses;
+      const priorBaseline = usePathwaysStore.getState().pathwayBaseline;
+      jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce(new Error('boom'));
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
+      await user.click(screen.getByTestId('career-rebuild-pathway-button'));
+
+      await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+
+      await waitFor(() => {
+        expect(usePathwaysStore.getState().errors.pathwayCourses).toBe('boom');
+      });
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(priorCourses);
+      expect(usePathwaysStore.getState().pathwayBaseline).toEqual(priorBaseline);
+    });
+
+    it('View current pathway does not modify the generation baseline', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      const priorBaseline = usePathwaysStore.getState().pathwayBaseline;
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-view-current-pathway-button'));
+
+      await user.click(screen.getByTestId('career-view-current-pathway-button'));
+
+      expect(usePathwaysStore.getState().pathwayBaseline).toEqual(priorBaseline);
     });
 
     it('canceling the rebuild modal does not rebuild', async () => {

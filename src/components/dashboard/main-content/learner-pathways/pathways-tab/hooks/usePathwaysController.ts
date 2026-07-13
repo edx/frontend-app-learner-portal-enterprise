@@ -1,12 +1,12 @@
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePathwaysStore } from '../state';
-import type { LearnerProfile } from '../state';
+import type { CareerMatch, LearnerProfile } from '../state';
 import {
   generatePathwayWorkflow,
   generateProfileWorkflow,
 } from '../workflows';
-import type { GenerateProfileWorkflowResult } from '../workflows';
+import type { GenerateProfileWorkflowResult, GeneratePathwayWorkflowResult } from '../workflows';
 
 /**
  * Controller-layer facade for Pathways tab actions.
@@ -22,12 +22,10 @@ export const usePathwaysController = () => {
     setSection,
     setExperienceStatus,
     resetPathwaysState,
-    constructedPayloads,
   } = usePathwaysStore(useShallow((state) => ({
     setSection: state.setSection,
     setExperienceStatus: state.setExperienceStatus,
     resetPathwaysState: state.resetPathwaysState,
-    constructedPayloads: state.constructedPayloads,
   })));
 
   const startOnboarding = () => {
@@ -40,15 +38,15 @@ export const usePathwaysController = () => {
     learnerProfile: LearnerProfile,
   ): Promise<GenerateProfileWorkflowResult> => generateProfileWorkflow({ learnerProfile });
 
-  // Integration seam: generatePathway should accept explicit selected-career/profile
-  // input instead of reading constructedPayloads.pathwayRequest, which callers
-  // currently stage into the store immediately before invoking this action.
-  const generatePathway = async () => {
-    // TODO: Trigger full pathway workflow orchestration in a follow-up ticket.
-    await generatePathwayWorkflow({
-      payload: constructedPayloads.pathwayRequest ?? undefined,
-    });
-  };
+  const generatePathway = (
+    learnerProfile: LearnerProfile,
+    selectedCareer: CareerMatch,
+    skillsToDevelop: string[],
+  ): Promise<GeneratePathwayWorkflowResult> => generatePathwayWorkflow({
+    learnerProfile,
+    selectedCareer,
+    skillsToDevelop,
+  });
 
   const resetPathway = () => {
     resetPathwaysState();

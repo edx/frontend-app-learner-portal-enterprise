@@ -44,10 +44,6 @@ describe('pathwaysStore', () => {
       pathwayCourses: null,
       pathwayProgress: null,
     });
-    expect(state.constructedPayloads).toEqual({
-      learnerProfileRequest: null,
-      pathwayRequest: null,
-    });
     expect(state.pathwayBaseline).toBeNull();
   });
 
@@ -124,8 +120,6 @@ describe('pathwaysStore', () => {
       setProgress,
       setLoading,
       setError,
-      setConstructedPayload,
-      clearConstructedPayloads,
     } = usePathwaysStore.getState();
 
     setLearnerProfile({
@@ -168,8 +162,6 @@ describe('pathwaysStore', () => {
     setError('pathwayCourses', 'Stubbed pathway error');
     setLoading('pathwayProgress', true);
     setError('pathwayProgress', 'Stubbed progress error');
-    setConstructedPayload('learnerProfileRequest', { answersSource: 'onboarding' });
-    setConstructedPayload('pathwayRequest', { selectedCareerId: 'career-1' });
 
     const state = usePathwaysStore.getState();
     expect(state.learnerProfile?.weeklyTimeCommitment).toBe('8 hours');
@@ -182,14 +174,6 @@ describe('pathwaysStore', () => {
     expect(state.errors.pathwayCourses).toBe('Stubbed pathway error');
     expect(state.loading.pathwayProgress).toBe(true);
     expect(state.errors.pathwayProgress).toBe('Stubbed progress error');
-    expect(state.constructedPayloads.learnerProfileRequest).toEqual({ answersSource: 'onboarding' });
-    expect(state.constructedPayloads.pathwayRequest).toEqual({ selectedCareerId: 'career-1' });
-
-    clearConstructedPayloads();
-    expect(usePathwaysStore.getState().constructedPayloads).toEqual({
-      learnerProfileRequest: null,
-      pathwayRequest: null,
-    });
   });
 
   it('resets back to a fresh initial state object', () => {
@@ -227,10 +211,6 @@ describe('pathwaysStore', () => {
     });
     expect(selectors.loading(currentState)).toEqual(currentState.loading);
     expect(selectors.errors(currentState)).toEqual(currentState.errors);
-    expect(selectors.constructedPayloads(currentState)).toEqual({
-      learnerProfileRequest: null,
-      pathwayRequest: null,
-    });
   });
 
   it('operates via getState without mounting UI', () => {
@@ -327,6 +307,40 @@ describe('pathwaysStore', () => {
       usePathwaysStore.getState().commitProfileSuccess({ learnerProfile: profile, careerMatches: matches });
 
       expect(usePathwaysStore.getState().selectedCareerId).toBe('career-1');
+    });
+  });
+
+  describe('commitPathwayBuild', () => {
+    const courses = [
+      {
+        id: 'course-1', courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' as const,
+      },
+    ];
+    const baseline = {
+      careerGoal: 'Data Analyst',
+      targetIndustry: 'Tech',
+      background: 'Ops',
+      motivation: 'Growth',
+      selectedCareerId: 'career-1',
+    };
+
+    it('replaces the course set, sets the baseline, and marks the pathway ready in one commit', () => {
+      usePathwaysStore.getState().commitPathwayBuild({ courses, baseline });
+
+      const state = usePathwaysStore.getState();
+      expect(state.pathwayCourses).toEqual(courses);
+      expect(state.pathwayBaseline).toEqual(baseline);
+      expect(state.experienceStatus).toBe('pathway_ready');
+    });
+
+    it('replaces stale courses from a previous build entirely, not merges them', () => {
+      usePathwaysStore.getState().setPathwayCourses([
+        { id: 'stale-course', title: 'Old Course', status: 'completed' },
+      ]);
+
+      usePathwaysStore.getState().commitPathwayBuild({ courses, baseline });
+
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(courses);
     });
   });
 });

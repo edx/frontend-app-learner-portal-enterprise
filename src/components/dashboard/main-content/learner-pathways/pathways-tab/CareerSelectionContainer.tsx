@@ -47,10 +47,10 @@ const CareerSelectionContainer = ({
     dismissSkill,
     restoreSkills,
     commitProfileSuccess,
+    commitPathwayBuild,
     setLoading,
     setError,
     setExperienceStatus,
-    setConstructedPayload,
   } = usePathwaysStore(
     useShallow((state) => ({
       onboardingAnswers: state.onboarding.answers,
@@ -64,10 +64,10 @@ const CareerSelectionContainer = ({
       dismissSkill: state.dismissSkill,
       restoreSkills: state.restoreSkills,
       commitProfileSuccess: state.commitProfileSuccess,
+      commitPathwayBuild: state.commitPathwayBuild,
       setLoading: state.setLoading,
       setError: state.setError,
       setExperienceStatus: state.setExperienceStatus,
-      setConstructedPayload: state.setConstructedPayload,
     })),
   );
 
@@ -185,41 +185,32 @@ const CareerSelectionContainer = ({
     }
   };
 
-  // buildPathway uses container-owned selectedCareer and visibleSkills.
-  // Integration seam: Build Pathway should call controller.generatePathway(explicit input)
-  // -> Algolia course retrieval -> normalize hits, keeping hit.key as the stable
-  // courseKey -> fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
-  // -> merge reasons[courseKey] into each course's whyThisFitsYou -> update pathway
-  // state -> navigate. Recommendation Feedback cannot run before Algolia returns
-  // candidate courses. Verify against the serializer whether selectedCareer should
-  // be the career title or an id.
+  // buildPathway uses container-owned selectedCareer and visibleSkills, and commits
+  // the result atomically via commitPathwayBuild (courses + baseline + experience
+  // status together — see state/pathwaysStore.ts). Recommendation Feedback cannot
+  // run before course retrieval returns candidates; generatePathwayWorkflow owns
+  // that ordering once real Algolia/Recommendation Feedback integration lands.
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || loading.pathwayCourses) {
       return;
     }
-    const payload = {
-      source: 'career_selection',
-      learnerProfile: displayedProfile,
-      selectedCareer,
-      selectedCareerId: selectedCareer.id,
-      skillsToDevelop: visibleSkills,
-    };
 
     setSelectedCareerId(selectedCareer.id);
     setError('pathwayCourses', null);
     setLoading('pathwayCourses', true);
-    setConstructedPayload('pathwayRequest', payload);
     setIsOverwriteOpen(false);
 
     try {
-      await generatePathway();
-      setExperienceStatus('pathway_ready');
-      setPathwayBaseline({
-        careerGoal: displayedProfile.careerGoal,
-        targetIndustry: displayedProfile.targetIndustry,
-        background: displayedProfile.background,
-        motivation: displayedProfile.motivation,
-        selectedCareerId: selectedCareer.id,
+      const result = await generatePathway(displayedProfile, selectedCareer, visibleSkills);
+      commitPathwayBuild({
+        courses: result.courses,
+        baseline: {
+          careerGoal: displayedProfile.careerGoal,
+          targetIndustry: displayedProfile.targetIndustry,
+          background: displayedProfile.background,
+          motivation: displayedProfile.motivation,
+          selectedCareerId: selectedCareer.id,
+        },
       });
       onNext?.();
     } catch (error) {
@@ -238,10 +229,8 @@ const CareerSelectionContainer = ({
     setSelectedCareerId,
     setError,
     setLoading,
-    setConstructedPayload,
     generatePathway,
-    setExperienceStatus,
-    setPathwayBaseline,
+    commitPathwayBuild,
     onNext,
   ]);
 

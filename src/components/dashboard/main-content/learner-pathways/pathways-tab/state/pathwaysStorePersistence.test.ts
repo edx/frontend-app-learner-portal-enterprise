@@ -92,7 +92,6 @@ describe('usePathwaysStore <-> localStorage', () => {
     expect(stored.state.section).toBe('profile');
     expect(stored.state).not.toHaveProperty('loading');
     expect(stored.state).not.toHaveProperty('errors');
-    expect(stored.state).not.toHaveProperty('constructedPayloads');
     expect(stored.state).not.toHaveProperty('progress');
   });
 

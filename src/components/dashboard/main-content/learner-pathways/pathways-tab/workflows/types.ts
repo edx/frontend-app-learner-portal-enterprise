@@ -1,4 +1,4 @@
-import type { CareerMatch, LearnerProfile } from '../state';
+import type { CareerMatch, LearnerProfile, PathwayCourse } from '../state';
 
 /**
  * Explicit profile-generation input: the caller (CareerSelectionContainer) computes
@@ -16,9 +16,17 @@ export interface GenerateProfileWorkflowResult {
 }
 
 /**
- * Workflow-layer placeholder input for pathway generation.
- * Payload contract will be finalized when service integration lands.
+ * Explicit pathway-generation input: the caller computes the current profile,
+ * selected career, and effective skills; the workflow owns turning them into a
+ * committable course result (currently a stub — see generatePathwayWorkflow.ts).
  */
 export interface GeneratePathwayWorkflowInput {
-  payload?: Record<string, unknown>;
+  learnerProfile: LearnerProfile;
+  selectedCareer: CareerMatch;
+  skillsToDevelop: string[];
+}
+
+/** Result the controller/container commits atomically via commitPathwayBuild. */
+export interface GeneratePathwayWorkflowResult {
+  courses: PathwayCourse[];
 }

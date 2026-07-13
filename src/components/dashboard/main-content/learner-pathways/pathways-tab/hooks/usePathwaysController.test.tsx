@@ -9,7 +9,7 @@ import { usePathwaysController } from './usePathwaysController';
 
 jest.mock('../workflows', () => ({
   generateProfileWorkflow: jest.fn().mockResolvedValue({ learnerProfile: null, careerMatches: [] }),
-  generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
+  generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
 
 const stubProfile = {
@@ -23,6 +23,8 @@ const stubProfile = {
   certificatePreference: 'Preferred',
   skills: [] as string[],
 };
+
+const stubCareer = { id: 'career-1', title: 'Data Analyst' };
 
 describe('usePathwaysController', () => {
   beforeEach(() => {
@@ -53,14 +55,19 @@ describe('usePathwaysController', () => {
     expect(generateProfileWorkflow).toHaveBeenCalledWith({ learnerProfile: stubProfile });
   });
 
-  it('delegates pathway generation to workflow placeholder', async () => {
+  it('delegates pathway generation to the workflow with explicit profile/career/skills', async () => {
     const { result } = renderHook(() => usePathwaysController());
 
     await act(async () => {
-      await result.current.generatePathway();
+      await result.current.generatePathway(stubProfile, stubCareer, ['SQL']);
     });
 
     expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith({
+      learnerProfile: stubProfile,
+      selectedCareer: stubCareer,
+      skillsToDevelop: ['SQL'],
+    });
   });
 
   it('resets pathways state via store reset action', () => {

@@ -13,7 +13,6 @@ export {
   usePathwaysSection,
   usePathwaysSelectedCareerId,
   usePathwaysStore,
-  usePathwaysConstructedPayloads,
   useSelectedCareerMatch,
   usePathwayBaseline,
   useDismissedSkillKeys,
@@ -23,6 +22,7 @@ export { normalizeSelectedCareerId } from './normalize';
 
 export type {
   CareerMatch,
+  CommitPathwayBuildInput,
   CommitProfileSuccessInput,
   LearnerProfile,
   OnboardingAnswers,
@@ -32,7 +32,6 @@ export type {
   PathwayCourseStatus,
   PathwayProgress,
   PathwaysActions,
-  PathwaysConstructedPayloads,
   PathwaysErrorState,
   PathwaysExperienceStatus,
   PathwaysLoadingState,

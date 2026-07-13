@@ -26,9 +26,8 @@ const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore 
   setProgress: noop,
   setLoading: noop,
   setError: noop,
-  setConstructedPayload: noop,
-  clearConstructedPayloads: noop,
   setPathwayBaseline: noop,
+  commitPathwayBuild: noop,
   resetPathwaysState: noop,
   ...stateOverrides,
 });
@@ -58,10 +57,9 @@ describe('partializePathwaysState', () => {
       'section',
       'selectedCareerId',
     ]);
-    // Explicitly excluded: transient/request-shaped fields never leave the store.
+    // Explicitly excluded: transient fields never leave the store.
     expect(persisted).not.toHaveProperty('loading');
     expect(persisted).not.toHaveProperty('errors');
-    expect(persisted).not.toHaveProperty('constructedPayloads');
     expect(persisted).not.toHaveProperty('progress');
   });
 

@@ -8,9 +8,9 @@ export const PATHWAYS_STORAGE_KEY = 'edx.learner-pathways.state';
 export const PATHWAYS_STORAGE_VERSION = 1;
 
 /**
- * The durable subset of PathwaysState — deliberately excludes loading/errors/
- * constructedPayloads (transient/request-shaped) and `progress` (derived from
- * displayed courses at render time, not an independent fact).
+ * The durable subset of PathwaysState — deliberately excludes loading/errors
+ * (transient) and `progress` (derived from displayed courses at render time, not an
+ * independent fact).
  */
 export type PersistedPathwaysState = Pick<
 PathwaysState,

@@ -23,13 +23,16 @@ describe('pathways workflows scaffolds', () => {
     expect(result.careerMatches.length).toBeGreaterThan(0);
   });
 
-  it('resolves pathway workflow without payload', async () => {
-    await expect(generatePathwayWorkflow()).resolves.toBeUndefined();
-  });
+  it('resolves pathway workflow with the stub course set, each course carrying a courseKey', async () => {
+    const result = await generatePathwayWorkflow({
+      learnerProfile: stubProfile,
+      selectedCareer: { id: 'career-1', title: 'Data Analyst' },
+      skillsToDevelop: ['SQL'],
+    });
 
-  it('resolves pathway workflow with payload', async () => {
-    await expect(generatePathwayWorkflow({
-      payload: { selectedCareerId: 'career-1' },
-    })).resolves.toBeUndefined();
+    expect(result.courses.length).toBeGreaterThan(0);
+    result.courses.forEach((course) => {
+      expect(course.courseKey).toBeTruthy();
+    });
   });
 });
