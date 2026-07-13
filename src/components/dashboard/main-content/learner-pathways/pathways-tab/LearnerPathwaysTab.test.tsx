@@ -37,7 +37,7 @@ describe('LearnerPathwaysTab', () => {
 
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
     // breadcrumb: click Profile link to go back
@@ -67,11 +67,30 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
-    await user.click(screen.getByTestId('profile-build-pathway-button'));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
-    // pathway view's own "Adjust pathway" control, not the breadcrumb link
-    await user.click(screen.getByTestId('pathway-adjust-button'));
+    // pathway view's own "Rebuild pathway" control, not the breadcrumb link
+    await user.click(screen.getByTestId('pathway-rebuild-button'));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+  });
+
+  it('navigates back to onboarding after confirming the retake-quiz warning modal', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('career-retake-quiz-button'));
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+    expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
   });
 });

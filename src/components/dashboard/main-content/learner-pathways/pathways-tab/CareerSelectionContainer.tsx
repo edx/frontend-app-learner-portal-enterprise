@@ -2,20 +2,24 @@ import React, {
   useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { ArrowBack } from '@openedx/paragon/icons';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
 import type { GoalSummaryFields } from './career-selection/GoalSummaryCard';
+import { getCareerActionState, isPathwayEdited } from './career-selection/careerActionState';
 import {
   CAREER_SELECTION_STUB_MATCHES,
   buildCareerSelectionStubProfile,
 } from './career-selection/fixtures';
 import careerMessages from './career-selection/messages';
 import { usePathwaysController } from './hooks';
-import { usePathwaysCourses, usePathwaysStore } from './state';
+import { usePathwayBaseline, usePathwaysCourses, usePathwaysStore } from './state';
 import { usePathwaysActionBar } from './action-bar';
+import type { PathwaysAction } from './action-bar';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
+  onRetakeQuiz?: () => void;
 }
 
 const errorMessage = (
@@ -26,6 +30,7 @@ const errorMessage = (
 /** UI adapter to the learner-pathways store/controller/workflow seams. */
 const CareerSelectionContainer = ({
   onNext,
+  onRetakeQuiz,
 }: CareerSelectionContainerProps) => {
   const {
     onboardingAnswers,
@@ -65,14 +70,20 @@ const CareerSelectionContainer = ({
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
 
+  const pathwayBaseline = usePathwayBaseline();
+  const setPathwayBaseline = usePathwaysStore((state) => state.setPathwayBaseline);
+
   const { generateProfile, generatePathway } = usePathwaysController();
   const { registerActions, clearActions } = usePathwaysActionBar();
 
-  // Ref shared between the portaled action bar button and OverwritePathwayModal.
+  // Ref shared between the portaled build/rebuild button and OverwritePathwayModal.
   const buildButtonRef = useRef<HTMLButtonElement>(null);
+  // Ref shared between the portaled retake-quiz button and RetakeQuizModal.
+  const retakeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Modal + skills state lifted from CareerSelectionPage.
   const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
+  const [isRetakeOpen, setIsRetakeOpen] = useState(false);
   const [dismissedSkills, setDismissedSkills] = useState<Set<string>>(new Set<string>());
 
   const stubProfile = useMemo(
@@ -109,6 +120,43 @@ const CareerSelectionContainer = ({
     () => availableSkills.filter((s) => !dismissedSkills.has(s)),
     [availableSkills, dismissedSkills],
   );
+
+  // If an existing pathway was loaded without a recorded baseline (e.g. fresh page
+  // load), seed one from the current Goal Summary + selected career. This assumes
+  // "no pending edits yet" as the least-surprising default (existing-pathway-unchanged),
+  // since there's no other signal to determine whether edits happened before this session.
+  useEffect(() => {
+    if (hasExistingPathway && pathwayBaseline === null) {
+      setPathwayBaseline({
+        careerGoal: displayedProfile.careerGoal,
+        targetIndustry: displayedProfile.targetIndustry,
+        background: displayedProfile.background,
+        motivation: displayedProfile.motivation,
+        selectedCareerId,
+      });
+    }
+  }, [hasExistingPathway, pathwayBaseline, displayedProfile, selectedCareerId, setPathwayBaseline]);
+
+  const isEdited = useMemo(() => isPathwayEdited(pathwayBaseline, {
+    goalSummary: {
+      careerGoal: displayedProfile.careerGoal,
+      targetIndustry: displayedProfile.targetIndustry,
+      background: displayedProfile.background,
+      motivation: displayedProfile.motivation,
+    },
+    selectedCareerId,
+  }), [pathwayBaseline, displayedProfile, selectedCareerId]);
+
+  const rawCareerActionState = getCareerActionState({ hasExistingPathway, isEdited });
+  // Freeze the displayed action state for the duration of an in-flight build/rebuild so
+  // the trailing button's label/variant can't change out from under the learner mid-spin.
+  const displayedCareerActionStateRef = useRef(rawCareerActionState);
+  if (!loading.pathwayCourses) {
+    displayedCareerActionStateRef.current = rawCareerActionState;
+  }
+  const careerActionState = loading.pathwayCourses
+    ? displayedCareerActionStateRef.current
+    : rawCareerActionState;
 
   const submitGoalSummary = async (updates: GoalSummaryFields) => {
     const nextProfile = { ...displayedProfile, ...updates };
@@ -147,7 +195,9 @@ const CareerSelectionContainer = ({
     }
   };
 
-  // buildPathway uses container-owned selectedCareer and visibleSkills.
+  // buildPathway uses container-owned selectedCareer and visibleSkills. Used both for the
+  // initial build (no existing pathway) and the rebuild confirmation (existing pathway with
+  // relevant edits) — same workflow, gated differently in the UI.
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || loading.pathwayCourses) {
       return;
@@ -169,6 +219,13 @@ const CareerSelectionContainer = ({
     try {
       await generatePathway();
       setExperienceStatus('pathway_ready');
+      setPathwayBaseline({
+        careerGoal: displayedProfile.careerGoal,
+        targetIndustry: displayedProfile.targetIndustry,
+        background: displayedProfile.background,
+        motivation: displayedProfile.motivation,
+        selectedCareerId: selectedCareer.id,
+      });
       onNext?.();
     } catch (error) {
       setError(
@@ -189,21 +246,29 @@ const CareerSelectionContainer = ({
     setConstructedPayload,
     generatePathway,
     setExperienceStatus,
+    setPathwayBaseline,
     onNext,
   ]);
 
-  const handleBuildOrOverwrite = useCallback(() => {
-    if (hasExistingPathway) {
-      setIsOverwriteOpen(true);
-    } else {
-      buildPathway();
-    }
-  }, [hasExistingPathway, buildPathway]);
+  // Navigate to the existing pathway without building/rebuilding it.
+  const viewExistingPathway = useCallback(() => {
+    onNext?.();
+  }, [onNext]);
 
-  // Register primary CTA in the page-level action bar.
-  useEffect(() => {
-    registerActions({
-      primary: {
+  const openRetakeQuiz = useCallback(() => setIsRetakeOpen(true), []);
+  const closeRetakeQuiz = useCallback(() => setIsRetakeOpen(false), []);
+  const confirmRetakeQuiz = useCallback(() => {
+    setIsRetakeOpen(false);
+    onRetakeQuiz?.();
+  }, [onRetakeQuiz]);
+
+  const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
+  const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);
+
+  // Trailing action-bar buttons, state-dependent per the Career Profile action matrix.
+  const trailingActions = useMemo((): PathwaysAction[] => {
+    if (careerActionState === 'new-pathway') {
+      return [{
         id: 'career-build-pathway',
         label: careerMessages.buildPathway,
         loadingLabel: careerMessages.buildingPathway,
@@ -211,21 +276,75 @@ const CareerSelectionContainer = ({
         type: 'button',
         disabled: !selectedCareer || loading.pathwayCourses || loading.careerMatches,
         loading: loading.pathwayCourses,
-        onClick: handleBuildOrOverwrite,
+        onClick: buildPathway,
         buttonRef: buildButtonRef,
-        testId: 'profile-build-pathway-button',
+        testId: 'career-build-pathway-button',
+      }];
+    }
+    if (careerActionState === 'existing-pathway-unchanged') {
+      return [{
+        id: 'career-build-pathway',
+        label: careerMessages.buildPathway,
+        variant: 'primary',
+        type: 'button',
+        disabled: loading.pathwayCourses || loading.careerMatches,
+        onClick: viewExistingPathway,
+        buttonRef: buildButtonRef,
+        testId: 'career-build-pathway-button',
+      }];
+    }
+    // existing-pathway-edited
+    return [
+      {
+        id: 'career-view-current-pathway',
+        label: careerMessages.viewCurrentPathway,
+        variant: 'outline-primary',
+        type: 'button',
+        disabled: loading.pathwayCourses,
+        onClick: viewExistingPathway,
+        testId: 'career-view-current-pathway-button',
       },
-      alignment: 'end',
-    });
-    return () => clearActions();
+      {
+        id: 'career-rebuild-pathway',
+        label: careerMessages.rebuildPathway,
+        loadingLabel: careerMessages.buildingPathway,
+        variant: 'primary',
+        type: 'button',
+        disabled: loading.pathwayCourses || loading.careerMatches,
+        loading: loading.pathwayCourses,
+        onClick: openRebuildModal,
+        buttonRef: buildButtonRef,
+        testId: 'career-rebuild-pathway-button',
+      },
+    ];
   }, [
+    careerActionState,
     selectedCareer,
     loading.pathwayCourses,
     loading.careerMatches,
-    handleBuildOrOverwrite,
-    registerActions,
-    clearActions,
+    buildPathway,
+    viewExistingPathway,
+    openRebuildModal,
   ]);
+
+  // Register leading (Retake quiz) + trailing action-bar buttons.
+  useEffect(() => {
+    registerActions({
+      primary: {
+        id: 'career-retake-quiz',
+        label: careerMessages.retakeQuiz,
+        variant: 'tertiary',
+        type: 'button',
+        iconBefore: ArrowBack,
+        onClick: openRetakeQuiz,
+        buttonRef: retakeButtonRef,
+        testId: 'career-retake-quiz-button',
+      },
+      secondary: trailingActions,
+      alignment: 'split',
+    });
+    return () => clearActions();
+  }, [trailingActions, openRetakeQuiz, registerActions, clearActions]);
 
   return (
     <CareerSelectionPage
@@ -242,9 +361,13 @@ const CareerSelectionContainer = ({
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={setSelectedCareerId}
       isOverwriteOpen={isOverwriteOpen}
-      onCloseOverwrite={() => setIsOverwriteOpen(false)}
+      onCloseOverwrite={closeRebuildModal}
       onConfirmOverwrite={buildPathway}
       buildButtonRef={buildButtonRef}
+      isRetakeOpen={isRetakeOpen}
+      onCloseRetake={closeRetakeQuiz}
+      onConfirmRetake={confirmRetakeQuiz}
+      retakeButtonRef={retakeButtonRef}
       visibleSkills={visibleSkills}
       dismissedSkillCount={dismissedSkills.size}
       onDismissSkill={(skill) => setDismissedSkills(

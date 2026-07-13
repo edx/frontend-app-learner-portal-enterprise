@@ -48,6 +48,33 @@ describe('pathwaysStore', () => {
       learnerProfileRequest: null,
       pathwayRequest: null,
     });
+    expect(state.pathwayBaseline).toBeNull();
+  });
+
+  it('sets and clears the pathway baseline snapshot', () => {
+    const { setPathwayBaseline } = usePathwaysStore.getState();
+
+    setPathwayBaseline({
+      careerGoal: 'Data Analyst',
+      targetIndustry: 'Technology',
+      background: 'Operations',
+      motivation: 'Career growth',
+      selectedCareerId: 'career-1',
+    });
+
+    let state = usePathwaysStore.getState();
+    expect(state.pathwayBaseline).toEqual({
+      careerGoal: 'Data Analyst',
+      targetIndustry: 'Technology',
+      background: 'Operations',
+      motivation: 'Career growth',
+      selectedCareerId: 'career-1',
+    });
+    expect(selectors.pathwayBaseline(state)).toEqual(state.pathwayBaseline);
+
+    setPathwayBaseline(null);
+    state = usePathwaysStore.getState();
+    expect(state.pathwayBaseline).toBeNull();
   });
 
   it('updates workflow-level values through basic setters', () => {

@@ -54,6 +54,7 @@ export const getInitialPathwaysState = (): PathwaysState => ({
     learnerProfileRequest: null,
     pathwayRequest: null,
   },
+  pathwayBaseline: null,
 });
 
 /**
@@ -145,6 +146,7 @@ export const usePathwaysStore = create<PathwaysStore>((set) => ({
       pathwayRequest: null,
     },
   }),
+  setPathwayBaseline: (pathwayBaseline) => set({ pathwayBaseline }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
 }));
 
@@ -167,6 +169,7 @@ export const selectors = {
   loading: (state: PathwaysStore) => state.loading,
   errors: (state: PathwaysStore) => state.errors,
   constructedPayloads: (state: PathwaysStore) => state.constructedPayloads,
+  pathwayBaseline: (state: PathwaysStore) => state.pathwayBaseline,
 };
 
 /**
@@ -185,6 +188,7 @@ export const usePathwaysProgress = () => usePathwaysStore(selectors.progress);
 export const usePathwaysLoading = () => usePathwaysStore(selectors.loading);
 export const usePathwaysErrors = () => usePathwaysStore(selectors.errors);
 export const usePathwaysConstructedPayloads = () => usePathwaysStore(selectors.constructedPayloads);
+export const usePathwayBaseline = () => usePathwaysStore(selectors.pathwayBaseline);
 
 /**
  * Typed helper exports used by tests and consuming modules.

@@ -15,6 +15,7 @@ export {
   usePathwaysStore,
   usePathwaysConstructedPayloads,
   useSelectedCareerMatch,
+  usePathwayBaseline,
 } from './pathwaysStore';
 
 export type {
@@ -22,6 +23,7 @@ export type {
   LearnerProfile,
   OnboardingAnswers,
   OnboardingState,
+  PathwayBaselineSnapshot,
   PathwayCourse,
   PathwayCourseStatus,
   PathwayProgress,

@@ -85,6 +85,19 @@ export interface PathwayCourse {
 }
 
 /**
+ * Snapshot of the Goal Summary fields + selected career the current pathway was
+ * generated (or last rebuilt) with. Compared against live values to derive whether
+ * the learner has made relevant edits since then.
+ */
+export interface PathwayBaselineSnapshot {
+  careerGoal: string;
+  targetIndustry: string;
+  background: string;
+  motivation: string;
+  selectedCareerId: string | null;
+}
+
+/**
  * Summary counts shown in dashboard/pathway progress states.
  */
 export interface PathwayProgress {
@@ -138,6 +151,7 @@ export interface PathwaysState {
   loading: PathwaysLoadingState;
   errors: PathwaysErrorState;
   constructedPayloads: PathwaysConstructedPayloads;
+  pathwayBaseline: PathwayBaselineSnapshot | null;
 }
 
 /**
@@ -165,6 +179,7 @@ export interface PathwaysActions {
     payload: PathwaysConstructedPayloads[K]
   ) => void;
   clearConstructedPayloads: () => void;
+  setPathwayBaseline: (baseline: PathwayBaselineSnapshot | null) => void;
   resetPathwaysState: () => void;
 }
 

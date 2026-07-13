@@ -53,6 +53,10 @@ const defaults: CareerSelectionPageProps = {
   onCloseOverwrite: noop,
   onConfirmOverwrite: jest.fn().mockResolvedValue(undefined),
   buildButtonRef: React.createRef(),
+  isRetakeOpen: false,
+  onCloseRetake: noop,
+  onConfirmRetake: noop,
+  retakeButtonRef: React.createRef(),
   visibleSkills: ['SQL', 'Data Visualization'],
   dismissedSkillCount: 0,
   onDismissSkill: noop,
@@ -124,7 +128,7 @@ describe('CareerSelectionPage', () => {
 
   it('shows the overwrite modal when isOverwriteOpen is true', () => {
     renderPage({ isOverwriteOpen: true });
-    expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
+    expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
   });
 
   it('calls onCloseOverwrite when keep-pathway is clicked', async () => {
@@ -135,12 +139,33 @@ describe('CareerSelectionPage', () => {
     expect(onCloseOverwrite).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onConfirmOverwrite when build-new-pathway is clicked', async () => {
+  it('calls onConfirmOverwrite when rebuild-pathway is clicked', async () => {
     const user = userEvent.setup();
     const onConfirmOverwrite = jest.fn().mockResolvedValue(undefined);
     renderPage({ isOverwriteOpen: true, onConfirmOverwrite });
-    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
     expect(onConfirmOverwrite).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the retake-quiz modal when isRetakeOpen is true', () => {
+    renderPage({ isRetakeOpen: true });
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+  });
+
+  it('calls onCloseRetake when Cancel is clicked in the retake-quiz modal', async () => {
+    const user = userEvent.setup();
+    const onCloseRetake = jest.fn();
+    renderPage({ isRetakeOpen: true, onCloseRetake });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCloseRetake).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onConfirmRetake when Retake quiz is clicked in the retake-quiz modal', async () => {
+    const user = userEvent.setup();
+    const onConfirmRetake = jest.fn();
+    renderPage({ isRetakeOpen: true, onConfirmRetake });
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+    expect(onConfirmRetake).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the top match when selectedCareerId does not match any visible career', () => {

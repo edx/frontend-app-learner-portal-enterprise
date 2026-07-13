@@ -8,6 +8,7 @@ import CareerMatchesCard from './CareerMatchesCard';
 import type { OrderedMatch } from './CareerMatchesCard';
 import SkillsToDevelopCard from './SkillsToDevelopCard';
 import OverwritePathwayModal from './OverwritePathwayModal';
+import RetakeQuizModal from './RetakeQuizModal';
 import messages from './messages';
 
 const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
@@ -29,6 +30,12 @@ export interface CareerSelectionPageProps {
   onConfirmOverwrite: () => Promise<void>;
   /** Ref attached to the portaled build button; used for focus restoration. */
   buildButtonRef: React.RefObject<HTMLButtonElement>;
+  /** Controlled by CareerSelectionContainer (lifted state). */
+  isRetakeOpen: boolean;
+  onCloseRetake: () => void;
+  onConfirmRetake: () => void;
+  /** Ref attached to the portaled retake-quiz button; used for focus restoration. */
+  retakeButtonRef: React.RefObject<HTMLButtonElement>;
   /** Visible skills after user dismissals (computed by container). */
   visibleSkills: string[];
   dismissedSkillCount: number;
@@ -59,6 +66,10 @@ const CareerSelectionPage = ({
   onCloseOverwrite,
   onConfirmOverwrite,
   buildButtonRef,
+  isRetakeOpen,
+  onCloseRetake,
+  onConfirmRetake,
+  retakeButtonRef,
   visibleSkills,
   dismissedSkillCount,
   onDismissSkill,
@@ -144,6 +155,13 @@ const CareerSelectionPage = ({
         onClose={onCloseOverwrite}
         onConfirm={onConfirmOverwrite}
         triggerRef={buildButtonRef}
+      />
+
+      <RetakeQuizModal
+        isOpen={isRetakeOpen}
+        onClose={onCloseRetake}
+        onConfirm={onConfirmRetake}
+        triggerRef={retakeButtonRef}
       />
     </section>
   );

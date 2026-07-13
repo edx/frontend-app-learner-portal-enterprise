@@ -22,14 +22,14 @@ describe('OverwritePathwayModal', () => {
 
   it('does not render modal content when isOpen is false', () => {
     renderModal({ isOpen: false });
-    expect(screen.queryByText('Overwrite previous pathway?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rebuild your pathway?')).not.toBeInTheDocument();
   });
 
   it('renders modal content when isOpen is true', () => {
     renderModal({ isOpen: true });
-    expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
+    expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Keep previous pathway' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Build new pathway' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rebuild my learning pathway' })).toBeInTheDocument();
   });
 
   it('calls onClose when the keep-pathway button is clicked', async () => {
@@ -40,11 +40,11 @@ describe('OverwritePathwayModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onConfirm when the build-new-pathway button is clicked', async () => {
+  it('calls onConfirm when the rebuild-pathway button is clicked', async () => {
     const user = userEvent.setup();
     const onConfirm = jest.fn().mockResolvedValue(undefined);
     renderModal({ isOpen: true, onConfirm });
-    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -52,15 +52,15 @@ describe('OverwritePathwayModal', () => {
     const user = userEvent.setup();
     const onConfirm = jest.fn().mockRejectedValue(new Error('build failed'));
     renderModal({ isOpen: true, onConfirm });
-    await user.click(screen.getByRole('button', { name: 'Build new pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Overwrite previous pathway?')).toBeInTheDocument();
+    expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
   });
 
   it('disables both action buttons when isBuildingPathway', () => {
     renderModal({ isOpen: true, isBuildingPathway: true });
     expect(screen.getByRole('button', { name: 'Keep previous pathway' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Build new pathway' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Rebuild my learning pathway' })).toBeDisabled();
   });
 
   it('returns focus to the trigger element when the modal closes', () => {

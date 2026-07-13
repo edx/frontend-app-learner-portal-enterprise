@@ -151,28 +151,58 @@ const messages = defineMessages({
   buildingPathway: {
     id: 'learner.pathways.career.selection.building.pathway',
     defaultMessage: 'Building pathway...',
-    description: 'Build pathway loading state.',
+    description: 'Loading state shown on the build/rebuild pathway action while it is in flight.',
+  },
+  viewCurrentPathway: {
+    id: 'learner.pathways.career.selection.view.current.pathway',
+    defaultMessage: 'View current pathway',
+    description: 'Action to navigate to the existing pathway without rebuilding it, shown when the learner has made edits since it was generated.',
+  },
+  rebuildPathway: {
+    id: 'learner.pathways.career.selection.rebuild.pathway',
+    defaultMessage: 'Rebuild my learning pathway',
+    description: 'Primary action to rebuild the pathway, shown when the learner has made relevant edits since it was generated.',
   },
   overwriteTitle: {
     id: 'learner.pathways.career.selection.overwrite.title',
-    defaultMessage: 'Overwrite previous pathway?',
-    description: 'Pathway overwrite confirmation title.',
+    defaultMessage: 'Rebuild your pathway?',
+    description: 'Confirmation modal title shown before rebuilding a pathway with updated goals or career choice.',
   },
   overwriteBody: {
     id: 'learner.pathways.career.selection.overwrite.body',
     defaultMessage:
-      'You already have a saved pathway. Continuing will rebuild it with the selected career and skills.',
-    description: 'Pathway overwrite confirmation body.',
+      'You already have a saved pathway. Rebuilding will replace it based on your updated goals and career choice.',
+    description: 'Confirmation modal body shown before rebuilding a pathway with updated goals or career choice.',
   },
   keepPathway: {
     id: 'learner.pathways.career.selection.keep.pathway',
     defaultMessage: 'Keep previous pathway',
-    description: 'Cancel pathway overwrite action.',
+    description: 'Cancel the pathway rebuild confirmation and keep the existing pathway.',
   },
   buildNewPathway: {
     id: 'learner.pathways.career.selection.build.new.pathway',
-    defaultMessage: 'Build new pathway',
-    description: 'Confirm pathway overwrite action.',
+    defaultMessage: 'Rebuild my learning pathway',
+    description: 'Confirm the pathway rebuild action.',
+  },
+  retakeQuiz: {
+    id: 'learner.pathways.career.selection.retake.quiz',
+    defaultMessage: 'Retake quiz',
+    description: 'Leading action to retake the onboarding quiz from the Career Profile page.',
+  },
+  retakeQuizTitle: {
+    id: 'learner.pathways.career.selection.retake.quiz.title',
+    defaultMessage: 'Retake your onboarding quiz?',
+    description: 'Confirmation modal title shown before retaking the onboarding quiz.',
+  },
+  retakeQuizBody: {
+    id: 'learner.pathways.career.selection.retake.quiz.body',
+    defaultMessage: 'You will need to answer the onboarding questions again to generate a new pathway.',
+    description: 'Confirmation modal body shown before retaking the onboarding quiz.',
+  },
+  retakeQuizCancel: {
+    id: 'learner.pathways.career.selection.retake.quiz.cancel',
+    defaultMessage: 'Cancel',
+    description: 'Cancel the retake-quiz confirmation and stay on the Career Profile page.',
   },
 });
 

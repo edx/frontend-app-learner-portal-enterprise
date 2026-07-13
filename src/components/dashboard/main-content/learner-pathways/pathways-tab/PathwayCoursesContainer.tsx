@@ -10,8 +10,6 @@ export interface PathwayCoursesContainerProps {
   onBackToProfile?: () => void;
 }
 
-const noOp = () => {};
-
 const PathwayCoursesContainer = ({
   onBackToProfile,
 }: PathwayCoursesContainerProps) => {
@@ -42,24 +40,6 @@ const PathwayCoursesContainer = ({
         onClick: handleBackToProfile,
         testId: 'pathway-rebuild-button',
       },
-      secondary: [
-        {
-          id: 'pathway-view-pathway',
-          label: messages.viewPathway,
-          variant: 'tertiary',
-          type: 'button',
-          onClick: noOp,
-          testId: 'pathway-view-pathway-button',
-        },
-        {
-          id: 'pathway-view-quiz',
-          label: messages.viewQuiz,
-          variant: 'tertiary',
-          type: 'button',
-          onClick: noOp,
-          testId: 'pathway-view-quiz-button',
-        },
-      ],
       alignment: 'split',
     });
     return () => clearActions();
