@@ -110,6 +110,11 @@ const CareerSelectionContainer = ({
     [availableSkills, dismissedSkills],
   );
 
+  // Integration seam: profile edits (careerGoal, targetIndustry, background,
+  // motivation) should route through generateProfileWorkflow — the same path as
+  // intake — not call fetchLearningIntent directly. The workflow recomputes
+  // intent-derived career matches; only commit displayedProfile/careerMatches
+  // after that orchestration succeeds.
   const submitGoalSummary = async (updates: GoalSummaryFields) => {
     const nextProfile = { ...displayedProfile, ...updates };
     const payload = {
