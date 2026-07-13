@@ -39,7 +39,35 @@ describe('useContentTypeFilter', () => {
       }
     }
 
+    expectedFilters.learningTypeFilter = null;
+
     const { result } = renderHook(() => useContentTypeFilter({ filter, contentType }));
     expect(result.current).toEqual(expectedFilters);
+  });
+
+  it('returns null learningTypeFilter when no learningType is provided', () => {
+    const { result } = renderHook(() => useContentTypeFilter({ filter: 'test_filter', contentType: 'course' }));
+    expect(result.current.learningTypeFilter).toBeNull();
+  });
+
+  it('builds a learningTypeFilter from learningType alone', () => {
+    const { result } = renderHook(() => useContentTypeFilter({
+      filter: 'test_filter',
+      learningType: 'Executive Education',
+    }));
+    expect(result.current.learningTypeFilter).toEqual(
+      'learning_type:"Executive Education" AND test_filter',
+    );
+  });
+
+  it('combines contentType and learningType into a single learningTypeFilter', () => {
+    const { result } = renderHook(() => useContentTypeFilter({
+      filter: 'test_filter',
+      contentType: 'course',
+      learningType: 'Executive Education',
+    }));
+    expect(result.current.learningTypeFilter).toEqual(
+      'learning_type:"Executive Education" AND content_type:course AND test_filter',
+    );
   });
 });

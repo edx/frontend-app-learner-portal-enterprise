@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppContext } from '@edx/frontend-platform/react';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import '@testing-library/jest-dom/extend-expect';
 
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -14,6 +15,11 @@ import { useEnterpriseCustomer } from '../../app/data';
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useEnterpriseCustomer: jest.fn(),
+}));
+
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
 }));
 
 const initialAppState = {
@@ -119,5 +125,62 @@ describe('<SearchCourseCard />', () => {
 
     // assert that the card footer shows text "Course"
     expect(container.querySelector('.pgn__card-footer-text')).toHaveTextContent('Course');
+  });
+
+  test('does not crash and renders a non-clickable card when enterpriseCustomer is undefined', async () => {
+    useEnterpriseCustomer.mockReturnValue({ data: undefined });
+    const user = userEvent.setup();
+
+    renderWithRouter(<SearchCourseCardWithAppContext {...defaultProps} />);
+
+    expect(screen.getByText(TEST_TITLE)).toBeInTheDocument();
+    const cardEl = screen.getByTestId('search-course-card');
+    await user.click(cardEl);
+    // no navigation should occur without an enterprise slug
+    expect(window.location.pathname).toEqual('/');
+  });
+
+  test('renders without crashing when a partner has a null logo_image_url', () => {
+    const props = {
+      hit: {
+        key: TEST_COURSE_KEY,
+        title: TEST_TITLE,
+        card_image_url: TEST_CARD_IMG_URL,
+        partners: [{ name: 'sonic-3', logoImageUrl: null }],
+      },
+    };
+
+    renderWithRouter(<SearchCourseCardWithAppContext {...props} />);
+
+    expect(screen.getByText(TEST_TITLE)).toBeInTheDocument();
+    expect(screen.getByText('sonic-3')).toBeInTheDocument();
+  });
+
+  test('sends the career-tab event name when analyticsContext is career-tab', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<SearchCourseCardWithAppContext {...defaultProps} analyticsContext="career-tab" />);
+
+    const cardEl = screen.getByTestId('search-course-card');
+    await user.click(cardEl);
+
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      'edx.ui.enterprise.learner_portal.career_tab.course_recommendation.clicked',
+      expect.objectContaining({ courseKey: TEST_COURSE_KEY }),
+    );
+  });
+
+  test('sends the default search event name when analyticsContext is not set', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<SearchCourseCardWithAppContext {...defaultProps} />);
+
+    const cardEl = screen.getByTestId('search-course-card');
+    await user.click(cardEl);
+
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      'edx.ui.enterprise.learner_portal.search.card.clicked',
+      expect.objectContaining({ courseKey: TEST_COURSE_KEY }),
+    );
   });
 });

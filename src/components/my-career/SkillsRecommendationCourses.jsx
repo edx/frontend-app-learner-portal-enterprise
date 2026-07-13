@@ -81,7 +81,8 @@ const SkillsRecommendationCourses = ({ index, subCategoryName, subCategorySkills
       >
         {courses.map(course => (
           <SearchCourseCard
-            key={`career-tab-${uuidv4()}`}
+            key={uuidv4()}
+            analyticsContext="career-tab"
             isLoading={isLoading}
             hit={course}
           />

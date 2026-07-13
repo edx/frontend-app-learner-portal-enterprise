@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { SearchContext } from '@2uinc/frontend-enterprise-catalog-search';
+import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import { AppContext } from '@edx/frontend-platform/react';
 import {
   resetMockReactInstantSearch,
@@ -22,6 +23,7 @@ import {
 } from '../../app/data';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 import { features } from '../../../config';
+import { CONTENT_TYPE_COURSE } from '../constants';
 import { messages } from '../../search-unavailable-alert/SearchUnavailableAlert';
 
 const mockSetRefinementAction = jest.fn((...args) => ({ type: 'SET_REFINEMENT', args }));
@@ -270,6 +272,61 @@ describe('<Search />', () => {
     );
     expect(screen.getByText('Programs (2 results)')).toBeInTheDocument();
     features.ENABLE_PROGRAMS = originalEnablePrograms;
+  });
+  it('renders the Executive Education section and hides other content sections when Executive Education is selected', () => {
+    const originalEnablePrograms = features.ENABLE_PROGRAMS;
+    const originalEnablePathways = features.ENABLE_PATHWAYS;
+    const originalEnableVideoCatalog = features.FEATURE_ENABLE_VIDEO_CATALOG;
+    features.ENABLE_PROGRAMS = true;
+    features.ENABLE_PATHWAYS = true;
+    features.FEATURE_ENABLE_VIDEO_CATALOG = true;
+    useEnterpriseCustomer.mockReturnValue({
+      data: enterpriseCustomerFactory({ enableAcademies: true }),
+    });
+
+    renderWithRouter(
+      <SearchWrapper
+        searchContext={{
+          refinements: {
+            content_type: undefined,
+            learning_type: [LEARNING_TYPE_EXECUTIVE_EDUCATION],
+          },
+          dispatch: () => null,
+        }}
+      >
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.getByText('Executive Education (2 results)')).toBeInTheDocument();
+    expect(screen.queryByText('Programs (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Courses (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pathways (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Videos (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Academies (2 results)')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show/i })).not.toBeInTheDocument();
+
+    features.ENABLE_PROGRAMS = originalEnablePrograms;
+    features.ENABLE_PATHWAYS = originalEnablePathways;
+    features.FEATURE_ENABLE_VIDEO_CATALOG = originalEnableVideoCatalog;
+  });
+  it('renders executive education results for course content type when Executive Education is selected', () => {
+    renderWithRouter(
+      <SearchWrapper
+        searchContext={{
+          refinements: {
+            content_type: [CONTENT_TYPE_COURSE],
+            learning_type: [LEARNING_TYPE_EXECUTIVE_EDUCATION],
+          },
+          dispatch: () => null,
+        }}
+      >
+        <Search />
+      </SearchWrapper>,
+    );
+
+    expect(screen.getByText('Executive Education (2 results)')).toBeInTheDocument();
+    expect(screen.queryByText('Courses (2 results)')).not.toBeInTheDocument();
   });
   it('passes the resolved index name from useAlgoliaSearch to InstantSearch', () => {
     useAlgoliaSearch.mockReturnValue({

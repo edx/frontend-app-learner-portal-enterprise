@@ -13,18 +13,17 @@ import { isShortCourse } from './utils';
 import { useEnterpriseCustomer } from '../app/data';
 
 const SearchCourseCard = ({
-  key, hit, isLoading, parentRoute, ...rest
+  analyticsContext, hit, isLoading, parentRoute, ...rest
 }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const eventName = useMemo(
     () => {
-      // [tech debt] `key` is not intended to be used as a prop (see warning in tests).
-      if (key?.startsWith('career-tab')) {
+      if (analyticsContext === 'career-tab') {
         return 'edx.ui.enterprise.learner_portal.career_tab.course_recommendation.clicked';
       }
       return 'edx.ui.enterprise.learner_portal.search.card.clicked';
     },
-    [key],
+    [analyticsContext],
   );
 
   const course = useMemo(
@@ -39,7 +38,7 @@ const SearchCourseCard = ({
 
   const linkToCourse = useMemo(
     () => {
-      if (!Object.keys(course).length) {
+      if (!Object.keys(course).length || !enterpriseCustomer?.slug || !course.key) {
         return undefined;
       }
       const queryParams = new URLSearchParams();
@@ -49,7 +48,7 @@ const SearchCourseCard = ({
       }
       return `/${enterpriseCustomer.slug}/course/${course.key}?${queryParams.toString()}`;
     },
-    [course, enterpriseCustomer.slug],
+    [course, enterpriseCustomer?.slug],
   );
 
   const partnerDetails = useMemo(
@@ -75,7 +74,7 @@ const SearchCourseCard = ({
       return;
     }
     sendEnterpriseTrackEvent(
-      enterpriseCustomer.uuid,
+      enterpriseCustomer?.uuid,
       eventName,
       {
         objectID: course.objectId,
@@ -149,7 +148,7 @@ SearchCourseCard.propTypes = {
     title: PropTypes.string,
   }),
   isLoading: PropTypes.bool,
-  key: PropTypes.string,
+  analyticsContext: PropTypes.string,
   parentRoute: PropTypes.shape({
     label: PropTypes.string.isRequired,
     to: PropTypes.string.isRequired,
@@ -159,7 +158,7 @@ SearchCourseCard.propTypes = {
 SearchCourseCard.defaultProps = {
   hit: undefined,
   isLoading: false,
-  key: undefined,
+  analyticsContext: undefined,
   parentRoute: undefined,
 };
 
