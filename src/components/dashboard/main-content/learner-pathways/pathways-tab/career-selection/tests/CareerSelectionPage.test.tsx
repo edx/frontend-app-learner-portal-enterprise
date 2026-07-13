@@ -6,21 +6,16 @@ import {
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import type { CareerMatch, LearnerProfile } from '../../state';
+import type { CareerMatch, LearnerIntent } from '../../state';
 import CareerSelectionPage, {
   CareerSelectionPageProps,
 } from '../CareerSelectionPage';
 
-const profile: LearnerProfile = {
-  summary: 'POC overview that should not render.',
+const learnerIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
   targetIndustry: 'EdTech',
   background: 'Financial data analyst and team lead.',
   motivation: 'Prepare for promotion.',
-  learningStyle: 'Hands-on',
-  weeklyTimeCommitment: '5 hours',
-  certificatePreference: 'Preferred',
-  skills: ['Fallback Skill'],
 };
 const matches: CareerMatch[] = [
   {
@@ -45,7 +40,7 @@ const matches: CareerMatch[] = [
 
 const noop = jest.fn();
 const defaults: CareerSelectionPageProps = {
-  profile,
+  learnerIntent,
   careerMatches: matches,
   onSubmitGoalSummary: jest.fn().mockResolvedValue(undefined),
   onSelectCareer: noop,
@@ -72,10 +67,9 @@ const renderPage = (props: Partial<CareerSelectionPageProps> = {}) => render(
 describe('CareerSelectionPage', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders the reduced goal summary and sorted matches above 25%', () => {
+  it('renders the goal summary and sorted matches above 25%', () => {
     renderPage();
-    expect(screen.queryByText(profile.summary)).not.toBeInTheDocument();
-    expect(screen.queryByText(profile.learningStyle)).not.toBeInTheDocument();
+    expect(screen.getByTestId('profile-career-goal')).toHaveTextContent('Senior Data Analyst');
     const buttons = screen.getAllByTestId(/^career-match-/);
     expect(buttons).toHaveLength(2);
     expect(within(buttons[0]).getByText('Reporting Manager')).toBeInTheDocument();

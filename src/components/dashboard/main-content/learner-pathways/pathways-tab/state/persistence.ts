@@ -4,37 +4,45 @@ import type { PathwaysState, PathwaysStore } from './types';
 /** Single localStorage key for the whole Learner Pathways durable subset. */
 export const PATHWAYS_STORAGE_KEY = 'edx.learner-pathways.state';
 
-/** Bump alongside a `migrate` function whenever the persisted shape actually changes. */
+/**
+ * Kept at 1 by explicit decision: this persistence feature has never shipped past
+ * unmerged development branches, so there is no real user data to migrate. A
+ * pre-refactor persisted blob simply doesn't carry any of the field names below, so
+ * it hydrates as fresh defaults for those fields via `mergePathwaysState` below —
+ * any of its own now-unused keys (e.g. `onboarding`, `dismissedSkillKeys`,
+ * `pathwayBaseline`) land on the merged object but are never read by current code.
+ * Bump alongside a real `migrate` function once this ships and real user data exists.
+ */
 export const PATHWAYS_STORAGE_VERSION = 1;
 
 /**
- * The durable subset of PathwaysState — deliberately excludes loading/errors
- * (transient) and `progress` (derived from displayed courses at render time, not an
- * independent fact).
+ * The durable subset of PathwaysState — deliberately excludes derived/transient
+ * values: `pathwayInputFingerprint` is metadata about `pathwayCourses`, not excluded,
+ * but loading/error state (transient) has no place here at all (see
+ * hooks/usePathwaysRequestState.ts), and `progress` is derived from displayed courses
+ * at render time, not an independent fact.
  */
 export type PersistedPathwaysState = Pick<
 PathwaysState,
 | 'section'
-| 'experienceStatus'
-| 'onboarding'
+| 'learnerIntent'
 | 'learnerProfile'
 | 'careerMatches'
 | 'selectedCareerId'
+| 'selectedSkills'
 | 'pathwayCourses'
-| 'pathwayBaseline'
-| 'dismissedSkillKeys'
+| 'pathwayInputFingerprint'
 >;
 
 export const partializePathwaysState = (state: PathwaysStore): PersistedPathwaysState => ({
   section: state.section,
-  experienceStatus: state.experienceStatus,
-  onboarding: state.onboarding,
+  learnerIntent: state.learnerIntent,
   learnerProfile: state.learnerProfile,
   careerMatches: state.careerMatches,
   selectedCareerId: state.selectedCareerId,
+  selectedSkills: state.selectedSkills,
   pathwayCourses: state.pathwayCourses,
-  pathwayBaseline: state.pathwayBaseline,
-  dismissedSkillKeys: state.dismissedSkillKeys,
+  pathwayInputFingerprint: state.pathwayInputFingerprint,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -47,7 +55,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
  * then runs one normalization pass so a broken/incomplete combination never reaches
  * a component. `persistedState` is untrusted (malformed JSON is already handled by
  * zustand's persist middleware falling back to `undefined` before this runs; this guard
- * covers valid-JSON-but-wrong-shape values, e.g. a persisted primitive).
+ * covers valid-JSON-but-wrong-shape values, e.g. a persisted primitive, or a
+ * pre-refactor blob under the old shape).
  */
 export const mergePathwaysState = (
   persistedState: unknown,

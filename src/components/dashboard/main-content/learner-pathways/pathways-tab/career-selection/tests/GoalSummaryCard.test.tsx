@@ -4,19 +4,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import type { LearnerProfile } from '../../state';
+import type { LearnerIntent } from '../../state';
 import GoalSummaryCard, { GoalSummaryCardProps } from '../GoalSummaryCard';
 
-const testProfile: LearnerProfile = {
-  summary: 'Test summary',
+const testIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
   targetIndustry: 'EdTech',
   background: 'Data analyst with five years experience.',
   motivation: 'Upskill for promotion.',
-  learningStyle: 'Hands-on',
-  weeklyTimeCommitment: '5 hours',
-  certificatePreference: 'Preferred',
-  skills: ['SQL', 'Python'],
 };
 
 /**
@@ -31,7 +26,7 @@ const ControlledCard = ({
   return (
     <IntlProvider locale="en">
       <GoalSummaryCard
-        profile={testProfile}
+        learnerIntent={testIntent}
         isEditing={isEditing}
         isProfileSubmitting={isProfileSubmitting}
         profileError={profileError}
@@ -46,7 +41,7 @@ const ControlledCard = ({
 describe('GoalSummaryCard', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders view mode with profile field values', () => {
+  it('renders view mode with intent field values', () => {
     render(<ControlledCard />);
     expect(screen.getByTestId('profile-career-goal')).toHaveTextContent('Senior Data Analyst');
     expect(screen.getByTestId('profile-target-industry')).toHaveTextContent('EdTech');
@@ -130,7 +125,7 @@ describe('GoalSummaryCard', () => {
     render(
       <IntlProvider locale="en">
         <GoalSummaryCard
-          profile={testProfile}
+          learnerIntent={testIntent}
           isEditing
           isProfileSubmitting
           onBeginEditing={jest.fn()}
@@ -155,12 +150,12 @@ describe('GoalSummaryCard', () => {
     await user.type(goalInput, 'Temporary goal');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    // Second edit session: draft should be reset to profile values
+    // Second edit session: draft should be reset to intent values
     await user.click(screen.getByTestId('goal-summary-edit-button'));
     expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
   });
 
-  it('shows pre-filled profile values in edit mode textarea fields', async () => {
+  it('shows pre-filled intent values in edit mode textarea fields', async () => {
     const user = userEvent.setup();
     render(<ControlledCard />);
 

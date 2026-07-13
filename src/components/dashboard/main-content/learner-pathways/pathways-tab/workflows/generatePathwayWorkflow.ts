@@ -6,15 +6,15 @@ import type { GeneratePathwayWorkflowInput, GeneratePathwayWorkflowResult } from
  * Feedback -> enriched PathwayCourse[] mapping.
  *
  * Future flow:
- * 1. Build an Algolia course query from the selected career, learner profile,
- *    and skill signals.
+ * 1. Build an Algolia course query from the request's learner intent, learner
+ *    profile, selected career, and selected skills.
  * 2. Retrieve candidate course hits and normalize to PathwayCourse[], reading
- *    hit.key (not objectID) as the stable courseKey join field.
+ *    hit.key (not objectID) as the stable courseKey identifier.
  * 3. Call fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
  *    (src/components/app/data/services/xpert.ts), sending a deliberate
  *    learner-profile projection rather than the entire Zustand store.
  * 4. Merge reasons[courseKey] into each course's whyThisFitsYou.
- * 5. Return the enriched courses and progress for the controller to commit.
+ * 5. Return the enriched courses for the controller to commit.
  *
  * This workflow owns ordering, projection, and joining; the application
  * service owns only HTTP transport.
@@ -26,7 +26,7 @@ import type { GeneratePathwayWorkflowInput, GeneratePathwayWorkflowResult } from
 export const generatePathwayWorkflow = async (
   input: GeneratePathwayWorkflowInput,
 ): Promise<GeneratePathwayWorkflowResult> => {
-  if (input.selectedCareer) {
+  if (input.selectedCareerId) {
     // Placeholder read to keep the explicit input contract enforced until the
     // real Algolia/Recommendation Feedback orchestration lands.
   }

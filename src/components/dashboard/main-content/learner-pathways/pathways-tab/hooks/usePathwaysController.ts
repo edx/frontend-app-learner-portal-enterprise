@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePathwaysStore } from '../state';
-import type { CareerMatch, LearnerProfile } from '../state';
+import type { LearnerIntent, PathwayGenerationRequest } from '../state';
 import {
   generatePathwayWorkflow,
   generateProfileWorkflow,
@@ -20,33 +20,24 @@ import type { GenerateProfileWorkflowResult, GeneratePathwayWorkflowResult } fro
 export const usePathwaysController = () => {
   const {
     setSection,
-    setExperienceStatus,
     resetPathwaysState,
   } = usePathwaysStore(useShallow((state) => ({
     setSection: state.setSection,
-    setExperienceStatus: state.setExperienceStatus,
     resetPathwaysState: state.resetPathwaysState,
   })));
 
   const startOnboarding = () => {
     // Minimal state transition only; workflow orchestration is intentionally deferred.
     setSection('onboarding');
-    setExperienceStatus('onboarding_in_progress');
   };
 
   const generateProfile = (
-    learnerProfile: LearnerProfile,
-  ): Promise<GenerateProfileWorkflowResult> => generateProfileWorkflow({ learnerProfile });
+    learnerIntent: LearnerIntent,
+  ): Promise<GenerateProfileWorkflowResult> => generateProfileWorkflow(learnerIntent);
 
   const generatePathway = (
-    learnerProfile: LearnerProfile,
-    selectedCareer: CareerMatch,
-    skillsToDevelop: string[],
-  ): Promise<GeneratePathwayWorkflowResult> => generatePathwayWorkflow({
-    learnerProfile,
-    selectedCareer,
-    skillsToDevelop,
-  });
+    request: PathwayGenerationRequest,
+  ): Promise<GeneratePathwayWorkflowResult> => generatePathwayWorkflow(request);
 
   const resetPathway = () => {
     resetPathwaysState();

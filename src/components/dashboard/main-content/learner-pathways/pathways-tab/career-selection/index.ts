@@ -4,7 +4,7 @@ export { default as CareerMatchesCard } from './CareerMatchesCard';
 export { default as SkillsToDevelopCard } from './SkillsToDevelopCard';
 export { default as OverwritePathwayModal } from './OverwritePathwayModal';
 export type { CareerSelectionPageProps } from './CareerSelectionPage';
-export type { GoalSummaryCardProps, GoalSummaryFields } from './GoalSummaryCard';
+export type { GoalSummaryCardProps, GoalSummaryFormValues } from './GoalSummaryCard';
 export type { CareerMatchesCardProps, OrderedMatch } from './CareerMatchesCard';
 export type { SkillsToDevelopCardProps } from './SkillsToDevelopCard';
 export type { OverwritePathwayModalProps } from './OverwritePathwayModal';

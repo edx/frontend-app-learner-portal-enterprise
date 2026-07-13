@@ -29,11 +29,23 @@ describe('fetchLearningIntent', () => {
     axiosMock.reset();
   });
 
+  // Public input is the canonical LearnerIntent contract — the same shape used by RHF,
+  // Zustand, and persistence. The wire-shape translation (selectedGoals/freeText/
+  // knownContext/interestedIndustries) happens only inside the private
+  // toLearningIntentWireRequest adapter, exercised here indirectly via the payload
+  // actually sent over HTTP.
   const mockRequest = {
-    selectedGoals: 'Become a data analyst',
-    freeText: 'I want to learn data analysis to switch careers.',
-    knownContext: '5 years of accounting experience',
-    interestedIndustries: 'Technology, Healthcare',
+    careerGoal: 'Become a data analyst',
+    targetIndustry: 'Technology, Healthcare',
+    background: '5 years of accounting experience',
+    motivation: 'I want to learn data analysis to switch careers.',
+  };
+
+  const expectedWireRequest = {
+    selectedGoals: mockRequest.careerGoal,
+    freeText: mockRequest.motivation,
+    knownContext: mockRequest.background,
+    interestedIndustries: mockRequest.targetIndustry,
   };
 
   const mockResponseRaw = {
@@ -49,17 +61,25 @@ describe('fetchLearningIntent', () => {
     expect(axiosMock.history.post[0].url).toEqual(LEARNING_INTENT_URL);
   });
 
-  it('sends the exact serializer-compatible payload', async () => {
+  it('maps the canonical LearnerIntent to the exact fixed wire field names, snake_cased', async () => {
     axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
     await fetchLearningIntent(mockRequest);
-    expect(JSON.parse(axiosMock.history.post[0].data)).toEqual(snakeCaseObject(mockRequest));
+    expect(JSON.parse(axiosMock.history.post[0].data)).toEqual(snakeCaseObject(expectedWireRequest));
   });
 
-  it('sends interestedIndustries unchanged as interested_industries', async () => {
+  it('maps targetIndustry to interested_industries unchanged', async () => {
     axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
     await fetchLearningIntent(mockRequest);
     expect(JSON.parse(axiosMock.history.post[0].data).interested_industries)
-      .toEqual(mockRequest.interestedIndustries);
+      .toEqual(mockRequest.targetIndustry);
+  });
+
+  it('never leaks the canonical LearnerIntent field names onto the wire', async () => {
+    axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
+    await fetchLearningIntent(mockRequest);
+    const sentPayload = JSON.parse(axiosMock.history.post[0].data);
+    expect(sentPayload).not.toHaveProperty('career_goal');
+    expect(sentPayload).not.toHaveProperty('target_industry');
   });
 
   it('maps the response to the typed camelCase contract', async () => {

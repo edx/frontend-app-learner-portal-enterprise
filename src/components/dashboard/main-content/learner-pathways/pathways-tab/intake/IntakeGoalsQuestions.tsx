@@ -21,12 +21,12 @@ const IntakeGoalsQuestions = () => {
         feedbackTestId="intake-motivation-feedback"
       />
       <IntakeTextareaQuestionField
-        name="goal"
+        name="careerGoal"
         controlId="intake-goal-question"
         label={intl.formatMessage(messages.goalQuestionLabel)}
         placeholder={intl.formatMessage(messages.goalQuestionPlaceholder)}
         requiredErrorMessage={intl.formatMessage(messages.goalQuestionRequiredError)}
-        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.goal}
+        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.careerGoal}
         fieldTestId="intake-goal-field"
         feedbackTestId="intake-goal-feedback"
       />

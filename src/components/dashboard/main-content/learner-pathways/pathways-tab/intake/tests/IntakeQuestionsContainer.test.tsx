@@ -70,12 +70,12 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByText(`6/${DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION}`)).toBeInTheDocument();
   });
 
-  it('hydrates RHF default values from onboarding answers in store', () => {
-    usePathwaysStore.getState().setOnboardingAnswers({
+  it('hydrates RHF default values from learnerIntent in store', () => {
+    usePathwaysStore.getState().setLearnerIntent({
       motivation: 'I want to grow in my current role',
-      goal: 'Move into data analytics',
+      careerGoal: 'Move into data analytics',
       background: 'Operations and reporting',
-      industry: 'Technology',
+      targetIndustry: 'Technology',
     });
 
     render(<MockIntakeQuestionsContainer />);
@@ -121,12 +121,12 @@ describe('IntakeQuestionsContainer', () => {
     const user = userEvent.setup();
     const expectedValues = {
       motivation: 'Motivation answer',
-      goal: 'Goal answer',
+      careerGoal: 'Goal answer',
       background: 'Background answer',
-      industry: 'Healthcare',
+      targetIndustry: 'Healthcare',
     };
     const onSubmit = jest.fn((submittedValues) => {
-      expect(usePathwaysStore.getState().onboarding.answers).toEqual(expectedValues);
+      expect(usePathwaysStore.getState().learnerIntent).toEqual(expectedValues);
       expect(submittedValues).toEqual(expectedValues);
     });
     render(<MockIntakeQuestionsContainer onSubmit={onSubmit} />);
@@ -138,7 +138,7 @@ describe('IntakeQuestionsContainer', () => {
     await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(usePathwaysStore.getState().onboarding.answers).toEqual(expectedValues);
+    expect(usePathwaysStore.getState().learnerIntent).toEqual(expectedValues);
   });
 
   it('rejects whitespace-only input with required messages', async () => {
@@ -183,7 +183,7 @@ describe('IntakeQuestionsContainer', () => {
       await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'Grow  ');
 
       await waitFor(() => {
-        expect(usePathwaysStore.getState().onboarding.answers.motivation).toBe('Grow  ');
+        expect(usePathwaysStore.getState().learnerIntent.motivation).toBe('Grow  ');
       });
     });
 
@@ -193,7 +193,7 @@ describe('IntakeQuestionsContainer', () => {
 
       await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), 'Become a data analyst');
       await waitFor(() => {
-        expect(usePathwaysStore.getState().onboarding.answers.goal).toBe('Become a data analyst');
+        expect(usePathwaysStore.getState().learnerIntent.careerGoal).toBe('Become a data analyst');
       });
       unmount();
 
@@ -215,20 +215,20 @@ describe('IntakeQuestionsContainer', () => {
       // draft-sync call is still scheduled when submit fires.
       await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
 
-      expect(usePathwaysStore.getState().onboarding.answers).toEqual({
+      expect(usePathwaysStore.getState().learnerIntent).toEqual({
         motivation: 'Motivation answer',
-        goal: 'Goal answer',
+        careerGoal: 'Goal answer',
         background: 'Background answer',
-        industry: 'Healthcare',
+        targetIndustry: 'Healthcare',
       });
 
       // The canceled draft sync must never fire and clobber the trimmed submit values.
       await new Promise((resolve) => { setTimeout(resolve, 400); });
-      expect(usePathwaysStore.getState().onboarding.answers).toEqual({
+      expect(usePathwaysStore.getState().learnerIntent).toEqual({
         motivation: 'Motivation answer',
-        goal: 'Goal answer',
+        careerGoal: 'Goal answer',
         background: 'Background answer',
-        industry: 'Healthcare',
+        targetIndustry: 'Healthcare',
       });
     });
   });

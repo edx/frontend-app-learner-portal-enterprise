@@ -1,40 +1,24 @@
-import type { PathwayBaselineSnapshot } from '../state';
-import type { GoalSummaryFields } from './types';
+import { computePathwayInputFingerprint } from '../state';
+import type { PathwayGenerationRequest } from '../state';
 
 export type CareerActionState =
   | 'new-pathway'
   | 'existing-pathway-unchanged'
   | 'existing-pathway-edited';
 
-const GOAL_SUMMARY_KEYS: Array<keyof GoalSummaryFields> = [
-  'careerGoal',
-  'targetIndustry',
-  'background',
-  'motivation',
-];
-
-export interface CareerBaselineComparisonInput {
-  goalSummary: GoalSummaryFields;
-  selectedCareerId: string | null;
-}
-
 /**
- * Whether the learner has made a "relevant edit" (a successfully submitted Goal
- * Summary change, or a different selected career) since the pathway baseline was
- * captured. A null baseline (no pathway generated yet) is never edited.
+ * Whether the current pathway inputs differ from the request that produced the
+ * pathway currently stored. A `null` fingerprint with an existing pathway is treated
+ * as edited (conservative default) rather than assumed unchanged — this covers both
+ * "no pathway generated yet" and any hydration path that can't trust its fingerprint.
  */
 export const isPathwayEdited = (
-  baseline: PathwayBaselineSnapshot | null,
-  current: CareerBaselineComparisonInput,
-): boolean => {
-  if (!baseline) {
-    return false;
-  }
-  if (baseline.selectedCareerId !== current.selectedCareerId) {
-    return true;
-  }
-  return GOAL_SUMMARY_KEYS.some((key) => baseline[key] !== current.goalSummary[key]);
-};
+  pathwayInputFingerprint: string | null,
+  currentRequest: PathwayGenerationRequest,
+): boolean => (
+  pathwayInputFingerprint === null
+    || pathwayInputFingerprint !== computePathwayInputFingerprint(currentRequest)
+);
 
 export interface GetCareerActionStateParams {
   hasExistingPathway: boolean;

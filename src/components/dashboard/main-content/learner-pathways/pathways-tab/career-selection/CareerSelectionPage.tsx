@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Badge, Col, Row } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import type { CareerMatch, LearnerProfile } from '../state';
-import GoalSummaryCard, { type GoalSummaryFields } from './GoalSummaryCard';
+import type { CareerMatch, LearnerIntent } from '../state';
+import GoalSummaryCard, { type GoalSummaryFormValues } from './GoalSummaryCard';
 import CareerMatchesCard from './CareerMatchesCard';
 import type { OrderedMatch } from './CareerMatchesCard';
 import SkillsToDevelopCard from './SkillsToDevelopCard';
@@ -15,7 +15,7 @@ import messages from './messages';
 const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
 
 export interface CareerSelectionPageProps {
-  profile: LearnerProfile;
+  learnerIntent: LearnerIntent;
   careerMatches: CareerMatch[];
   selectedCareerId?: string | null;
   isProfileSubmitting?: boolean;
@@ -23,7 +23,7 @@ export interface CareerSelectionPageProps {
   isBuildingPathway?: boolean;
   profileError?: string | null;
   careerMatchesError?: string | null;
-  onSubmitGoalSummary: (updates: GoalSummaryFields) => Promise<void> | void;
+  onSubmitGoalSummary: (updates: GoalSummaryFormValues) => Promise<void> | void;
   onSelectCareer: (careerId: string) => void;
   /** Controlled by CareerSelectionContainer (lifted state). */
   isOverwriteOpen: boolean;
@@ -53,7 +53,7 @@ const normalizePercentage = (value?: number): number | null => {
 };
 
 const CareerSelectionPage = ({
-  profile,
+  learnerIntent,
   careerMatches,
   selectedCareerId = null,
   isProfileSubmitting = false,
@@ -117,7 +117,7 @@ const CareerSelectionPage = ({
       </header>
 
       <GoalSummaryCard
-        profile={profile}
+        learnerIntent={learnerIntent}
         isEditing={isEditing}
         isProfileSubmitting={isProfileSubmitting}
         profileError={profileError}

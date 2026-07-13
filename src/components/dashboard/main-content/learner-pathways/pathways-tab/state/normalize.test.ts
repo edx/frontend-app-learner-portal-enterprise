@@ -1,9 +1,9 @@
-import { normalizePathwaysState, normalizeSelectedCareerId } from './normalize';
+import { normalizePathwaysState, normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
 import { getInitialPathwaysState } from './pathwaysStore';
 import type { CareerMatch, PathwaysState } from './types';
 
 const matches: CareerMatch[] = [
-  { id: 'career-1', title: 'Data Analyst' },
+  { id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL', 'SQL', ' Python ', ''] },
   { id: 'career-2', title: 'Business Analyst' },
 ];
 
@@ -25,6 +25,21 @@ describe('normalizeSelectedCareerId', () => {
   });
 });
 
+describe('recommendedSkillsForCareer', () => {
+  it('trims and dedupes the matched career skills list', () => {
+    expect(recommendedSkillsForCareer(matches, 'career-1')).toEqual(['SQL', 'Python']);
+  });
+
+  it('returns an empty array for a match with no skillsToDevelop', () => {
+    expect(recommendedSkillsForCareer(matches, 'career-2')).toEqual([]);
+  });
+
+  it('returns null when the candidate id does not reference a current match', () => {
+    expect(recommendedSkillsForCareer(matches, 'stale-id')).toBeNull();
+    expect(recommendedSkillsForCareer(matches, null)).toBeNull();
+  });
+});
+
 describe('normalizePathwaysState', () => {
   const baseState = (): PathwaysState => getInitialPathwaysState();
 
@@ -34,6 +49,7 @@ describe('normalizePathwaysState', () => {
       section: 'profile',
       careerMatches: matches,
       selectedCareerId: 'career-1',
+      selectedSkills: ['SQL'],
     };
     expect(normalizePathwaysState(state)).toEqual(state);
   });
@@ -78,34 +94,33 @@ describe('normalizePathwaysState', () => {
     expect(normalizePathwaysState(state).selectedCareerId).toBe('career-1');
   });
 
-  it('clears an incomplete generated baseline when there is no persisted pathway', () => {
+  it('clears selectedSkills when the selected career no longer resolves to a match', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      careerMatches: [],
+      selectedCareerId: 'stale-id',
+      selectedSkills: ['SQL'],
+    };
+    const normalized = normalizePathwaysState(state);
+    expect(normalized.selectedCareerId).toBeNull();
+    expect(normalized.selectedSkills).toBeNull();
+  });
+
+  it('clears an incomplete generated fingerprint when there is no persisted pathway', () => {
     const state: PathwaysState = {
       ...baseState(),
       pathwayCourses: [],
-      pathwayBaseline: {
-        careerGoal: 'Data Analyst',
-        targetIndustry: 'Tech',
-        background: 'Ops',
-        motivation: 'Growth',
-        selectedCareerId: 'career-1',
-      },
+      pathwayInputFingerprint: 'stale-fingerprint',
     };
-    expect(normalizePathwaysState(state).pathwayBaseline).toBeNull();
+    expect(normalizePathwaysState(state).pathwayInputFingerprint).toBeNull();
   });
 
-  it('keeps a baseline when a pathway is present', () => {
-    const baseline = {
-      careerGoal: 'Data Analyst',
-      targetIndustry: 'Tech',
-      background: 'Ops',
-      motivation: 'Growth',
-      selectedCareerId: 'career-1',
-    };
+  it('keeps a fingerprint when a pathway is present', () => {
     const state: PathwaysState = {
       ...baseState(),
-      pathwayCourses: [{ id: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
-      pathwayBaseline: baseline,
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+      pathwayInputFingerprint: 'fingerprint-1',
     };
-    expect(normalizePathwaysState(state).pathwayBaseline).toEqual(baseline);
+    expect(normalizePathwaysState(state).pathwayInputFingerprint).toBe('fingerprint-1');
   });
 });

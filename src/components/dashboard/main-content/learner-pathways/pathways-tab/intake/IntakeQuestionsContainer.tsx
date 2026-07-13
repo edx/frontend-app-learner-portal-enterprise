@@ -3,7 +3,8 @@ import { Form, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { FormProvider, useForm } from 'react-hook-form';
 import { debounce } from 'lodash-es';
-import { usePathwaysStore } from '../state';
+import { EMPTY_LEARNER_INTENT, usePathwaysStore } from '../state';
+import type { LearnerIntent } from '../state';
 import { usePathwaysActionBar } from '../action-bar';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
@@ -16,24 +17,12 @@ import messages from './messages';
  */
 const DRAFT_SYNC_DEBOUNCE_MS = 300;
 
-export interface IntakeFormValues {
-  motivation: string;
-  goal: string;
-  background: string;
-  industry: string;
-}
+export type IntakeFormValues = LearnerIntent;
 
 export interface IntakeQuestionsContainerProps {
   onSubmit: (values: IntakeFormValues) => void;
   onSkip?: () => void;
 }
-
-const emptyDefaultValues: IntakeFormValues = {
-  motivation: '',
-  goal: '',
-  background: '',
-  industry: '',
-};
 
 const FORM_ID = 'pathways-intake-form';
 
@@ -41,8 +30,8 @@ const IntakeQuestionsContainer = ({
   onSubmit,
   onSkip,
 }: IntakeQuestionsContainerProps) => {
-  const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
-  const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
+  const learnerIntent = usePathwaysStore((state) => state.learnerIntent);
+  const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
 
@@ -51,10 +40,10 @@ const IntakeQuestionsContainer = ({
     reValidateMode: 'onChange',
     shouldFocusError: true,
     defaultValues: {
-      motivation: onboardingAnswers.motivation ?? '',
-      goal: onboardingAnswers.goal ?? '',
-      background: onboardingAnswers.background ?? '',
-      industry: onboardingAnswers.industry ?? '',
+      motivation: learnerIntent.motivation,
+      careerGoal: learnerIntent.careerGoal,
+      background: learnerIntent.background,
+      targetIndustry: learnerIntent.targetIndustry,
     },
   });
 
@@ -64,14 +53,14 @@ const IntakeQuestionsContainer = ({
   // avoid a localStorage write on every keystroke.
   const syncDraft = useMemo(
     () => debounce((values: Partial<IntakeFormValues>) => {
-      setOnboardingAnswers({
-        motivation: values.motivation ?? emptyDefaultValues.motivation,
-        goal: values.goal ?? emptyDefaultValues.goal,
-        background: values.background ?? emptyDefaultValues.background,
-        industry: values.industry ?? emptyDefaultValues.industry,
+      setLearnerIntent({
+        motivation: values.motivation ?? EMPTY_LEARNER_INTENT.motivation,
+        careerGoal: values.careerGoal ?? EMPTY_LEARNER_INTENT.careerGoal,
+        background: values.background ?? EMPTY_LEARNER_INTENT.background,
+        targetIndustry: values.targetIndustry ?? EMPTY_LEARNER_INTENT.targetIndustry,
       });
     }, DRAFT_SYNC_DEBOUNCE_MS),
-    [setOnboardingAnswers],
+    [setLearnerIntent],
   );
 
   const handleFormSubmit = methods.handleSubmit((values) => {
@@ -79,12 +68,12 @@ const IntakeQuestionsContainer = ({
     // clobber the trimmed, authoritative values committed below.
     syncDraft.cancel();
     const normalizedValues: IntakeFormValues = {
-      motivation: (values.motivation ?? emptyDefaultValues.motivation).trim(),
-      goal: (values.goal ?? emptyDefaultValues.goal).trim(),
-      background: (values.background ?? emptyDefaultValues.background).trim(),
-      industry: (values.industry ?? emptyDefaultValues.industry).trim(),
+      motivation: (values.motivation ?? EMPTY_LEARNER_INTENT.motivation).trim(),
+      careerGoal: (values.careerGoal ?? EMPTY_LEARNER_INTENT.careerGoal).trim(),
+      background: (values.background ?? EMPTY_LEARNER_INTENT.background).trim(),
+      targetIndustry: (values.targetIndustry ?? EMPTY_LEARNER_INTENT.targetIndustry).trim(),
     };
-    setOnboardingAnswers(normalizedValues);
+    setLearnerIntent(normalizedValues);
     onSubmit(normalizedValues);
   });
 
