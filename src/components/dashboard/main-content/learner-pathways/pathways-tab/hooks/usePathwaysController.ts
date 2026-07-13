@@ -44,6 +44,9 @@ export const usePathwaysController = () => {
     });
   };
 
+  // Integration seam: generatePathway should accept explicit selected-career/profile
+  // input instead of reading constructedPayloads.pathwayRequest, which callers
+  // currently stage into the store immediately before invoking this action.
   const generatePathway = async () => {
     // TODO: Trigger full pathway workflow orchestration in a follow-up ticket.
     await generatePathwayWorkflow({
