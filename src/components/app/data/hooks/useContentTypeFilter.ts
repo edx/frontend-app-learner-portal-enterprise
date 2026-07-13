@@ -13,10 +13,10 @@ import { AlgoliaFilterBuilder } from '../../../AlgoliaFilterBuilder';
 type UseContentTypeFilterParams = {
   /** Base filter string to be combined with content type filters */
   filter: string;
-  /** Optional array of content types to filter by */
-  contentType: string | null;
+  /** Optional content type to filter by */
+  contentType?: string | null;
   /** Optional learning type to filter by */
-  learningType: string | null;
+  learningType?: string | null;
 };
 
 /**
