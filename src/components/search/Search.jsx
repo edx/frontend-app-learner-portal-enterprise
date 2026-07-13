@@ -270,7 +270,7 @@ const Search = () => {
         {canEnrollWithEnterpriseOffers && shouldDisplayBalanceAlert && (
           <EnterpriseOffersBalanceAlert hasNoEnterpriseOffersBalance={hasNoEnterpriseOffersBalance} />
         )}
-        {canViewCatalog && !contentType?.length && !learningType?.length && (
+        {canViewCatalog && !(contentType?.length || learningType?.length) && (
           <Index indexName={searchIndex.indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
             <Container size="lg" className="mt-4">
               <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
@@ -279,7 +279,7 @@ const Search = () => {
         )}
 
         {/* No content type refinement  */}
-        {(!contentType?.length && !learningType?.length)
+        {(!(contentType?.length || learningType?.length))
           ? (
             <Stack className="my-5" gap={5}>
               {!hasRefinements && <ContentHighlights />}
