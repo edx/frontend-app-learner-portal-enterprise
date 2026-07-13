@@ -1,6 +1,7 @@
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { camelCaseObject, snakeCaseObject } from '@edx/frontend-platform/utils';
 
 import { fetchLearningIntent } from './xpert';
 
@@ -32,6 +33,7 @@ describe('fetchLearningIntent', () => {
     selectedGoals: 'Become a data analyst',
     freeText: 'I want to learn data analysis to switch careers.',
     knownContext: '5 years of accounting experience',
+    interestedIndustries: 'Technology, Healthcare',
   };
 
   const mockResponseRaw = {
@@ -50,21 +52,20 @@ describe('fetchLearningIntent', () => {
   it('sends the exact serializer-compatible payload', async () => {
     axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
     await fetchLearningIntent(mockRequest);
-    expect(JSON.parse(axiosMock.history.post[0].data)).toEqual({
-      selected_goals: mockRequest.selectedGoals,
-      free_text: mockRequest.freeText,
-      known_context: mockRequest.knownContext,
-    });
+    expect(JSON.parse(axiosMock.history.post[0].data)).toEqual(snakeCaseObject(mockRequest));
+  });
+
+  it('sends interestedIndustries unchanged as interested_industries', async () => {
+    axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
+    await fetchLearningIntent(mockRequest);
+    expect(JSON.parse(axiosMock.history.post[0].data).interested_industries)
+      .toEqual(mockRequest.interestedIndustries);
   });
 
   it('maps the response to the typed camelCase contract', async () => {
     axiosMock.onPost(LEARNING_INTENT_URL).reply(200, mockResponseRaw);
     const result = await fetchLearningIntent(mockRequest);
-    expect(result).toEqual({
-      skillsRequired: mockResponseRaw.skills_required,
-      skillsPreferred: mockResponseRaw.skills_preferred,
-      condensedAlgoliaQuery: mockResponseRaw.condensed_algolia_query,
-    });
+    expect(result).toEqual(camelCaseObject(mockResponseRaw));
   });
 
   it('rejects when the HTTP client rejects', async () => {
