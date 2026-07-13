@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import { logInfo } from '@edx/frontend-platform/logging';
 import {
@@ -10,6 +11,12 @@ import {
   PathwaysState,
   PathwaysStore,
 } from './types';
+import {
+  PATHWAYS_STORAGE_KEY,
+  PATHWAYS_STORAGE_VERSION,
+  mergePathwaysState,
+  partializePathwaysState,
+} from './persistence';
 
 /**
  * Factory for creating a fresh pathways initial state object.
@@ -60,8 +67,11 @@ export const getInitialPathwaysState = (): PathwaysState => ({
 /**
  * Root Zustand store for learner pathways.
  * Holds only state, synchronous setters, and reset behavior.
+ * Wrapped in `persist` so the durable subset (see state/persistence.ts) survives a
+ * refresh; hydration is synchronous for localStorage, so the store's initial state is
+ * already hydrated before first render — no separate "waiting for hydration" step.
  */
-export const usePathwaysStore = create<PathwaysStore>((set) => ({
+export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
   ...getInitialPathwaysState(),
   setSection: (section) => set({ section }),
   setExperienceStatus: (experienceStatus) => set({ experienceStatus }),
@@ -148,6 +158,11 @@ export const usePathwaysStore = create<PathwaysStore>((set) => ({
   }),
   setPathwayBaseline: (pathwayBaseline) => set({ pathwayBaseline }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
+}), {
+  name: PATHWAYS_STORAGE_KEY,
+  version: PATHWAYS_STORAGE_VERSION,
+  partialize: partializePathwaysState,
+  merge: mergePathwaysState,
 }));
 
 /**
