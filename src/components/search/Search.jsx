@@ -119,7 +119,10 @@ const Search = () => {
   const navigate = useNavigate();
 
   const { refinements, dispatch } = useContext(SearchContext);
-  const { content_type: contentType } = refinements;
+  const {
+    content_type: contentType,
+    learning_type: learningType,
+  } = refinements;
   const filters = useDefaultSearchFilters();
   const {
     courseFilter,
@@ -127,7 +130,8 @@ const Search = () => {
     pathwayFilter,
     videoFilter,
     contentTypeFilter,
-  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0] });
+    learningTypeFilter,
+  } = useContentTypeFilter({ filter: filters, contentType: contentType?.[0], learningType: learningType?.[0] });
 
   const {
     searchIndex,
@@ -266,7 +270,7 @@ const Search = () => {
         {canEnrollWithEnterpriseOffers && shouldDisplayBalanceAlert && (
           <EnterpriseOffersBalanceAlert hasNoEnterpriseOffersBalance={hasNoEnterpriseOffersBalance} />
         )}
-        {canViewCatalog && !contentType?.length && (
+        {canViewCatalog && !(contentType?.length || learningType?.length) && (
           <Index indexName={searchIndex.indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
             <Container size="lg" className="mt-4">
               <LatestOfferingsFacetBanner onSeeWhatsNew={handleSeeWhatsNew} />
@@ -275,27 +279,29 @@ const Search = () => {
         )}
 
         {/* No content type refinement  */}
-        {!contentType?.length
+        {(!(contentType?.length || learningType?.length))
           ? (
             <Stack className="my-5" gap={5}>
               {!hasRefinements && <ContentHighlights />}
-              {canViewCatalog && enterpriseCustomer.enableAcademies
-              && <SearchAcademy />}
-              {features.ENABLE_PATHWAYS && canViewCatalog
-              && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
-              {features.ENABLE_PROGRAMS && canViewCatalog
-              && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
-              {canViewCatalog
-              && (
-                <SearchCourse
-                  filter={courseFilter}
-                  indexName={searchIndex.indexName}
-                  handlers={{
-                    searchResults: handleCourseSectionUpdated,
-                    noSearchResults: handleCourseSectionUpdated,
-                  }}
-                />
-              )}
+              {canOnlyViewHighlightSets === false
+                  && enterpriseCustomer.enableAcademies
+                  && <SearchAcademy />}
+              {features.ENABLE_PATHWAYS
+                  && (canOnlyViewHighlightSets === false)
+                  && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}
+              {features.ENABLE_PROGRAMS && (canOnlyViewHighlightSets === false)
+                  && <SearchProgram filter={programFilter} indexName={searchIndex.indexName} />}
+              {canOnlyViewHighlightSets === false
+                  && (
+                    <SearchCourse
+                      filter={courseFilter}
+                      indexName={searchIndex.indexName}
+                      handlers={{
+                        searchResults: handleCourseSectionUpdated,
+                        noSearchResults: handleCourseSectionUpdated,
+                      }}
+                    />
+                  )}
               {enableVideos && (
                 <SearchVideo
                   filter={videoFilter}
@@ -306,7 +312,14 @@ const Search = () => {
           )
         /* render a single contentType if the refinement
             exists and is either a course, program or learnerpathway */
-          : <ContentTypeSearchResultsContainer contentType={contentType[0]} indexName={searchIndex.indexName} />}
+          : (
+            <ContentTypeSearchResultsContainer
+              contentType={contentType?.[0]}
+              learningType={learningType?.[0]}
+              learningTypeFilter={learningTypeFilter}
+              indexName={searchIndex.indexName}
+            />
+          )}
       </InstantSearch>
       <IntegrationWarningModal isEnabled={enterpriseCustomer.showIntegrationWarning} />
     </>

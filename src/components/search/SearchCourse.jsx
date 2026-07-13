@@ -34,6 +34,12 @@ const SearchCourse = ({
   filter, indexName, handlers,
 }) => {
   const intl = useIntl();
+  const translatedTitle = intl.formatMessage({
+    id: 'enterprise.search.page.course.section.translated.title',
+    defaultMessage: 'Courses',
+    description: 'Translated title for the enterprise search page course section.',
+  });
+
   return (
     <Index indexName={indexName} indexId={SEARCH_INDEX_IDS.COURSE}>
       <Configure
@@ -46,13 +52,7 @@ const SearchCourse = ({
         title={COURSE_TITLE}
         indexName={indexName}
         handlers={handlers}
-        translatedTitle={
-          intl.formatMessage({
-            id: 'enterprise.search.page.course.section.translated.title',
-            defaultMessage: 'Courses',
-            description: 'Translated title for the enterprise search page course section.',
-          })
-        }
+        translatedTitle={translatedTitle}
         componentId={SEARCH_INDEX_IDS.COURSE}
       />
     </Index>

@@ -12,6 +12,7 @@ export const NUM_RESULTS_ACADEMY = 4;
 export const NUM_RESULTS_COURSE = 20;
 export const NUM_RESULTS_VIDEO = 20;
 export const COURSE_TITLE = 'Courses';
+export const EXECUTIVE_EDUCATION_TITLE = 'Executive Education';
 export const PROGRAM_TITLE = 'Programs';
 export const PATHWAY_TITLE = 'Pathways';
 export const ACADEMY_TITLE = 'Academies';
