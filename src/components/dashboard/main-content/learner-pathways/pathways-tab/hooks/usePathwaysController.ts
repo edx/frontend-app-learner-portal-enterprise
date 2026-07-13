@@ -34,6 +34,9 @@ export const usePathwaysController = () => {
     setExperienceStatus('onboarding_in_progress');
   };
 
+  // Integration seam: generateProfile should accept explicit intake/profile-edit
+  // input instead of reading constructedPayloads.learnerProfileRequest, which
+  // callers currently stage into the store immediately before invoking this action.
   const generateProfile = async () => {
     // TODO: Trigger full profile workflow orchestration in a follow-up ticket.
     await generateProfileWorkflow({
