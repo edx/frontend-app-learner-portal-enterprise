@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Form, Stack } from '@openedx/paragon';
+import { Alert, Form, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { FormProvider, useForm } from 'react-hook-form';
 import { usePathwaysStore } from '../state';
@@ -36,6 +36,12 @@ const IntakeQuestionsContainer = ({
 }: IntakeQuestionsContainerProps) => {
   const onboardingAnswers = usePathwaysStore((state) => state.onboarding.answers);
   const setOnboardingAnswers = usePathwaysStore((state) => state.setOnboardingAnswers);
+  // Integration spike (ENT-12007 verification, uncommitted): temporary loading/error
+  // surface for the Learning Intent request triggered by this form's onSubmit, owned
+  // by the controller (see usePathwaysController.generateProfile). Remove once the
+  // real production integration lands.
+  const isGeneratingProfile = usePathwaysStore((state) => state.loading.learnerProfile);
+  const learnerProfileError = usePathwaysStore((state) => state.errors.learnerProfile);
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
 
@@ -74,6 +80,10 @@ const IntakeQuestionsContainer = ({
         type: 'submit',
         form: FORM_ID,
         testId: 'intake-submit-button',
+        // Integration spike (ENT-12007 verification, uncommitted): disable/show a
+        // loading state while the Learning Intent request is in flight.
+        loading: isGeneratingProfile,
+        disabled: isGeneratingProfile,
       },
       secondary: onSkip
         ? [{
@@ -88,13 +98,20 @@ const IntakeQuestionsContainer = ({
       alignment: 'end',
     });
     return () => clearActions();
-  }, [onSkip, registerActions, clearActions, intl]);
+  }, [onSkip, registerActions, clearActions, intl, isGeneratingProfile]);
 
   return (
     <section data-testid="intake-questions-container">
       <FormProvider {...methods}>
         <Form id={FORM_ID} onSubmit={handleFormSubmit} data-testid="intake-form">
           <Stack gap={4}>
+            {learnerProfileError && (
+              // Integration spike (ENT-12007 verification, uncommitted): temporary
+              // error surface; remove once the real production integration lands.
+              <Alert variant="danger" data-testid="intake-learning-intent-error">
+                {learnerProfileError}
+              </Alert>
+            )}
             <IntakeQuestionSection
               title={intl.formatMessage(messages.goalsSectionTitle)}
               emptyPlaceholderTestId="intake-goals-questions-placeholder"

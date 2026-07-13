@@ -28,6 +28,7 @@ export const getInitialPathwaysState = (): PathwaysState => ({
     currentQuestion: 0,
     isComplete: false,
   },
+  learningIntent: null,
   learnerProfile: null,
   careerMatches: [],
   selectedCareerId: null,
@@ -91,6 +92,7 @@ export const usePathwaysStore = create<PathwaysStore>((set) => ({
       answers,
     },
   })),
+  setLearningIntent: (learningIntent) => set({ learningIntent }),
   setLearnerProfile: (learnerProfile) => set({ learnerProfile }),
   updateLearnerProfile: (
     profileUpdates: Partial<LearnerProfile>,
@@ -156,6 +158,7 @@ export const selectors = {
   section: (state: PathwaysStore) => state.section,
   onboardingAnswers: (state: PathwaysStore) => state.onboarding.answers,
   onboarding: (state: PathwaysStore) => state.onboarding,
+  learningIntent: (state: PathwaysStore) => state.learningIntent,
   learnerProfile: (state: PathwaysStore) => state.learnerProfile,
   careerMatches: (state: PathwaysStore) => state.careerMatches,
   selectedCareerId: (state: PathwaysStore) => state.selectedCareerId,
@@ -176,6 +179,7 @@ export const usePathwaysExperienceStatus = () => usePathwaysStore(selectors.expe
 export const usePathwaysSection = () => usePathwaysStore(selectors.section);
 export const usePathwaysOnboardingAnswers = () => usePathwaysStore(selectors.onboardingAnswers);
 export const usePathwaysOnboarding = () => usePathwaysStore(selectors.onboarding);
+export const usePathwaysLearningIntent = () => usePathwaysStore(selectors.learningIntent);
 export const usePathwaysLearnerProfile = () => usePathwaysStore(selectors.learnerProfile);
 export const usePathwaysCareerMatches = () => usePathwaysStore(selectors.careerMatches);
 export const usePathwaysSelectedCareerId = () => usePathwaysStore(selectors.selectedCareerId);

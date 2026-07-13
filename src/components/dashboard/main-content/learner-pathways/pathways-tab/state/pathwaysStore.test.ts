@@ -165,6 +165,22 @@ describe('pathwaysStore', () => {
     });
   });
 
+  it('sets and clears the learningIntent slice', () => {
+    const { setLearningIntent } = usePathwaysStore.getState();
+    const mockLearningIntent = {
+      skillsRequired: ['SQL'],
+      skillsPreferred: ['Python'],
+      condensedAlgoliaQuery: 'sql python',
+    };
+
+    setLearningIntent(mockLearningIntent);
+    expect(usePathwaysStore.getState().learningIntent).toEqual(mockLearningIntent);
+    expect(selectors.learningIntent(usePathwaysStore.getState())).toEqual(mockLearningIntent);
+
+    setLearningIntent(null);
+    expect(usePathwaysStore.getState().learningIntent).toBeNull();
+  });
+
   it('resets back to a fresh initial state object', () => {
     const { setSection, setExperienceStatus, resetPathwaysState } = usePathwaysStore.getState();
 

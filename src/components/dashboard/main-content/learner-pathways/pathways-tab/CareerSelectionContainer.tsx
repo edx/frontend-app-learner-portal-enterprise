@@ -1,6 +1,7 @@
 import React, {
   useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
+import type { SearchIndex } from 'algoliasearch/lite';
 import { useShallow } from 'zustand/react/shallow';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
@@ -15,49 +16,35 @@ import { usePathwaysCourses, usePathwaysStore } from './state';
 import { usePathwaysActionBar } from './action-bar';
 
 export interface CareerSelectionContainerProps {
-  onNext?: () => void;
+  /** Obtained by LearnerPathwaysTab via useAlgoliaSearch and passed down. */
+  jobIndex: SearchIndex | null;
+  catalogIndex: SearchIndex | null;
 }
-
-const errorMessage = (
-  error: unknown,
-  fallback: string,
-) => (error instanceof Error && error.message ? error.message : fallback);
 
 /** UI adapter to the learner-pathways store/controller/workflow seams. */
 const CareerSelectionContainer = ({
-  onNext,
+  jobIndex,
+  catalogIndex,
 }: CareerSelectionContainerProps) => {
   const {
     onboardingAnswers,
     learnerProfile,
     careerMatches,
     selectedCareerId,
+    learningIntent,
     loading,
     errors,
-    setLearnerProfile,
-    updateLearnerProfile,
-    setCareerMatches,
     setSelectedCareerId,
-    setConstructedPayload,
-    setLoading,
-    setError,
-    setExperienceStatus,
   } = usePathwaysStore(
     useShallow((state) => ({
       onboardingAnswers: state.onboarding.answers,
       learnerProfile: state.learnerProfile,
       careerMatches: state.careerMatches,
       selectedCareerId: state.selectedCareerId,
+      learningIntent: state.learningIntent,
       loading: state.loading,
       errors: state.errors,
-      setLearnerProfile: state.setLearnerProfile,
-      updateLearnerProfile: state.updateLearnerProfile,
-      setCareerMatches: state.setCareerMatches,
       setSelectedCareerId: state.setSelectedCareerId,
-      setConstructedPayload: state.setConstructedPayload,
-      setLoading: state.setLoading,
-      setError: state.setError,
-      setExperienceStatus: state.setExperienceStatus,
     })),
   );
 
@@ -65,7 +52,7 @@ const CareerSelectionContainer = ({
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
 
-  const { generateProfile, generatePathway } = usePathwaysController();
+  const { generateProfile, generatePathway } = usePathwaysController({ jobIndex, catalogIndex });
   const { registerActions, clearActions } = usePathwaysActionBar();
 
   // Ref shared between the portaled action bar button and OverwritePathwayModal.
@@ -111,97 +98,53 @@ const CareerSelectionContainer = ({
   );
 
   // Integration seam: profile edits (careerGoal, targetIndustry, background,
-  // motivation) should route through generateProfileWorkflow — the same path as
-  // intake — not call fetchLearningIntent directly. The workflow recomputes
-  // intent-derived career matches; only commit displayedProfile/careerMatches
-  // after that orchestration succeeds.
+  // motivation) route through the same generateProfile -> generateProfileWorkflow
+  // -> Learning Intent -> taxonomy career search path as intake, using the
+  // learner's just-edited values (not the stale original intake answers). The
+  // controller owns committing the returned learnerProfile/careerMatches; on
+  // failure it records errors.learnerProfile and rethrows, so GoalSummaryCard
+  // stays in edit mode with a visible error and the learner can retry.
   const submitGoalSummary = async (updates: GoalSummaryFields) => {
-    const nextProfile = { ...displayedProfile, ...updates };
-    const payload = {
-      source: 'career_selection_goal_summary',
-      onboardingAnswers,
-      learnerProfile: nextProfile,
-    };
-
-    setError('learnerProfile', null);
-    setError('careerMatches', null);
-    setLoading('learnerProfile', true);
-    setLoading('careerMatches', true);
-    setConstructedPayload('learnerProfileRequest', payload);
-
-    try {
-      await generateProfile();
-      if (learnerProfile) {
-        updateLearnerProfile(updates);
-      } else {
-        setLearnerProfile(nextProfile);
-      }
-      if (usesStubData) {
-        setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
-      }
-      setExperienceStatus('profile_ready');
-    } catch (error) {
-      setError(
-        'learnerProfile',
-        errorMessage(error, 'Unable to update the learner profile.'),
-      );
-      throw error;
-    } finally {
-      setLoading('learnerProfile', false);
-      setLoading('careerMatches', false);
-    }
+    await generateProfile({
+      goal: updates.careerGoal,
+      industry: updates.targetIndustry,
+      background: updates.background,
+      motivation: updates.motivation,
+    });
   };
 
-  // buildPathway uses container-owned selectedCareer and visibleSkills.
-  // Integration seam: Build Pathway should call controller.generatePathway(explicit input)
-  // -> Algolia course retrieval -> normalize hits, keeping hit.key as the stable
-  // courseKey -> fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
-  // -> merge reasons[courseKey] into each course's whyThisFitsYou -> update pathway
-  // state -> navigate. Recommendation Feedback cannot run before Algolia returns
-  // candidate courses. Verify against the serializer whether selectedCareer should
-  // be the career title or an id.
+  // buildPathway uses container-owned selectedCareer and visibleSkills. Build
+  // Pathway calls controller.generatePathway with the actual taxonomy-derived
+  // selected career (not a fixture, UI index, or stale free-text goal) — the
+  // controller owns the Algolia course search -> Recommendation Feedback merge
+  // -> state commit -> navigation sequence (see generatePathwayWorkflow.ts).
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || loading.pathwayCourses) {
       return;
     }
-    const payload = {
-      source: 'career_selection',
-      learnerProfile: displayedProfile,
-      selectedCareer,
-      selectedCareerId: selectedCareer.id,
-      skillsToDevelop: visibleSkills,
-    };
 
     setSelectedCareerId(selectedCareer.id);
-    setError('pathwayCourses', null);
-    setLoading('pathwayCourses', true);
-    setConstructedPayload('pathwayRequest', payload);
     setIsOverwriteOpen(false);
 
     try {
-      await generatePathway();
-      setExperienceStatus('pathway_ready');
-      onNext?.();
+      await generatePathway({
+        selectedCareer,
+        learnerProfile: displayedProfile,
+        learningIntent,
+        visibleSkills,
+      });
     } catch (error) {
-      setError(
-        'pathwayCourses',
-        errorMessage(error, 'Unable to build the learning pathway.'),
-      );
-    } finally {
-      setLoading('pathwayCourses', false);
+      // Error already recorded in errors.pathwayCourses by the controller; stay
+      // on the profile section so the learner can retry.
     }
   }, [
     selectedCareer,
     loading.pathwayCourses,
     displayedProfile,
+    learningIntent,
     visibleSkills,
     setSelectedCareerId,
-    setError,
-    setLoading,
-    setConstructedPayload,
     generatePathway,
-    setExperienceStatus,
-    onNext,
   ]);
 
   const handleBuildOrOverwrite = useCallback(() => {
