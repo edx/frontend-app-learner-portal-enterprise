@@ -1,0 +1,24 @@
+docs/how-search-works.md
+  s_62aff05602dbf0::t_9c519f23934e69 49-52
+  s_62aff05602dbf0::t_caa79ac8582d57 62-64
+  s_62aff05602dbf0::t_5e52f59638f8a5 42
+  s_62aff05602dbf0::t_15f7347f113732 29
+  s_62aff05602dbf0::t_47b14e4a5fb2ac 17-18
+  s_62aff05602dbf0::t_97c263c2c3f41f 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6314e1c9af781021ec0fbe591e3b26794f925024",
+  "prompts": {},
+  "sessions": {
+    "s_62aff05602dbf0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74ca1c35-976a-471b-bf2e-313429c89ec9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}
