@@ -14,6 +14,7 @@ const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore 
   restoreSelectedSkills: noop,
   commitProfileSuccess: noop,
   commitPathwayBuild: noop,
+  commitStubProfile: noop,
   resetPathwaysState: noop,
   ...stateOverrides,
 });
