@@ -7,7 +7,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import CareerSelectionContainer from './CareerSelectionContainer';
 import type { CareerSelectionContainerProps } from './CareerSelectionContainer';
-import { computePathwayInputFingerprint, usePathwaysStore } from './state';
+import { computePathwayInputFingerprint, EMPTY_LEARNER_INTENT, usePathwaysStore } from './state';
 import type { LearnerIntent, PathwayGenerationRequest } from './state';
 import {
   CAREER_SELECTION_STUB_MATCHES,
@@ -178,6 +178,35 @@ describe('CareerSelectionContainer', () => {
       expect(usePathwaysStore.getState().selectedCareerId).toBe(SELECTED_CAREER_ID);
       expect(usePathwaysStore.getState().pathwayInputFingerprint).not.toBeNull();
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
+    });
+
+    it('marks a State-A-built pathway as edited after a skill change, and durably persists the stub profile/matches', async () => {
+      const user = userEvent.setup();
+      const onNext = jest.fn();
+      renderContainer({ onNext });
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+      expect(usePathwaysStore.getState().learnerProfile).toEqual(CAREER_SELECTION_STUB_PROFILE);
+      expect(usePathwaysStore.getState().careerMatches).toEqual(CAREER_SELECTION_STUB_MATCHES);
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+
+      expect(screen.getByTestId('career-view-current-pathway-button')).toBeInTheDocument();
+      expect(screen.getByTestId('career-rebuild-pathway-button')).toBeInTheDocument();
+    });
+
+    it('persists the stub profile and matches as real once a State A pathway is built', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+      expect(usePathwaysStore.getState().learnerProfile).toBeNull();
+      expect(usePathwaysStore.getState().careerMatches).toEqual([]);
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]));
+      expect(usePathwaysStore.getState().learnerProfile).toEqual(CAREER_SELECTION_STUB_PROFILE);
+      expect(usePathwaysStore.getState().careerMatches).toEqual(CAREER_SELECTION_STUB_MATCHES);
     });
 
     it('does not fall back to profile skills when the selected career has an empty skillsToDevelop array', () => {
@@ -576,7 +605,7 @@ describe('CareerSelectionContainer', () => {
       expect(onRetakeQuiz).toHaveBeenCalledTimes(1);
     });
 
-    it('does not clear the existing saved pathway when confirming retake', async () => {
+    it('resets the entire store to its initial zero state when confirming retake', async () => {
       const user = userEvent.setup();
       const onRetakeQuiz = jest.fn();
       seedExistingUnchangedPathway();
@@ -585,9 +614,28 @@ describe('CareerSelectionContainer', () => {
       await user.click(screen.getByTestId('career-retake-quiz-button'));
       await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
 
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
+      expect(usePathwaysStore.getState().learnerIntent).toEqual(EMPTY_LEARNER_INTENT);
+      expect(usePathwaysStore.getState().selectedCareerId).toBeNull();
+      expect(usePathwaysStore.getState().selectedSkills).toBeNull();
+      expect(usePathwaysStore.getState().learnerProfile).toBeNull();
+      expect(usePathwaysStore.getState().careerMatches).toEqual([]);
+    });
+
+    it('does not clear the existing saved pathway, intake draft, or career/skill selection when cancelling retake', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-retake-quiz-button'));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
       expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]);
       expect(usePathwaysStore.getState().pathwayInputFingerprint).not.toBeNull();
-      expect(usePathwaysStore.getState().learnerProfile).not.toBeNull();
+      expect(usePathwaysStore.getState().learnerIntent).toEqual(baseLearnerIntent);
+      expect(usePathwaysStore.getState().selectedCareerId).toBe(SELECTED_CAREER_ID);
+      expect(usePathwaysStore.getState().selectedSkills).not.toBeNull();
     });
 
     it('returns focus to the trigger after the modal closes', async () => {

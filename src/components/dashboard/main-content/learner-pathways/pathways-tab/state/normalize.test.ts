@@ -85,6 +85,52 @@ describe('normalizePathwaysState', () => {
     expect(normalizePathwaysState(state).section).toBe('onboarding');
   });
 
+  it('does not demote section "profile" to "onboarding" when a pathway already exists (State A build)', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      section: 'profile',
+      learnerProfile: null,
+      careerMatches: [],
+      selectedCareerId: 'career-1',
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+    };
+    expect(normalizePathwaysState(state).section).toBe('profile');
+  });
+
+  it('preserves selectedCareerId, selectedSkills, and the fingerprint on hydration for a State A pathway (section "pathway")', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      section: 'pathway',
+      learnerProfile: null,
+      careerMatches: [],
+      selectedCareerId: 'reporting-data-analysis-manager',
+      selectedSkills: ['SQL', 'Data Analysis'],
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+      pathwayInputFingerprint: 'fingerprint-1',
+    };
+    const normalized = normalizePathwaysState(state);
+    expect(normalized.section).toBe('pathway');
+    expect(normalized.selectedCareerId).toBe('reporting-data-analysis-manager');
+    expect(normalized.selectedSkills).toEqual(['SQL', 'Data Analysis']);
+    expect(normalized.pathwayInputFingerprint).toBe('fingerprint-1');
+  });
+
+  it('preserves selectedCareerId and selectedSkills on hydration for a State A pathway (section "profile")', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      section: 'profile',
+      learnerProfile: null,
+      careerMatches: [],
+      selectedCareerId: 'reporting-data-analysis-manager',
+      selectedSkills: ['SQL'],
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+    };
+    const normalized = normalizePathwaysState(state);
+    expect(normalized.section).toBe('profile');
+    expect(normalized.selectedCareerId).toBe('reporting-data-analysis-manager');
+    expect(normalized.selectedSkills).toEqual(['SQL']);
+  });
+
   it('normalizes a selected career id that no longer references a current match', () => {
     const state: PathwaysState = {
       ...baseState(),
@@ -94,11 +140,30 @@ describe('normalizePathwaysState', () => {
     expect(normalizePathwaysState(state).selectedCareerId).toBe('career-1');
   });
 
-  it('clears selectedSkills when the selected career no longer resolves to a match', () => {
+  it('still falls back to the first match when careerMatches are real but the persisted id is stale, even with an existing pathway', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      careerMatches: matches,
+      selectedCareerId: 'stale-id',
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+    };
+    expect(normalizePathwaysState(state).selectedCareerId).toBe('career-1');
+  });
+
+  it('leaves selectedCareerId null when there are no real matches and nothing was ever selected', () => {
     const state: PathwaysState = {
       ...baseState(),
       careerMatches: [],
-      selectedCareerId: 'stale-id',
+      selectedCareerId: null,
+    };
+    expect(normalizePathwaysState(state).selectedCareerId).toBeNull();
+  });
+
+  it('leaves selectedSkills null when selectedCareerId is already null, even with no real matches', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      careerMatches: [],
+      selectedCareerId: null,
       selectedSkills: ['SQL'],
     };
     const normalized = normalizePathwaysState(state);

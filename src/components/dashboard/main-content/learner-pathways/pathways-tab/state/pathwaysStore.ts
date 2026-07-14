@@ -77,6 +77,7 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
     pathwayCourses: courses,
     pathwayInputFingerprint: fingerprint,
   }),
+  commitStubProfile: ({ learnerProfile, careerMatches }) => set({ learnerProfile, careerMatches }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
 }), {
   name: PATHWAYS_STORAGE_KEY,

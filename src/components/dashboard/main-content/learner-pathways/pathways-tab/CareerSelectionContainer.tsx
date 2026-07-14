@@ -12,7 +12,10 @@ import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './
 import careerMessages from './career-selection/messages';
 import { usePathwaysController, usePathwaysRequestState } from './hooks';
 import {
-  computePathwayInputFingerprint, recommendedSkillsForCareer, usePathwaysCourses, usePathwaysStore,
+  computePathwayInputFingerprint,
+  recommendedSkillsForCareer,
+  usePathwaysCourses,
+  usePathwaysStore,
 } from './state';
 import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
@@ -45,6 +48,8 @@ const CareerSelectionContainer = ({
     restoreSelectedSkills,
     commitProfileSuccess,
     commitPathwayBuild,
+    commitStubProfile,
+    resetPathwaysState,
   } = usePathwaysStore(
     useShallow((state) => ({
       learnerIntent: state.learnerIntent,
@@ -58,6 +63,8 @@ const CareerSelectionContainer = ({
       restoreSelectedSkills: state.restoreSelectedSkills,
       commitProfileSuccess: state.commitProfileSuccess,
       commitPathwayBuild: state.commitPathwayBuild,
+      commitStubProfile: state.commitStubProfile,
+      resetPathwaysState: state.resetPathwaysState,
     })),
   );
 
@@ -119,13 +126,16 @@ const CareerSelectionContainer = ({
   const dismissedSkillCount = Math.max(0, recommendedSkills.length - displayedSelectedSkills.length);
 
   const currentRequest: PathwayGenerationRequest | null = useMemo(() => {
-    if (!learnerProfile || !selectedCareerId || selectedSkills === null) {
+    if (!selectedCareerId) {
       return null;
     }
     return {
-      learnerIntent, learnerProfile, selectedCareerId, selectedSkills,
+      learnerIntent,
+      learnerProfile: effectiveLearnerProfile,
+      selectedCareerId,
+      selectedSkills: displayedSelectedSkills,
     };
-  }, [learnerIntent, learnerProfile, selectedCareerId, selectedSkills]);
+  }, [learnerIntent, effectiveLearnerProfile, selectedCareerId, displayedSelectedSkills]);
 
   const isEdited = useMemo(
     () => (currentRequest ? isPathwayEdited(pathwayInputFingerprint, currentRequest) : false),
@@ -185,6 +195,20 @@ const CareerSelectionContainer = ({
       return;
     }
 
+    // Building from State A (stub display, no Goal Summary ever submitted) durably
+    // persists the stub profile/matches now, mirroring what a real Goal Summary
+    // submission would have produced. Without this, learnerProfile/careerMatches stay
+    // null/empty forever and every future render/refresh leans on the display-only
+    // stub fallback (usesStubData/effectiveLearnerProfile, above) instead of real store
+    // data. Guarded on usesStubData so this only ever fires once — after this commit,
+    // learnerProfile is non-null, so usesStubData is naturally false on any rebuild.
+    if (usesStubData) {
+      commitStubProfile({
+        learnerProfile: CAREER_SELECTION_STUB_PROFILE,
+        careerMatches: CAREER_SELECTION_STUB_MATCHES,
+      });
+    }
+
     const skillsForBuild = selectedSkills ?? recommendedSkills;
     selectCareer(selectedCareer.id, skillsForBuild);
     setIsOverwriteOpen(false);
@@ -211,6 +235,8 @@ const CareerSelectionContainer = ({
   }, [
     selectedCareer,
     isPathwayPending,
+    usesStubData,
+    commitStubProfile,
     selectedSkills,
     recommendedSkills,
     selectCareer,
@@ -233,8 +259,9 @@ const CareerSelectionContainer = ({
   const closeRetakeQuiz = useCallback(() => setIsRetakeOpen(false), []);
   const confirmRetakeQuiz = useCallback(() => {
     setIsRetakeOpen(false);
+    resetPathwaysState();
     onRetakeQuiz?.();
-  }, [onRetakeQuiz]);
+  }, [onRetakeQuiz, resetPathwaysState]);
 
   const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
   const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);

@@ -47,8 +47,11 @@ const IntakeQuestionsContainer = ({
     },
   });
 
-  // Live-sync drafts into Zustand (and therefore localStorage) so Retake Quiz or a
-  // refresh restores in-progress answers. Values are persisted raw (whitespace
+  // Live-sync drafts into Zustand (and therefore localStorage) so a refresh, or
+  // navigating away (e.g. via breadcrumbs) and back without submitting, restores
+  // in-progress answers. Retake Quiz is the one navigation path that deliberately
+  // clears learnerIntent first (see CareerSelectionContainer's confirmRetakeQuiz), so
+  // this draft is never restored there. Values are persisted raw (whitespace
   // preserved while typing); only the valid-submit path below trims. Debounced to
   // avoid a localStorage write on every keystroke.
   const syncDraft = useMemo(

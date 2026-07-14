@@ -124,6 +124,12 @@ export interface CommitPathwayBuildInput {
   fingerprint: string;
 }
 
+/** Input for durably committing the display-only stub profile/matches as real. */
+export interface CommitStubProfileInput {
+  learnerProfile: LearnerProfile;
+  careerMatches: CareerMatch[];
+}
+
 /**
  * Mutable operations exposed by the learner pathways store.
  * All actions are synchronous setters with no orchestration or network calls.
@@ -153,6 +159,26 @@ export interface PathwaysActions {
    * course set and records the fingerprint of the request that produced it, together.
    */
   commitPathwayBuild: (input: CommitPathwayBuildInput) => void;
+  /**
+   * Commits the display-only stub profile/matches as if they were a real
+   * commitProfileSuccess result — called once, the first time a pathway is built
+   * without the learner ever submitting Goal Summary (State A, see
+   * CareerSelectionContainer's usesStubData). This mirrors what the real workflow
+   * would have produced, so learnerProfile/careerMatches stop being permanently
+   * null/empty after a State A build. Deliberately does NOT touch
+   * selectedCareerId/selectedSkills — unlike commitProfileSuccess (which legitimately
+   * re-seeds skills for genuinely new matches), this call represents the *same*
+   * matches the learner was already looking at, so their already-made skill
+   * dismissals must survive it.
+   */
+  commitStubProfile: (input: CommitStubProfileInput) => void;
+  /**
+   * Resets the entire store back to its initial zero state (see
+   * getInitialPathwaysState) — used when the learner confirms Retake Quiz, since
+   * retaking discards everything derived from the old onboarding answers: the built
+   * pathway, the (possibly stub-derived) profile/matches, the career/skill selection,
+   * and the answers themselves.
+   */
   resetPathwaysState: () => void;
 }
 

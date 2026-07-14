@@ -38,10 +38,17 @@ export const normalizeSelectedCareerId = (
  * on every hydration merge, not scattered across components.
  */
 export const normalizePathwaysState = (state: PathwaysState): PathwaysState => {
-  const selectedCareerId = normalizeSelectedCareerId(state.careerMatches, state.selectedCareerId);
+  // Real careerMatches only ever exist once a genuine Goal Summary/profile-generation
+  // result has been committed (commitProfileSuccess). Before that — e.g. a pathway
+  // built from the pre-generation stub career list (State A) — there's nothing real to
+  // validate the persisted selectedCareerId against, so trust it as-is rather than
+  // treating "no real matches yet" as "stale selection."
+  const selectedCareerId = state.careerMatches.length > 0
+    ? normalizeSelectedCareerId(state.careerMatches, state.selectedCareerId)
+    : state.selectedCareerId;
 
-  const hasUsableProfile = state.learnerProfile !== null || state.careerMatches.length > 0;
   const hasPathway = state.pathwayCourses.length > 0;
+  const hasUsableProfile = state.learnerProfile !== null || state.careerMatches.length > 0 || hasPathway;
 
   let { section } = state;
   if (section === 'pathway' && !hasPathway) {

@@ -187,7 +187,7 @@ describe('IntakeQuestionsContainer', () => {
       });
     });
 
-    it('restores draft values on remount (e.g. after Retake Quiz)', async () => {
+    it('restores draft values on remount (e.g. navigating away and back without submitting)', async () => {
       const user = userEvent.setup();
       const { unmount } = render(<MockIntakeQuestionsContainer />);
 
