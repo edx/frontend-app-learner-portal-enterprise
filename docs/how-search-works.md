@@ -14,7 +14,8 @@ Aggregates all catalog UUIDs the learner has access to via subsidies.
 
 **Key files:** `src/components/app/data/hooks/useSearchCatalogs.js`, `src/components/app/data/utils.js` (`getSearchCatalogs()`)
 
-Sources:
+If `licensesByCatalog` is populated (catalog-indexed licenses), those catalog UUIDs are returned directly without calling `getSearchCatalogs()`. Otherwise, sources are:
+
 - Redeemable learner credit policies (`policy.catalogUuid`)
 - Active subscription license (`subscriptionPlan.enterpriseCatalogUuid`)
 - Browse & request catalogs (see section below)
@@ -25,7 +26,7 @@ Exchanges catalog UUIDs for an enterprise-scoped secured API key via BFF. The ke
 
 **Key file:** `src/components/app/data/hooks/useAlgoliaSearch.ts`
 
-Falls back to the public search key when `ALGOLIA_APP_ID` is unset (`isCatalogQueryFiltersEnabled` is false), the index is unsupported (jobs index), or the secured key fetch fails.
+Falls back to `ALGOLIA_SEARCH_API_KEY` when `ALGOLIA_APP_ID` is unset (`isCatalogQueryFiltersEnabled` is false) or the index is unsupported (jobs index). If the BFF call fails, the Suspense query throws rather than silently falling back.
 
 ### 3. Catalog Query UUID Filter
 
@@ -37,19 +38,18 @@ Only applied when `shouldUseSecuredAlgoliaApiKey` is true. Produces a filter lik
 
 ```
 (enterprise_catalog_query_uuids:q1 OR enterprise_catalog_query_uuids:q2)
-  AND metadata_language:en
   AND NOT content_type:video
+  AND metadata_language:en
 ```
 
 ### 4. Access Control Gating
 
 **Key file:** `src/components/search/Search.jsx`
 
-Three checks run before search is accessible:
-
-- **Assignments-only** (`useIsAssignmentsOnlyLearner()`) — if learner has content assignments but no active subsidies, redirect to dashboard. Search is inaccessible.
-- **Highlights-only** (`useCanOnlyViewHighlights()`) — if enabled, restrict to curated highlights instead of full search.
-- **Valid entitlement** (`useHasValidLicenseOrSubscriptionRequestsEnabled()`) — must have a valid license, subscription request, or subsidy to proceed.
+- **Assignments-only** (`useIsAssignmentsOnlyLearner()`) — if learner has content assignments but no active subsidies, renders `AssignmentsOnlyEmptyState` in place of search results.
+- **Highlights-only** (`useCanOnlyViewHighlights()`) — `canOnlyViewHighlightSets === false` sets `canViewCatalog`; if false, full catalog search is hidden.
+- **No search client** — if `searchClient` is null (e.g., secured key unavailable), renders a `SearchUnavailableAlert` instead of results.
+- **Valid entitlement** (`useHasValidLicenseOrSubscriptionRequestsEnabled()`) — gates video content only (see layer 5); does not block search access on its own.
 
 ### 5. Content Type Filtering
 
@@ -59,9 +59,9 @@ Controls which content types appear in results.
 
 | Content Type | Condition |
 |---|---|
-| Videos | `!canOnlyViewHighlights && config.FEATURE_ENABLE_VIDEO_CATALOG && hasValidEntitlement` |
-| Programs | `config.ENABLE_PROGRAMS` |
-| Pathways | `config.ENABLE_PATHWAYS` |
+| Videos | `canViewCatalog && features.FEATURE_ENABLE_VIDEO_CATALOG && hasValidLicenseOrSubRequest` |
+| Programs | `features.ENABLE_PROGRAMS` |
+| Pathways | `features.ENABLE_PATHWAYS` |
 
 ### 6. Language Filtering
 
@@ -93,7 +93,7 @@ useSearchCatalogs()
 
 useAlgoliaSearch()                   → secured API key + catalogUuid→queryUuid map
 
-AlgoliaFilterBuilder                 → "(query_uuid:A OR query_uuid:B) AND language:en"
+AlgoliaFilterBuilder                 → "(enterprise_catalog_query_uuids:q1 OR ...) AND NOT content_type:video AND metadata_language:en"
 
 Access control checks                → assignments-only? highlights-only? valid entitlement?
 
