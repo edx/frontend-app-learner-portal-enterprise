@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
 import {
-  render, screen, waitFor, within,
+  act, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -190,6 +190,28 @@ describe('CareerSelectionPage', () => {
     // the modal's own focus trap does not actually release the way it does when the
     // container flips it to false in response to onCloseNoCourses — that end-to-end
     // focus-restoration behavior is covered by CareerSelectionContainer's tests instead.
+  });
+
+  it('schedules deferred focus handoff when choosing a different match from the no-courses modal', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+    const onCloseNoCourses = jest.fn();
+    try {
+      renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+
+      await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+
+      expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy).toHaveBeenCalled();
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+      expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    } finally {
+      setTimeoutSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 
   it('falls back to the top match when selectedCareerId does not match any visible career', () => {
