@@ -52,6 +52,8 @@ const defaults: CareerSelectionPageProps = {
   onCloseRetake: noop,
   onConfirmRetake: noop,
   retakeButtonRef: React.createRef(),
+  isNoCoursesOpen: false,
+  onCloseNoCourses: noop,
   visibleSkills: ['SQL', 'Data Visualization'],
   dismissedSkillCount: 0,
   onDismissSkill: noop,
@@ -122,22 +124,22 @@ describe('CareerSelectionPage', () => {
 
   it('shows the overwrite modal when isOverwriteOpen is true', () => {
     renderPage({ isOverwriteOpen: true });
-    expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
+    expect(screen.getByText('Rebuild your Pathway?')).toBeInTheDocument();
   });
 
-  it('calls onCloseOverwrite when keep-pathway is clicked', async () => {
+  it('calls onCloseOverwrite when Cancel is clicked', async () => {
     const user = userEvent.setup();
     const onCloseOverwrite = jest.fn();
     renderPage({ isOverwriteOpen: true, onCloseOverwrite });
-    await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCloseOverwrite).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onConfirmOverwrite when rebuild-pathway is clicked', async () => {
+  it('calls onConfirmOverwrite when Rebuild Pathway is clicked', async () => {
     const user = userEvent.setup();
     const onConfirmOverwrite = jest.fn().mockResolvedValue(undefined);
     renderPage({ isOverwriteOpen: true, onConfirmOverwrite });
-    await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
     expect(onConfirmOverwrite).toHaveBeenCalledTimes(1);
   });
 
@@ -160,6 +162,34 @@ describe('CareerSelectionPage', () => {
     renderPage({ isRetakeOpen: true, onConfirmRetake });
     await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
     expect(onConfirmRetake).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the no-courses modal when isNoCoursesOpen is true', () => {
+    renderPage({ isNoCoursesOpen: true });
+    expect(screen.getByText('We could not build a pathway for this career match')).toBeInTheDocument();
+  });
+
+  it('calls onCloseNoCourses when Back is clicked in the no-courses modal', async () => {
+    const user = userEvent.setup();
+    const onCloseNoCourses = jest.fn();
+    renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the no-courses modal and opens Goal Summary editing when Choose a different match is clicked', async () => {
+    const user = userEvent.setup();
+    const onCloseNoCourses = jest.fn();
+    renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+
+    await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+
+    expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    // isNoCoursesOpen here is a static prop passed by this isolated-component test, so
+    // the modal's own focus trap does not actually release the way it does when the
+    // container flips it to false in response to onCloseNoCourses — that end-to-end
+    // focus-restoration behavior is covered by CareerSelectionContainer's tests instead.
   });
 
   it('falls back to the top match when selectedCareerId does not match any visible career', () => {

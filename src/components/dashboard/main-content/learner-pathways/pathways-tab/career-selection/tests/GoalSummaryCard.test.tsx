@@ -128,6 +128,7 @@ describe('GoalSummaryCard', () => {
           learnerIntent={testIntent}
           isEditing
           isProfileSubmitting
+          profileError={null}
           onBeginEditing={jest.fn()}
           onEndEditing={jest.fn()}
           onSubmitGoalSummary={jest.fn()}

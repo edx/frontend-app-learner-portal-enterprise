@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Button, ModalDialog } from '@openedx/paragon';
+import { Button, ModalDialog, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from './messages';
@@ -34,7 +34,6 @@ const RetakeQuizModal = ({
       title={intl.formatMessage(messages.retakeQuizTitle)}
       isOpen={isOpen}
       onClose={onClose}
-      size="sm"
       hasCloseButton={false}
       isOverflowVisible={false}
     >
@@ -47,12 +46,14 @@ const RetakeQuizModal = ({
         <p className="mb-0">{intl.formatMessage(messages.retakeQuizBody)}</p>
       </ModalDialog.Body>
       <ModalDialog.Footer>
-        <Button type="button" variant="tertiary" onClick={onClose}>
-          {intl.formatMessage(messages.retakeQuizCancel)}
-        </Button>
-        <Button type="button" variant="primary" onClick={onConfirm}>
-          {intl.formatMessage(messages.retakeQuiz)}
-        </Button>
+        <Stack direction="horizontal" gap={2}>
+          <Button type="button" variant="tertiary" onClick={onClose}>
+            {intl.formatMessage(messages.retakeQuizCancel)}
+          </Button>
+          <Button type="button" variant="primary" onClick={onConfirm}>
+            {intl.formatMessage(messages.retakeQuiz)}
+          </Button>
+        </Stack>
       </ModalDialog.Footer>
     </ModalDialog>
   );
