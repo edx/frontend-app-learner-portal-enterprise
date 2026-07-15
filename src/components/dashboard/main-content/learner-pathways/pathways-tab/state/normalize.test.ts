@@ -75,7 +75,7 @@ describe('normalizePathwaysState', () => {
     expect(normalizePathwaysState(state).section).toBe('onboarding');
   });
 
-  it('demotes section "profile" back to "onboarding" when there is no usable profile or matches', () => {
+  it('demotes section "profile" back to "onboarding" when intake was never completed (empty learnerIntent)', () => {
     const state: PathwaysState = {
       ...baseState(),
       section: 'profile',
@@ -83,6 +83,24 @@ describe('normalizePathwaysState', () => {
       careerMatches: [],
     };
     expect(normalizePathwaysState(state).section).toBe('onboarding');
+  });
+
+  it('does not demote section "profile" to "onboarding" when intake was completed, even with no profile/matches/pathway yet', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      section: 'profile',
+      learnerIntent: {
+        careerGoal: 'Senior Data Analyst',
+        targetIndustry: 'EdTech',
+        background: 'Data analyst with 5 years experience',
+        motivation: 'Upskill for promotion',
+      },
+      learnerProfile: null,
+      careerMatches: [],
+      selectedCareerId: null,
+      pathwayCourses: [],
+    };
+    expect(normalizePathwaysState(state).section).toBe('profile');
   });
 
   it('does not demote section "profile" to "onboarding" when a pathway already exists (State A build)', () => {

@@ -1,4 +1,4 @@
-import type { CareerMatch, PathwaysState } from './types';
+import type { CareerMatch, LearnerIntent, PathwaysState } from './types';
 
 /** Trims and dedupes a raw skills list — shared by every place a career's recommended
  * skills list becomes a canonical `selectedSkills` value. */
@@ -32,6 +32,20 @@ export const normalizeSelectedCareerId = (
 };
 
 /**
+ * Whether the learner has actually completed Intake — all four fields present, the
+ * same invariant react-hook-form enforces (via `requiredNonWhitespace`) before
+ * `IntakeQuestionsContainer` ever calls its `onSubmit`/advances `section` past
+ * `'onboarding'`. This is independent of whether a profile/pathway was ever
+ * generated — reaching the Career Profile page does not itself generate either.
+ */
+const hasCompletedIntake = (learnerIntent: LearnerIntent): boolean => (
+  learnerIntent.careerGoal.trim() !== ''
+  && learnerIntent.targetIndustry.trim() !== ''
+  && learnerIntent.background.trim() !== ''
+  && learnerIntent.motivation.trim() !== ''
+);
+
+/**
  * Corrects invalid persisted-state combinations that could otherwise render a broken
  * page after hydration (e.g. a refresh landing on the Pathway section with no
  * pathway, or a selected-skills list surviving an invalid selected career). Applied
@@ -48,7 +62,15 @@ export const normalizePathwaysState = (state: PathwaysState): PathwaysState => {
     : state.selectedCareerId;
 
   const hasPathway = state.pathwayCourses.length > 0;
-  const hasUsableProfile = state.learnerProfile !== null || state.careerMatches.length > 0 || hasPathway;
+  // Any one of these is independently sufficient proof the Career Profile page is
+  // legitimate: a real generated profile/matches (Goal Summary submitted), an
+  // already-built pathway (can't exist without having gotten there), or — the case
+  // this fixes — intake genuinely completed, even if nothing was generated/built yet
+  // (reaching the Career Profile page doesn't itself generate a profile or a pathway).
+  const hasUsableProfile = state.learnerProfile !== null
+    || state.careerMatches.length > 0
+    || hasPathway
+    || hasCompletedIntake(state.learnerIntent);
 
   let { section } = state;
   if (section === 'pathway' && !hasPathway) {

@@ -67,6 +67,30 @@ describe('usePathwaysStore <-> localStorage', () => {
     expect(usePathwaysStore.getState().section).toBe('profile');
   });
 
+  it('keeps section "profile" on hydration when intake was completed but nothing was generated/built yet', () => {
+    localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
+      state: {
+        section: 'profile',
+        learnerIntent: {
+          careerGoal: 'Senior Data Analyst',
+          targetIndustry: 'EdTech',
+          background: 'Data analyst with 5 years experience',
+          motivation: 'Upskill for promotion',
+        },
+        learnerProfile: null,
+        careerMatches: [],
+        selectedCareerId: null,
+        pathwayCourses: [],
+      },
+      version: PATHWAYS_STORAGE_VERSION,
+    }));
+
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+
+    expect(usePathwaysStore.getState().section).toBe('profile');
+  });
+
   it('falls back to the initial state when the stored value is malformed JSON', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, '{not valid json');
 

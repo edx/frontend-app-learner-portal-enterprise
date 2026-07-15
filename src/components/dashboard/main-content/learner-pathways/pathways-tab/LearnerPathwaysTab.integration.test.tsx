@@ -156,6 +156,24 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
         expectStore: { section: 'profile', selectedCareerId: 'reporting-data-analysis-manager' },
       },
       {
+        name: 'intake completed, reached profile, nothing selected/generated/built yet — renders the profile page (not onboarding)',
+        blob: {
+          section: 'profile',
+          learnerIntent: {
+            careerGoal: 'Senior Data Analyst',
+            targetIndustry: 'EdTech',
+            background: 'Data analyst with 5 years experience',
+            motivation: 'Upskill for promotion',
+          },
+          careerMatches: [],
+          learnerProfile: null,
+          selectedCareerId: null,
+          pathwayCourses: [],
+        },
+        expectTestId: 'profile-container',
+        expectStore: { section: 'profile', learnerProfile: null },
+      },
+      {
         name: 'nothing persisted — renders onboarding',
         blob: null,
         expectTestId: 'intake-questions-container',
