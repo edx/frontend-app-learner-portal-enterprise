@@ -25,6 +25,14 @@ export interface GetCareerActionStateParams {
   isEdited: boolean;
 }
 
+/**
+ * Resolves which of the three Career Profile action-bar states applies.
+ * `isEdited` is only consulted once `hasExistingPathway` is true — with no
+ * existing pathway there's nothing to compare against yet, so any prior
+ * edit state is irrelevant and checked in that order.
+ * @param params.hasExistingPathway - whether pathwayCourses is non-empty
+ * @param params.isEdited - from `isPathwayEdited`; ignored when hasExistingPathway is false
+ */
 export const getCareerActionState = ({
   hasExistingPathway,
   isEdited,
