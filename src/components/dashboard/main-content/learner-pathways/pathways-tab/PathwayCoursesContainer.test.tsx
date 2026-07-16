@@ -51,12 +51,10 @@ describe('PathwayCoursesContainer', () => {
     expect(screen.getByTestId('pathway-progress-total')).toHaveTextContent('5');
   });
 
-  it('registers Rebuild pathway, View Pathway, and View Quiz action-bar buttons', () => {
+  it('registers the Rebuild pathway action-bar button', () => {
     renderComponent();
 
     expect(screen.getByTestId('pathway-rebuild-button')).toBeInTheDocument();
-    expect(screen.getByTestId('pathway-view-pathway-button')).toBeInTheDocument();
-    expect(screen.getByTestId('pathway-view-quiz-button')).toBeInTheDocument();
     expect(screen.getAllByText('Rebuild pathway')).toHaveLength(1);
   });
 
