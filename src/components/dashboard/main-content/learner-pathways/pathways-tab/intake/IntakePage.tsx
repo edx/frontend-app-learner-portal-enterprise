@@ -6,6 +6,8 @@ import IntakeQuestionsContainer, { IntakeQuestionsContainerProps } from './Intak
 const IntakePage = ({
   onSubmit,
   onSkip,
+  isProfileSubmitting,
+  profileError,
 }: IntakeQuestionsContainerProps) => (
   <section data-testid="intake-page">
     <Stack gap={4}>
@@ -13,6 +15,8 @@ const IntakePage = ({
       <IntakeQuestionsContainer
         onSubmit={onSubmit}
         onSkip={onSkip}
+        isProfileSubmitting={isProfileSubmitting}
+        profileError={profileError}
       />
     </Stack>
   </section>
