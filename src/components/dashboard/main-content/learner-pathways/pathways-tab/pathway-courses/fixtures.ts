@@ -2,7 +2,7 @@ import type { PathwayCourse } from '../state';
 
 /**
  * Typed intermediary fixture. Serves two purposes until real course
- * retrieval/Recommendation Feedback integration lands: (1) generatePathwayWorkflow's
+ * retrieval/recommendation feedback integration lands (ENT-12090): (1) generatePathwayWorkflow's
  * stub result, committed to the store on a successful build (see
  * CareerSelectionContainer.tsx:buildPathway), and (2) getDisplayedPathwayCourses'
  * defensive render-time fallback for the rare case the Pathway page is reached with
