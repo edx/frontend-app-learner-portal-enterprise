@@ -6,13 +6,11 @@ import type { PathwayCourse } from '../state';
  * stub result, committed to the store on a successful build (see
  * CareerSelectionContainer.tsx:buildPathway), and (2) getDisplayedPathwayCourses'
  * defensive render-time fallback for the rare case the Pathway page is reached with
- * an empty store. `courseKey` mirrors `id` here since there's no real catalog key yet;
- * `whyThisFitsYou` stands in for Recommendation Feedback content until that service is
- * actually wired up.
+ * an empty store. `whyThisFitsYou` stands in for Recommendation Feedback content
+ * until that service is actually wired up.
  */
 export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
   {
-    id: 'corporate-finance',
     courseKey: 'corporate-finance',
     title: 'Introduction to Corporate Finance',
     level: 'Introductory',
@@ -21,7 +19,6 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     status: 'completed',
   },
   {
-    id: 'financial-analysis-evaluation',
     courseKey: 'financial-analysis-evaluation',
     title: 'Financial Analysis & Evaluation',
     level: 'Intermediate',
@@ -30,7 +27,6 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     status: 'in_progress',
   },
   {
-    id: 'advanced-excel-financial-analysis',
     courseKey: 'advanced-excel-financial-analysis',
     title: 'Advanced Excel for Financial Analysis',
     level: 'Intermediate',
@@ -39,7 +35,6 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     status: 'not_started',
   },
   {
-    id: 'investment-banking-ma-transactions',
     courseKey: 'investment-banking-ma-transactions',
     title: 'Investment Banking: M&A Transactions',
     level: 'Advanced',
@@ -48,7 +43,6 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     status: 'not_started',
   },
   {
-    id: 'quantitative-methods-finance',
     courseKey: 'quantitative-methods-finance',
     title: 'Quantitative Methods in Finance',
     level: 'Advanced',

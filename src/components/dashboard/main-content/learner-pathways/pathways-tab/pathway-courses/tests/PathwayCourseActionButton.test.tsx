@@ -8,7 +8,7 @@ import PathwayCourseActionButton from '../PathwayCourseActionButton';
 import type { PathwayCourse, PathwayCourseStatus } from '../../state';
 
 const buildCourse = (status: PathwayCourseStatus): PathwayCourse => ({
-  id: 'course-1',
+  courseKey: 'course-1',
   title: 'Test Course',
   status,
 });

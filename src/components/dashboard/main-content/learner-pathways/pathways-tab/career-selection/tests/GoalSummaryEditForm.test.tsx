@@ -5,10 +5,10 @@ import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useForm } from 'react-hook-form';
 
-import type { GoalSummaryFields } from '../GoalSummaryCard';
+import type { GoalSummaryFormValues } from '../GoalSummaryCard';
 import GoalSummaryEditForm from '../GoalSummaryEditForm';
 
-const NON_EMPTY_DEFAULTS: GoalSummaryFields = {
+const NON_EMPTY_DEFAULTS: GoalSummaryFormValues = {
   careerGoal: 'Senior Data Analyst',
   targetIndustry: 'EdTech',
   background: 'Data analyst background.',
@@ -20,9 +20,9 @@ const Wrapper = ({
   defaultValues = NON_EMPTY_DEFAULTS,
 }: {
   isProfileSubmitting?: boolean;
-  defaultValues?: GoalSummaryFields;
+  defaultValues?: GoalSummaryFormValues;
 }) => {
-  const { control } = useForm<GoalSummaryFields>({
+  const { control } = useForm<GoalSummaryFormValues>({
     defaultValues,
     mode: 'onChange',
   });

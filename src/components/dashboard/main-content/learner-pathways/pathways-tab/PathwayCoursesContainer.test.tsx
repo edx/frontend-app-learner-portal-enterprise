@@ -30,9 +30,11 @@ describe('PathwayCoursesContainer', () => {
   });
 
   it('uses store courses instead of fixtures when the store is populated', () => {
-    usePathwaysStore.getState().setPathwayCourses([
-      { id: 'custom-course', title: 'Custom Store Course', status: 'not_started' },
-    ]);
+    usePathwaysStore.setState({
+      pathwayCourses: [
+        { courseKey: 'custom-course', title: 'Custom Store Course', status: 'not_started' },
+      ],
+    });
 
     renderComponent();
 

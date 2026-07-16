@@ -40,12 +40,8 @@ describe('usePathwaysStore <-> localStorage', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
       state: {
         section: 'onboarding',
-        onboarding: {
-          answers: {
-            motivation: 'Grow', goal: '', background: '', industry: '',
-          },
-          currentQuestion: 0,
-          isComplete: false,
+        learnerIntent: {
+          motivation: 'Grow', careerGoal: '', background: '', targetIndustry: '',
         },
       },
       version: PATHWAYS_STORAGE_VERSION,
@@ -54,14 +50,38 @@ describe('usePathwaysStore <-> localStorage', () => {
     // eslint-disable-next-line global-require
     const { usePathwaysStore } = require('./pathwaysStore');
 
-    expect(usePathwaysStore.getState().onboarding.answers.motivation).toBe('Grow');
-    expect(usePathwaysStore.getState().pathwayBaseline).toBeNull();
+    expect(usePathwaysStore.getState().learnerIntent.motivation).toBe('Grow');
+    expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
     expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
   });
 
   it('normalizes an invalid persisted combination during hydration', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
       state: { section: 'pathway', careerMatches: [{ id: 'career-1', title: 'Data Analyst' }], pathwayCourses: [] },
+      version: PATHWAYS_STORAGE_VERSION,
+    }));
+
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+
+    expect(usePathwaysStore.getState().section).toBe('profile');
+  });
+
+  it('keeps section "profile" on hydration when intake was completed but nothing was generated/built yet', () => {
+    localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
+      state: {
+        section: 'profile',
+        learnerIntent: {
+          careerGoal: 'Senior Data Analyst',
+          targetIndustry: 'EdTech',
+          background: 'Data analyst with 5 years experience',
+          motivation: 'Upskill for promotion',
+        },
+        learnerProfile: null,
+        careerMatches: [],
+        selectedCareerId: null,
+        pathwayCourses: [],
+      },
       version: PATHWAYS_STORAGE_VERSION,
     }));
 
@@ -81,42 +101,97 @@ describe('usePathwaysStore <-> localStorage', () => {
     expect(usePathwaysStore.getState().learnerProfile).toBeNull();
   });
 
+  it('falls back to fresh defaults (does not migrate or throw) for a pre-refactor v1-shaped blob', () => {
+    // No migrate function is registered (PATHWAYS_STORAGE_VERSION intentionally stays at
+    // 1 — see persistence.ts) — this is the explicit, user-directed deviation from the
+    // "migrate without clearing data" requirement: old field names are simply absent
+    // from the new shape, so they fall through to fresh defaults rather than throwing.
+    localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
+      state: {
+        section: 'profile',
+        experienceStatus: 'pathway_ready',
+        onboarding: {
+          answers: {
+            motivation: 'Grow', goal: 'Old Goal', background: 'Ops', industry: 'Old Industry',
+          },
+          currentQuestion: 1,
+          isComplete: true,
+        },
+        learnerProfile: {
+          summary: 's',
+          careerGoal: 'Old Goal',
+          targetIndustry: 'Old Industry',
+          background: 'Ops',
+          motivation: 'Grow',
+          learningStyle: 'l',
+          weeklyTimeCommitment: 't',
+          certificatePreference: 'c',
+          skills: ['SQL'],
+        },
+        careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
+        selectedCareerId: 'career-1',
+        pathwayCourses: [{
+          id: 'course-1', courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started',
+        }],
+        pathwayBaseline: {
+          careerGoal: 'Old Goal', targetIndustry: 'Old Industry', background: 'Ops', motivation: 'Grow', selectedCareerId: 'career-1',
+        },
+        dismissedSkillKeys: ['Python'],
+      },
+      version: 1,
+    }));
+
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+    const state = usePathwaysStore.getState();
+
+    // The old shape's `section`/`careerMatches`/`selectedCareerId`/`pathwayCourses` keys
+    // happen to share their names with the new shape, so those carry over verbatim.
+    expect(state.section).toBe('profile');
+    expect(state.careerMatches).toEqual([{ id: 'career-1', title: 'Data Analyst' }]);
+    expect(state.selectedCareerId).toBe('career-1');
+    // But every renamed/removed field resets to a fresh default rather than being
+    // migrated — `learnerIntent` is NOT populated from the old `onboarding.answers`,
+    // and the old `learnerProfile`'s intent fields are not carried over either.
+    expect(state.learnerIntent).toEqual({
+      careerGoal: '', targetIndustry: '', background: '', motivation: '',
+    });
+    // `selectedSkills`/`pathwayInputFingerprint` are conservatively null/stale until
+    // the learner rebuilds — never silently treated as valid/unchanged.
+    expect(state.selectedSkills).toBeNull();
+    expect(state.pathwayInputFingerprint).toBeNull();
+  });
+
   it('persists only the durable subset to localStorage on a state change', () => {
     // eslint-disable-next-line global-require
     const { usePathwaysStore } = require('./pathwaysStore');
 
     usePathwaysStore.getState().setSection('profile');
-    usePathwaysStore.getState().setLoading('learnerProfile', true);
 
     const stored = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) as string);
     expect(stored.state.section).toBe('profile');
     expect(stored.state).not.toHaveProperty('loading');
     expect(stored.state).not.toHaveProperty('errors');
-    expect(stored.state).not.toHaveProperty('progress');
   });
 
   it('serializes a full round-trip: write, then hydrate a fresh store instance from it', () => {
     // eslint-disable-next-line global-require
     const first = require('./pathwaysStore').usePathwaysStore;
-    first.getState().setLearnerProfile({
-      summary: 's',
-      careerGoal: 'Data Analyst',
-      targetIndustry: 'Tech',
-      background: 'b',
-      motivation: 'm',
-      learningStyle: 'l',
-      weeklyTimeCommitment: 't',
-      certificatePreference: 'c',
-      skills: ['SQL'],
+    first.getState().commitProfileSuccess({
+      learnerIntent: {
+        careerGoal: 'Data Analyst', targetIndustry: 'Tech', background: 'b', motivation: 'm',
+      },
+      learnerProfile: {
+        summary: 's', learningStyle: 'l', weeklyTimeCommitment: 't', certificatePreference: 'c', skills: ['SQL'],
+      },
+      careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
     });
-    first.getState().setCareerMatches([{ id: 'career-1', title: 'Data Analyst' }]);
-    first.getState().setSelectedCareerId('career-1');
 
     jest.resetModules();
     // eslint-disable-next-line global-require
     const second = require('./pathwaysStore').usePathwaysStore;
 
-    expect(second.getState().learnerProfile?.careerGoal).toBe('Data Analyst');
+    expect(second.getState().learnerIntent.careerGoal).toBe('Data Analyst');
     expect(second.getState().selectedCareerId).toBe('career-1');
   });
 

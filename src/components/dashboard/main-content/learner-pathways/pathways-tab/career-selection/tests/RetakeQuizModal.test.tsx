@@ -28,6 +28,9 @@ describe('RetakeQuizModal', () => {
   it('renders modal content when isOpen is true', () => {
     renderModal({ isOpen: true });
     expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+    expect(screen.getByText(
+      "If you retake the onboarding quiz, your existing goal summary, career match, and pathway will no longer be saved. You will need to rebuild them. Your enrolled courses won't be affected.",
+    )).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retake quiz' })).toBeInTheDocument();
   });
