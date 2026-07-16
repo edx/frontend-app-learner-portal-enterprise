@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import '@testing-library/jest-dom/extend-expect';
@@ -11,15 +12,21 @@ import {
   CONTENT_TYPE_VIDEO,
 } from '../constants';
 
-jest.mock('../SearchExecutiveEducation', () => function MockSearchExecutiveEducation(props) {
+jest.mock('../SearchExecutiveEducation', () => function MockSearchExecutiveEducation(
+  props: { filter: string; indexName: string },
+) {
   return <div data-testid="search-executive-education" data-filter={props.filter} data-index-name={props.indexName} />;
 });
 
-jest.mock('../SearchResults', () => function MockSearchResults(props) {
+jest.mock('../SearchResults', () => function MockSearchResults(
+  props: { contentType?: string; title: string },
+) {
   return <div data-testid="search-results" data-content-type={props.contentType} data-title={props.title} />;
 });
 
-const renderContainer = (props) => render(
+const renderContainer = (
+  props: Partial<React.ComponentProps<typeof ContentTypeSearchResultsContainer>> = {},
+) => render(
   <IntlProvider locale="en">
     <ContentTypeSearchResultsContainer indexName="mock-index-name" {...props} />
   </IntlProvider>,

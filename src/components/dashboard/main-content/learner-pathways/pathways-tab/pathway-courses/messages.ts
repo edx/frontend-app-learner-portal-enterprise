@@ -101,6 +101,16 @@ const messages = defineMessages({
     defaultMessage: 'Rebuild pathway',
     description: 'Leading action to navigate back to the Career Profile page.',
   },
+  viewPathway: {
+    id: 'learner.pathways.courses.actions.viewPathway',
+    defaultMessage: 'View Pathway',
+    description: 'Secondary action button on the pathway courses page.',
+  },
+  viewQuiz: {
+    id: 'learner.pathways.courses.actions.viewQuiz',
+    defaultMessage: 'View Quiz',
+    description: 'Secondary action button on the pathway courses page.',
+  },
   notAvailable: {
     id: 'learner.pathways.courses.notAvailable',
     defaultMessage: 'Not available',
