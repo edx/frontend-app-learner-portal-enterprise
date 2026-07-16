@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, {
+  useEffect, useImperativeHandle, useRef,
+} from 'react';
 import {
   Card,
   Form,
@@ -15,25 +17,39 @@ import type { GoalSummaryFormValues } from './types';
 
 export type { GoalSummaryFormValues } from './types';
 
+export interface GoalSummaryCardHandle {
+  /** Scrolls the card into view and moves focus to its first editable field. */
+  focusFirstField: () => void;
+}
+
 export interface GoalSummaryCardProps {
   learnerIntent: LearnerIntent;
   isEditing: boolean;
-  isProfileSubmitting?: boolean;
-  profileError?: string | null;
+  isProfileSubmitting: boolean;
+  profileError: string | null;
   onBeginEditing: () => void;
   onEndEditing: () => void;
   onSubmitGoalSummary: (updates: GoalSummaryFormValues) => Promise<void> | void;
 }
 
-const GoalSummaryCard = ({
+const GoalSummaryCard = React.forwardRef<GoalSummaryCardHandle, GoalSummaryCardProps>(({
   learnerIntent,
   isEditing,
-  isProfileSubmitting = false,
-  profileError = null,
+  isProfileSubmitting,
+  profileError,
   onBeginEditing,
   onEndEditing,
   onSubmitGoalSummary,
-}: GoalSummaryCardProps) => {
+}: GoalSummaryCardProps, ref) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusFirstField: () => {
+      cardRef.current?.scrollIntoView?.({ block: 'center' });
+      cardRef.current?.querySelector('textarea')?.focus();
+    },
+  }), []);
+
   const {
     control,
     formState,
@@ -90,7 +106,7 @@ const GoalSummaryCard = ({
 
   return (
     <Card className="mb-3 shadow-sm" data-testid="goal-summary-card">
-      <Card.Body className="p-4">
+      <Card.Body ref={cardRef} className="p-4">
         {isEditing ? (
           <Form onSubmit={handleSubmit(onValidSubmit)}>
             <GoalSummaryEditHeader
@@ -112,6 +128,8 @@ const GoalSummaryCard = ({
       </Card.Body>
     </Card>
   );
-};
+});
+
+GoalSummaryCard.displayName = 'GoalSummaryCard';
 
 export default GoalSummaryCard;

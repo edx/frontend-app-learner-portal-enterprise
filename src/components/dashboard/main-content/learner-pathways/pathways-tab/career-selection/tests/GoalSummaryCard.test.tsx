@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom/extend-expect';
 import React, { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act, fireEvent, render, screen, waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import type { LearnerIntent } from '../../state';
-import GoalSummaryCard, { GoalSummaryCardProps } from '../GoalSummaryCard';
+import GoalSummaryCard, { GoalSummaryCardHandle, GoalSummaryCardProps } from '../GoalSummaryCard';
 
 const testIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
@@ -128,6 +130,7 @@ describe('GoalSummaryCard', () => {
           learnerIntent={testIntent}
           isEditing
           isProfileSubmitting
+          profileError={null}
           onBeginEditing={jest.fn()}
           onEndEditing={jest.fn()}
           onSubmitGoalSummary={jest.fn()}
@@ -137,6 +140,64 @@ describe('GoalSummaryCard', () => {
     const submitBtn = screen.getByTestId('goal-summary-submit-button');
     expect(submitBtn).toBeDisabled();
     expect(submitBtn).toHaveTextContent('Submitting...');
+  });
+
+  it('focusFirstField scrolls and focuses the first textarea when invoked via ref', () => {
+    const scrollIntoViewSpy = jest.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoViewSpy;
+    const ref = React.createRef<GoalSummaryCardHandle>();
+    try {
+      render(
+        <IntlProvider locale="en">
+          <GoalSummaryCard
+            ref={ref}
+            learnerIntent={testIntent}
+            isEditing
+            isProfileSubmitting={false}
+            profileError={null}
+            onBeginEditing={jest.fn()}
+            onEndEditing={jest.fn()}
+            onSubmitGoalSummary={jest.fn()}
+          />
+        </IntlProvider>,
+      );
+
+      const goalInput = screen.getByLabelText('Career Goal');
+      act(() => {
+        ref.current?.focusFirstField();
+      });
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled();
+      expect(goalInput).toHaveFocus();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it('does not submit when isProfileSubmitting is true even if the form submit event is fired', async () => {
+    const onSubmitGoalSummary = jest.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <IntlProvider locale="en">
+        <GoalSummaryCard
+          learnerIntent={testIntent}
+          isEditing
+          isProfileSubmitting
+          profileError={null}
+          onBeginEditing={jest.fn()}
+          onEndEditing={jest.fn()}
+          onSubmitGoalSummary={onSubmitGoalSummary}
+        />
+      </IntlProvider>,
+    );
+
+    const form = container.querySelector('form');
+    expect(form).toBeInTheDocument();
+    fireEvent.submit(form as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(onSubmitGoalSummary).not.toHaveBeenCalled();
+    });
   });
 
   it('resets draft fields when edit mode opens a second time', async () => {

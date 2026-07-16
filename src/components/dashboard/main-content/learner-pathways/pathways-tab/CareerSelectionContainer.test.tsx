@@ -268,6 +268,88 @@ describe('CareerSelectionContainer', () => {
     });
   });
 
+  describe('No courses returned', () => {
+    it('opens the no-courses modal, ends the pending state, and does not navigate or persist a pathway when generatePathway resolves with an empty course list', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      const onNext = jest.fn();
+      renderContainer({ onNext });
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => {
+        expect(screen.getByText('We could not build a pathway for this career match')).toBeInTheDocument();
+      });
+      expect(onNext).not.toHaveBeenCalled();
+      expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
+    });
+
+    it('preserves the existing pathway and fingerprint when a rebuild resolves with an empty course list', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      const priorCourses = usePathwaysStore.getState().pathwayCourses;
+      const priorFingerprint = usePathwaysStore.getState().pathwayInputFingerprint;
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
+      await user.click(screen.getByTestId('career-rebuild-pathway-button'));
+
+      await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('We could not build a pathway for this career match')).toBeInTheDocument();
+      });
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(priorCourses);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).toEqual(priorFingerprint);
+    });
+
+    it('Back closes the no-courses modal without modifying stored pathway state', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      renderContainer();
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => screen.getByText('We could not build a pathway for this career match'));
+
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(screen.queryByText('We could not build a pathway for this career match')).not.toBeInTheDocument();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
+    });
+
+    it('closes the no-courses modal and opens Goal Summary editing when Choose a different match is clicked', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      renderContainer();
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => screen.getByText('We could not build a pathway for this career match'));
+
+      await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+
+      expect(screen.queryByText('We could not build a pathway for this career match')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    });
+
+    it('a later successful retry still commits and navigates', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      const onNext = jest.fn();
+      renderContainer({ onNext });
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => screen.getByText('We could not build a pathway for this career match'));
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).not.toBeNull();
+    });
+  });
+
   describe('State B — existing pathway, no relevant edits', () => {
     it('renders only the (unchanged-label) build action', () => {
       seedExistingUnchangedPathway();
@@ -297,7 +379,7 @@ describe('CareerSelectionContainer', () => {
 
       await user.click(screen.getByTestId('career-build-pathway-button'));
 
-      expect(screen.queryByText('Rebuild your pathway?')).not.toBeInTheDocument();
+      expect(screen.queryByText('Rebuild your Pathway?')).not.toBeInTheDocument();
     });
   });
 
@@ -350,7 +432,7 @@ describe('CareerSelectionContainer', () => {
 
       await user.click(screen.getByTestId('career-rebuild-pathway-button'));
 
-      expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
+      expect(screen.getByText('Rebuild your Pathway?')).toBeInTheDocument();
       expect(generatePathwayWorkflow).not.toHaveBeenCalled();
     });
 
@@ -363,7 +445,7 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
       await user.click(screen.getByTestId('career-rebuild-pathway-button'));
 
-      await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+      await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
 
       await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
       expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
@@ -384,7 +466,7 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
       await user.click(screen.getByTestId('career-rebuild-pathway-button'));
 
-      await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+      await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('career-rebuild-pathway-button')).not.toBeDisabled();
@@ -414,10 +496,10 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
       await user.click(screen.getByTestId('career-rebuild-pathway-button'));
 
-      await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(generatePathwayWorkflow).not.toHaveBeenCalled();
-      expect(screen.queryByText('Rebuild your pathway?')).not.toBeInTheDocument();
+      expect(screen.queryByText('Rebuild your Pathway?')).not.toBeInTheDocument();
     });
   });
 
@@ -539,7 +621,7 @@ describe('CareerSelectionContainer', () => {
       await submitGoalSummaryEdit(user, 'Director of Analytics');
       await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
       await user.click(screen.getByTestId('career-rebuild-pathway-button'));
-      await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+      await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('career-build-pathway-button')).toBeInTheDocument();

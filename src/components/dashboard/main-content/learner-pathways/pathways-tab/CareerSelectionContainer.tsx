@@ -93,6 +93,7 @@ const CareerSelectionContainer = ({
   // Modal state lifted from CareerSelectionPage.
   const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
   const [isRetakeOpen, setIsRetakeOpen] = useState(false);
+  const [isNoCoursesOpen, setIsNoCoursesOpen] = useState(false);
 
   // Before any real profile/career-matches commit exists, the page displays stub
   // data so there's something to interact with. `learnerIntent` never needs a stub —
@@ -223,6 +224,15 @@ const CareerSelectionContainer = ({
 
     try {
       const result = await generatePathway(request);
+      if (result.courses.length === 0) {
+        // Expected edge state, not a rejected request: end the pending state without
+        // committing courses/fingerprint or navigating, and let the learner adjust
+        // their inputs instead. A prior existing pathway (if this was a rebuild) is
+        // left untouched since commitPathwayBuild is never called.
+        resolvePathway();
+        setIsNoCoursesOpen(true);
+        return;
+      }
       commitPathwayBuild({
         courses: result.courses,
         fingerprint: computePathwayInputFingerprint(request),
@@ -265,6 +275,8 @@ const CareerSelectionContainer = ({
 
   const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
   const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);
+
+  const closeNoCoursesModal = useCallback(() => setIsNoCoursesOpen(false), []);
 
   const isProfileSubmitting = profileRequestState.status === 'pending';
 
@@ -368,6 +380,8 @@ const CareerSelectionContainer = ({
       onCloseRetake={closeRetakeQuiz}
       onConfirmRetake={confirmRetakeQuiz}
       retakeButtonRef={retakeButtonRef}
+      isNoCoursesOpen={isNoCoursesOpen}
+      onCloseNoCourses={closeNoCoursesModal}
       visibleSkills={displayedSelectedSkills}
       dismissedSkillCount={dismissedSkillCount}
       onDismissSkill={handleDismissSkill}
