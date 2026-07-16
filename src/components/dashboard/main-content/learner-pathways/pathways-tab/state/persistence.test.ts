@@ -8,56 +8,33 @@ const noop = () => {};
 const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore => ({
   ...getInitialPathwaysState(),
   setSection: noop,
-  setExperienceStatus: noop,
-  setCurrentQuestion: noop,
-  setOnboardingComplete: noop,
-  setOnboardingAnswer: noop,
-  setOnboardingAnswers: noop,
-  setLearnerProfile: noop,
-  updateLearnerProfile: noop,
-  setCareerMatches: noop,
-  setSelectedCareerId: noop,
-  setPathwayCourses: noop,
-  updatePathwayCourse: noop,
-  setProgress: noop,
-  setLoading: noop,
-  setError: noop,
-  setConstructedPayload: noop,
-  clearConstructedPayloads: noop,
-  setPathwayBaseline: noop,
+  setLearnerIntent: noop,
+  selectCareer: noop,
+  removeSelectedSkill: noop,
+  restoreSelectedSkills: noop,
+  commitProfileSuccess: noop,
+  commitPathwayBuild: noop,
+  commitStubProfile: noop,
   resetPathwaysState: noop,
   ...stateOverrides,
 });
 
 describe('partializePathwaysState', () => {
   it('includes only the durable subset', () => {
-    const store = buildStore({
-      learnerProfile: null,
-      loading: {
-        learnerProfile: true, careerMatches: false, pathwayCourses: false, pathwayProgress: false,
-      },
-      errors: {
-        learnerProfile: 'boom', careerMatches: null, pathwayCourses: null, pathwayProgress: null,
-      },
-    });
+    const store = buildStore({ learnerProfile: null });
 
     const persisted = partializePathwaysState(store);
 
     expect(Object.keys(persisted).sort()).toEqual([
       'careerMatches',
-      'experienceStatus',
+      'learnerIntent',
       'learnerProfile',
-      'onboarding',
-      'pathwayBaseline',
       'pathwayCourses',
+      'pathwayInputFingerprint',
       'section',
       'selectedCareerId',
+      'selectedSkills',
     ]);
-    // Explicitly excluded: transient/request-shaped fields never leave the store.
-    expect(persisted).not.toHaveProperty('loading');
-    expect(persisted).not.toHaveProperty('errors');
-    expect(persisted).not.toHaveProperty('constructedPayloads');
-    expect(persisted).not.toHaveProperty('progress');
   });
 
   it('does not include action functions', () => {
@@ -88,12 +65,20 @@ describe('mergePathwaysState', () => {
 
   it('keeps currentState defaults for fields absent from an older persisted blob', () => {
     const currentState = buildStore();
-    // Simulates a persisted blob captured before `pathwayBaseline` existed.
-    const persistedState = { section: 'onboarding' };
+    // Simulates a pre-refactor (v1-shaped) persisted blob under old field names —
+    // deliberately not migrated (see persistence.ts's version-bump comment): any
+    // fields it doesn't share with the new shape simply keep their fresh defaults.
+    const persistedState = { section: 'onboarding', onboarding: { answers: { goal: 'stale' } } };
 
     const merged = mergePathwaysState(persistedState, currentState);
 
-    expect(merged.pathwayBaseline).toBeNull();
+    expect(merged.learnerIntent).toEqual(currentState.learnerIntent);
+    expect(merged.pathwayInputFingerprint).toBeNull();
+    // The old `onboarding` key rides along on the merged object (mergePathwaysState
+    // spreads whatever the persisted blob contains) but is never read by any current
+    // code — inert, not migrated. See pathwaysStorePersistence.test.ts for the fuller
+    // v1-shaped-blob safe-fallback coverage.
+    expect(merged).toHaveProperty('onboarding', { answers: { goal: 'stale' } });
   });
 
   it('falls back to currentState untouched when persistedState is not an object (malformed shape)', () => {
@@ -114,14 +99,12 @@ describe('mergePathwaysState', () => {
       section: 'pathway',
       careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
       pathwayCourses: [],
-      pathwayBaseline: {
-        careerGoal: 'x', targetIndustry: 'x', background: 'x', motivation: 'x', selectedCareerId: null,
-      },
+      pathwayInputFingerprint: 'stale-fingerprint',
     };
 
     const merged = mergePathwaysState(persistedState, currentState);
 
     expect(merged.section).toBe('profile');
-    expect(merged.pathwayBaseline).toBeNull();
+    expect(merged.pathwayInputFingerprint).toBeNull();
   });
 });

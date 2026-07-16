@@ -8,9 +8,22 @@ import {
 import { usePathwaysController } from './usePathwaysController';
 
 jest.mock('../workflows', () => ({
-  generateProfileWorkflow: jest.fn().mockResolvedValue(undefined),
-  generatePathwayWorkflow: jest.fn().mockResolvedValue(undefined),
+  generateProfileWorkflow: jest.fn().mockResolvedValue({ learnerProfile: null, careerMatches: [] }),
+  generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
+
+const stubLearnerIntent = {
+  careerGoal: 'Data Analyst', targetIndustry: 'Tech', background: 'Ops', motivation: 'Growth',
+};
+
+const stubRequest = {
+  learnerIntent: stubLearnerIntent,
+  learnerProfile: {
+    summary: 's', learningStyle: 'Hands-on', weeklyTimeCommitment: '5 hours', certificatePreference: 'Preferred', skills: [] as string[],
+  },
+  selectedCareerId: 'career-1',
+  selectedSkills: ['SQL'],
+};
 
 describe('usePathwaysController', () => {
   beforeEach(() => {
@@ -27,27 +40,28 @@ describe('usePathwaysController', () => {
 
     const state = usePathwaysStore.getState();
     expect(state.section).toBe('onboarding');
-    expect(state.experienceStatus).toBe('onboarding_in_progress');
   });
 
-  it('delegates profile generation to workflow placeholder', async () => {
+  it('delegates profile generation to the workflow with the given learner intent', async () => {
     const { result } = renderHook(() => usePathwaysController());
 
     await act(async () => {
-      await result.current.generateProfile();
+      await result.current.generateProfile(stubLearnerIntent);
     });
 
     expect(generateProfileWorkflow).toHaveBeenCalledTimes(1);
+    expect(generateProfileWorkflow).toHaveBeenCalledWith(stubLearnerIntent);
   });
 
-  it('delegates pathway generation to workflow placeholder', async () => {
+  it('delegates pathway generation to the workflow with the explicit request', async () => {
     const { result } = renderHook(() => usePathwaysController());
 
     await act(async () => {
-      await result.current.generatePathway();
+      await result.current.generatePathway(stubRequest);
     });
 
     expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1);
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith(stubRequest);
   });
 
   it('resets pathways state via store reset action', () => {
@@ -55,12 +69,10 @@ describe('usePathwaysController', () => {
 
     act(() => {
       usePathwaysStore.getState().setSection('pathway');
-      usePathwaysStore.getState().setExperienceStatus('pathway_ready');
       result.current.resetPathway();
     });
 
     const state = usePathwaysStore.getState();
     expect(state.section).toBe('onboarding');
-    expect(state.experienceStatus).toBe('not_started');
   });
 });

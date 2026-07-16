@@ -1,3 +1,3 @@
-import type { LearnerProfile } from '../state';
+import type { LearnerIntent } from '../state';
 
-export type GoalSummaryFields = Pick<LearnerProfile, 'careerGoal' | 'targetIndustry' | 'background' | 'motivation'>;
+export type GoalSummaryFormValues = LearnerIntent;

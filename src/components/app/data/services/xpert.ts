@@ -2,20 +2,27 @@ import type { AxiosResponse } from 'axios';
 import { getConfig } from '@edx/frontend-platform/config';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { camelCaseObject, snakeCaseObject } from '@edx/frontend-platform/utils';
+import type { LearnerIntent } from '../../../dashboard/main-content/learner-pathways/pathways-tab/state';
 
 const LEARNER_PATHWAYS_BASE_PATH = '/api/v1/learner-pathways';
 const LEARNING_INTENT_API_PATH = `${LEARNER_PATHWAYS_BASE_PATH}/learning-intent/`;
 const RECOMMENDATIONS_FEEDBACK_API_PATH = `${LEARNER_PATHWAYS_BASE_PATH}/recommendation-feedback/`;
 
 /**
- * Learner intake answers submitted to the Learning Intent endpoint so the backend can infer
- * required/preferred skills and a course search query.
- *
- * All fields are plain strings, not arrays: the backend's LearningIntentRequestSerializer
- * declares each as CharField (allow_blank=False), so an array here fails validation with
- * "Not a valid string."
+ * Public request shape for `fetchLearningIntent` is the same canonical `LearnerIntent`
+ * used by RHF/Zustand/persistence — no separate, differently-named request type exists
+ * at this layer. The backend's fixed wire contract (`selected_goals`/`free_text`/
+ * `known_context`/`interested_industries`) is reached only inside
+ * `toLearningIntentWireRequest` below, a single private adapter kept out of the public
+ * API so no other module ever needs to know those wire names.
  */
-export interface LearningIntentRequest {
+export type LearningIntentRequest = LearnerIntent;
+
+/**
+ * The backend's LearningIntentRequestSerializer declares each field as CharField
+ * (allow_blank=False), so an array here fails validation with "Not a valid string."
+ */
+interface LearningIntentWireRequest {
   /** The learner's desired outcome or target goal. */
   selectedGoals: string;
   /** The learner's motivation for learning. */
@@ -25,6 +32,18 @@ export interface LearningIntentRequest {
   /** Industries or fields the learner wants to explore. */
   interestedIndustries: string;
 }
+
+/**
+ * The one private adapter permitted between the canonical `LearnerIntent` contract and
+ * the backend's fixed, differently-named wire contract. Not exported — no other module
+ * may perform this mapping.
+ */
+const toLearningIntentWireRequest = (request: LearningIntentRequest): LearningIntentWireRequest => ({
+  selectedGoals: request.careerGoal,
+  freeText: request.motivation,
+  knownContext: request.background,
+  interestedIndustries: request.targetIndustry,
+});
 
 export interface LearningIntentResponse {
   skillsRequired: string[];
@@ -42,11 +61,13 @@ interface LearningIntentResponseRaw {
  * Submits the learner's intake answers to Enterprise Access's Learning Intent endpoint
  * (`POST /api/v1/learner-pathways/learning-intent/`) so it can select and run the Learning
  * Intent Xpert prompt server-side. The backend owns prompt selection, execution, and response
- * parsing; this function only converts the camelCase `LearningIntentRequest` into the
- * backend's snake_case request shape and converts the snake_case response back to camelCase,
- * consistent with the rest of the services layer (see bffs.ts).
+ * parsing; this function maps the canonical `LearnerIntent` to the backend's fixed wire field
+ * names via `toLearningIntentWireRequest`, then converts the whole payload to snake_case (and
+ * the response back to camelCase), consistent with the rest of the services layer (see
+ * bffs.ts).
  *
- * @param request - The learner's intake answers (goal, motivation, background, industries).
+ * @param request - The learner's canonical intent (career goal, target industry, background,
+ *   motivation).
  * @returns The inferred required/preferred skills and a condensed Algolia search query.
  * @throws Rejects with the underlying HTTP client's error (e.g. a non-2xx response) unmodified;
  *   this function does not catch or transform errors.
@@ -55,7 +76,7 @@ export async function fetchLearningIntent(
   request: LearningIntentRequest,
 ): Promise<LearningIntentResponse> {
   const url = `${getConfig().ENTERPRISE_ACCESS_BASE_URL}${LEARNING_INTENT_API_PATH}`;
-  const payload = snakeCaseObject(request);
+  const payload = snakeCaseObject(toLearningIntentWireRequest(request));
   const response: AxiosResponse<LearningIntentResponseRaw> = await getAuthenticatedHttpClient()
     .post(url, payload);
   return camelCaseObject(response.data);

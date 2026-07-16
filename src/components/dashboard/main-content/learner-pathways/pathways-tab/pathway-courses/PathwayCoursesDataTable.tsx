@@ -77,7 +77,7 @@ const getPathwayCoursesColumns = (intl: ReturnType<typeof useIntl>) => [
   },
   {
     Header: intl.formatMessage(messages.actionColumn),
-    accessor: 'id',
+    accessor: 'courseKey',
     Cell: ActionCell,
   },
 ];
