@@ -27,9 +27,9 @@ const ContentTypeSearchResultsContainer = ({
 }: ContentTypeSearchResultsContainerProps) => {
   const intl = useIntl();
 
-  if (learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
+  if (!!learningTypeFilter && learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
     return (
-      <SearchExecutiveEducation filter={learningTypeFilter as string} indexName={indexName} />
+      <SearchExecutiveEducation filter={learningTypeFilter} indexName={indexName} />
     );
   }
 
