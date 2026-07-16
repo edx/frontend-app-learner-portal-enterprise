@@ -21,12 +21,12 @@ const IntakeBackgroundQuestions = () => {
         feedbackTestId="intake-background-feedback"
       />
       <IntakeTextareaQuestionField
-        name="industry"
+        name="targetIndustry"
         controlId="intake-industry-question"
         label={intl.formatMessage(messages.industryQuestionLabel)}
         placeholder={intl.formatMessage(messages.industryQuestionPlaceholder)}
         requiredErrorMessage={intl.formatMessage(messages.industryQuestionRequiredError)}
-        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.industry}
+        maxCharacters={INTAKE_QUESTION_CHARACTER_LIMITS.targetIndustry}
         fieldTestId="intake-industry-field"
         feedbackTestId="intake-industry-feedback"
       />

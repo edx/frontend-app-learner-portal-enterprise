@@ -1,22 +1,19 @@
 import '@testing-library/jest-dom/extend-expect';
 import React, { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act, fireEvent, render, screen, waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import type { LearnerProfile } from '../../state';
-import GoalSummaryCard, { GoalSummaryCardProps } from '../GoalSummaryCard';
+import type { LearnerIntent } from '../../state';
+import GoalSummaryCard, { GoalSummaryCardHandle, GoalSummaryCardProps } from '../GoalSummaryCard';
 
-const testProfile: LearnerProfile = {
-  summary: 'Test summary',
+const testIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
   targetIndustry: 'EdTech',
   background: 'Data analyst with five years experience.',
   motivation: 'Upskill for promotion.',
-  learningStyle: 'Hands-on',
-  weeklyTimeCommitment: '5 hours',
-  certificatePreference: 'Preferred',
-  skills: ['SQL', 'Python'],
 };
 
 /**
@@ -31,7 +28,7 @@ const ControlledCard = ({
   return (
     <IntlProvider locale="en">
       <GoalSummaryCard
-        profile={testProfile}
+        learnerIntent={testIntent}
         isEditing={isEditing}
         isProfileSubmitting={isProfileSubmitting}
         profileError={profileError}
@@ -46,7 +43,7 @@ const ControlledCard = ({
 describe('GoalSummaryCard', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders view mode with profile field values', () => {
+  it('renders view mode with intent field values', () => {
     render(<ControlledCard />);
     expect(screen.getByTestId('profile-career-goal')).toHaveTextContent('Senior Data Analyst');
     expect(screen.getByTestId('profile-target-industry')).toHaveTextContent('EdTech');
@@ -130,9 +127,10 @@ describe('GoalSummaryCard', () => {
     render(
       <IntlProvider locale="en">
         <GoalSummaryCard
-          profile={testProfile}
+          learnerIntent={testIntent}
           isEditing
           isProfileSubmitting
+          profileError={null}
           onBeginEditing={jest.fn()}
           onEndEditing={jest.fn()}
           onSubmitGoalSummary={jest.fn()}
@@ -142,6 +140,64 @@ describe('GoalSummaryCard', () => {
     const submitBtn = screen.getByTestId('goal-summary-submit-button');
     expect(submitBtn).toBeDisabled();
     expect(submitBtn).toHaveTextContent('Submitting...');
+  });
+
+  it('focusFirstField scrolls and focuses the first textarea when invoked via ref', () => {
+    const scrollIntoViewSpy = jest.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoViewSpy;
+    const ref = React.createRef<GoalSummaryCardHandle>();
+    try {
+      render(
+        <IntlProvider locale="en">
+          <GoalSummaryCard
+            ref={ref}
+            learnerIntent={testIntent}
+            isEditing
+            isProfileSubmitting={false}
+            profileError={null}
+            onBeginEditing={jest.fn()}
+            onEndEditing={jest.fn()}
+            onSubmitGoalSummary={jest.fn()}
+          />
+        </IntlProvider>,
+      );
+
+      const goalInput = screen.getByLabelText('Career Goal');
+      act(() => {
+        ref.current?.focusFirstField();
+      });
+
+      expect(scrollIntoViewSpy).toHaveBeenCalled();
+      expect(goalInput).toHaveFocus();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it('does not submit when isProfileSubmitting is true even if the form submit event is fired', async () => {
+    const onSubmitGoalSummary = jest.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <IntlProvider locale="en">
+        <GoalSummaryCard
+          learnerIntent={testIntent}
+          isEditing
+          isProfileSubmitting
+          profileError={null}
+          onBeginEditing={jest.fn()}
+          onEndEditing={jest.fn()}
+          onSubmitGoalSummary={onSubmitGoalSummary}
+        />
+      </IntlProvider>,
+    );
+
+    const form = container.querySelector('form');
+    expect(form).toBeInTheDocument();
+    fireEvent.submit(form as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(onSubmitGoalSummary).not.toHaveBeenCalled();
+    });
   });
 
   it('resets draft fields when edit mode opens a second time', async () => {
@@ -155,12 +211,12 @@ describe('GoalSummaryCard', () => {
     await user.type(goalInput, 'Temporary goal');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    // Second edit session: draft should be reset to profile values
+    // Second edit session: draft should be reset to intent values
     await user.click(screen.getByTestId('goal-summary-edit-button'));
     expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
   });
 
-  it('shows pre-filled profile values in edit mode textarea fields', async () => {
+  it('shows pre-filled intent values in edit mode textarea fields', async () => {
     const user = userEvent.setup();
     render(<ControlledCard />);
 

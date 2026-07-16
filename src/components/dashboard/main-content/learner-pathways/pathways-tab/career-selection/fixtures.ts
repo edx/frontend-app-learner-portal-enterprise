@@ -1,13 +1,13 @@
-import type { CareerMatch, LearnerProfile, OnboardingAnswers } from '../state';
+import type { CareerMatch, LearnerProfile } from '../state';
 
+/**
+ * Stub generated-profile output used by generateProfileWorkflow until real profile
+ * generation lands. Contains only generated/enriched fields — the learner's own intent
+ * lives on `LearnerIntent`, supplied by the caller, never merged in here.
+ */
 export const CAREER_SELECTION_STUB_PROFILE: LearnerProfile = {
   summary:
     'Senior data professional preparing for a career advancement opportunity.',
-  careerGoal: 'Senior Data Analyst',
-  targetIndustry: 'EdTech',
-  background:
-    'Data analyst at 2U with extensive experience in financial data and team leadership.',
-  motivation: 'Upskill to prepare for promotion',
   learningStyle: 'Hands-on',
   weeklyTimeCommitment: '5 hours per week',
   certificatePreference: 'Preferred',
@@ -106,16 +106,3 @@ export const CAREER_SELECTION_STUB_MATCHES: CareerMatch[] = [
     skillsToDevelop: ['Inventory Management'],
   },
 ];
-
-export const buildCareerSelectionStubProfile = (
-  answers: Partial<OnboardingAnswers>,
-): LearnerProfile => ({
-  ...CAREER_SELECTION_STUB_PROFILE,
-  careerGoal: answers.goal?.trim() || CAREER_SELECTION_STUB_PROFILE.careerGoal,
-  targetIndustry:
-    answers.industry?.trim() || CAREER_SELECTION_STUB_PROFILE.targetIndustry,
-  background:
-    answers.background?.trim() || CAREER_SELECTION_STUB_PROFILE.background,
-  motivation:
-    answers.motivation?.trim() || CAREER_SELECTION_STUB_PROFILE.motivation,
-});

@@ -1,25 +1,33 @@
-import type { GenerateProfileWorkflowInput } from './types';
+import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from '../career-selection/fixtures';
+import type { GenerateProfileWorkflowInput, GenerateProfileWorkflowResult } from './types';
 
 /**
- * Integration seam: owns intake/profile-edit -> Learning Intent -> profile mapping.
+ * Integration seam: owns learner intent -> Learning Intent -> profile mapping.
  *
  * Future flow:
- * 1. Map intake fields (goal, motivation, background, industry) to a
- *    LearningIntentRequest (selectedGoals, freeText, knownContext). This mapping
- *    belongs here, not in the form component or the transport service, and must
- *    follow the production serializer contract rather than copying the
- *    ai-pathways prototype's array-combining approach verbatim.
- * 2. Call fetchLearningIntent (src/components/app/data/services/xpert.ts).
- * 3. Use the returned skillsRequired/skillsPreferred/condensedAlgoliaQuery to
+ * 1. Call fetchLearningIntent (src/components/app/data/services/xpert.ts) with the
+ *    canonical LearnerIntent input directly — no field renaming happens here; the
+ *    wire-shape translation is a single private adapter inside xpert.ts.
+ * 2. Use the returned skillsRequired/skillsPreferred/condensedAlgoliaQuery to
  *    perform career/taxonomy retrieval.
- * 4. Map the results into a LearnerProfile and CareerMatch[] and return them for
+ * 3. Map the results into a LearnerProfile and CareerMatch[] and return them for
  *    the controller to commit to store state.
+ *
+ * Until that lands, this returns a static stub-generated profile (no field of the
+ * input intent is copied into it — LearnerProfile no longer carries intent fields at
+ * all) alongside the same static stub career matches used elsewhere in the scaffold,
+ * so callers have a real, committable result instead of `void`. `input` is accepted
+ * for the future contract but not yet used.
  */
 export const generateProfileWorkflow = async (
-  input?: GenerateProfileWorkflowInput,
-): Promise<void> => {
-  if (input?.payload) {
-    // Placeholder read to keep scaffold contracts explicit until workflow implementation.
+  input: GenerateProfileWorkflowInput,
+): Promise<GenerateProfileWorkflowResult> => {
+  if (input) {
+    // Placeholder read to keep the explicit input contract enforced until the
+    // real Learning Intent orchestration lands.
   }
-  // TODO: Implement workflow orchestration in a dedicated follow-up ticket.
+  return {
+    learnerProfile: CAREER_SELECTION_STUB_PROFILE,
+    careerMatches: CAREER_SELECTION_STUB_MATCHES,
+  };
 };
