@@ -15,6 +15,8 @@ export interface PathwaysAction {
   onClick?: () => void;
   buttonRef?: React.RefObject<HTMLButtonElement>;
   testId?: string;
+  /** Rendered before the label via Paragon Button's iconBefore prop. */
+  iconBefore?: React.ComponentType;
 }
 
 export interface PathwaysActionBarConfig {

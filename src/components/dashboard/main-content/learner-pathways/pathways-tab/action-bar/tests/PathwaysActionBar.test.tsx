@@ -111,6 +111,19 @@ describe('PathwaysActionBarProvider / PathwaysActionBar', () => {
     expect(ref.current).toBe(screen.getByTestId('ref-btn'));
   });
 
+  it('renders the iconBefore icon on a button', () => {
+    const MockIcon = () => <svg data-testid="mock-icon" />;
+    renderWithProvider(
+      <ActionRegistrar config={{
+        primary: {
+          id: 'p', label: msgs.buildPathway, variant: 'tertiary', iconBefore: MockIcon, testId: 'icon-btn',
+        },
+      }}
+      />,
+    );
+    expect(screen.getByTestId('icon-btn')).toContainElement(screen.getByTestId('mock-icon'));
+  });
+
   it('sets aria-label on the footer landmark', () => {
     renderWithProvider(
       <ActionRegistrar config={{ primary: { id: 'p', label: msgs.buildPathway, variant: 'primary' }, label: 'Custom label' }} />,

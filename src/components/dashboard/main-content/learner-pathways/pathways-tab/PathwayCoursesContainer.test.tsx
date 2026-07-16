@@ -49,21 +49,21 @@ describe('PathwayCoursesContainer', () => {
     expect(screen.getByTestId('pathway-progress-total')).toHaveTextContent('5');
   });
 
-  it('registers Adjust pathway, View Pathway, and View Quiz action-bar buttons', () => {
+  it('registers Rebuild pathway, View Pathway, and View Quiz action-bar buttons', () => {
     renderComponent();
 
-    expect(screen.getByTestId('pathway-adjust-button')).toBeInTheDocument();
+    expect(screen.getByTestId('pathway-rebuild-button')).toBeInTheDocument();
     expect(screen.getByTestId('pathway-view-pathway-button')).toBeInTheDocument();
     expect(screen.getByTestId('pathway-view-quiz-button')).toBeInTheDocument();
-    expect(screen.getAllByText('Adjust pathway')).toHaveLength(1);
+    expect(screen.getAllByText('Rebuild pathway')).toHaveLength(1);
   });
 
-  it('calls onBackToProfile when Adjust pathway is clicked', async () => {
+  it('calls onBackToProfile when Rebuild pathway is clicked', async () => {
     const user = userEvent.setup();
     const onBackToProfile = jest.fn();
     renderComponent({ onBackToProfile });
 
-    await user.click(screen.getByTestId('pathway-adjust-button'));
+    await user.click(screen.getByTestId('pathway-rebuild-button'));
 
     expect(onBackToProfile).toHaveBeenCalledTimes(1);
   });

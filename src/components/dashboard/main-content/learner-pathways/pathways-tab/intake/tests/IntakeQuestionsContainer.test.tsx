@@ -104,6 +104,19 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByTestId('intake-industry-field')).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('keeps the action-bar submit button present, single, and enabled after an invalid submission', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn();
+    render(<MockIntakeQuestionsContainer onSubmit={onSubmit} />);
+
+    await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    const submitButtons = screen.getAllByRole('button', { name: messages.submitAndReviewProfile.defaultMessage });
+    expect(submitButtons).toHaveLength(1);
+    expect(submitButtons[0]).toBeEnabled();
+  });
+
   it('persists answers to store before calling onSubmit', async () => {
     const user = userEvent.setup();
     const expectedValues = {
@@ -144,6 +157,12 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByText(messages.goalQuestionRequiredError.defaultMessage)).toBeInTheDocument();
     expect(screen.getByText(messages.backgroundQuestionRequiredError.defaultMessage)).toBeInTheDocument();
     expect(screen.getByText(messages.industryQuestionRequiredError.defaultMessage)).toBeInTheDocument();
+  });
+
+  it('does not render a Skip to dashboard action when onSkip is not provided', () => {
+    render(<MockIntakeQuestionsContainer onSkip={undefined} />);
+
+    expect(screen.queryByRole('button', { name: messages.skipToDashboard.defaultMessage })).not.toBeInTheDocument();
   });
 
   it('calls onSkip when skip action is clicked', async () => {

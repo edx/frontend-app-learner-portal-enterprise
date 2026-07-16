@@ -38,6 +38,7 @@ const renderButton = (action: PathwaysAction, intl: ReturnType<typeof useIntl>) 
       variant={action.variant}
       disabled={action.disabled || action.loading}
       onClick={action.onClick}
+      iconBefore={action.iconBefore}
       data-testid={action.testId}
     >
       {action.loading && (

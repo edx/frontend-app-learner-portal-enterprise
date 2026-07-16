@@ -70,8 +70,8 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByTestId('profile-build-pathway-button'));
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
-    // pathway view's own "Adjust pathway" control, not the breadcrumb link
-    await user.click(screen.getByTestId('pathway-adjust-button'));
+    // pathway view's own "Rebuild pathway" control, not the breadcrumb link
+    await user.click(screen.getByTestId('pathway-rebuild-button'));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
   });
 });

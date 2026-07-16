@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { ArrowBack } from '@openedx/paragon/icons';
 import { usePathwaysActionBar } from './action-bar';
 import { usePathwaysCourses } from './state';
 import { PathwayCoursesPage, derivePathwayProgress, getDisplayedPathwayCourses } from './pathway-courses';
@@ -33,12 +34,13 @@ const PathwayCoursesContainer = ({
   useEffect(() => {
     registerActions({
       primary: {
-        id: 'pathway-adjust',
-        label: messages.adjustPathway,
-        variant: 'secondary',
+        id: 'pathway-rebuild',
+        label: messages.rebuildPathway,
+        variant: 'tertiary',
         type: 'button',
+        iconBefore: ArrowBack,
         onClick: handleBackToProfile,
-        testId: 'pathway-adjust-button',
+        testId: 'pathway-rebuild-button',
       },
       secondary: [
         {
