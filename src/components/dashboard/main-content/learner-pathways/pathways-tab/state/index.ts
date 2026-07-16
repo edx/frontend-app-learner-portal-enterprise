@@ -1,36 +1,38 @@
 export {
   getInitialPathwaysState,
   selectors,
-  usePathwaysCourses,
-  usePathwaysErrors,
-  usePathwaysExperienceStatus,
   usePathwaysCareerMatches,
+  usePathwaysCourses,
+  usePathwaysLearnerIntent,
   usePathwaysLearnerProfile,
-  usePathwaysLoading,
-  usePathwaysOnboardingAnswers,
-  usePathwaysOnboarding,
-  usePathwaysProgress,
   usePathwaysSection,
   usePathwaysSelectedCareerId,
+  usePathwaysSelectedSkills,
   usePathwaysStore,
-  usePathwaysConstructedPayloads,
+  usePathwayInputFingerprint,
   useSelectedCareerMatch,
 } from './pathwaysStore';
 
+export { normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
+export { derivePathwaysExperienceStatus } from './deriveExperienceStatus';
+export { EMPTY_LEARNER_INTENT } from './learnerIntent';
+export { computePathwayInputFingerprint } from './pathwayGenerationRequest';
+
 export type {
   CareerMatch,
+  CommitPathwayBuildInput,
+  CommitProfileSuccessInput,
+  LearnerIntent,
   LearnerProfile,
-  OnboardingAnswers,
-  OnboardingState,
   PathwayCourse,
   PathwayCourseStatus,
   PathwayProgress,
   PathwaysActions,
-  PathwaysConstructedPayloads,
-  PathwaysErrorState,
   PathwaysExperienceStatus,
-  PathwaysLoadingState,
   PathwaysSection,
   PathwaysState,
   PathwaysStore,
 } from './types';
+
+export type { DerivePathwaysExperienceStatusInput } from './deriveExperienceStatus';
+export type { PathwayGenerationRequest } from './pathwayGenerationRequest';

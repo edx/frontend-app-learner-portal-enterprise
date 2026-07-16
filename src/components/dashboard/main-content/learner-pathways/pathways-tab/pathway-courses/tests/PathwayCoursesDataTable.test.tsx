@@ -62,7 +62,7 @@ describe('PathwayCoursesDataTable', () => {
 
   it('renders "Not available" for missing length and "why this fits you" values', () => {
     renderComponent([
-      { id: 'sparse-course', title: 'Sparse Course', status: 'not_started' },
+      { courseKey: 'sparse-course', title: 'Sparse Course', status: 'not_started' },
     ]);
     expect(screen.getAllByText('Not available')).toHaveLength(2);
   });

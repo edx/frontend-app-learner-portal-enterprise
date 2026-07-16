@@ -4,13 +4,11 @@ import { PATHWAY_COURSES_STUB } from './fixtures';
 /**
  * Selects the courses to display in the pathway courses table.
  *
- * Fixture data stands in for a real pathway-courses workflow/service call
- * during the scaffold phase. Once that workflow populates `pathwayCourses`
- * in the store, this function starts returning that real data with no
- * caller changes required — `storeCourses.length > 0` will already be true.
- *
- * TODO: remove this fixture fallback once the pathway-courses workflow
- * populates `pathwayCourses` in the store for every learner.
+ * A successful build now always commits real courses into `pathwayCourses`
+ * (see CareerSelectionContainer.tsx:buildPathway), so `storeCourses` is empty here
+ * only in the defensive edge case of the Pathway section being reached without one
+ * (e.g. a stale bookmark) — this never gets persisted itself, it's a render-time
+ * fallback only.
  */
 export const getDisplayedPathwayCourses = (storeCourses: PathwayCourse[]): PathwayCourse[] => (
   storeCourses.length > 0 ? storeCourses : PATHWAY_COURSES_STUB

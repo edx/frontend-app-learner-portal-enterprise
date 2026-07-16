@@ -2,20 +2,28 @@ import React, {
   useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { ArrowBack } from '@openedx/paragon/icons';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
-import type { GoalSummaryFields } from './career-selection/GoalSummaryCard';
-import {
-  CAREER_SELECTION_STUB_MATCHES,
-  buildCareerSelectionStubProfile,
-} from './career-selection/fixtures';
+import type { GoalSummaryFormValues } from './career-selection/GoalSummaryCard';
+import { getCareerActionState, isPathwayEdited } from './career-selection/careerActionState';
+import { deriveSelectedCareer } from './career-selection/selectors';
+import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
 import careerMessages from './career-selection/messages';
-import { usePathwaysController } from './hooks';
-import { usePathwaysCourses, usePathwaysStore } from './state';
+import { usePathwaysController, usePathwaysRequestState } from './hooks';
+import {
+  computePathwayInputFingerprint,
+  recommendedSkillsForCareer,
+  usePathwaysCourses,
+  usePathwaysStore,
+} from './state';
+import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
+import type { PathwaysAction } from './action-bar';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
+  onRetakeQuiz?: () => void;
 }
 
 const errorMessage = (
@@ -26,38 +34,37 @@ const errorMessage = (
 /** UI adapter to the learner-pathways store/controller/workflow seams. */
 const CareerSelectionContainer = ({
   onNext,
+  onRetakeQuiz,
 }: CareerSelectionContainerProps) => {
   const {
-    onboardingAnswers,
+    learnerIntent,
     learnerProfile,
     careerMatches,
     selectedCareerId,
-    loading,
-    errors,
-    setLearnerProfile,
-    updateLearnerProfile,
-    setCareerMatches,
-    setSelectedCareerId,
-    setConstructedPayload,
-    setLoading,
-    setError,
-    setExperienceStatus,
+    selectedSkills,
+    pathwayInputFingerprint,
+    selectCareer,
+    removeSelectedSkill,
+    restoreSelectedSkills,
+    commitProfileSuccess,
+    commitPathwayBuild,
+    commitStubProfile,
+    resetPathwaysState,
   } = usePathwaysStore(
     useShallow((state) => ({
-      onboardingAnswers: state.onboarding.answers,
+      learnerIntent: state.learnerIntent,
       learnerProfile: state.learnerProfile,
       careerMatches: state.careerMatches,
       selectedCareerId: state.selectedCareerId,
-      loading: state.loading,
-      errors: state.errors,
-      setLearnerProfile: state.setLearnerProfile,
-      updateLearnerProfile: state.updateLearnerProfile,
-      setCareerMatches: state.setCareerMatches,
-      setSelectedCareerId: state.setSelectedCareerId,
-      setConstructedPayload: state.setConstructedPayload,
-      setLoading: state.setLoading,
-      setError: state.setError,
-      setExperienceStatus: state.setExperienceStatus,
+      selectedSkills: state.selectedSkills,
+      pathwayInputFingerprint: state.pathwayInputFingerprint,
+      selectCareer: state.selectCareer,
+      removeSelectedSkill: state.removeSelectedSkill,
+      restoreSelectedSkills: state.restoreSelectedSkills,
+      commitProfileSuccess: state.commitProfileSuccess,
+      commitPathwayBuild: state.commitPathwayBuild,
+      commitStubProfile: state.commitStubProfile,
+      resetPathwaysState: state.resetPathwaysState,
     })),
   );
 
@@ -65,204 +72,320 @@ const CareerSelectionContainer = ({
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
 
+  const {
+    profile: profileRequestState,
+    pathway: pathwayRequestState,
+    beginProfile,
+    resolveProfile,
+    failProfile,
+    beginPathway,
+    resolvePathway,
+    failPathway,
+  } = usePathwaysRequestState();
   const { generateProfile, generatePathway } = usePathwaysController();
   const { registerActions, clearActions } = usePathwaysActionBar();
 
-  // Ref shared between the portaled action bar button and OverwritePathwayModal.
+  // Ref shared between the portaled build/rebuild button and OverwritePathwayModal.
   const buildButtonRef = useRef<HTMLButtonElement>(null);
+  // Ref shared between the portaled retake-quiz button and RetakeQuizModal.
+  const retakeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Modal + skills state lifted from CareerSelectionPage.
+  // Modal state lifted from CareerSelectionPage.
   const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
-  const [dismissedSkills, setDismissedSkills] = useState<Set<string>>(new Set<string>());
+  const [isRetakeOpen, setIsRetakeOpen] = useState(false);
+  const [isNoCoursesOpen, setIsNoCoursesOpen] = useState(false);
 
-  const stubProfile = useMemo(
-    () => buildCareerSelectionStubProfile(onboardingAnswers),
-    [onboardingAnswers],
-  );
-  const displayedProfile = learnerProfile ?? stubProfile;
+  // Before any real profile/career-matches commit exists, the page displays stub
+  // data so there's something to interact with. `learnerIntent` never needs a stub —
+  // it's populated directly from Intake — but `learnerProfile` does, since pathway
+  // building can happen (State A tests) before Goal Summary is ever submitted.
   const usesStubData = learnerProfile === null && careerMatches.length === 0;
-  const displayedMatches = usesStubData
-    ? CAREER_SELECTION_STUB_MATCHES
-    : careerMatches;
+  const effectiveLearnerProfile = learnerProfile ?? CAREER_SELECTION_STUB_PROFILE;
+  const displayedMatches = usesStubData ? CAREER_SELECTION_STUB_MATCHES : careerMatches;
 
-  // Derive selected career from displayed matches; fall back to first.
   const selectedCareer = useMemo(
-    () => displayedMatches.find((m) => m.id === selectedCareerId)
-      ?? displayedMatches[0]
-      ?? null,
+    () => deriveSelectedCareer(displayedMatches, selectedCareerId),
     [displayedMatches, selectedCareerId],
   );
 
-  // Available skills: career-specific first, then profile skills.
-  const availableSkills = useMemo(() => {
-    const raw = selectedCareer?.skillsToDevelop ?? displayedProfile.skills;
-    return Array.from(new Set(raw.map((s: string) => s.trim()).filter(Boolean)));
-  }, [selectedCareer, displayedProfile.skills]);
-
-  // Reset dismissed skills whenever the career or available skill set changes.
-  const availableSkillsKey = availableSkills.join('\x00');
-  useEffect(() => {
-    setDismissedSkills(new Set<string>());
-  }, [selectedCareer?.id, availableSkillsKey]);
-
-  const visibleSkills = useMemo(
-    () => availableSkills.filter((s) => !dismissedSkills.has(s)),
-    [availableSkills, dismissedSkills],
+  // The career's recommended list as currently displayed (stub-or-real) — used both
+  // to seed the store the first time a career is interacted with, and to compute how
+  // many skills have been dismissed from it.
+  const recommendedSkills = useMemo(
+    () => recommendedSkillsForCareer(displayedMatches, selectedCareer?.id ?? null) ?? [],
+    [displayedMatches, selectedCareer],
   );
 
-  // Integration seam: profile edits (careerGoal, targetIndustry, background,
-  // motivation) should route through generateProfileWorkflow — the same path as
-  // intake — not call fetchLearningIntent directly. The workflow recomputes
-  // intent-derived career matches; only commit displayedProfile/careerMatches
-  // after that orchestration succeeds.
-  const submitGoalSummary = async (updates: GoalSummaryFields) => {
-    const nextProfile = { ...displayedProfile, ...updates };
-    const payload = {
-      source: 'career_selection_goal_summary',
-      onboardingAnswers,
-      learnerProfile: nextProfile,
+  // The canonical selected-skills list lives in the store; fall back to the full
+  // recommended list only when the store hasn't initialized one yet (e.g. the
+  // pre-generation stub-display career, before any career/profile commit). Every
+  // mutation path (selectCareer, commitProfileSuccess) re-initializes `selectedSkills`
+  // atomically whenever the resolved career actually changes, so a non-null value here
+  // is always trustworthy for whichever career is currently displayed — no additional
+  // "does this still match the selected career id" guard is needed.
+  const displayedSelectedSkills = selectedSkills ?? recommendedSkills;
+  const dismissedSkillCount = Math.max(0, recommendedSkills.length - displayedSelectedSkills.length);
+
+  const currentRequest: PathwayGenerationRequest | null = useMemo(() => {
+    if (!selectedCareerId) {
+      return null;
+    }
+    return {
+      learnerIntent,
+      learnerProfile: effectiveLearnerProfile,
+      selectedCareerId,
+      selectedSkills: displayedSelectedSkills,
     };
+  }, [learnerIntent, effectiveLearnerProfile, selectedCareerId, displayedSelectedSkills]);
 
-    setError('learnerProfile', null);
-    setError('careerMatches', null);
-    setLoading('learnerProfile', true);
-    setLoading('careerMatches', true);
-    setConstructedPayload('learnerProfileRequest', payload);
+  const isEdited = useMemo(
+    () => (currentRequest ? isPathwayEdited(pathwayInputFingerprint, currentRequest) : false),
+    [currentRequest, pathwayInputFingerprint],
+  );
 
+  const rawCareerActionState = getCareerActionState({ hasExistingPathway, isEdited });
+  // Freeze the displayed action state for the duration of an in-flight build/rebuild so
+  // the trailing button's label/variant can't change out from under the learner mid-spin.
+  const isPathwayPending = pathwayRequestState.status === 'pending';
+  const displayedCareerActionStateRef = useRef(rawCareerActionState);
+  if (!isPathwayPending) {
+    displayedCareerActionStateRef.current = rawCareerActionState;
+  }
+  const careerActionState = isPathwayPending
+    ? displayedCareerActionStateRef.current
+    : rawCareerActionState;
+
+  const handleSelectCareer = useCallback((careerId: string) => {
+    selectCareer(careerId, recommendedSkillsForCareer(displayedMatches, careerId) ?? undefined);
+  }, [selectCareer, displayedMatches]);
+
+  const handleDismissSkill = useCallback((skill: string) => {
+    removeSelectedSkill(skill, recommendedSkills);
+  }, [removeSelectedSkill, recommendedSkills]);
+
+  const handleRestoreSkills = useCallback(() => {
+    restoreSelectedSkills(recommendedSkills);
+  }, [restoreSelectedSkills, recommendedSkills]);
+
+  // Atomically commits the profile/career-matches success result — see
+  // state/pathwaysStore.ts:commitProfileSuccess. Always replaces career matches
+  // and the submitted intent, and re-validates the selected career against them.
+  const submitGoalSummary = async (updates: GoalSummaryFormValues) => {
+    beginProfile();
     try {
-      await generateProfile();
-      if (learnerProfile) {
-        updateLearnerProfile(updates);
-      } else {
-        setLearnerProfile(nextProfile);
-      }
-      if (usesStubData) {
-        setCareerMatches(CAREER_SELECTION_STUB_MATCHES);
-      }
-      setExperienceStatus('profile_ready');
+      const result = await generateProfile(updates);
+      commitProfileSuccess({
+        learnerIntent: updates,
+        learnerProfile: result.learnerProfile,
+        careerMatches: result.careerMatches,
+      });
+      resolveProfile();
     } catch (error) {
-      setError(
-        'learnerProfile',
-        errorMessage(error, 'Unable to update the learner profile.'),
-      );
+      failProfile(errorMessage(error, 'Unable to update the learner profile.'));
       throw error;
-    } finally {
-      setLoading('learnerProfile', false);
-      setLoading('careerMatches', false);
     }
   };
 
-  // buildPathway uses container-owned selectedCareer and visibleSkills.
-  // Integration seam: Build Pathway should call controller.generatePathway(explicit input)
-  // -> Algolia course retrieval -> normalize hits, keeping hit.key as the stable
-  // courseKey -> fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
-  // -> merge reasons[courseKey] into each course's whyThisFitsYou -> update pathway
-  // state -> navigate. Recommendation Feedback cannot run before Algolia returns
-  // candidate courses. Verify against the serializer whether selectedCareer should
-  // be the career title or an id.
+  // buildPathway composes the explicit PathwayGenerationRequest, builds its
+  // fingerprint, and commits the result atomically via commitPathwayBuild (courses +
+  // fingerprint together — see state/pathwaysStore.ts). Recommendation Feedback cannot
+  // run before course retrieval returns candidates; generatePathwayWorkflow owns
+  // that ordering once real Algolia/Recommendation Feedback integration lands.
   const buildPathway = useCallback(async () => {
-    if (!selectedCareer || loading.pathwayCourses) {
+    if (!selectedCareer || isPathwayPending) {
       return;
     }
-    const payload = {
-      source: 'career_selection',
-      learnerProfile: displayedProfile,
-      selectedCareer,
+
+    // Building from State A (stub display, no Goal Summary ever submitted) durably
+    // persists the stub profile/matches now, mirroring what a real Goal Summary
+    // submission would have produced. Without this, learnerProfile/careerMatches stay
+    // null/empty forever and every future render/refresh leans on the display-only
+    // stub fallback (usesStubData/effectiveLearnerProfile, above) instead of real store
+    // data. Guarded on usesStubData so this only ever fires once — after this commit,
+    // learnerProfile is non-null, so usesStubData is naturally false on any rebuild.
+    if (usesStubData) {
+      commitStubProfile({
+        learnerProfile: CAREER_SELECTION_STUB_PROFILE,
+        careerMatches: CAREER_SELECTION_STUB_MATCHES,
+      });
+    }
+
+    const skillsForBuild = selectedSkills ?? recommendedSkills;
+    selectCareer(selectedCareer.id, skillsForBuild);
+    setIsOverwriteOpen(false);
+    beginPathway();
+
+    const request: PathwayGenerationRequest = {
+      learnerIntent,
+      learnerProfile: effectiveLearnerProfile,
       selectedCareerId: selectedCareer.id,
-      skillsToDevelop: visibleSkills,
+      selectedSkills: skillsForBuild,
     };
 
-    setSelectedCareerId(selectedCareer.id);
-    setError('pathwayCourses', null);
-    setLoading('pathwayCourses', true);
-    setConstructedPayload('pathwayRequest', payload);
-    setIsOverwriteOpen(false);
-
     try {
-      await generatePathway();
-      setExperienceStatus('pathway_ready');
+      const result = await generatePathway(request);
+      if (result.courses.length === 0) {
+        // Expected edge state, not a rejected request: end the pending state without
+        // committing courses/fingerprint or navigating, and let the learner adjust
+        // their inputs instead. A prior existing pathway (if this was a rebuild) is
+        // left untouched since commitPathwayBuild is never called.
+        resolvePathway();
+        setIsNoCoursesOpen(true);
+        return;
+      }
+      commitPathwayBuild({
+        courses: result.courses,
+        fingerprint: computePathwayInputFingerprint(request),
+      });
+      resolvePathway();
       onNext?.();
     } catch (error) {
-      setError(
-        'pathwayCourses',
-        errorMessage(error, 'Unable to build the learning pathway.'),
-      );
-    } finally {
-      setLoading('pathwayCourses', false);
+      failPathway(errorMessage(error, 'Unable to build the learning pathway.'));
     }
   }, [
     selectedCareer,
-    loading.pathwayCourses,
-    displayedProfile,
-    visibleSkills,
-    setSelectedCareerId,
-    setError,
-    setLoading,
-    setConstructedPayload,
+    isPathwayPending,
+    usesStubData,
+    commitStubProfile,
+    selectedSkills,
+    recommendedSkills,
+    selectCareer,
+    learnerIntent,
+    effectiveLearnerProfile,
     generatePathway,
-    setExperienceStatus,
+    commitPathwayBuild,
     onNext,
+    beginPathway,
+    resolvePathway,
+    failPathway,
   ]);
 
-  const handleBuildOrOverwrite = useCallback(() => {
-    if (hasExistingPathway) {
-      setIsOverwriteOpen(true);
-    } else {
-      buildPathway();
-    }
-  }, [hasExistingPathway, buildPathway]);
+  // Navigate to the existing pathway without building/rebuilding it.
+  const viewExistingPathway = useCallback(() => {
+    onNext?.();
+  }, [onNext]);
 
-  // Register primary CTA in the page-level action bar.
-  useEffect(() => {
-    registerActions({
-      primary: {
+  const openRetakeQuiz = useCallback(() => setIsRetakeOpen(true), []);
+  const closeRetakeQuiz = useCallback(() => setIsRetakeOpen(false), []);
+  const confirmRetakeQuiz = useCallback(() => {
+    setIsRetakeOpen(false);
+    resetPathwaysState();
+    onRetakeQuiz?.();
+  }, [onRetakeQuiz, resetPathwaysState]);
+
+  const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
+  const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);
+
+  const closeNoCoursesModal = useCallback(() => setIsNoCoursesOpen(false), []);
+
+  const isProfileSubmitting = profileRequestState.status === 'pending';
+
+  // Trailing action-bar buttons, state-dependent per the Career Profile action matrix.
+  const trailingActions = useMemo((): PathwaysAction[] => {
+    if (careerActionState === 'new-pathway') {
+      return [{
         id: 'career-build-pathway',
         label: careerMessages.buildPathway,
         loadingLabel: careerMessages.buildingPathway,
         variant: 'primary',
         type: 'button',
-        disabled: !selectedCareer || loading.pathwayCourses || loading.careerMatches,
-        loading: loading.pathwayCourses,
-        onClick: handleBuildOrOverwrite,
+        disabled: !selectedCareer || isPathwayPending || isProfileSubmitting,
+        loading: isPathwayPending,
+        onClick: buildPathway,
         buttonRef: buildButtonRef,
-        testId: 'profile-build-pathway-button',
+        testId: 'career-build-pathway-button',
+      }];
+    }
+    if (careerActionState === 'existing-pathway-unchanged') {
+      return [{
+        id: 'career-build-pathway',
+        label: careerMessages.buildPathway,
+        variant: 'primary',
+        type: 'button',
+        disabled: isPathwayPending || isProfileSubmitting,
+        onClick: viewExistingPathway,
+        buttonRef: buildButtonRef,
+        testId: 'career-build-pathway-button',
+      }];
+    }
+    // existing-pathway-edited
+    return [
+      {
+        id: 'career-view-current-pathway',
+        label: careerMessages.viewCurrentPathway,
+        variant: 'outline-primary',
+        type: 'button',
+        disabled: isPathwayPending,
+        onClick: viewExistingPathway,
+        testId: 'career-view-current-pathway-button',
       },
-      alignment: 'end',
+      {
+        id: 'career-rebuild-pathway',
+        label: careerMessages.rebuildPathway,
+        loadingLabel: careerMessages.buildingPathway,
+        variant: 'primary',
+        type: 'button',
+        disabled: isPathwayPending || isProfileSubmitting,
+        loading: isPathwayPending,
+        onClick: openRebuildModal,
+        buttonRef: buildButtonRef,
+        testId: 'career-rebuild-pathway-button',
+      },
+    ];
+  }, [
+    careerActionState,
+    selectedCareer,
+    isPathwayPending,
+    isProfileSubmitting,
+    buildPathway,
+    viewExistingPathway,
+    openRebuildModal,
+  ]);
+
+  // Register leading (Retake quiz) + trailing action-bar buttons.
+  useEffect(() => {
+    registerActions({
+      primary: {
+        id: 'career-retake-quiz',
+        label: careerMessages.retakeQuiz,
+        variant: 'tertiary',
+        type: 'button',
+        iconBefore: ArrowBack,
+        onClick: openRetakeQuiz,
+        buttonRef: retakeButtonRef,
+        testId: 'career-retake-quiz-button',
+      },
+      secondary: trailingActions,
+      alignment: 'split',
     });
     return () => clearActions();
-  }, [
-    selectedCareer,
-    loading.pathwayCourses,
-    loading.careerMatches,
-    handleBuildOrOverwrite,
-    registerActions,
-    clearActions,
-  ]);
+  }, [trailingActions, openRetakeQuiz, registerActions, clearActions]);
 
   return (
     <CareerSelectionPage
-      profile={displayedProfile}
+      learnerIntent={learnerIntent}
       careerMatches={displayedMatches}
       selectedCareerId={selectedCareerId}
-      isProfileSubmitting={loading.learnerProfile || loading.careerMatches}
-      isCareerMatchesLoading={
-        loading.careerMatches && displayedMatches.length === 0
-      }
-      isBuildingPathway={loading.pathwayCourses}
-      profileError={errors.learnerProfile}
-      careerMatchesError={errors.careerMatches}
+      isProfileSubmitting={isProfileSubmitting}
+      isCareerMatchesLoading={isProfileSubmitting && displayedMatches.length === 0}
+      isBuildingPathway={isPathwayPending}
+      profileError={profileRequestState.error}
       onSubmitGoalSummary={submitGoalSummary}
-      onSelectCareer={setSelectedCareerId}
+      onSelectCareer={handleSelectCareer}
       isOverwriteOpen={isOverwriteOpen}
-      onCloseOverwrite={() => setIsOverwriteOpen(false)}
+      onCloseOverwrite={closeRebuildModal}
       onConfirmOverwrite={buildPathway}
       buildButtonRef={buildButtonRef}
-      visibleSkills={visibleSkills}
-      dismissedSkillCount={dismissedSkills.size}
-      onDismissSkill={(skill) => setDismissedSkills(
-        (current) => new Set([...current, skill]),
-      )}
-      onRestoreSkills={() => setDismissedSkills(new Set<string>())}
+      isRetakeOpen={isRetakeOpen}
+      onCloseRetake={closeRetakeQuiz}
+      onConfirmRetake={confirmRetakeQuiz}
+      retakeButtonRef={retakeButtonRef}
+      isNoCoursesOpen={isNoCoursesOpen}
+      onCloseNoCourses={closeNoCoursesModal}
+      visibleSkills={displayedSelectedSkills}
+      dismissedSkillCount={dismissedSkillCount}
+      onDismissSkill={handleDismissSkill}
+      onRestoreSkills={handleRestoreSkills}
     />
   );
 };

@@ -15,6 +15,7 @@ const LearnerPathwaysTab = () => {
 
   const handleBackToProfile = useCallback(() => setSection('profile'), [setSection]);
   const handleNext = useCallback(() => setSection('pathway'), [setSection]);
+  const handleRetakeQuiz = useCallback(() => setSection('onboarding'), [setSection]);
 
   return (
     <PathwaysActionBarProvider>
@@ -33,7 +34,7 @@ const LearnerPathwaysTab = () => {
             <IntakePage onSubmit={() => setSection('profile')} />
           )}
           {section === VIEWS.PROFILE && (
-            <CareerSelectionContainer onNext={handleNext} />
+            <CareerSelectionContainer onNext={handleNext} onRetakeQuiz={handleRetakeQuiz} />
           )}
           {section === VIEWS.PATHWAY && (
             <PathwayCoursesContainer onBackToProfile={handleBackToProfile} />

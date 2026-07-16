@@ -1,13 +1,6 @@
-/**
- * Experience-level states shown in the learner pathways dashboard flow.
- */
-export type PathwaysExperienceStatus =
-  | 'not_started'
-  | 'onboarding_in_progress'
-  | 'profile_ready'
-  | 'pathway_ready'
-  | 'pathway_in_progress'
-  | 'pathway_completed';
+import type { LearnerIntent } from './learnerIntent';
+
+export type { LearnerIntent };
 
 /**
  * Tab-internal sections for learner pathways content.
@@ -18,33 +11,25 @@ export type PathwaysSection =
   | 'pathway';
 
 /**
- * Free-text onboarding answers captured from the initial questionnaire.
+ * Experience-level states shown in the learner pathways dashboard flow. Never stored
+ * directly — always derived from canonical state via `derivePathwaysExperienceStatus`,
+ * so it can never drift out of sync with the facts it summarizes.
  */
-export interface OnboardingAnswers {
-  motivation: string;
-  goal: string;
-  background: string;
-  industry: string;
-}
+export type PathwaysExperienceStatus =
+  | 'not_started'
+  | 'onboarding_in_progress'
+  | 'profile_ready'
+  | 'pathway_ready'
+  | 'pathway_in_progress'
+  | 'pathway_completed';
 
 /**
- * Onboarding quiz progression metadata.
- */
-export interface OnboardingState {
-  answers: OnboardingAnswers;
-  currentQuestion: number;
-  isComplete: boolean;
-}
-
-/**
- * Learner profile scaffold generated from onboarding responses.
+ * Generated/enriched learner profile output. Contains only data produced by profile
+ * generation — the learner's own intent (career goal, target industry, background,
+ * motivation) lives solely on `LearnerIntent`, never duplicated here.
  */
 export interface LearnerProfile {
   summary: string;
-  careerGoal: string;
-  targetIndustry: string;
-  background: string;
-  motivation: string;
   learningStyle: string;
   weeklyTimeCommitment: string;
   certificatePreference: string;
@@ -71,14 +56,15 @@ export type PathwayCourseStatus =
   | 'completed';
 
 /**
- * Pathway course metadata scaffold.
+ * Pathway course metadata scaffold. `courseKey` is the single canonical identifier —
+ * used for React list keys, table row identity, and the future Recommendation Feedback
+ * join field. No separate `id` is kept: nothing in the current integration distinguishes
+ * a display identifier from a catalog join key.
  */
 export interface PathwayCourse {
-  id: string;
+  courseKey: string;
   title: string;
   provider?: string;
-  /** Stable backend/catalog join key used to match Recommendation Feedback `reasons` entries. */
-  courseKey?: string;
   level?: string;
   length?: string;
   /** Populated from the Recommendation Feedback response's `reasons[courseKey]` entry. */
@@ -87,7 +73,8 @@ export interface PathwayCourse {
 }
 
 /**
- * Summary counts shown in dashboard/pathway progress states.
+ * Summary counts shown in dashboard/pathway progress states. Always derived from
+ * `pathwayCourses` at render time (see `pathway-courses/utils.ts`) — never stored.
  */
 export interface PathwayProgress {
   completed: number;
@@ -97,49 +84,50 @@ export interface PathwayProgress {
 }
 
 /**
- * Loading flags reserved for future async integrations.
- */
-export interface PathwaysLoadingState {
-  learnerProfile: boolean;
-  careerMatches: boolean;
-  pathwayCourses: boolean;
-  pathwayProgress: boolean;
-}
-
-/**
- * Error placeholders reserved for future async integrations.
- */
-export interface PathwaysErrorState {
-  learnerProfile: string | null;
-  careerMatches: string | null;
-  pathwayCourses: string | null;
-  pathwayProgress: string | null;
-}
-
-/**
- * Request payload placeholders used for future API integrations.
- * These remain generic in the scaffold phase until contracts are finalized.
- */
-export interface PathwaysConstructedPayloads {
-  learnerProfileRequest: Record<string, unknown> | null;
-  pathwayRequest: Record<string, unknown> | null;
-}
-
-/**
- * Read-only slice of learner pathways store values.
+ * Durable learner pathways state. Every field here is a canonical fact persisted under
+ * its own name across RHF, Zustand, and localStorage — no renaming or projection layer
+ * separates them.
  */
 export interface PathwaysState {
-  experienceStatus: PathwaysExperienceStatus;
   section: PathwaysSection;
-  onboarding: OnboardingState;
+  learnerIntent: LearnerIntent;
   learnerProfile: LearnerProfile | null;
   careerMatches: CareerMatch[];
   selectedCareerId: string | null;
+  /**
+   * Skills the learner has selected to develop for the currently selected career.
+   * `null` means uninitialized (no valid selected career yet); `[]` means the learner
+   * intentionally selected none. This is the canonical inclusion list pathway
+   * generation actually consumes — not derived from a separate exclusion set.
+   */
+  selectedSkills: string[] | null;
   pathwayCourses: PathwayCourse[];
-  progress: PathwayProgress;
-  loading: PathwaysLoadingState;
-  errors: PathwaysErrorState;
-  constructedPayloads: PathwaysConstructedPayloads;
+  /**
+   * Deterministic fingerprint of the exact `PathwayGenerationRequest` that produced
+   * `pathwayCourses`. `null` means no pathway has been built yet, or (after a v1-shaped
+   * hydration) the historical request can't be trusted — treated as stale until rebuilt.
+   * Metadata about the current pathway, not a second copy of the request itself.
+   */
+  pathwayInputFingerprint: string | null;
+}
+
+/** Input for the atomic Goal Summary / profile-generation success commit. */
+export interface CommitProfileSuccessInput {
+  learnerIntent: LearnerIntent;
+  learnerProfile: LearnerProfile;
+  careerMatches: CareerMatch[];
+}
+
+/** Input for the atomic pathway build/rebuild success commit. */
+export interface CommitPathwayBuildInput {
+  courses: PathwayCourse[];
+  fingerprint: string;
+}
+
+/** Input for durably committing the display-only stub profile/matches as real. */
+export interface CommitStubProfileInput {
+  learnerProfile: LearnerProfile;
+  careerMatches: CareerMatch[];
 }
 
 /**
@@ -148,25 +136,49 @@ export interface PathwaysState {
  */
 export interface PathwaysActions {
   setSection: (section: PathwaysSection) => void;
-  setExperienceStatus: (status: PathwaysExperienceStatus) => void;
-  setCurrentQuestion: (questionNumber: number) => void;
-  setOnboardingComplete: (isComplete: boolean) => void;
-  setOnboardingAnswer: <K extends keyof OnboardingAnswers>(questionKey: K, value: OnboardingAnswers[K]) => void;
-  setOnboardingAnswers: (answers: OnboardingAnswers) => void;
-  setLearnerProfile: (profile: LearnerProfile | null) => void;
-  updateLearnerProfile: (profileUpdates: Partial<LearnerProfile>) => void;
-  setCareerMatches: (matches: CareerMatch[]) => void;
-  setSelectedCareerId: (careerId: string | null) => void;
-  setPathwayCourses: (courses: PathwayCourse[]) => void;
-  updatePathwayCourse: (courseId: string, updates: Partial<Omit<PathwayCourse, 'id'>>) => void;
-  setProgress: (progress: PathwayProgress) => void;
-  setLoading: (key: keyof PathwaysLoadingState, isLoading: boolean) => void;
-  setError: (key: keyof PathwaysErrorState, errorMessage: string | null) => void;
-  setConstructedPayload: <K extends keyof PathwaysConstructedPayloads>(
-    key: K,
-    payload: PathwaysConstructedPayloads[K]
-  ) => void;
-  clearConstructedPayloads: () => void;
+  setLearnerIntent: (learnerIntent: LearnerIntent) => void;
+  /**
+   * Atomically selects a career and (re)initializes its selected-skills list.
+   * `recommendedSkills`, when supplied, is used verbatim instead of looking the
+   * career up in `careerMatches` — needed when the caller is displaying a career
+   * (e.g. a pre-generation stub/fallback) not yet present in committed state.
+   */
+  selectCareer: (careerId: string | null, recommendedSkills?: string[]) => void;
+  removeSelectedSkill: (skill: string, recommendedSkills?: string[]) => void;
+  restoreSelectedSkills: (recommendedSkills?: string[]) => void;
+  /**
+   * Atomically commits a successful Goal Summary / profile-generation result:
+   * replaces the submitted intent, the generated profile, and career matches,
+   * re-validates the selected career against the new matches, and (re)initializes
+   * selected skills for the resulting selected career — all in one commit rather than
+   * a sequence of setters. Never reconstructs `learnerIntent` from `learnerProfile`.
+   */
+  commitProfileSuccess: (input: CommitProfileSuccessInput) => void;
+  /**
+   * Atomically commits a successful pathway build/rebuild: replaces the complete
+   * course set and records the fingerprint of the request that produced it, together.
+   */
+  commitPathwayBuild: (input: CommitPathwayBuildInput) => void;
+  /**
+   * Commits the display-only stub profile/matches as if they were a real
+   * commitProfileSuccess result — called once, the first time a pathway is built
+   * without the learner ever submitting Goal Summary (State A, see
+   * CareerSelectionContainer's usesStubData). This mirrors what the real workflow
+   * would have produced, so learnerProfile/careerMatches stop being permanently
+   * null/empty after a State A build. Deliberately does NOT touch
+   * selectedCareerId/selectedSkills — unlike commitProfileSuccess (which legitimately
+   * re-seeds skills for genuinely new matches), this call represents the *same*
+   * matches the learner was already looking at, so their already-made skill
+   * dismissals must survive it.
+   */
+  commitStubProfile: (input: CommitStubProfileInput) => void;
+  /**
+   * Resets the entire store back to its initial zero state (see
+   * getInitialPathwaysState) — used when the learner confirms Retake Quiz, since
+   * retaking discards everything derived from the old onboarding answers: the built
+   * pathway, the (possibly stub-derived) profile/matches, the career/skill selection,
+   * and the answers themselves.
+   */
   resetPathwaysState: () => void;
 }
 

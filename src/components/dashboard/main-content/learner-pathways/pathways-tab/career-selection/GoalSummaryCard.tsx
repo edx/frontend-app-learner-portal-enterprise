@@ -1,50 +1,66 @@
-import React, { useEffect, useRef } from 'react';
+import React, {
+  useEffect, useImperativeHandle, useRef,
+} from 'react';
 import {
   Card,
   Form,
 } from '@openedx/paragon';
 import { useForm } from 'react-hook-form';
 
-import type { LearnerProfile } from '../state';
+import type { LearnerIntent } from '../state';
 import GoalSummaryEditForm from './GoalSummaryEditForm';
 import GoalSummaryReadOnly from './GoalSummaryReadOnly';
 import GoalSummaryEditHeader from './GoalSummaryEditHeader';
 import GoalSummaryReadOnlyHeader from './GoalSummaryReadOnlyHeader';
 import GoalSummaryErrorAlert from './GoalSummaryErrorAlert';
-import type { GoalSummaryFields } from './types';
+import type { GoalSummaryFormValues } from './types';
 
-export type { GoalSummaryFields } from './types';
+export type { GoalSummaryFormValues } from './types';
 
-export interface GoalSummaryCardProps {
-  profile: LearnerProfile;
-  isEditing: boolean;
-  isProfileSubmitting?: boolean;
-  profileError?: string | null;
-  onBeginEditing: () => void;
-  onEndEditing: () => void;
-  onSubmitGoalSummary: (updates: GoalSummaryFields) => Promise<void> | void;
+export interface GoalSummaryCardHandle {
+  /** Scrolls the card into view and moves focus to its first editable field. */
+  focusFirstField: () => void;
 }
 
-const GoalSummaryCard = ({
-  profile,
+export interface GoalSummaryCardProps {
+  learnerIntent: LearnerIntent;
+  isEditing: boolean;
+  isProfileSubmitting: boolean;
+  profileError: string | null;
+  onBeginEditing: () => void;
+  onEndEditing: () => void;
+  onSubmitGoalSummary: (updates: GoalSummaryFormValues) => Promise<void> | void;
+}
+
+const GoalSummaryCard = React.forwardRef<GoalSummaryCardHandle, GoalSummaryCardProps>(({
+  learnerIntent,
   isEditing,
-  isProfileSubmitting = false,
-  profileError = null,
+  isProfileSubmitting,
+  profileError,
   onBeginEditing,
   onEndEditing,
   onSubmitGoalSummary,
-}: GoalSummaryCardProps) => {
+}: GoalSummaryCardProps, ref) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusFirstField: () => {
+      cardRef.current?.scrollIntoView?.({ block: 'center' });
+      cardRef.current?.querySelector('textarea')?.focus();
+    },
+  }), []);
+
   const {
     control,
     formState,
     handleSubmit,
     reset,
-  } = useForm<GoalSummaryFields>({
+  } = useForm<GoalSummaryFormValues>({
     defaultValues: {
-      careerGoal: profile.careerGoal,
-      targetIndustry: profile.targetIndustry,
-      background: profile.background,
-      motivation: profile.motivation,
+      careerGoal: learnerIntent.careerGoal,
+      targetIndustry: learnerIntent.targetIndustry,
+      background: learnerIntent.background,
+      motivation: learnerIntent.motivation,
     },
     mode: 'onChange',
   });
@@ -56,15 +72,22 @@ const GoalSummaryCard = ({
     prevIsEditingRef.current = isEditing;
     if (!wasEditing && isEditing) {
       reset({
-        careerGoal: profile.careerGoal,
-        targetIndustry: profile.targetIndustry,
-        background: profile.background,
-        motivation: profile.motivation,
+        careerGoal: learnerIntent.careerGoal,
+        targetIndustry: learnerIntent.targetIndustry,
+        background: learnerIntent.background,
+        motivation: learnerIntent.motivation,
       });
     }
-  }, [isEditing, profile.careerGoal, profile.targetIndustry, profile.background, profile.motivation, reset]);
+  }, [
+    isEditing,
+    learnerIntent.careerGoal,
+    learnerIntent.targetIndustry,
+    learnerIntent.background,
+    learnerIntent.motivation,
+    reset,
+  ]);
 
-  const onValidSubmit = async (values: GoalSummaryFields) => {
+  const onValidSubmit = async (values: GoalSummaryFormValues) => {
     if (isProfileSubmitting) {
       return;
     }
@@ -83,7 +106,7 @@ const GoalSummaryCard = ({
 
   return (
     <Card className="mb-3 shadow-sm" data-testid="goal-summary-card">
-      <Card.Body className="p-4">
+      <Card.Body ref={cardRef} className="p-4">
         {isEditing ? (
           <Form onSubmit={handleSubmit(onValidSubmit)}>
             <GoalSummaryEditHeader
@@ -99,12 +122,14 @@ const GoalSummaryCard = ({
           <>
             <GoalSummaryReadOnlyHeader onBeginEditing={onBeginEditing} />
             <GoalSummaryErrorAlert error={profileError} />
-            <GoalSummaryReadOnly profile={profile} />
+            <GoalSummaryReadOnly learnerIntent={learnerIntent} />
           </>
         )}
       </Card.Body>
     </Card>
   );
-};
+});
+
+GoalSummaryCard.displayName = 'GoalSummaryCard';
 
 export default GoalSummaryCard;

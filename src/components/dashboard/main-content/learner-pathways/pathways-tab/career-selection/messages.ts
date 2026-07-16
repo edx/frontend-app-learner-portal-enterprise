@@ -151,28 +151,82 @@ const messages = defineMessages({
   buildingPathway: {
     id: 'learner.pathways.career.selection.building.pathway',
     defaultMessage: 'Building pathway...',
-    description: 'Build pathway loading state.',
+    description: 'Loading state shown on the build/rebuild pathway action while it is in flight.',
+  },
+  viewCurrentPathway: {
+    id: 'learner.pathways.career.selection.view.current.pathway',
+    defaultMessage: 'View current pathway',
+    description: 'Action to navigate to the existing pathway without rebuilding it, shown when the learner has made edits since it was generated.',
+  },
+  rebuildPathway: {
+    id: 'learner.pathways.career.selection.rebuild.pathway',
+    defaultMessage: 'Rebuild my learning pathway',
+    description: 'Primary action to rebuild the pathway, shown when the learner has made relevant edits since it was generated.',
   },
   overwriteTitle: {
     id: 'learner.pathways.career.selection.overwrite.title',
-    defaultMessage: 'Overwrite previous pathway?',
-    description: 'Pathway overwrite confirmation title.',
+    defaultMessage: 'Rebuild your Pathway?',
+    description: 'Confirmation modal title shown before rebuilding a pathway with updated goals or career choice.',
   },
-  overwriteBody: {
-    id: 'learner.pathways.career.selection.overwrite.body',
-    defaultMessage:
-      'You already have a saved pathway. Continuing will rebuild it with the selected career and skills.',
-    description: 'Pathway overwrite confirmation body.',
+  overwriteBodyPathway: {
+    id: 'learner.pathways.career.selection.overwrite.body.pathway',
+    defaultMessage: 'Your current pathway will be replaced with new recommendations.',
+    description: 'First paragraph of the confirmation modal body shown before rebuilding a pathway: explains the pathway itself will be replaced.',
   },
-  keepPathway: {
-    id: 'learner.pathways.career.selection.keep.pathway',
-    defaultMessage: 'Keep previous pathway',
-    description: 'Cancel pathway overwrite action.',
+  overwriteBodyCourses: {
+    id: 'learner.pathways.career.selection.overwrite.body.courses',
+    defaultMessage: "Any courses you've already enrolled in won't be affected. You will still be able to access them on the course tab on your dashboard.",
+    description: 'Second paragraph of the confirmation modal body shown before rebuilding a pathway: reassures the learner that enrolled courses are unaffected.',
   },
-  buildNewPathway: {
-    id: 'learner.pathways.career.selection.build.new.pathway',
-    defaultMessage: 'Build new pathway',
-    description: 'Confirm pathway overwrite action.',
+  overwriteCancel: {
+    id: 'learner.pathways.career.selection.overwrite.cancel',
+    defaultMessage: 'Cancel',
+    description: 'Cancel the pathway rebuild confirmation and keep the existing pathway.',
+  },
+  overwriteConfirm: {
+    id: 'learner.pathways.career.selection.overwrite.confirm',
+    defaultMessage: 'Rebuild Pathway',
+    description: 'Confirm the pathway rebuild action.',
+  },
+  retakeQuiz: {
+    id: 'learner.pathways.career.selection.retake.quiz',
+    defaultMessage: 'Retake quiz',
+    description: 'Leading action to retake the onboarding quiz from the Career Profile page.',
+  },
+  retakeQuizTitle: {
+    id: 'learner.pathways.career.selection.retake.quiz.title',
+    defaultMessage: 'Retake your onboarding quiz?',
+    description: 'Confirmation modal title shown before retaking the onboarding quiz.',
+  },
+  retakeQuizBody: {
+    id: 'learner.pathways.career.selection.retake.quiz.body',
+    defaultMessage: "If you retake the onboarding quiz, your existing goal summary, career match, and pathway will no longer be saved. You will need to rebuild them. Your enrolled courses won't be affected.",
+    description: 'Confirmation modal body shown before retaking the onboarding quiz.',
+  },
+  retakeQuizCancel: {
+    id: 'learner.pathways.career.selection.retake.quiz.cancel',
+    defaultMessage: 'Cancel',
+    description: 'Cancel the retake-quiz confirmation and stay on the Career Profile page.',
+  },
+  noCoursesTitle: {
+    id: 'learner.pathways.career.selection.no.courses.title',
+    defaultMessage: 'We could not build a pathway for this career match',
+    description: 'Title of the modal shown when pathway generation succeeds but returns no courses for the selected career match.',
+  },
+  noCoursesBody: {
+    id: 'learner.pathways.career.selection.no.courses.body',
+    defaultMessage: "There aren't enough courses available for this career goal right now. Try selecting a different career match, or edit your goal summary to explore other directions.",
+    description: 'Body copy of the no-courses-returned modal, explaining why a pathway could not be built and how the learner can proceed.',
+  },
+  noCoursesBack: {
+    id: 'learner.pathways.career.selection.no.courses.back',
+    defaultMessage: 'Back',
+    description: 'Secondary action on the no-courses-returned modal: dismiss the modal and stay on Career Profile without changing anything.',
+  },
+  noCoursesChooseDifferentMatch: {
+    id: 'learner.pathways.career.selection.no.courses.choose.different.match',
+    defaultMessage: 'Choose a different match',
+    description: 'Primary action on the no-courses-returned modal: closes the modal and opens Goal Summary editing so the learner can change the inputs driving their career match.',
   },
 });
 

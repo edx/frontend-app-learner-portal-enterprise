@@ -14,8 +14,8 @@ describe('derivePathwayProgress', () => {
 
   it('counts all-completed courses correctly', () => {
     const courses: PathwayCourse[] = [
-      { id: 'a', title: 'A', status: 'completed' },
-      { id: 'b', title: 'B', status: 'completed' },
+      { courseKey: 'a', title: 'A', status: 'completed' },
+      { courseKey: 'b', title: 'B', status: 'completed' },
     ];
 
     expect(derivePathwayProgress(courses)).toEqual({
@@ -28,10 +28,10 @@ describe('derivePathwayProgress', () => {
 
   it('counts a mix of statuses correctly', () => {
     const courses: PathwayCourse[] = [
-      { id: 'a', title: 'A', status: 'completed' },
-      { id: 'b', title: 'B', status: 'in_progress' },
-      { id: 'c', title: 'C', status: 'not_started' },
-      { id: 'd', title: 'D', status: 'not_started' },
+      { courseKey: 'a', title: 'A', status: 'completed' },
+      { courseKey: 'b', title: 'B', status: 'in_progress' },
+      { courseKey: 'c', title: 'C', status: 'not_started' },
+      { courseKey: 'd', title: 'D', status: 'not_started' },
     ];
 
     expect(derivePathwayProgress(courses)).toEqual({
@@ -50,7 +50,7 @@ describe('getDisplayedPathwayCourses', () => {
 
   it('returns store courses verbatim when populated, leaving the fixture untouched', () => {
     const storeCourses: PathwayCourse[] = [
-      { id: 'custom', title: 'Custom Store Course', status: 'not_started' },
+      { courseKey: 'custom', title: 'Custom Store Course', status: 'not_started' },
     ];
 
     const result = getDisplayedPathwayCourses(storeCourses);
