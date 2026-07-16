@@ -56,6 +56,15 @@ describe('<ContentTypeSearchResultsContainer />', () => {
     expect(screen.getByTestId('search-executive-education')).toBeInTheDocument();
   });
 
+  it('renders nothing when learningType is Executive Education but learningTypeFilter is missing', () => {
+    const { container } = renderContainer({
+      learningType: LEARNING_TYPE_EXECUTIVE_EDUCATION,
+    });
+
+    expect(screen.queryByTestId('search-executive-education')).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('falls back to the generic course results when learningType is not Executive Education', () => {
     renderContainer({ contentType: CONTENT_TYPE_COURSE });
 

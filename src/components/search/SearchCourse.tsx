@@ -19,12 +19,6 @@ interface SearchCourseProps {
 /**
  * Renders the course-specific Algolia search results.
  *
- * @param filter - A fully constructed Algolia filter string that already includes the
- * `content_type:course` condition. This filter is applied to restrict results to relevant courses.
- * @param indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
- * @param handlers - Optional callbacks forwarded to `SearchResults` and invoked when this section
- * has results or no results.
- *
  * @example
  * <SearchCourse
  *   filter="content_type:course AND level:beginner"
