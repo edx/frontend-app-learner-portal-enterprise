@@ -273,6 +273,40 @@ describe('careerRetrievalService.searchCareers', () => {
     });
   });
 
+  describe('optional extended fields entirely omitted (today\'s real 3-field Learning Intent response)', () => {
+    const minimalIntent: CareerSearchIntent = {
+      condensedAlgoliaQuery: '',
+      skillsRequired: ['JavaScript'],
+      skillsPreferred: ['AWS'],
+    };
+
+    it('still falls back to the first required skill when condensedAlgoliaQuery is blank and roles is omitted', async () => {
+      mockSearchResolvedValue([]);
+
+      await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
+
+      expect(mockIndex.search).toHaveBeenCalledWith('JavaScript', expect.anything());
+    });
+
+    it('omits filters entirely when industries/jobSources/excludeTags are all omitted', async () => {
+      mockSearchResolvedValue([]);
+
+      await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
+
+      const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
+      expect(params.filters).toBeUndefined();
+    });
+
+    it('still includes preferred skills (not suppressed) when learnerLevel is omitted', async () => {
+      mockSearchResolvedValue([]);
+
+      await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
+
+      const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
+      expect(params.optionalFilters).toEqual(['skills.name:"JavaScript"', 'skills.name:"AWS"<score=1>']);
+    });
+  });
+
   describe('failure behavior', () => {
     it('propagates a rejected Algolia search instead of resolving to an empty array', async () => {
       const searchError = new Error('Algolia service unavailable');
