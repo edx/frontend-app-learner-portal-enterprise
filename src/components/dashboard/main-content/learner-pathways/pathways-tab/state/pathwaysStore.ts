@@ -1,200 +1,117 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-import { logInfo } from '@edx/frontend-platform/logging';
+import { EMPTY_LEARNER_INTENT } from './learnerIntent';
 import {
   CareerMatch,
-  LearnerProfile,
-  OnboardingAnswers,
-  PathwaysErrorState,
-  PathwaysLoadingState,
   PathwaysState,
   PathwaysStore,
 } from './types';
+import {
+  PATHWAYS_STORAGE_KEY,
+  PATHWAYS_STORAGE_VERSION,
+  mergePathwaysState,
+  partializePathwaysState,
+} from './persistence';
+import { normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
 
 /**
  * Factory for creating a fresh pathways initial state object.
  * This prevents shared object references between runtime resets and tests.
  */
 export const getInitialPathwaysState = (): PathwaysState => ({
-  experienceStatus: 'not_started',
   section: 'onboarding',
-  onboarding: {
-    answers: {
-      motivation: '',
-      goal: '',
-      background: '',
-      industry: '',
-    },
-    currentQuestion: 0,
-    isComplete: false,
-  },
+  learnerIntent: { ...EMPTY_LEARNER_INTENT },
   learnerProfile: null,
   careerMatches: [],
   selectedCareerId: null,
+  selectedSkills: null,
   pathwayCourses: [],
-  progress: {
-    completed: 0,
-    inProgress: 0,
-    upcoming: 0,
-    totalCourses: 0,
-  },
-  loading: {
-    learnerProfile: false,
-    careerMatches: false,
-    pathwayCourses: false,
-    pathwayProgress: false,
-  },
-  errors: {
-    learnerProfile: null,
-    careerMatches: null,
-    pathwayCourses: null,
-    pathwayProgress: null,
-  },
-  constructedPayloads: {
-    learnerProfileRequest: null,
-    pathwayRequest: null,
-  },
-  pathwayBaseline: null,
+  pathwayInputFingerprint: null,
 });
 
 /**
  * Root Zustand store for learner pathways.
  * Holds only state, synchronous setters, and reset behavior.
+ * Wrapped in `persist` so the durable subset (see state/persistence.ts) survives a
+ * refresh; hydration is synchronous for localStorage, so the store's initial state is
+ * already hydrated before first render — no separate "waiting for hydration" step.
  */
-export const usePathwaysStore = create<PathwaysStore>((set) => ({
+export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
   ...getInitialPathwaysState(),
   setSection: (section) => set({ section }),
-  setExperienceStatus: (experienceStatus) => set({ experienceStatus }),
-  setCurrentQuestion: (currentQuestion) => set((state) => ({
-    onboarding: {
-      ...state.onboarding,
-      currentQuestion,
-    },
-  })),
-  setOnboardingComplete: (isComplete) => set((state) => ({
-    onboarding: {
-      ...state.onboarding,
-      isComplete,
-    },
-  })),
-  setOnboardingAnswer: (questionKey, value) => set((state) => ({
-    onboarding: {
-      ...state.onboarding,
-      answers: {
-        ...state.onboarding.answers,
-        [questionKey]: value,
-      },
-    },
-  })),
-  setOnboardingAnswers: (answers) => set((state) => ({
-    onboarding: {
-      ...state.onboarding,
-      answers,
-    },
-  })),
-  setLearnerProfile: (learnerProfile) => set({ learnerProfile }),
-  updateLearnerProfile: (
-    profileUpdates: Partial<LearnerProfile>,
-  ) => set((state) => {
-    if (!state.learnerProfile) {
-      // Invariant/Assumption violation.
-      // updateLearnerProfile should only be called after setLearnerProfile.
-      logInfo(
-        'updateLearnerProfile called before learnerProfile initialization',
-        profileUpdates,
-      );
-      return {};
-    }
-
+  setLearnerIntent: (learnerIntent) => set({ learnerIntent }),
+  // `recommendedSkills` lets a caller (CareerSelectionContainer) supply the target
+  // career's recommended list explicitly when it isn't yet present in
+  // `state.careerMatches` — e.g. the pre-generation stub-display career shown before
+  // any real profile/career-matches commit exists. Omitted, it derives from
+  // `state.careerMatches` as normal.
+  selectCareer: (selectedCareerId, recommendedSkills) => set((state) => (
+    state.selectedCareerId === selectedCareerId
+      ? { selectedCareerId }
+      : {
+        selectedCareerId,
+        selectedSkills: recommendedSkills ?? recommendedSkillsForCareer(state.careerMatches, selectedCareerId),
+      }
+  )),
+  removeSelectedSkill: (skill, recommendedSkills) => set((state) => {
+    const currentSkills = state.selectedSkills ?? recommendedSkills ?? [];
     return {
-      learnerProfile: {
-        ...state.learnerProfile,
-        ...profileUpdates,
-      },
+      selectedSkills: currentSkills.filter((candidate) => candidate !== skill),
     };
   }),
-  setCareerMatches: (careerMatches) => set({ careerMatches }),
-  setSelectedCareerId: (selectedCareerId) => set({ selectedCareerId }),
-  setPathwayCourses: (pathwayCourses) => set({ pathwayCourses }),
-  updatePathwayCourse: (courseId, updates) => set((state) => ({
-    pathwayCourses: state.pathwayCourses.map((course) => (
-      course.id === courseId ? { ...course, ...updates } : course
-    )),
+  restoreSelectedSkills: (recommendedSkills) => set((state) => ({
+    selectedSkills: recommendedSkills ?? recommendedSkillsForCareer(state.careerMatches, state.selectedCareerId),
   })),
-  setProgress: (progress) => set({ progress }),
-  setLoading: (key, isLoading) => set((state) => ({
-    loading: {
-      ...state.loading,
-      [key]: isLoading,
-    },
-  })),
-  setError: (key, errorMessage) => set((state) => ({
-    errors: {
-      ...state.errors,
-      [key]: errorMessage,
-    },
-  })),
-  setConstructedPayload: (key, payload) => set((state) => ({
-    constructedPayloads: {
-      ...state.constructedPayloads,
-      [key]: payload,
-    },
-  })),
-  clearConstructedPayloads: () => set({
-    constructedPayloads: {
-      learnerProfileRequest: null,
-      pathwayRequest: null,
-    },
+  commitProfileSuccess: ({ learnerIntent, learnerProfile, careerMatches }) => set((state) => {
+    const selectedCareerId = normalizeSelectedCareerId(careerMatches, state.selectedCareerId);
+    return {
+      learnerIntent,
+      learnerProfile,
+      careerMatches,
+      selectedCareerId,
+      selectedSkills: recommendedSkillsForCareer(careerMatches, selectedCareerId),
+    };
   }),
-  setPathwayBaseline: (pathwayBaseline) => set({ pathwayBaseline }),
+  commitPathwayBuild: ({ courses, fingerprint }) => set({
+    pathwayCourses: courses,
+    pathwayInputFingerprint: fingerprint,
+  }),
+  commitStubProfile: ({ learnerProfile, careerMatches }) => set({ learnerProfile, careerMatches }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
+}), {
+  name: PATHWAYS_STORAGE_KEY,
+  version: PATHWAYS_STORAGE_VERSION,
+  partialize: partializePathwaysState,
+  merge: mergePathwaysState,
 }));
 
 /**
  * Selector helpers for narrow subscriptions and testable getter composition.
  */
 export const selectors = {
-  experienceStatus: (state: PathwaysStore) => state.experienceStatus,
   section: (state: PathwaysStore) => state.section,
-  onboardingAnswers: (state: PathwaysStore) => state.onboarding.answers,
-  onboarding: (state: PathwaysStore) => state.onboarding,
+  learnerIntent: (state: PathwaysStore) => state.learnerIntent,
   learnerProfile: (state: PathwaysStore) => state.learnerProfile,
   careerMatches: (state: PathwaysStore) => state.careerMatches,
   selectedCareerId: (state: PathwaysStore) => state.selectedCareerId,
   selectedCareerMatch: (state: PathwaysStore): CareerMatch | null => (
     state.careerMatches.find((match) => match.id === state.selectedCareerId) || null
   ),
+  selectedSkills: (state: PathwaysStore) => state.selectedSkills,
   pathwayCourses: (state: PathwaysStore) => state.pathwayCourses,
-  progress: (state: PathwaysStore) => state.progress,
-  loading: (state: PathwaysStore) => state.loading,
-  errors: (state: PathwaysStore) => state.errors,
-  constructedPayloads: (state: PathwaysStore) => state.constructedPayloads,
-  pathwayBaseline: (state: PathwaysStore) => state.pathwayBaseline,
+  pathwayInputFingerprint: (state: PathwaysStore) => state.pathwayInputFingerprint,
 };
 
 /**
  * Hook wrappers for common learner pathways state slices.
  */
-export const usePathwaysExperienceStatus = () => usePathwaysStore(selectors.experienceStatus);
 export const usePathwaysSection = () => usePathwaysStore(selectors.section);
-export const usePathwaysOnboardingAnswers = () => usePathwaysStore(selectors.onboardingAnswers);
-export const usePathwaysOnboarding = () => usePathwaysStore(selectors.onboarding);
+export const usePathwaysLearnerIntent = () => usePathwaysStore(selectors.learnerIntent);
 export const usePathwaysLearnerProfile = () => usePathwaysStore(selectors.learnerProfile);
 export const usePathwaysCareerMatches = () => usePathwaysStore(selectors.careerMatches);
 export const usePathwaysSelectedCareerId = () => usePathwaysStore(selectors.selectedCareerId);
 export const useSelectedCareerMatch = () => usePathwaysStore(selectors.selectedCareerMatch);
+export const usePathwaysSelectedSkills = () => usePathwaysStore(selectors.selectedSkills);
 export const usePathwaysCourses = () => usePathwaysStore(selectors.pathwayCourses);
-export const usePathwaysProgress = () => usePathwaysStore(selectors.progress);
-export const usePathwaysLoading = () => usePathwaysStore(selectors.loading);
-export const usePathwaysErrors = () => usePathwaysStore(selectors.errors);
-export const usePathwaysConstructedPayloads = () => usePathwaysStore(selectors.constructedPayloads);
-export const usePathwayBaseline = () => usePathwaysStore(selectors.pathwayBaseline);
-
-/**
- * Typed helper exports used by tests and consuming modules.
- */
-export type {
-  OnboardingAnswers,
-  PathwaysErrorState,
-  PathwaysLoadingState,
-};
+export const usePathwayInputFingerprint = () => usePathwaysStore(selectors.pathwayInputFingerprint);

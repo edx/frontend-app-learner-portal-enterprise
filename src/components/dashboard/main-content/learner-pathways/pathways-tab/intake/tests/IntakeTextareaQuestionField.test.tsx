@@ -18,9 +18,9 @@ const MockFieldForm = ({ onSubmit, maxCharacters }: MockFieldFormProps) => {
   const methods = useForm<IntakeFormValues>({
     defaultValues: {
       motivation: '',
-      goal: '',
+      careerGoal: '',
       background: '',
-      industry: '',
+      targetIndustry: '',
     },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -96,9 +96,9 @@ describe('IntakeTextareaQuestionField', () => {
     expect(screen.getByTestId('intake-motivation-field-counter')).toHaveTextContent('300/300');
     expect(onSubmit).toHaveBeenCalledWith({
       motivation: valueAtDefaultLimit,
-      goal: '',
+      careerGoal: '',
       background: '',
-      industry: '',
+      targetIndustry: '',
     }, expect.anything());
   });
 

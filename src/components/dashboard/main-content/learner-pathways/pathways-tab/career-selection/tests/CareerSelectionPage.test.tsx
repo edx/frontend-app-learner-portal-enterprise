@@ -1,26 +1,21 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
 import {
-  render, screen, waitFor, within,
+  act, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
-import type { CareerMatch, LearnerProfile } from '../../state';
+import type { CareerMatch, LearnerIntent } from '../../state';
 import CareerSelectionPage, {
   CareerSelectionPageProps,
 } from '../CareerSelectionPage';
 
-const profile: LearnerProfile = {
-  summary: 'POC overview that should not render.',
+const learnerIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
   targetIndustry: 'EdTech',
   background: 'Financial data analyst and team lead.',
   motivation: 'Prepare for promotion.',
-  learningStyle: 'Hands-on',
-  weeklyTimeCommitment: '5 hours',
-  certificatePreference: 'Preferred',
-  skills: ['Fallback Skill'],
 };
 const matches: CareerMatch[] = [
   {
@@ -45,7 +40,7 @@ const matches: CareerMatch[] = [
 
 const noop = jest.fn();
 const defaults: CareerSelectionPageProps = {
-  profile,
+  learnerIntent,
   careerMatches: matches,
   onSubmitGoalSummary: jest.fn().mockResolvedValue(undefined),
   onSelectCareer: noop,
@@ -57,6 +52,8 @@ const defaults: CareerSelectionPageProps = {
   onCloseRetake: noop,
   onConfirmRetake: noop,
   retakeButtonRef: React.createRef(),
+  isNoCoursesOpen: false,
+  onCloseNoCourses: noop,
   visibleSkills: ['SQL', 'Data Visualization'],
   dismissedSkillCount: 0,
   onDismissSkill: noop,
@@ -72,10 +69,9 @@ const renderPage = (props: Partial<CareerSelectionPageProps> = {}) => render(
 describe('CareerSelectionPage', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders the reduced goal summary and sorted matches above 25%', () => {
+  it('renders the goal summary and sorted matches above 25%', () => {
     renderPage();
-    expect(screen.queryByText(profile.summary)).not.toBeInTheDocument();
-    expect(screen.queryByText(profile.learningStyle)).not.toBeInTheDocument();
+    expect(screen.getByTestId('profile-career-goal')).toHaveTextContent('Senior Data Analyst');
     const buttons = screen.getAllByTestId(/^career-match-/);
     expect(buttons).toHaveLength(2);
     expect(within(buttons[0]).getByText('Reporting Manager')).toBeInTheDocument();
@@ -128,22 +124,22 @@ describe('CareerSelectionPage', () => {
 
   it('shows the overwrite modal when isOverwriteOpen is true', () => {
     renderPage({ isOverwriteOpen: true });
-    expect(screen.getByText('Rebuild your pathway?')).toBeInTheDocument();
+    expect(screen.getByText('Rebuild your Pathway?')).toBeInTheDocument();
   });
 
-  it('calls onCloseOverwrite when keep-pathway is clicked', async () => {
+  it('calls onCloseOverwrite when Cancel is clicked', async () => {
     const user = userEvent.setup();
     const onCloseOverwrite = jest.fn();
     renderPage({ isOverwriteOpen: true, onCloseOverwrite });
-    await user.click(screen.getByRole('button', { name: 'Keep previous pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCloseOverwrite).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onConfirmOverwrite when rebuild-pathway is clicked', async () => {
+  it('calls onConfirmOverwrite when Rebuild Pathway is clicked', async () => {
     const user = userEvent.setup();
     const onConfirmOverwrite = jest.fn().mockResolvedValue(undefined);
     renderPage({ isOverwriteOpen: true, onConfirmOverwrite });
-    await user.click(screen.getByRole('button', { name: 'Rebuild my learning pathway' }));
+    await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
     expect(onConfirmOverwrite).toHaveBeenCalledTimes(1);
   });
 
@@ -166,6 +162,56 @@ describe('CareerSelectionPage', () => {
     renderPage({ isRetakeOpen: true, onConfirmRetake });
     await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
     expect(onConfirmRetake).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the no-courses modal when isNoCoursesOpen is true', () => {
+    renderPage({ isNoCoursesOpen: true });
+    expect(screen.getByText('We could not build a pathway for this career match')).toBeInTheDocument();
+  });
+
+  it('calls onCloseNoCourses when Back is clicked in the no-courses modal', async () => {
+    const user = userEvent.setup();
+    const onCloseNoCourses = jest.fn();
+    renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the no-courses modal and opens Goal Summary editing when Choose a different match is clicked', async () => {
+    const user = userEvent.setup();
+    const onCloseNoCourses = jest.fn();
+    renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+
+    await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+
+    expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    // isNoCoursesOpen here is a static prop passed by this isolated-component test, so
+    // the modal's own focus trap does not actually release the way it does when the
+    // container flips it to false in response to onCloseNoCourses — that end-to-end
+    // focus-restoration behavior is covered by CareerSelectionContainer's tests instead.
+  });
+
+  it('schedules deferred focus handoff when choosing a different match from the no-courses modal', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+    const onCloseNoCourses = jest.fn();
+    try {
+      renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
+
+      await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+
+      expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy).toHaveBeenCalled();
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+      expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    } finally {
+      setTimeoutSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 
   it('falls back to the top match when selectedCareerId does not match any visible career', () => {
