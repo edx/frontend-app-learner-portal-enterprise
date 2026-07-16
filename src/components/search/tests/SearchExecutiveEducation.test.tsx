@@ -1,19 +1,27 @@
+import React from 'react';
 import { screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { SearchContext } from '@2uinc/frontend-enterprise-catalog-search';
 import '@testing-library/jest-dom/extend-expect';
 
-import {
-  resetMockReactInstantSearch,
-  setFakeHits,
-  getCapturedConfigureProps,
-  resetCapturedConfigureProps,
-} from '../../skills-quiz/__mocks__/react-instantsearch-dom';
+import * as mockReactInstantSearchDom from '../../skills-quiz/__mocks__/react-instantsearch-dom';
 import { renderWithRouter } from '../../../utils/tests';
 import SearchExecutiveEducation from '../SearchExecutiveEducation';
 import { useEnterpriseCustomer } from '../../app/data';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
+
+const {
+  resetMockReactInstantSearch,
+  setFakeHits,
+  getCapturedConfigureProps,
+  resetCapturedConfigureProps,
+} = mockReactInstantSearchDom as unknown as {
+  resetMockReactInstantSearch: () => void;
+  setFakeHits: (hits: Record<string, unknown>[]) => void;
+  getCapturedConfigureProps: () => Record<string, unknown>[];
+  resetCapturedConfigureProps: () => void;
+};
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
@@ -49,7 +57,9 @@ const executiveEducationHits = [
   },
 ];
 
-const SearchExecutiveEducationWrapper = (props) => (
+const SearchExecutiveEducationWrapper = (
+  props: Partial<React.ComponentProps<typeof SearchExecutiveEducation>>,
+) => (
   <IntlProvider locale="en">
     <AppContext.Provider value={{ authenticatedUser: { userId: 'test-user-id' } }}>
       <SearchContext.Provider value={{ refinements: {}, dispatch: () => null }}>
@@ -63,7 +73,7 @@ describe('<SearchExecutiveEducation />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetCapturedConfigureProps();
-    useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
   });
 
   afterEach(() => {

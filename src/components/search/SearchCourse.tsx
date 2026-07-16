@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { COURSE_TITLE, NUM_RESULTS_COURSE } from './constants';
@@ -6,22 +5,25 @@ import { SEARCH_INDEX_IDS } from '../../constants';
 import SearchResults from './SearchResults';
 import SearchCourseCard from './SearchCourseCard';
 
+interface SearchCourseHandlers {
+  searchResults?: () => void;
+  noSearchResults?: () => void;
+}
+
+interface SearchCourseProps {
+  filter: string;
+  indexName: string;
+  handlers?: SearchCourseHandlers;
+}
+
 /**
  * Renders the course-specific Algolia search results.
  *
- * @param {{
- *   filter: string,
- *   indexName: string,
- *   handlers?: {
- *     searchResults?: Function,
- *     noSearchResults?: Function,
- *   },
- * }} props
- * @param {string} props.filter - A fully constructed Algolia filter string that already includes the
+ * @param filter - A fully constructed Algolia filter string that already includes the
  * `content_type:course` condition. This filter is applied to restrict results to relevant courses.
- * @param {string} props.indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
- * @param {{ searchResults?: Function, noSearchResults?: Function }} [props.handlers] - Optional callbacks
- * forwarded to `SearchResults` and invoked when this section has results or no results.
+ * @param indexName - The Algolia index name to query (resolved by the parent via useAlgoliaSearch).
+ * @param handlers - Optional callbacks forwarded to `SearchResults` and invoked when this section
+ * has results or no results.
  *
  * @example
  * <SearchCourse
@@ -30,9 +32,7 @@ import SearchCourseCard from './SearchCourseCard';
  *   handlers={{ searchResults: onResults, noSearchResults: onEmpty }}
  * />
  */
-const SearchCourse = ({
-  filter, indexName, handlers,
-}) => {
+const SearchCourse = ({ filter, indexName, handlers }: SearchCourseProps) => {
   const intl = useIntl();
   const translatedTitle = intl.formatMessage({
     id: 'enterprise.search.page.course.section.translated.title',
@@ -57,19 +57,6 @@ const SearchCourse = ({
       />
     </Index>
   );
-};
-
-SearchCourse.propTypes = {
-  filter: PropTypes.string.isRequired,
-  indexName: PropTypes.string.isRequired,
-  handlers: PropTypes.shape({
-    searchResults: PropTypes.func,
-    noSearchResults: PropTypes.func,
-  }),
-};
-
-SearchCourse.defaultProps = {
-  handlers: undefined,
 };
 
 export default SearchCourse;

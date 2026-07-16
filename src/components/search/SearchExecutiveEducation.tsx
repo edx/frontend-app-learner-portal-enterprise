@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { Configure, Index } from 'react-instantsearch-dom';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -11,7 +10,12 @@ import { SEARCH_INDEX_IDS } from '../../constants';
 import SearchResults from './SearchResults';
 import SearchCourseCard from './SearchCourseCard';
 
-const SearchExecutiveEducation = ({ filter, indexName }) => {
+interface SearchExecutiveEducationProps {
+  filter: string;
+  indexName: string;
+}
+
+const SearchExecutiveEducation = ({ filter, indexName }: SearchExecutiveEducationProps) => {
   const intl = useIntl();
 
   return (
@@ -36,11 +40,6 @@ const SearchExecutiveEducation = ({ filter, indexName }) => {
       />
     </Index>
   );
-};
-
-SearchExecutiveEducation.propTypes = {
-  filter: PropTypes.string.isRequired,
-  indexName: PropTypes.string.isRequired,
 };
 
 export default SearchExecutiveEducation;

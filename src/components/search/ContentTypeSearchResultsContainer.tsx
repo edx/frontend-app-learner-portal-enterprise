@@ -1,5 +1,4 @@
 import { useIntl } from '@edx/frontend-platform/i18n';
-import PropTypes from 'prop-types';
 import { LEARNING_TYPE_EXECUTIVE_EDUCATION } from '@2uinc/frontend-enterprise-catalog-search/data/constants';
 import {
   CONTENT_TYPE_COURSE,
@@ -16,14 +15,21 @@ import SearchCourseCard from './SearchCourseCard';
 import SearchVideoCard from './SearchVideoCard';
 import SearchExecutiveEducation from './SearchExecutiveEducation';
 
+interface ContentTypeSearchResultsContainerProps {
+  contentType?: string;
+  learningType?: string;
+  learningTypeFilter?: string;
+  indexName: string;
+}
+
 const ContentTypeSearchResultsContainer = ({
   contentType, learningType, learningTypeFilter, indexName,
-}) => {
+}: ContentTypeSearchResultsContainerProps) => {
   const intl = useIntl();
 
   if (learningType === LEARNING_TYPE_EXECUTIVE_EDUCATION) {
     return (
-      <SearchExecutiveEducation filter={learningTypeFilter} indexName={indexName} />
+      <SearchExecutiveEducation filter={learningTypeFilter as string} indexName={indexName} />
     );
   }
 
@@ -96,22 +102,6 @@ const ContentTypeSearchResultsContainer = ({
     );
   }
   return null;
-};
-
-ContentTypeSearchResultsContainer.propTypes = {
-  contentType: PropTypes.oneOf(
-    [CONTENT_TYPE_PROGRAM, CONTENT_TYPE_PATHWAY, CONTENT_TYPE_COURSE, CONTENT_TYPE_VIDEO],
-  ),
-  learningType: PropTypes.string,
-  learningTypeFilter: PropTypes.string,
-  indexName: PropTypes.string,
-};
-
-ContentTypeSearchResultsContainer.defaultProps = {
-  contentType: undefined,
-  learningType: undefined,
-  learningTypeFilter: undefined,
-  indexName: undefined,
 };
 
 export default ContentTypeSearchResultsContainer;
