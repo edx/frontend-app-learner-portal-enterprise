@@ -4,16 +4,23 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import GoalSummaryReadOnly from '../GoalSummaryReadOnly';
-import { CAREER_SELECTION_STUB_PROFILE } from '../fixtures';
+import type { LearnerIntent } from '../../state';
 
-const renderComponent = (overrides = {}) => render(
+const baseIntent: LearnerIntent = {
+  careerGoal: 'Senior Data Analyst',
+  targetIndustry: 'EdTech',
+  background: 'Data analyst at 2U with extensive experience in financial data and team leadership.',
+  motivation: 'Upskill to prepare for promotion',
+};
+
+const renderComponent = (overrides: Partial<LearnerIntent> = {}) => render(
   <IntlProvider locale="en">
-    <GoalSummaryReadOnly profile={{ ...CAREER_SELECTION_STUB_PROFILE, ...overrides }} />
+    <GoalSummaryReadOnly learnerIntent={{ ...baseIntent, ...overrides }} />
   </IntlProvider>,
 );
 
 describe('GoalSummaryReadOnly', () => {
-  it('renders all four profile field values', () => {
+  it('renders all four intent field values', () => {
     renderComponent();
     expect(screen.getByTestId('profile-career-goal')).toHaveTextContent('Senior Data Analyst');
     expect(screen.getByTestId('profile-target-industry')).toHaveTextContent('EdTech');

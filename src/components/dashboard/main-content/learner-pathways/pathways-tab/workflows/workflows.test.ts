@@ -3,33 +3,34 @@ import {
   generateProfileWorkflow,
 } from './index';
 
-const stubProfile = {
-  summary: 's',
-  careerGoal: 'Data Analyst',
-  targetIndustry: 'Tech',
-  background: 'Ops',
-  motivation: 'career growth',
-  learningStyle: 'Hands-on',
-  weeklyTimeCommitment: '5 hours',
-  certificatePreference: 'Preferred',
-  skills: [] as string[],
+const stubLearnerIntent = {
+  careerGoal: 'Data Analyst', targetIndustry: 'Tech', background: 'Ops', motivation: 'career growth',
+};
+
+const stubLearnerProfile = {
+  summary: 's', learningStyle: 'Hands-on', weeklyTimeCommitment: '5 hours', certificatePreference: 'Preferred', skills: [] as string[],
 };
 
 describe('pathways workflows scaffolds', () => {
-  it('resolves profile workflow with the given profile echoed back, plus stub career matches', async () => {
-    const result = await generateProfileWorkflow({ learnerProfile: stubProfile });
+  it('resolves profile workflow with a stub-generated profile (no intent fields) plus stub career matches', async () => {
+    const result = await generateProfileWorkflow(stubLearnerIntent);
 
-    expect(result.learnerProfile).toEqual(stubProfile);
+    expect(result.learnerProfile).not.toHaveProperty('careerGoal');
+    expect(result.learnerProfile.summary).toBeTruthy();
     expect(result.careerMatches.length).toBeGreaterThan(0);
   });
 
-  it('resolves pathway workflow without payload', async () => {
-    await expect(generatePathwayWorkflow()).resolves.toBeUndefined();
-  });
+  it('resolves pathway workflow with the stub course set, each course carrying a courseKey', async () => {
+    const result = await generatePathwayWorkflow({
+      learnerIntent: stubLearnerIntent,
+      learnerProfile: stubLearnerProfile,
+      selectedCareerId: 'career-1',
+      selectedSkills: ['SQL'],
+    });
 
-  it('resolves pathway workflow with payload', async () => {
-    await expect(generatePathwayWorkflow({
-      payload: { selectedCareerId: 'career-1' },
-    })).resolves.toBeUndefined();
+    expect(result.courses.length).toBeGreaterThan(0);
+    result.courses.forEach((course) => {
+      expect(course.courseKey).toBeTruthy();
+    });
   });
 });
