@@ -97,8 +97,11 @@ const CareerSelectionContainer = ({
 
   // Before any real profile/career-matches commit exists, the page displays stub
   // data so there's something to interact with. `learnerIntent` never needs a stub —
-  // it's populated directly from Intake — but `learnerProfile` does, since pathway
-  // building can happen (State A tests) before Goal Summary is ever submitted.
+  // it's populated directly from Intake — but `learnerProfile` does. Since Intake
+  // submission now always generates a real profile first (see LearnerPathwaysTab's
+  // handleIntakeSubmit), this is a legacy/edge-case path only — a pathway that predates
+  // this feature, or a hydrated blob reached without a completed real submission — not
+  // the everyday first-visit shape.
   const usesStubData = learnerProfile === null && careerMatches.length === 0;
   const effectiveLearnerProfile = learnerProfile ?? CAREER_SELECTION_STUB_PROFILE;
   const displayedMatches = usesStubData ? CAREER_SELECTION_STUB_MATCHES : careerMatches;
@@ -196,13 +199,14 @@ const CareerSelectionContainer = ({
       return;
     }
 
-    // Building from State A (stub display, no Goal Summary ever submitted) durably
-    // persists the stub profile/matches now, mirroring what a real Goal Summary
-    // submission would have produced. Without this, learnerProfile/careerMatches stay
-    // null/empty forever and every future render/refresh leans on the display-only
-    // stub fallback (usesStubData/effectiveLearnerProfile, above) instead of real store
-    // data. Guarded on usesStubData so this only ever fires once — after this commit,
-    // learnerProfile is non-null, so usesStubData is naturally false on any rebuild.
+    // Building from the legacy stub-display state (no real profile-generation commit
+    // has ever happened — see usesStubData above) durably persists the stub
+    // profile/matches now, mirroring what a real generation would have produced.
+    // Without this, learnerProfile/careerMatches stay null/empty forever and every
+    // future render/refresh leans on the display-only stub fallback
+    // (usesStubData/effectiveLearnerProfile, above) instead of real store data. Guarded
+    // on usesStubData so this only ever fires once — after this commit, learnerProfile
+    // is non-null, so usesStubData is naturally false on any rebuild.
     if (usesStubData) {
       commitStubProfile({
         learnerProfile: CAREER_SELECTION_STUB_PROFILE,

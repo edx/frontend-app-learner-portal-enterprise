@@ -6,6 +6,7 @@ import { debounce } from 'lodash-es';
 import { EMPTY_LEARNER_INTENT, usePathwaysStore } from '../state';
 import type { LearnerIntent } from '../state';
 import { usePathwaysActionBar } from '../action-bar';
+import { RequestErrorAlert } from '../shared';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
 import IntakeGoalsQuestions from './IntakeGoalsQuestions';
@@ -20,8 +21,12 @@ const DRAFT_SYNC_DEBOUNCE_MS = 300;
 export type IntakeFormValues = LearnerIntent;
 
 export interface IntakeQuestionsContainerProps {
-  onSubmit: (values: IntakeFormValues) => void;
+  onSubmit: (values: IntakeFormValues) => void | Promise<void>;
   onSkip?: () => void;
+  /** Whether profile generation triggered by this submission is currently in flight. */
+  isProfileSubmitting?: boolean;
+  /** Displayable error from the most recent failed profile-generation attempt, if any. */
+  profileError?: string | null;
 }
 
 const FORM_ID = 'pathways-intake-form';
@@ -29,6 +34,8 @@ const FORM_ID = 'pathways-intake-form';
 const IntakeQuestionsContainer = ({
   onSubmit,
   onSkip,
+  isProfileSubmitting,
+  profileError,
 }: IntakeQuestionsContainerProps) => {
   const learnerIntent = usePathwaysStore((state) => state.learnerIntent);
   const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
@@ -66,7 +73,7 @@ const IntakeQuestionsContainer = ({
     [setLearnerIntent],
   );
 
-  const handleFormSubmit = methods.handleSubmit((values) => {
+  const handleFormSubmit = methods.handleSubmit(async (values) => {
     // Cancel any pending debounced draft sync so it can never fire after submit and
     // clobber the trimmed, authoritative values committed below.
     syncDraft.cancel();
@@ -77,7 +84,13 @@ const IntakeQuestionsContainer = ({
       targetIndustry: (values.targetIndustry ?? EMPTY_LEARNER_INTENT.targetIndustry).trim(),
     };
     setLearnerIntent(normalizedValues);
-    onSubmit(normalizedValues);
+    try {
+      await onSubmit(normalizedValues);
+    } catch {
+      // Pending/error state is owned by the parent composition (isProfileSubmitting/
+      // profileError props) — swallow here only so the native form submit handler
+      // doesn't surface an unhandled rejection; the learner stays on this view to retry.
+    }
   });
 
   useEffect(() => {
@@ -96,9 +109,12 @@ const IntakeQuestionsContainer = ({
       primary: {
         id: 'intake-submit',
         label: messages.submitAndReviewProfile,
+        loadingLabel: messages.submittingProfile,
         variant: 'primary',
         type: 'submit',
         form: FORM_ID,
+        loading: isProfileSubmitting,
+        disabled: isProfileSubmitting,
         testId: 'intake-submit-button',
       },
       secondary: onSkip
@@ -107,6 +123,7 @@ const IntakeQuestionsContainer = ({
           label: messages.skipToDashboard,
           variant: 'tertiary',
           type: 'button',
+          disabled: isProfileSubmitting,
           onClick: onSkip,
           testId: 'intake-skip-button',
         }]
@@ -114,13 +131,14 @@ const IntakeQuestionsContainer = ({
       alignment: 'end',
     });
     return () => clearActions();
-  }, [onSkip, registerActions, clearActions, intl]);
+  }, [onSkip, isProfileSubmitting, registerActions, clearActions, intl]);
 
   return (
     <section data-testid="intake-questions-container">
       <FormProvider {...methods}>
         <Form id={FORM_ID} onSubmit={handleFormSubmit} data-testid="intake-form">
           <Stack gap={4}>
+            <RequestErrorAlert error={profileError} />
             <IntakeQuestionSection
               title={intl.formatMessage(messages.goalsSectionTitle)}
               emptyPlaceholderTestId="intake-goals-questions-placeholder"

@@ -146,6 +146,11 @@ const messages = defineMessages({
     defaultMessage: 'Submit and review profile',
     description: 'Primary action label for submitting intake and moving to profile review.',
   },
+  submittingProfile: {
+    id: 'learner.pathways.intake.actions.submitting',
+    defaultMessage: 'Generating your profile...',
+    description: 'Loading label shown on the intake submit action while profile generation is in flight.',
+  },
 });
 
 export default messages;

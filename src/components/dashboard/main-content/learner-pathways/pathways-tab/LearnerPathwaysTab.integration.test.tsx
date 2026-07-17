@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act, render, screen, waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +10,27 @@ import LearnerPathwaysTab from './LearnerPathwaysTab';
 import intakeMessages from './intake/messages';
 import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
+
+// generateProfileWorkflow now really calls fetchLearningIntent + careerRetrievalService
+// (see generateProfileWorkflow.ts) instead of returning a static stub, so the
+// Goal-Summary-submitted path below needs these mocked to resolve deterministically in
+// this jsdom integration test, the same way generateProfileWorkflow.test.ts mocks them.
+// generatePathwayWorkflow is untouched by that change and is still a real stub.
+jest.mock('../../../../app/data/services/xpert', () => ({
+  fetchLearningIntent: jest.fn().mockResolvedValue({
+    condensedAlgoliaQuery: 'data analysis',
+    skillsRequired: ['SQL'],
+    skillsPreferred: ['Excel'],
+  }),
+}));
+jest.mock('./services', () => ({
+  careerRetrievalService: {
+    searchCareers: jest.fn().mockResolvedValue([
+      { id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] },
+    ]),
+  },
+  getCareerAlgoliaIndex: jest.fn(),
+}));
 
 /**
  * Extensive integration coverage for the edge cases fixed this session, exercised at
@@ -19,13 +42,15 @@ import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persiste
  *   - Hydration (a real page refresh) correctly restores/normalizes a State-A-built
  *     pathway instead of demoting it or wiping its career/skill selection.
  *
- * `generateProfileWorkflow`/`generatePathwayWorkflow` are themselves stubs today (see
- * their own file comments) — both return the same static fixtures regardless of input,
- * since real backend integration hasn't landed. So "State A" vs "Goal-Summary-submitted"
- * produce identical *data*; what differs is which store action populates it
- * (`commitStubProfile` vs `commitProfileSuccess`, which also re-seeds selectedSkills
- * differently) — exercising both proves the Retake Quiz reset isn't accidentally
- * coupled to one specific commit path.
+ * `generatePathwayWorkflow` is still a stub today (see its own file comment) — it
+ * returns the same static fixtures regardless of input, since real backend integration
+ * for the pathway/course stage hasn't landed. `generateProfileWorkflow` is now real
+ * (mocked above at its two dependency seams), so "State A" and "Goal-Summary-submitted"
+ * exercise genuinely different code paths for the profile stage; what differs at the
+ * store level is which action populates it (`commitStubProfile` vs
+ * `commitProfileSuccess`, which also re-seeds selectedSkills differently) — exercising
+ * both proves the Retake Quiz reset isn't accidentally coupled to one specific commit
+ * path.
  */
 
 const renderComponent = () => render(
@@ -44,11 +69,16 @@ const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
 };
 
-// State A: builds straight from the pre-Goal-Summary stub display — learnerProfile/
-// careerMatches only become real via CareerSelectionContainer's commitStubProfile,
-// triggered inside buildPathway.
+// State A: builds straight from the pre-Goal-Summary stub display, without ever
+// completing a real Intake submission — learnerProfile/careerMatches only become real
+// via CareerSelectionContainer's commitStubProfile, triggered inside buildPathway.
+// Seeds `section: 'profile'` directly rather than driving Intake's UI, since Intake
+// submission now always calls the real (mocked) generateProfileWorkflow and would
+// otherwise land on Profile with a real, non-null learnerProfile — no longer State A.
 const buildViaStateA = async (user: ReturnType<typeof userEvent.setup>) => {
-  await fillIntake(user);
+  act(() => {
+    usePathwaysStore.setState({ section: 'profile' });
+  });
   await user.click(screen.getByTestId('career-build-pathway-button'));
   await waitFor(() => expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]));
 };

@@ -152,8 +152,24 @@ describe('CareerSelectionContainer', () => {
     expect(usePathwaysStore.getState().learnerProfile).toBeNull();
   });
 
+  /**
+   * Seeds the legacy/no-real-profile shape directly. Before Intake was wired to real
+   * profile generation (see LearnerPathwaysTab's handleIntakeSubmit), every learner
+   * reached CareerSelectionContainer this way. Now this is a legacy/edge-case path only
+   * — e.g. a pathway that predates this feature, or the container reached without a
+   * completed real Intake submission — not the everyday first-visit shape, which now
+   * always has a non-null learnerProfile by the time this container renders. The outer
+   * beforeEach's resetPathwaysState() already produces this shape, so this helper exists
+   * to document that fact at each call site rather than to change behavior.
+   */
+  const seedLegacyNoProfileState = () => {
+    expect(usePathwaysStore.getState().learnerProfile).toBeNull();
+    expect(usePathwaysStore.getState().careerMatches).toEqual([]);
+  };
+
   describe('State A — no existing pathway', () => {
     it('renders only the build action, no retake-quiz-adjacent trailing actions', () => {
+      seedLegacyNoProfileState();
       renderContainer();
       expect(screen.getByTestId('career-build-pathway-button')).toHaveTextContent('Build my learning pathway');
       expect(screen.queryByTestId('career-view-current-pathway-button')).not.toBeInTheDocument();
@@ -161,12 +177,14 @@ describe('CareerSelectionContainer', () => {
     });
 
     it('never persists fixture/stub data as a real pathway before a build succeeds', () => {
+      seedLegacyNoProfileState();
       renderContainer();
       expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
       expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
     });
 
     it('calls onNext and commits the fingerprint when generatePathway resolves', async () => {
+      seedLegacyNoProfileState();
       const user = userEvent.setup();
       const onNext = jest.fn();
       renderContainer({ onNext });
@@ -181,6 +199,7 @@ describe('CareerSelectionContainer', () => {
     });
 
     it('marks a State-A-built pathway as edited after a skill change, and durably persists the stub profile/matches', async () => {
+      seedLegacyNoProfileState();
       const user = userEvent.setup();
       const onNext = jest.fn();
       renderContainer({ onNext });
@@ -199,8 +218,7 @@ describe('CareerSelectionContainer', () => {
     it('persists the stub profile and matches as real once a State A pathway is built', async () => {
       const user = userEvent.setup();
       renderContainer();
-      expect(usePathwaysStore.getState().learnerProfile).toBeNull();
-      expect(usePathwaysStore.getState().careerMatches).toEqual([]);
+      seedLegacyNoProfileState();
 
       await user.click(screen.getByTestId('career-build-pathway-button'));
 

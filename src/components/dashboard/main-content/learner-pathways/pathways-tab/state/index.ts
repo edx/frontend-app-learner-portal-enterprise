@@ -13,7 +13,7 @@ export {
   useSelectedCareerMatch,
 } from './pathwaysStore';
 
-export { normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
+export { normalizeSelectedCareerId, normalizeSkillsList, recommendedSkillsForCareer } from './normalize';
 export { derivePathwaysExperienceStatus } from './deriveExperienceStatus';
 export { EMPTY_LEARNER_INTENT } from './learnerIntent';
 export { computePathwayInputFingerprint } from './pathwayGenerationRequest';
