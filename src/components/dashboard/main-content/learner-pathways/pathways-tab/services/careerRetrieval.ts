@@ -55,7 +55,7 @@ const buildCareerQuery = (intent: CareerSearchIntent): string => {
     return condensedQuery;
   }
 
-  const fallbackTerms = dedupeStrings([...intent.roles, ...intent.skillsRequired]);
+  const fallbackTerms = dedupeStrings([...(intent.roles ?? []), ...intent.skillsRequired]);
   return fallbackTerms[0] || '';
 };
 
@@ -66,9 +66,9 @@ const buildCareerQuery = (intent: CareerSearchIntent): string => {
 const buildFilters = (intent: CareerSearchIntent): string | undefined => {
   const builder = new AlgoliaFilterBuilder();
 
-  const industries = dedupeStrings(intent.industries);
-  const jobSources = dedupeStrings(intent.jobSources);
-  const excludeTags = dedupeStrings(intent.excludeTags);
+  const industries = dedupeStrings(intent.industries ?? []);
+  const jobSources = dedupeStrings(intent.jobSources ?? []);
+  const excludeTags = dedupeStrings(intent.excludeTags ?? []);
 
   if (industries.length) {
     builder.or(FACET_FIELDS.INDUSTRY_NAMES, industries, { stringify: true });

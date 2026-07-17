@@ -1,9 +1,12 @@
 import type { CareerMatch, LearnerProfile } from '../state';
 
 /**
- * Stub generated-profile output used by generateProfileWorkflow until real profile
- * generation lands. Contains only generated/enriched fields — the learner's own intent
- * lives on `LearnerIntent`, supplied by the caller, never merged in here.
+ * Stub generated-profile output. `generateProfileWorkflow` itself is real and never
+ * reads these fixtures — they exist solely for CareerSelectionContainer's legacy
+ * pre-generation stub-display fallback (State A: a pathway built or hydrated before a
+ * real Intake/Goal-Summary profile-generation call has ever completed). Contains only
+ * generated/enriched fields — the learner's own intent lives on `LearnerIntent`,
+ * supplied by the caller, never merged in here.
  */
 export const CAREER_SELECTION_STUB_PROFILE: LearnerProfile = {
   summary:

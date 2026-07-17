@@ -1,33 +1,43 @@
-import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from '../career-selection/fixtures';
+import { fetchLearningIntent } from '../../../../../app/data/services/xpert';
+import { careerRetrievalService, getCareerAlgoliaIndex } from '../services';
+import { normalizeSkillsList } from '../state';
+import type { CareerMatch, LearnerProfile } from '../state';
+import type { CareerSearchIntent } from '../types';
 import type { GenerateProfileWorkflowInput, GenerateProfileWorkflowResult } from './types';
 
 /**
- * Integration seam: owns learner intent -> Learning Intent -> profile mapping.
- *
- * Future flow:
- * 1. Call fetchLearningIntent (src/components/app/data/services/xpert.ts) with the
- *    canonical LearnerIntent input directly — no field renaming happens here; the
- *    wire-shape translation is a single private adapter inside xpert.ts.
- * 2. Use the returned skillsRequired/skillsPreferred/condensedAlgoliaQuery to
- *    perform career/taxonomy retrieval.
- * 3. Map the results into a LearnerProfile and CareerMatch[] and return them for
- *    the controller to commit to store state.
- *
- * Until that lands, this returns a static stub-generated profile (no field of the
- * input intent is copied into it — LearnerProfile no longer carries intent fields at
- * all) alongside the same static stub career matches used elsewhere in the scaffold,
- * so callers have a real, committable result instead of `void`. `input` is accepted
- * for the future contract but not yet used.
+ * `LearningIntentResponse` (xpert.ts) only declares 3 required fields today
+ * (`condensedAlgoliaQuery`, `skillsRequired`, `skillsPreferred`); the other 6
+ * `CareerSearchIntent` fields are optional there by design (see
+ * pathways-tab/types/careerRetrieval.ts), so this assignment needs no cast — it's a
+ * genuine, type-checked structural match, not a suppressed mismatch.
+ */
+const toLearnerProfile = (intent: CareerSearchIntent, careerMatches: CareerMatch[]): LearnerProfile => ({
+  summary: careerMatches.length
+    ? `Found ${careerMatches.length} career match${careerMatches.length === 1 ? '' : 'es'} for your goals.`
+    : 'No career matches were found for your current goal.',
+  learningStyle: '',
+  weeklyTimeCommitment: '',
+  certificatePreference: '',
+  skills: normalizeSkillsList([...intent.skillsRequired, ...intent.skillsPreferred]),
+});
+
+/**
+ * Integration seam: learner intent -> Learning Intent -> career retrieval -> profile
+ * mapping, as one linear sequence, each step run exactly once. Career retrieval only
+ * runs after Learning Intent succeeds; a rejection at either step rejects this promise
+ * unmodified rather than falling back to a partial or fixture result.
  */
 export const generateProfileWorkflow = async (
   input: GenerateProfileWorkflowInput,
 ): Promise<GenerateProfileWorkflowResult> => {
-  if (input) {
-    // Placeholder read to keep the explicit input contract enforced until the
-    // real Learning Intent orchestration lands.
-  }
+  const searchIntent: CareerSearchIntent = await fetchLearningIntent(input);
+
+  const index = getCareerAlgoliaIndex();
+  const careerMatches = await careerRetrievalService.searchCareers(index, searchIntent);
+
   return {
-    learnerProfile: CAREER_SELECTION_STUB_PROFILE,
-    careerMatches: CAREER_SELECTION_STUB_MATCHES,
+    learnerProfile: toLearnerProfile(searchIntent, careerMatches),
+    careerMatches,
   };
 };
