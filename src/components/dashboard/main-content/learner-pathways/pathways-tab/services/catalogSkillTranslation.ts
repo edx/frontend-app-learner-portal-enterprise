@@ -11,20 +11,6 @@ const FALLBACK_PROMOTION_LIMIT = 2;
 /** Maximum number of query terms drawn from required skills / strict catalog skills. */
 const MAX_QUERY_TERMS = 3;
 
-/**
- * Curated synonym map for taxonomy/intent terms that don't exact-match a catalog facet
- * value verbatim but resolve to one under a known alias. A local copy (not imported from
- * `ai-pathways/`), matching how `careerRetrieval.ts` already re-declares `isMalformedCompound`
- * rather than importing it.
- */
-const CATALOG_ALIAS_MAP: Record<string, string> = {
-  python: 'Python (Programming Language)',
-  javascript: 'JavaScript (Programming Language)',
-  sql: 'SQL (Programming Language)',
-  'front end': 'Front End (Software Engineering)',
-  frontend: 'Front End (Software Engineering)',
-};
-
 type CatalogSkillField = 'skill_names' | 'skills.name';
 
 export interface CatalogSkillMatch {
@@ -112,10 +98,10 @@ const buildCatalogLookup = (facetSnapshot: CatalogFacetSnapshot): Map<string, Ca
 };
 
 /**
- * Grounds a single skill signal against the catalog lookup: exact case-insensitive
- * match first, then the curated alias map (only accepted if the alias *target* itself
- * resolves in the snapshot). Returns `null` when the signal can't be grounded at all —
- * it's dropped, not passed through as an ungrounded filter.
+ * Grounds a single skill signal against the catalog lookup: exact case-insensitive match
+ * only. Returns `null` when the signal isn't literally present in the catalog — it's
+ * dropped, not passed through as an ungrounded filter, and never resolved via aliasing or
+ * fuzzy matching.
  */
 const groundSignal = (signal: SkillSignal, lookup: Map<string, CatalogLookupEntry>): CatalogSkillMatch | null => {
   const normalized = normalizeCatalogTerm(signal.name);
@@ -123,14 +109,6 @@ const groundSignal = (signal: SkillSignal, lookup: Map<string, CatalogLookupEntr
   const direct = lookup.get(normalized);
   if (direct) {
     return { catalogSkill: direct.value, catalogField: direct.field };
-  }
-
-  const aliasTarget = CATALOG_ALIAS_MAP[normalized];
-  if (aliasTarget) {
-    const aliasMatch = lookup.get(normalizeCatalogTerm(aliasTarget));
-    if (aliasMatch) {
-      return { catalogSkill: aliasMatch.value, catalogField: aliasMatch.field };
-    }
   }
 
   return null;

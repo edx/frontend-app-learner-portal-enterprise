@@ -108,8 +108,8 @@ describe('translateSkillsToCatalog', () => {
     });
   });
 
-  describe('alias resolution', () => {
-    it('resolves a curated alias when the alias target itself is catalog-valid', () => {
+  describe('no aliasing', () => {
+    it('never resolves a term via aliasing, even when a plausible alias target is catalog-valid', () => {
       const options = baseOptions({
         intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['python'], skillsPreferred: [] },
       });
@@ -119,24 +119,12 @@ describe('translateSkillsToCatalog', () => {
 
       const translation = translateSkillsToCatalog(options, facetSnapshot);
 
-      expect(translation.strictSkillFilters).toEqual([
-        { catalogSkill: 'Python (Programming Language)', catalogField: 'skill_names' },
-      ]);
-    });
-
-    it('drops the alias when its target does not resolve in the snapshot', () => {
-      const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['python'], skillsPreferred: [] },
-      });
-
-      const translation = translateSkillsToCatalog(options, emptyFacetSnapshot);
-
       expect(translation.strictSkillFilters).toEqual([]);
     });
   });
 
   describe('unmatched terms', () => {
-    it('drops terms with no exact or alias match, without affecting other resolvable signals', () => {
+    it('drops terms with no exact match, without affecting other resolvable signals', () => {
       const options = baseOptions({
         intent: {
           condensedAlgoliaQuery: 'q', skillsRequired: ['SQL', 'Quantum Basket Weaving'], skillsPreferred: [],
