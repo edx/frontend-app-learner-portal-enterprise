@@ -375,6 +375,7 @@ const CareerSelectionContainer = ({
       isCareerMatchesLoading={isProfileSubmitting && displayedMatches.length === 0}
       isBuildingPathway={isPathwayPending}
       profileError={profileRequestState.error}
+      pathwayError={pathwayRequestState.error}
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={handleSelectCareer}
       isOverwriteOpen={isOverwriteOpen}
