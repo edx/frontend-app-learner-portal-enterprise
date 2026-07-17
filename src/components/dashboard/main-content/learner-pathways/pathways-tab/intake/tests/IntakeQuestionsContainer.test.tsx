@@ -12,17 +12,23 @@ import { PathwaysActionBarProvider } from '../../action-bar';
 interface MockIntakeQuestionsContainerProps {
   onSubmit?: jest.Mock;
   onSkip?: () => void;
+  isProfileSubmitting?: boolean;
+  profileError?: string | null;
 }
 
 const MockIntakeQuestionsContainer = ({
   onSubmit = jest.fn(),
   onSkip,
+  isProfileSubmitting,
+  profileError,
 }: MockIntakeQuestionsContainerProps) => (
   <IntlProvider locale="en">
     <PathwaysActionBarProvider>
       <IntakeQuestionsContainer
         onSubmit={onSubmit}
         onSkip={onSkip}
+        isProfileSubmitting={isProfileSubmitting}
+        profileError={profileError}
       />
     </PathwaysActionBarProvider>
   </IntlProvider>
@@ -173,6 +179,53 @@ describe('IntakeQuestionsContainer', () => {
     await user.click(screen.getByRole('button', { name: messages.skipToDashboard.defaultMessage }));
 
     expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  describe('profile-submission pending/error state', () => {
+    it('shows the loading label and disables the submit action while isProfileSubmitting is true', () => {
+      render(<MockIntakeQuestionsContainer isProfileSubmitting />);
+
+      const submitButton = screen.getByTestId('intake-submit-button');
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveTextContent(messages.submittingProfile.defaultMessage);
+      expect(screen.queryByRole('button', { name: messages.submitAndReviewProfile.defaultMessage })).not.toBeInTheDocument();
+    });
+
+    it('disables the skip action while isProfileSubmitting is true', () => {
+      const onSkip = jest.fn();
+      render(<MockIntakeQuestionsContainer onSkip={onSkip} isProfileSubmitting />);
+
+      expect(screen.getByRole('button', { name: messages.skipToDashboard.defaultMessage })).toBeDisabled();
+    });
+
+    it('renders the profile error alert when profileError is set', () => {
+      render(<MockIntakeQuestionsContainer profileError="Unable to generate your learner profile." />);
+
+      expect(screen.getByText('Unable to generate your learner profile.')).toBeInTheDocument();
+    });
+
+    it('renders no error text when profileError is null', () => {
+      render(<MockIntakeQuestionsContainer profileError={null} />);
+
+      expect(screen.queryByText('Unable to generate your learner profile.')).not.toBeInTheDocument();
+    });
+
+    it('stays rendered with field values intact when onSubmit rejects (no unhandled rejection)', async () => {
+      const user = userEvent.setup();
+      const onSubmit = jest.fn().mockRejectedValue(new Error('network down'));
+      render(<MockIntakeQuestionsContainer onSubmit={onSubmit} />);
+
+      await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'Motivation answer');
+      await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), 'Goal answer');
+      await user.type(screen.getByLabelText(messages.backgroundQuestionLabel.defaultMessage), 'Background answer');
+      await user.type(screen.getByLabelText(messages.industryQuestionLabel.defaultMessage), 'Healthcare');
+      await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+      expect(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage)).toHaveValue('Motivation answer');
+      expect(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage)).toHaveValue('Goal answer');
+    });
   });
 
   describe('draft persistence', () => {

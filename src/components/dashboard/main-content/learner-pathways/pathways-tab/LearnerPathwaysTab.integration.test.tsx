@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act, render, screen, waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { MemoryRouter } from 'react-router-dom';
@@ -67,11 +69,16 @@ const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
 };
 
-// State A: builds straight from the pre-Goal-Summary stub display — learnerProfile/
-// careerMatches only become real via CareerSelectionContainer's commitStubProfile,
-// triggered inside buildPathway.
+// State A: builds straight from the pre-Goal-Summary stub display, without ever
+// completing a real Intake submission — learnerProfile/careerMatches only become real
+// via CareerSelectionContainer's commitStubProfile, triggered inside buildPathway.
+// Seeds `section: 'profile'` directly rather than driving Intake's UI, since Intake
+// submission now always calls the real (mocked) generateProfileWorkflow and would
+// otherwise land on Profile with a real, non-null learnerProfile — no longer State A.
 const buildViaStateA = async (user: ReturnType<typeof userEvent.setup>) => {
-  await fillIntake(user);
+  act(() => {
+    usePathwaysStore.setState({ section: 'profile' });
+  });
   await user.click(screen.getByTestId('career-build-pathway-button'));
   await waitFor(() => expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]));
 };
