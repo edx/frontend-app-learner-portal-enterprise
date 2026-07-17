@@ -193,7 +193,8 @@ const CareerSelectionContainer = ({
   // fingerprint, and commits the result atomically via commitPathwayBuild (courses +
   // fingerprint together — see state/pathwaysStore.ts). Recommendation Feedback cannot
   // run before course retrieval returns candidates; generatePathwayWorkflow owns
-  // that ordering once real Algolia/Recommendation Feedback integration lands.
+  // that ordering (see its own file for the Catalog Retrieval -> Recommendation
+  // Feedback sequencing).
   const buildPathway = useCallback(async () => {
     if (!selectedCareer || isPathwayPending) {
       return;
@@ -227,7 +228,7 @@ const CareerSelectionContainer = ({
     };
 
     try {
-      const result = await generatePathway(request);
+      const result = await generatePathway(request, selectedCareer);
       if (result.courses.length === 0) {
         // Expected edge state, not a rejected request: end the pending state without
         // committing courses/fingerprint or navigating, and let the learner adjust

@@ -7,6 +7,7 @@ export type {
 export type {
   CourseRetrievalCatalogScope,
   CourseSearchSelectedCareer,
+  CourseSearchIntentSignal,
   CourseSearchOptions,
   CatalogFacetSnapshot,
 } from './courseRetrieval';

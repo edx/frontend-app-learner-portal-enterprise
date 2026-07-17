@@ -19,10 +19,22 @@ export interface CourseRetrievalCatalogScope {
  */
 export type CourseSearchSelectedCareer = Pick<CareerMatch, 'title' | 'skillsToDevelop'>;
 
+/**
+ * The subset of `CareerSearchIntent` course retrieval actually consumes: required/broad
+ * skill signals, preferred/boost skill signals, and the optional learner-level rerank
+ * signal. Deliberately narrower than the full `CareerSearchIntent` — that type's other
+ * fields (`condensedAlgoliaQuery`, `roles`, `industries`, `jobSources`, `timeCommitment`,
+ * `excludeTags`) are never read by `courseRetrievalService`/`catalogSkillTranslation`, and
+ * `condensedAlgoliaQuery` is *required* on the full type, which would force any caller
+ * without a genuine normalized Learning Intent (e.g. the pathway-generation workflow,
+ * where it's already been discarded after profile generation) to fabricate a placeholder
+ * value just to satisfy the type.
+ */
+export type CourseSearchIntentSignal = Pick<CareerSearchIntent, 'skillsRequired' | 'skillsPreferred' | 'learnerLevel'>;
+
 export interface CourseSearchOptions {
   selectedCareer: CourseSearchSelectedCareer;
-  /** Reused as-is from career retrieval; `.learnerLevel` is the sanctioned rerank signal. */
-  intent: CareerSearchIntent;
+  intent: CourseSearchIntentSignal;
   catalogScope: CourseRetrievalCatalogScope;
 }
 

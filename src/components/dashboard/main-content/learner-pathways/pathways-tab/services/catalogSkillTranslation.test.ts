@@ -12,7 +12,6 @@ const emptyFacetSnapshot: CatalogFacetSnapshot = {
 const baseOptions = (overrides: Partial<CourseSearchOptions> = {}): CourseSearchOptions => ({
   selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
   intent: {
-    condensedAlgoliaQuery: 'data analysis',
     skillsRequired: [],
     skillsPreferred: [],
   },
@@ -25,7 +24,7 @@ describe('translateSkillsToCatalog', () => {
     it('keeps a skill as strict when it appears in both required and preferred/career lists', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['SQL'], skillsPreferred: ['SQL'],
+          skillsRequired: ['SQL'], skillsPreferred: ['SQL'],
         },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: ['SQL'] },
       });
@@ -40,7 +39,7 @@ describe('translateSkillsToCatalog', () => {
     it('deduplicates a skill appearing in both preferred and career lists, keeping it once', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: [], skillsPreferred: ['Excel'],
+          skillsRequired: [], skillsPreferred: ['Excel'],
         },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: ['Excel'] },
       });
@@ -59,7 +58,7 @@ describe('translateSkillsToCatalog', () => {
     it('drops skills containing " & " or " + " entirely, from any source', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['SQL & Python', 'Excel + Tableau'], skillsPreferred: [],
+          skillsRequired: ['SQL & Python', 'Excel + Tableau'], skillsPreferred: [],
         },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, skill_names: ['SQL & Python', 'Excel + Tableau'] };
@@ -74,7 +73,7 @@ describe('translateSkillsToCatalog', () => {
   describe('exact-match field priority', () => {
     it('prefers skill_names over skills.name when a term is present in both', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['SQL'], skillsPreferred: [] },
+        intent: { skillsRequired: ['SQL'], skillsPreferred: [] },
       });
       const facetSnapshot: CatalogFacetSnapshot = {
         ...emptyFacetSnapshot, skill_names: ['SQL'], 'skills.name': ['SQL'],
@@ -87,7 +86,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('falls back to skills.name when a term only exists there', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['Agile'], skillsPreferred: [] },
+        intent: { skillsRequired: ['Agile'], skillsPreferred: [] },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, 'skills.name': ['Agile'] };
 
@@ -98,7 +97,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('is case-insensitive and preserves the catalog\'s original casing', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['sql'], skillsPreferred: [] },
+        intent: { skillsRequired: ['sql'], skillsPreferred: [] },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, skill_names: ['SQL'] };
 
@@ -111,7 +110,7 @@ describe('translateSkillsToCatalog', () => {
   describe('no aliasing', () => {
     it('never resolves a term via aliasing, even when a plausible alias target is catalog-valid', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['python'], skillsPreferred: [] },
+        intent: { skillsRequired: ['python'], skillsPreferred: [] },
       });
       const facetSnapshot: CatalogFacetSnapshot = {
         ...emptyFacetSnapshot, skill_names: ['Python (Programming Language)'],
@@ -127,7 +126,7 @@ describe('translateSkillsToCatalog', () => {
     it('drops terms with no exact match, without affecting other resolvable signals', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['SQL', 'Quantum Basket Weaving'], skillsPreferred: [],
+          skillsRequired: ['SQL', 'Quantum Basket Weaving'], skillsPreferred: [],
         },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, skill_names: ['SQL'] };
@@ -146,7 +145,7 @@ describe('translateSkillsToCatalog', () => {
     it('caps strict skills at 4 for non-introductory (or unset) learner levels', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['A', 'B', 'C', 'D', 'E'], skillsPreferred: [],
+          skillsRequired: ['A', 'B', 'C', 'D', 'E'], skillsPreferred: [],
         },
       });
 
@@ -158,7 +157,7 @@ describe('translateSkillsToCatalog', () => {
     it('caps strict skills at 3 for introductory learners', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['A', 'B', 'C', 'D', 'E'], skillsPreferred: [], learnerLevel: 'introductory',
+          skillsRequired: ['A', 'B', 'C', 'D', 'E'], skillsPreferred: [], learnerLevel: 'introductory',
         },
       });
 
@@ -172,7 +171,7 @@ describe('translateSkillsToCatalog', () => {
     it('caps boost skills at 8', () => {
       const nineSkills = Array.from({ length: 9 }, (_, i) => `Skill${i}`);
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['SQL'], skillsPreferred: nineSkills },
+        intent: { skillsRequired: ['SQL'], skillsPreferred: nineSkills },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, skill_names: ['SQL', ...nineSkills] };
 
@@ -186,7 +185,7 @@ describe('translateSkillsToCatalog', () => {
     it('promotes up to 2 boost matches to strict when zero strict matches survive grounding', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['Unmatched Required Skill'], skillsPreferred: ['Excel', 'Tableau', 'Power BI'],
+          skillsRequired: ['Unmatched Required Skill'], skillsPreferred: ['Excel', 'Tableau', 'Power BI'],
         },
       });
       const facetSnapshot: CatalogFacetSnapshot = {
@@ -204,7 +203,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('leaves both empty when neither strict nor boost signals ground to anything', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['Nope'], skillsPreferred: ['AlsoNope'] },
+        intent: { skillsRequired: ['Nope'], skillsPreferred: ['AlsoNope'] },
       });
 
       const translation = translateSkillsToCatalog(options, emptyFacetSnapshot);
@@ -218,7 +217,7 @@ describe('translateSkillsToCatalog', () => {
     it('derives the query from required skills (lowercased, top 3, joined) when present', () => {
       const options = baseOptions({
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: ['SQL', 'Python', 'Excel', 'Tableau'], skillsPreferred: [],
+          skillsRequired: ['SQL', 'Python', 'Excel', 'Tableau'], skillsPreferred: [],
         },
       });
 
@@ -229,7 +228,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('falls back to top-3 strict catalog skill names when there are no required skills', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: [], skillsPreferred: ['Excel', 'Tableau'] },
+        intent: { skillsRequired: [], skillsPreferred: ['Excel', 'Tableau'] },
       });
       const facetSnapshot: CatalogFacetSnapshot = { ...emptyFacetSnapshot, skill_names: ['Excel', 'Tableau'] };
 
@@ -240,7 +239,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('falls back to the selected career title when nothing else resolves', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: [], skillsPreferred: [] },
+        intent: { skillsRequired: [], skillsPreferred: [] },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
       });
 
@@ -252,7 +251,7 @@ describe('translateSkillsToCatalog', () => {
 
     it('includes the career title as a query alternate only when the chosen query differs from it', () => {
       const options = baseOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['SQL'], skillsPreferred: [] },
+        intent: { skillsRequired: ['SQL'], skillsPreferred: [] },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
       });
 

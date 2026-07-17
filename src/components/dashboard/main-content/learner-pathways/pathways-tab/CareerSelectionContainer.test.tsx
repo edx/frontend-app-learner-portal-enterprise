@@ -17,6 +17,11 @@ import { PATHWAY_COURSES_STUB } from './pathway-courses/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
+jest.mock('../../../../app/data/hooks', () => ({
+  useSearchCatalogs: jest.fn(() => ['cat-1']),
+  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+}));
+
 jest.mock('./workflows', () => {
   // eslint-disable-next-line global-require
   const { CAREER_SELECTION_STUB_MATCHES: matches, CAREER_SELECTION_STUB_PROFILE: profile } = require('./career-selection/fixtures');

@@ -11,17 +11,20 @@ import intakeMessages from './intake/messages';
 import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
 
-// generateProfileWorkflow now really calls fetchLearningIntent + careerRetrievalService
-// (see generateProfileWorkflow.ts) instead of returning a static stub, so the
-// Goal-Summary-submitted path below needs these mocked to resolve deterministically in
-// this jsdom integration test, the same way generateProfileWorkflow.test.ts mocks them.
-// generatePathwayWorkflow is untouched by that change and is still a real stub.
+// generateProfileWorkflow and generatePathwayWorkflow now really call
+// fetchLearningIntent + careerRetrievalService and courseRetrievalService +
+// fetchRecommendationFeedback respectively (see their own workflow files) instead of
+// returning static stubs, so both the Goal-Summary-submitted path and the build-pathway
+// path below need these mocked to resolve deterministically in this jsdom integration
+// test, the same way generateProfileWorkflow.test.ts / generatePathwayWorkflow.test.ts
+// mock them.
 jest.mock('../../../../app/data/services/xpert', () => ({
   fetchLearningIntent: jest.fn().mockResolvedValue({
     condensedAlgoliaQuery: 'data analysis',
     skillsRequired: ['SQL'],
     skillsPreferred: ['Excel'],
   }),
+  fetchRecommendationFeedback: jest.fn().mockResolvedValue({ reasons: {} }),
 }));
 jest.mock('./services', () => ({
   careerRetrievalService: {
@@ -30,6 +33,16 @@ jest.mock('./services', () => ({
     ]),
   },
   getCareerAlgoliaIndex: jest.fn(),
+  courseRetrievalService: {
+    searchCourses: jest.fn().mockResolvedValue([
+      { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' },
+    ]),
+  },
+  getCourseAlgoliaIndex: jest.fn(),
+}));
+jest.mock('../../../../app/data/hooks', () => ({
+  useSearchCatalogs: jest.fn(() => ['cat-1']),
+  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
 }));
 
 /**
@@ -42,10 +55,8 @@ jest.mock('./services', () => ({
  *   - Hydration (a real page refresh) correctly restores/normalizes a State-A-built
  *     pathway instead of demoting it or wiping its career/skill selection.
  *
- * `generatePathwayWorkflow` is still a stub today (see its own file comment) — it
- * returns the same static fixtures regardless of input, since real backend integration
- * for the pathway/course stage hasn't landed. `generateProfileWorkflow` is now real
- * (mocked above at its two dependency seams), so "State A" and "Goal-Summary-submitted"
+ * `generatePathwayWorkflow` and `generateProfileWorkflow` are both real now (mocked
+ * above at their respective dependency seams), so "State A" and "Goal-Summary-submitted"
  * exercise genuinely different code paths for the profile stage; what differs at the
  * store level is which action populates it (`commitStubProfile` vs
  * `commitProfileSuccess`, which also re-seeds selectedSkills differently) — exercising

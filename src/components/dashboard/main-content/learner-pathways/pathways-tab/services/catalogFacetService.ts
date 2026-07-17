@@ -1,5 +1,5 @@
 import type { SearchIndex } from 'algoliasearch/lite';
-import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
+import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CatalogFacetSnapshot, CourseRetrievalCatalogScope } from '../types';
 
 /** Maximum number of facet values to fetch from Algolia (to ensure high coverage). */
@@ -43,10 +43,7 @@ export const catalogFacetService = {
     index: SearchIndex,
     catalogScope: CourseRetrievalCatalogScope,
   ): Promise<CatalogFacetSnapshot> {
-    const filters = new AlgoliaFilterBuilder()
-      .and('content_type', 'course')
-      .filterByCatalogQueryUuids(catalogScope.searchCatalogs, catalogScope.catalogUuidsToCatalogQueryUuids)
-      .build();
+    const filters = buildCourseCatalogScopeFilters(catalogScope);
 
     const response = await index.search('', {
       facets: ['*'],
