@@ -1,12 +1,17 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { PathwaysActionBarProvider } from './action-bar';
 import { usePathwaysStore } from './state';
+
+jest.mock('@edx/frontend-platform/auth');
+
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.Mock;
 
 const renderComponent = (props = {}) => render(
   <IntlProvider locale="en">
@@ -19,6 +24,8 @@ const renderComponent = (props = {}) => render(
 describe('PathwayCoursesContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
+    mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
+    global.localStorage.clear();
   });
 
   it('renders the pathway courses scaffold using fixture data when the store has no courses', () => {
@@ -66,5 +73,69 @@ describe('PathwayCoursesContainer', () => {
     await user.click(screen.getByTestId('pathway-rebuild-button'));
 
     expect(onBackToProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders Rebuild pathway leading and Give feedback trailing in the footer', () => {
+    renderComponent();
+
+    expect(screen.getByTestId('pathway-rebuild-button')).toBeInTheDocument();
+    expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+  });
+
+  it('clicking the feedback footer action opens the modal without navigating', async () => {
+    const user = userEvent.setup();
+    const onBackToProfile = jest.fn();
+    renderComponent({ onBackToProfile });
+
+    expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('pathway-feedback-button'));
+
+    expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+    expect(onBackToProfile).not.toHaveBeenCalled();
+  });
+
+  it('removes action-bar registration on unmount, as before', () => {
+    const { unmount } = renderComponent();
+    expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+    unmount();
+    expect(screen.queryByTestId('pathway-feedback-button')).not.toBeInTheDocument();
+  });
+
+  describe('automatic feedback prompt', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('remains available after the automatic prompt has been shown and dismissed', async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      usePathwaysStore.setState({
+        pathwayCourses: [
+          { courseKey: 'custom-course', title: 'Custom Store Course', status: 'not_started' },
+        ],
+      });
+      renderComponent();
+
+      act(() => { jest.advanceTimersByTime(15000); });
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Maybe later' }));
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+      expect(screen.getByTestId('pathway-feedback-button')).toBeEnabled();
+
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+    });
+
+    it('never starts the timer or opens the modal when generation returns no canonical courses (fixture-only render)', () => {
+      renderComponent();
+
+      act(() => { jest.advanceTimersByTime(20000); });
+
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+    });
   });
 });

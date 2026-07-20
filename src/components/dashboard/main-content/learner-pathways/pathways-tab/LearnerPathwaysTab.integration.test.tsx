@@ -4,12 +4,19 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { MemoryRouter } from 'react-router-dom';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
 import intakeMessages from './intake/messages';
 import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
+
+// PathwayCoursesContainer's one-time feedback prompt scopes its localStorage marker
+// by username — every path that reaches the Pathway page with real courses now calls
+// getAuthenticatedUser(), so this suite mocks it globally rather than per-describe.
+jest.mock('@edx/frontend-platform/auth');
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.Mock;
 
 // generateProfileWorkflow now really calls fetchLearningIntent + careerRetrievalService
 // (see generateProfileWorkflow.ts) instead of returning a static stub, so the
@@ -103,6 +110,10 @@ const navigateBackAndOpenRetake = async (user: ReturnType<typeof userEvent.setup
 };
 
 describe('LearnerPathwaysTab integration — edge cases from this session', () => {
+  beforeEach(() => {
+    mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
+  });
+
   describe('Retake Quiz confirm/cancel', () => {
     beforeEach(() => {
       usePathwaysStore.getState().resetPathwaysState();
@@ -238,6 +249,61 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
 
       expect(screen.getByTestId(expectTestId)).toBeInTheDocument();
       expect(usePathwaysStore.getState()).toMatchObject(expectStore);
+    });
+  });
+
+  describe('Give feedback', () => {
+    beforeEach(() => {
+      usePathwaysStore.getState().resetPathwaysState();
+      localStorage.clear();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('reaches the generated Pathway page, shows both footer actions, auto-opens the feedback modal once at 15s, and allows manual reopen after dismissal', async () => {
+      // Enabled before the Pathway page ever mounts, so the container's 15s timer is
+      // scheduled as a fake timer from the start — a real setTimeout scheduled before
+      // switching to fake timers would keep running on the real wall clock and never
+      // be advanced by jest.advanceTimersByTime below.
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderComponent();
+
+      await buildViaStateA(user);
+      const coursesBeforeFeedback = usePathwaysStore.getState().pathwayCourses;
+
+      expect(screen.getByTestId('pathway-rebuild-button')).toBeInTheDocument();
+      expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+
+      act(() => { jest.advanceTimersByTime(15000); });
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Maybe later' }));
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+      // Dismissing the automatic prompt must not touch pathway content/state.
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(coursesBeforeFeedback);
+
+      // Dismissing the auto-opened modal must not schedule another automatic open.
+      act(() => { jest.advanceTimersByTime(60000); });
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+
+      // The footer action still allows manually reopening it afterwards.
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+    });
+
+    it('never starts the feedback timer/modal when the Pathway page is reached without canonical generated courses', () => {
+      jest.useFakeTimers();
+      renderComponent();
+      act(() => { usePathwaysStore.setState({ section: 'pathway' }); });
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+      act(() => { jest.advanceTimersByTime(20000); });
+
+      expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
     });
   });
 });

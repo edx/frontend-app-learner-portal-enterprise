@@ -106,6 +106,36 @@ const messages = defineMessages({
     defaultMessage: 'Not available',
     description: 'Fallback copy shown when a pathway course field has no value.',
   },
+  giveFeedback: {
+    id: 'learner.pathways.courses.actions.giveFeedback',
+    defaultMessage: 'Give feedback',
+    description: 'Trailing action-bar button and modal primary action to open the pathways feedback form.',
+  },
+  feedbackModalTitle: {
+    id: 'learner.pathways.courses.feedback.title',
+    defaultMessage: 'Help us improve learning pathways!',
+    description: 'Title of the pathways feedback modal.',
+  },
+  feedbackModalBody: {
+    id: 'learner.pathways.courses.feedback.body',
+    defaultMessage: 'We’re actively iterating on this new experience. Tell us what you think of the overall feature and the quality of your AI recommendations.',
+    description: 'Body copy of the pathways feedback modal.',
+  },
+  feedbackModalSupportingCopy: {
+    id: 'learner.pathways.courses.feedback.supportingCopy',
+    defaultMessage: 'Want to explore your courses first? You can always access this form later via the footer link.',
+    description: 'Supporting copy in the pathways feedback modal reassuring the learner they can revisit the form later.',
+  },
+  feedbackModalMaybeLater: {
+    id: 'learner.pathways.courses.feedback.maybeLater',
+    defaultMessage: 'Maybe later',
+    description: 'Dismiss action for the pathways feedback modal.',
+  },
+  feedbackModalOpensNewTab: {
+    id: 'learner.pathways.courses.feedback.opensNewTab',
+    defaultMessage: '(opens in a new tab)',
+    description: 'Screen-reader-only text indicating the feedback form link opens in a new browser tab.',
+  },
 });
 
 export default messages;

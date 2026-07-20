@@ -17,6 +17,8 @@ export interface PathwaysAction {
   testId?: string;
   /** Rendered before the label via Paragon Button's iconBefore prop. */
   iconBefore?: React.ComponentType;
+  /** Rendered after the label via Paragon Button's iconAfter prop. */
+  iconAfter?: React.ComponentType;
 }
 
 export interface PathwaysActionBarConfig {

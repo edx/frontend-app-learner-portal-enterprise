@@ -26,3 +26,13 @@ export const ACTION_MESSAGE: Record<PathwayCourseStatus, MessageDescriptor> = {
   in_progress: messages.actionContinue,
   not_started: messages.actionRegister,
 };
+
+/**
+ * Per-learner marker for the one-time automatic feedback-modal prompt. Scoped by
+ * username (mirrors VIDEO_FEEDBACK_SUBMITTED_LOCALSTORAGE_KEY's scoping-function
+ * shape in src/components/microlearning/constants.js) so one learner's dismissal
+ * never suppresses another learner's prompt on a shared browser.
+ */
+export const PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY = (
+  username: string,
+) => `pathways-feedback-prompt-seen-${username}`;

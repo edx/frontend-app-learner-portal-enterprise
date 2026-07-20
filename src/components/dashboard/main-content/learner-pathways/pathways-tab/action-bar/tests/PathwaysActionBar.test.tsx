@@ -124,6 +124,39 @@ describe('PathwaysActionBarProvider / PathwaysActionBar', () => {
     expect(screen.getByTestId('icon-btn')).toContainElement(screen.getByTestId('mock-icon'));
   });
 
+  it('renders the iconAfter icon on a button', () => {
+    const MockIcon = () => <svg data-testid="mock-icon-after" />;
+    renderWithProvider(
+      <ActionRegistrar config={{
+        primary: {
+          id: 'p', label: msgs.buildPathway, variant: 'tertiary', iconAfter: MockIcon, testId: 'icon-after-btn',
+        },
+      }}
+      />,
+    );
+    expect(screen.getByTestId('icon-after-btn')).toContainElement(screen.getByTestId('mock-icon-after'));
+  });
+
+  it('renders both iconBefore and iconAfter on the same button without regressing either', () => {
+    const MockIconBefore = () => <svg data-testid="mock-icon-before" />;
+    const MockIconAfter = () => <svg data-testid="mock-icon-after" />;
+    renderWithProvider(
+      <ActionRegistrar config={{
+        primary: {
+          id: 'p',
+          label: msgs.buildPathway,
+          variant: 'tertiary',
+          iconBefore: MockIconBefore,
+          iconAfter: MockIconAfter,
+          testId: 'icon-both-btn',
+        },
+      }}
+      />,
+    );
+    expect(screen.getByTestId('icon-both-btn')).toContainElement(screen.getByTestId('mock-icon-before'));
+    expect(screen.getByTestId('icon-both-btn')).toContainElement(screen.getByTestId('mock-icon-after'));
+  });
+
   it('sets aria-label on the footer landmark', () => {
     renderWithProvider(
       <ActionRegistrar config={{ primary: { id: 'p', label: msgs.buildPathway, variant: 'primary' }, label: 'Custom label' }} />,

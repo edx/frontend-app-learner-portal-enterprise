@@ -1,9 +1,18 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, {
+  useCallback, useEffect, useMemo, useRef,
+} from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { ArrowBack } from '@openedx/paragon/icons';
+import { getConfig } from '@edx/frontend-platform/config';
+import { ArrowBack, Launch } from '@openedx/paragon/icons';
 import { usePathwaysActionBar } from './action-bar';
 import { usePathwaysCourses } from './state';
-import { PathwayCoursesPage, derivePathwayProgress, getDisplayedPathwayCourses } from './pathway-courses';
+import {
+  PathwayCoursesPage,
+  PathwayFeedbackModal,
+  derivePathwayProgress,
+  getDisplayedPathwayCourses,
+  useOneTimeFeedbackPrompt,
+} from './pathway-courses';
 import messages from './pathway-courses/messages';
 
 export interface PathwayCoursesContainerProps {
@@ -29,6 +38,19 @@ const PathwayCoursesContainer = ({
     onBackToProfile?.();
   }, [onBackToProfile]);
 
+  // Ref shared between the portaled feedback footer button and PathwayFeedbackModal,
+  // for focus-return-on-close.
+  const feedbackButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Gated on the raw store, never the fixture-merged `courses` above — fixture/fallback
+  // rendering must never be treated as a successfully generated pathway.
+  const hasGeneratedCourses = storeCourses.length > 0;
+  const {
+    isOpen: isFeedbackOpen,
+    openManually: openFeedbackModal,
+    close: closeFeedbackModal,
+  } = useOneTimeFeedbackPrompt({ hasGeneratedCourses });
+
   useEffect(() => {
     registerActions({
       primary: {
@@ -40,12 +62,33 @@ const PathwayCoursesContainer = ({
         onClick: handleBackToProfile,
         testId: 'pathway-rebuild-button',
       },
+      secondary: [{
+        id: 'pathway-feedback',
+        label: messages.giveFeedback,
+        variant: 'tertiary',
+        type: 'button',
+        iconAfter: Launch,
+        onClick: openFeedbackModal,
+        buttonRef: feedbackButtonRef,
+        testId: 'pathway-feedback-button',
+      }],
       alignment: 'split',
     });
     return () => clearActions();
-  }, [handleBackToProfile, registerActions, clearActions, intl]);
+  }, [handleBackToProfile, openFeedbackModal, registerActions, clearActions, intl]);
 
-  return <PathwayCoursesPage courses={courses} progress={progress} />;
+  return (
+    <>
+      <PathwayCoursesPage courses={courses} progress={progress} />
+      <PathwayFeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={closeFeedbackModal}
+        onGiveFeedback={closeFeedbackModal}
+        feedbackFormUrl={getConfig().PATHWAYS_FEEDBACK_FORM_URL}
+        triggerRef={feedbackButtonRef}
+      />
+    </>
+  );
 };
 
 export default PathwayCoursesContainer;
