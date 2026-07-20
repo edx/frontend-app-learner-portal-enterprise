@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Hyperlink, MailtoLink } from '@openedx/paragon';
 import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
@@ -20,7 +20,7 @@ const NeedHelpCard = ({ courseSearchUrl, contactEmail, helpCenterUrl }: NeedHelp
   const intl = useIntl();
 
   return (
-    <Card className="shadow-sm" data-testid="pathway-need-help">
+    <Card className="mt-3" data-testid="pathway-need-help">
       <Card.Body className="p-4">
         <h3 className="mb-2">{intl.formatMessage(messages.needHelpTitle)}</h3>
         <p className="mb-0">
@@ -35,13 +35,13 @@ const NeedHelpCard = ({ courseSearchUrl, contactEmail, helpCenterUrl }: NeedHelp
              */
             /* eslint-disable react/no-unstable-nested-components */
             values={{
-              searchLink: (chunks: React.ReactNode) => <Link to={courseSearchUrl}>{chunks}</Link>,
-              adminLink: (chunks: React.ReactNode) => (
+              searchLink: (chunks: ReactNode) => <Link to={courseSearchUrl}>{chunks}</Link>,
+              adminLink: (chunks: ReactNode) => (
                 contactEmail
                   ? <MailtoLink to={contactEmail} target="_blank">{chunks}</MailtoLink>
                   : chunks
               ),
-              helpLink: (chunks: React.ReactNode) => (
+              helpLink: (chunks: ReactNode) => (
                 <Hyperlink destination={helpCenterUrl} target="_blank">{chunks}</Hyperlink>
               ),
             }}
