@@ -60,6 +60,24 @@ describe('courseRetrievalService.searchCourses', () => {
       });
     });
 
+    it('escapes an embedded quote in a strict skill name before building the OR-group filter', async () => {
+      const index = buildIndex([
+        facetResponse(['Data "Wrangling"']),
+        searchResponse([course('c1'), course('c2'), course('c3')]),
+      ]);
+      const options = buildOptions({
+        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['Data "Wrangling"'], skillsPreferred: [] },
+        selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
+      });
+
+      await courseRetrievalService.searchCourses(index, options);
+
+      const [, step1Args] = (index.search as jest.Mock).mock.calls;
+      expect(step1Args[1]).toEqual(expect.objectContaining({
+        filters: `${BASE_SCOPE_FILTERS} AND (skill_names:"Data \\"Wrangling\\"")`,
+      }));
+    });
+
     it('is skipped entirely (no request) when neither strict nor boost skills ground to anything', async () => {
       const index = buildIndex([
         facetResponse([]),

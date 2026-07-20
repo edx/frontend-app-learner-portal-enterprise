@@ -9,8 +9,6 @@ const FACET_FIELDS = {
   SKILL_NAMES: 'skill_names',
   SKILLS_DOT_NAME: 'skills.name',
   SUBJECTS: 'subjects',
-  LEVEL_TYPE: 'level_type',
-  PARTNERS_NAME: 'partners.name',
 } as const;
 
 /**
@@ -32,12 +30,12 @@ const safeReadFacet = (facets: Record<string, Record<string, number>> | undefine
 export const catalogFacetService = {
   /**
    * Issues a zero-hit Algolia search (`hitsPerPage: 0`) scoped to course content within
-   * the given catalog scope, and reads out the five facet groups the retrieval ladder
+   * the given catalog scope, and reads out the three facet groups the retrieval ladder
    * and skill translation need.
    *
    * @param index The configured Algolia `SearchIndex` for the course catalog.
    * @param catalogScope Already-resolved enterprise catalog scope to restrict the snapshot to.
-   * @returns A `CatalogFacetSnapshot` with all five groups normalized to arrays.
+   * @returns A `CatalogFacetSnapshot` with all three groups normalized to arrays.
    */
   async getFacetSnapshot(
     index: SearchIndex,
@@ -61,8 +59,6 @@ export const catalogFacetService = {
       skill_names: safeReadFacet(facets, FACET_FIELDS.SKILL_NAMES),
       'skills.name': safeReadFacet(facets, FACET_FIELDS.SKILLS_DOT_NAME),
       subjects: safeReadFacet(facets, FACET_FIELDS.SUBJECTS),
-      level_type: safeReadFacet(facets, FACET_FIELDS.LEVEL_TYPE),
-      'partners.name': safeReadFacet(facets, FACET_FIELDS.PARTNERS_NAME),
     };
   },
 };
