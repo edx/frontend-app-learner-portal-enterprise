@@ -41,13 +41,11 @@ export interface CourseSearchOptions {
 /**
  * Scoped facet vocabulary snapshot from the course catalog index, used to ground
  * taxonomy/intent skill signals against catalog-valid terms before they become filters.
- * All five groups are always arrays (never undefined), even when Algolia returns no
+ * All three groups are always arrays (never undefined), even when Algolia returns no
  * values for a given facet.
  */
 export interface CatalogFacetSnapshot {
   skill_names: string[];
   'skills.name': string[];
   subjects: string[];
-  level_type: string[];
-  'partners.name': string[];
 }

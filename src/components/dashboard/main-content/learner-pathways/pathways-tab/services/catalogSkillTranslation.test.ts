@@ -5,8 +5,6 @@ const emptyFacetSnapshot: CatalogFacetSnapshot = {
   skill_names: [],
   'skills.name': [],
   subjects: [],
-  level_type: [],
-  'partners.name': [],
 };
 
 const baseOptions = (overrides: Partial<CourseSearchOptions> = {}): CourseSearchOptions => ({

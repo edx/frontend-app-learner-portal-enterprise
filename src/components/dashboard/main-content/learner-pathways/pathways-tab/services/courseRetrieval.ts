@@ -137,6 +137,9 @@ const rerank = (
     let levelBonus = 0;
     const hitLevel = normalizeString(hit.level_type).toLowerCase();
     if (learnerLevel && hitLevel) {
+      // LEVEL_RANK covers every current CareerSearchLearnerLevel value, so this is
+      // unreachable today — kept as a guard against the union type gaining a member
+      // without a matching LEVEL_RANK entry.
       const targetRank = LEVEL_RANK[learnerLevel] ?? 1;
       let actualRank = 0;
       if (hitLevel.includes('intermediate')) {
