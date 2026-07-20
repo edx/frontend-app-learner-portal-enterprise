@@ -14,6 +14,7 @@ import RetakeQuizModal from './RetakeQuizModal';
 import NoPathwayCoursesModal from './NoPathwayCoursesModal';
 import { deriveSelectedCareer } from './selectors';
 import messages from './messages';
+import { RequestErrorAlert } from '../shared';
 
 const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
 
@@ -26,6 +27,8 @@ export interface CareerSelectionPageProps {
   isBuildingPathway?: boolean;
   profileError?: string | null;
   careerMatchesError?: string | null;
+  /** Set by CareerSelectionContainer when a build/rebuild attempt fails. */
+  pathwayError?: string | null;
   onSubmitGoalSummary: (updates: GoalSummaryFormValues) => Promise<void> | void;
   onSelectCareer: (careerId: string) => void;
   /** Controlled by CareerSelectionContainer (lifted state). */
@@ -67,6 +70,7 @@ const CareerSelectionPage = ({
   isBuildingPathway = false,
   profileError = null,
   careerMatchesError = null,
+  pathwayError = null,
   onSubmitGoalSummary,
   onSelectCareer,
   isOverwriteOpen,
@@ -157,6 +161,8 @@ const CareerSelectionPage = ({
         onEndEditing={() => setIsEditing(false)}
         onSubmitGoalSummary={onSubmitGoalSummary}
       />
+
+      <RequestErrorAlert error={pathwayError} />
 
       <Row>
         <Col lg={7} className="mb-3">

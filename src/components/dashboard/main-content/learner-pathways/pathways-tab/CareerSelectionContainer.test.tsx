@@ -203,6 +203,81 @@ describe('CareerSelectionContainer', () => {
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
     });
 
+    it('invokes generatePathwayWorkflow with the exact composed request, selected career, and catalog scope', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        usePathwaysStore.setState({
+          learnerIntent: baseLearnerIntent,
+          learnerProfile: CAREER_SELECTION_STUB_PROFILE,
+          careerMatches: CAREER_SELECTION_STUB_MATCHES,
+          selectedCareerId: SELECTED_CAREER_ID,
+          selectedSkills: skillsForCareer(SELECTED_CAREER_ID),
+        });
+      });
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(generatePathwayWorkflow).toHaveBeenCalledTimes(1));
+      expect(generatePathwayWorkflow).toHaveBeenCalledWith({
+        request: unchangedRequest,
+        selectedCareer: CAREER_SELECTION_STUB_MATCHES.find((match) => match.id === SELECTED_CAREER_ID),
+        catalogScope: {
+          searchCatalogs: ['cat-1'],
+          catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
+        },
+      });
+    });
+
+    it('commits the pathway result before navigating, not after', async () => {
+      const user = userEvent.setup();
+      const onNext = jest.fn();
+      // Observes the commit via the store's own subscription mechanism rather than
+      // spying on the action itself, so nothing about the store's real action
+      // references is patched/leaked across tests.
+      const commitObserved = jest.fn();
+      const unsubscribe = usePathwaysStore.subscribe((state) => {
+        if (state.pathwayCourses.length > 0) {
+          commitObserved();
+        }
+      });
+      try {
+        seedLegacyNoProfileState();
+        renderContainer({ onNext });
+
+        await user.click(screen.getByTestId('career-build-pathway-button'));
+
+        await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+        expect(commitObserved).toHaveBeenCalled();
+        const commitOrder = commitObserved.mock.invocationCallOrder[0];
+        const navigateOrder = onNext.mock.invocationCallOrder[0];
+        expect(commitOrder).toBeLessThan(navigateOrder);
+      } finally {
+        unsubscribe();
+      }
+    });
+
+    it('a later successful retry commits and navigates after a rejected build', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce(new Error('boom'));
+      const onNext = jest.fn();
+      seedLegacyNoProfileState();
+      renderContainer({ onNext });
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => {
+        expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
+      });
+      expect(onNext).not.toHaveBeenCalled();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+      expect(generatePathwayWorkflow).toHaveBeenCalledTimes(2);
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
+      expect(usePathwaysStore.getState().pathwayInputFingerprint).not.toBeNull();
+    });
+
     it('marks a State-A-built pathway as edited after a skill change, and durably persists the stub profile/matches', async () => {
       seedLegacyNoProfileState();
       const user = userEvent.setup();
@@ -262,7 +337,9 @@ describe('CareerSelectionContainer', () => {
         expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
       });
       expect(onNext).not.toHaveBeenCalled();
-      expect(screen.queryByText('Unable to build the learning pathway.')).not.toBeInTheDocument();
+      // The error is now surfaced via the pathway-error alert (see also the dedicated
+      // "surfaces a pathway error" test below).
+      expect(screen.getByText('Unable to build the learning pathway.')).toBeInTheDocument();
       // Recovers: the pathway was never built, so no fingerprint/courses are committed.
       expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
       expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();

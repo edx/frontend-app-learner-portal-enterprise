@@ -78,6 +78,22 @@ describe('usePathwaysController', () => {
     });
   });
 
+  it('is a pure delegate for pathway generation: a workflow rejection propagates untouched with no store side effect', async () => {
+    const workflowError = new Error('Algolia service unavailable');
+    jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce(workflowError);
+    const { result } = renderHook(() => usePathwaysController());
+
+    await expect(
+      act(async () => {
+        await result.current.generatePathway(stubRequest, stubSelectedCareer);
+      }),
+    ).rejects.toThrow(workflowError);
+
+    const state = usePathwaysStore.getState();
+    expect(state.pathwayCourses).toEqual([]);
+    expect(state.pathwayInputFingerprint).toBeNull();
+  });
+
   it('resets pathways state via store reset action', () => {
     const { result } = renderHook(() => usePathwaysController());
 
