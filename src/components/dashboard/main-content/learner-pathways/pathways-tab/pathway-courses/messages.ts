@@ -106,11 +106,6 @@ const messages = defineMessages({
     defaultMessage: 'Not available',
     description: 'Fallback copy shown when a pathway course field has no value.',
   },
-  giveFeedback: {
-    id: 'learner.pathways.courses.actions.giveFeedback',
-    defaultMessage: 'Give feedback',
-    description: 'Trailing action-bar button and modal primary action to open the pathways feedback form.',
-  },
   feedbackModalTitle: {
     id: 'learner.pathways.courses.feedback.title',
     defaultMessage: 'Help us improve learning pathways!',

@@ -4,6 +4,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { mergeConfig } from '@edx/frontend-platform';
 
 import CareerSelectionContainer from './CareerSelectionContainer';
 import type { CareerSelectionContainerProps } from './CareerSelectionContainer';
@@ -35,6 +36,8 @@ jest.mock('./workflows', () => {
     generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses }),
   };
 });
+
+const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
 
 const SELECTED_CAREER_ID = 'reporting-data-analysis-manager';
 const OTHER_CAREER_ID = 'business-data-analyst';
@@ -100,6 +103,7 @@ describe('CareerSelectionContainer', () => {
       careerMatches: CAREER_SELECTION_STUB_MATCHES,
     }));
     jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: PATHWAY_COURSES_STUB });
+    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
   });
 
   it('hydrates the learner profile and stub career matches on first goal-summary submission', async () => {
@@ -828,6 +832,36 @@ describe('CareerSelectionContainer', () => {
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(screen.getByTestId('career-retake-quiz-button')).toHaveFocus();
+    });
+  });
+
+  describe('Give feedback link', () => {
+    it('renders as the leftmost secondary action, as a link pointing directly at the form', () => {
+      renderContainer();
+
+      const feedbackLink = screen.getByTestId('pathway-feedback-button');
+      expect(feedbackLink.tagName).toBe('A');
+      expect(feedbackLink).toHaveAttribute('href', FEEDBACK_FORM_URL);
+      expect(feedbackLink).toHaveAttribute('target', '_blank');
+    });
+
+    it('does not call onRetakeQuiz or any other page callback when clicked', async () => {
+      const user = userEvent.setup();
+      const onRetakeQuiz = jest.fn();
+      const onNext = jest.fn();
+      renderContainer({ onRetakeQuiz, onNext });
+
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+
+      expect(onRetakeQuiz).not.toHaveBeenCalled();
+      expect(onNext).not.toHaveBeenCalled();
+    });
+
+    it('is entirely absent when PATHWAYS_FEEDBACK_FORM_URL is not configured', () => {
+      mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: null });
+      renderContainer();
+
+      expect(screen.queryByTestId('pathway-feedback-button')).not.toBeInTheDocument();
     });
   });
 });

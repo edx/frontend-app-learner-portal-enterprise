@@ -11,7 +11,9 @@ import {
   ActionRow,
   Button,
   Container,
+  Hyperlink,
   Spinner,
+  Stack,
 } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -24,10 +26,30 @@ interface PathwaysActionBarProps {
   config: PathwaysActionBarConfig;
 }
 
-const renderButton = (action: PathwaysAction, intl: ReturnType<typeof useIntl>) => {
+// Figma calls for a 32px gap between adjacent action-bar buttons, in every alignment
+// mode. Paragon's Stack gap scale is discrete (spacer-map keys); 4.5 resolves to
+// exactly 2rem (32px) at this app's default 16px root font-size — the exact value,
+// not an approximation.
+const ACTION_BAR_BUTTON_GAP = 4.5;
+
+const renderAction = (action: PathwaysAction, intl: ReturnType<typeof useIntl>) => {
   const label = action.loading && action.loadingLabel
     ? intl.formatMessage(action.loadingLabel)
     : intl.formatMessage(action.label);
+
+  if (action.destination) {
+    return (
+      <Hyperlink
+        key={action.id}
+        destination={action.destination}
+        target={action.target ?? '_blank'}
+        onClick={action.onClick}
+        data-testid={action.testId}
+      >
+        {label}
+      </Hyperlink>
+    );
+  }
 
   return (
     <Button
@@ -39,7 +61,6 @@ const renderButton = (action: PathwaysAction, intl: ReturnType<typeof useIntl>) 
       disabled={action.disabled || action.loading}
       onClick={action.onClick}
       iconBefore={action.iconBefore}
-      iconAfter={action.iconAfter}
       data-testid={action.testId}
     >
       {action.loading && (
@@ -54,6 +75,16 @@ const renderButton = (action: PathwaysAction, intl: ReturnType<typeof useIntl>) 
     </Button>
   );
 };
+
+const renderActionCluster = (
+  actions: PathwaysAction[],
+  intl: ReturnType<typeof useIntl>,
+  testId: string,
+) => (
+  <Stack direction="horizontal" gap={ACTION_BAR_BUTTON_GAP} data-testid={testId}>
+    {actions.map((action) => renderAction(action, intl))}
+  </Stack>
+);
 
 const PathwaysActionBar = ({ config }: PathwaysActionBarProps) => {
   const intl = useIntl();
@@ -77,16 +108,20 @@ const PathwaysActionBar = ({ config }: PathwaysActionBarProps) => {
       <Container size="lg">
         {alignment === 'split' ? (
           <ActionRow>
-            {primary && renderButton(primary, intl)}
+            {primary && renderAction(primary, intl)}
             <ActionRow.Spacer />
-            {secondary.map((action) => renderButton(action, intl))}
+            {renderActionCluster(secondary, intl, 'pathways-action-bar-secondary-stack')}
           </ActionRow>
         ) : (
           <ActionRow>
-            {alignment !== 'end' && secondary.map((action) => renderButton(action, intl))}
+            {alignment !== 'end' && renderActionCluster(secondary, intl, 'pathways-action-bar-secondary-stack')}
             <ActionRow.Spacer />
-            {alignment === 'end' && secondary.map((action) => renderButton(action, intl))}
-            {primary && renderButton(primary, intl)}
+            {alignment === 'end' && renderActionCluster(
+              [...secondary, ...(primary ? [primary] : [])],
+              intl,
+              'pathways-action-bar-end-stack',
+            )}
+            {alignment !== 'end' && primary && renderAction(primary, intl)}
           </ActionRow>
         )}
       </Container>

@@ -1,11 +1,12 @@
 import React, {
-  useCallback, useEffect, useMemo, useRef,
+  useCallback, useEffect, useMemo,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform/config';
-import { ArrowBack, Launch } from '@openedx/paragon/icons';
+import { ArrowBack } from '@openedx/paragon/icons';
 import { usePathwaysActionBar } from './action-bar';
 import { usePathwaysCourses } from './state';
+import { buildGiveFeedbackAction } from './shared';
 import {
   PathwayCoursesPage,
   PathwayFeedbackModal,
@@ -25,6 +26,7 @@ const PathwayCoursesContainer = ({
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
   const storeCourses = usePathwaysCourses();
+  const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
 
   const courses = getDisplayedPathwayCourses(storeCourses);
   // `state.progress` is reserved for a future workflow-computed value (see
@@ -38,18 +40,15 @@ const PathwayCoursesContainer = ({
     onBackToProfile?.();
   }, [onBackToProfile]);
 
-  // Ref shared between the portaled feedback footer button and PathwayFeedbackModal,
-  // for focus-return-on-close.
-  const feedbackButtonRef = useRef<HTMLButtonElement>(null);
+  const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
 
   // Gated on the raw store, never the fixture-merged `courses` above — fixture/fallback
-  // rendering must never be treated as a successfully generated pathway.
-  const hasGeneratedCourses = storeCourses.length > 0;
-  const {
-    isOpen: isFeedbackOpen,
-    openManually: openFeedbackModal,
-    close: closeFeedbackModal,
-  } = useOneTimeFeedbackPrompt({ hasGeneratedCourses });
+  // rendering must never be treated as a successfully generated pathway. Also gated on
+  // the URL being configured, so a broken/no-op modal is never auto-shown.
+  const hasGeneratedCourses = storeCourses.length > 0 && Boolean(feedbackFormUrl);
+  const { isOpen: isFeedbackOpen, dismiss: dismissFeedbackPrompt } = useOneTimeFeedbackPrompt({
+    hasGeneratedCourses,
+  });
 
   useEffect(() => {
     registerActions({
@@ -62,30 +61,20 @@ const PathwayCoursesContainer = ({
         onClick: handleBackToProfile,
         testId: 'pathway-rebuild-button',
       },
-      secondary: [{
-        id: 'pathway-feedback',
-        label: messages.giveFeedback,
-        variant: 'tertiary',
-        type: 'button',
-        iconAfter: Launch,
-        onClick: openFeedbackModal,
-        buttonRef: feedbackButtonRef,
-        testId: 'pathway-feedback-button',
-      }],
+      secondary: giveFeedbackAction ? [giveFeedbackAction] : [],
       alignment: 'split',
     });
     return () => clearActions();
-  }, [handleBackToProfile, openFeedbackModal, registerActions, clearActions, intl]);
+  }, [handleBackToProfile, registerActions, clearActions, intl, giveFeedbackAction]);
 
   return (
     <>
       <PathwayCoursesPage courses={courses} progress={progress} />
       <PathwayFeedbackModal
         isOpen={isFeedbackOpen}
-        onClose={closeFeedbackModal}
-        onGiveFeedback={closeFeedbackModal}
-        feedbackFormUrl={getConfig().PATHWAYS_FEEDBACK_FORM_URL}
-        triggerRef={feedbackButtonRef}
+        onClose={dismissFeedbackPrompt}
+        onGiveFeedback={dismissFeedbackPrompt}
+        feedbackFormUrl={feedbackFormUrl}
       />
     </>
   );

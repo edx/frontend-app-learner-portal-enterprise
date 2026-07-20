@@ -54,6 +54,95 @@ describe('PathwaysActionBarProvider / PathwaysActionBar', () => {
     expect(screen.getByText('Skip')).toBeInTheDocument();
   });
 
+  describe('split alignment secondary spacing', () => {
+    it('wraps multiple secondary actions in a Stack with the 32px (gap 4.5) Figma spacing', () => {
+      renderWithProvider(
+        <ActionRegistrar config={{
+          primary: { id: 'p', label: msgs.buildPathway, variant: 'primary' },
+          secondary: [
+            {
+              id: 's1', label: msgs.skip, variant: 'tertiary', testId: 'secondary-one',
+            },
+            {
+              id: 's2', label: msgs.buildingPathway, variant: 'tertiary', testId: 'secondary-two',
+            },
+          ],
+          alignment: 'split',
+        }}
+        />,
+      );
+      const stack = screen.getByTestId('pathways-action-bar-secondary-stack');
+      expect(stack).toHaveClass('pgn__hstack');
+      expect(stack).toHaveClass('pgn__stack-gap--4.5');
+      expect(stack).toContainElement(screen.getByTestId('secondary-one'));
+      expect(stack).toContainElement(screen.getByTestId('secondary-two'));
+    });
+
+    it('still renders correctly with a single secondary action under split alignment', () => {
+      renderWithProvider(
+        <ActionRegistrar config={{
+          primary: { id: 'p', label: msgs.buildPathway, variant: 'primary' },
+          secondary: [{
+            id: 's', label: msgs.skip, variant: 'tertiary', testId: 'secondary-one',
+          }],
+          alignment: 'split',
+        }}
+        />,
+      );
+      expect(screen.getByTestId('secondary-one')).toBeInTheDocument();
+      expect(screen.getByTestId('pathways-action-bar-secondary-stack')).toHaveClass('pgn__stack-gap--4.5');
+    });
+  });
+
+  describe('end alignment button spacing', () => {
+    it('wraps secondary actions and primary together in one Stack with the 32px (gap 4.5) Figma spacing', () => {
+      renderWithProvider(
+        <ActionRegistrar config={{
+          primary: {
+            id: 'p', label: msgs.buildPathway, variant: 'primary', testId: 'primary-btn',
+          },
+          secondary: [
+            {
+              id: 's1', label: msgs.skip, variant: 'tertiary', testId: 'secondary-one',
+            },
+            {
+              id: 's2', label: msgs.buildingPathway, variant: 'tertiary', testId: 'secondary-two',
+            },
+          ],
+          alignment: 'end',
+        }}
+        />,
+      );
+      const stack = screen.getByTestId('pathways-action-bar-end-stack');
+      expect(stack).toHaveClass('pgn__hstack');
+      expect(stack).toHaveClass('pgn__stack-gap--4.5');
+      expect(stack).toContainElement(screen.getByTestId('secondary-one'));
+      expect(stack).toContainElement(screen.getByTestId('secondary-two'));
+      expect(stack).toContainElement(screen.getByTestId('primary-btn'));
+      // The 'split'-only pre-spacer cluster testid must not also appear for 'end'.
+      expect(screen.queryByTestId('pathways-action-bar-secondary-stack')).not.toBeInTheDocument();
+    });
+
+    it('wraps a single secondary action alongside primary (the real IntakeQuestionsContainer shape)', () => {
+      renderWithProvider(
+        <ActionRegistrar config={{
+          primary: {
+            id: 'p', label: msgs.buildPathway, variant: 'primary', testId: 'primary-btn',
+          },
+          secondary: [{
+            id: 's', label: msgs.skip, variant: 'tertiary', testId: 'secondary-one',
+          }],
+          alignment: 'end',
+        }}
+        />,
+      );
+      const stack = screen.getByTestId('pathways-action-bar-end-stack');
+      expect(stack).toHaveClass('pgn__stack-gap--4.5');
+      expect(stack).toContainElement(screen.getByTestId('secondary-one'));
+      expect(stack).toContainElement(screen.getByTestId('primary-btn'));
+    });
+  });
+
   it('disables the primary button when disabled: true', () => {
     renderWithProvider(
       <ActionRegistrar config={{
@@ -124,37 +213,49 @@ describe('PathwaysActionBarProvider / PathwaysActionBar', () => {
     expect(screen.getByTestId('icon-btn')).toContainElement(screen.getByTestId('mock-icon'));
   });
 
-  it('renders the iconAfter icon on a button', () => {
-    const MockIcon = () => <svg data-testid="mock-icon-after" />;
+  it('renders an action with a destination as a Hyperlink, not a Button', () => {
     renderWithProvider(
       <ActionRegistrar config={{
-        primary: {
-          id: 'p', label: msgs.buildPathway, variant: 'tertiary', iconAfter: MockIcon, testId: 'icon-after-btn',
-        },
+        primary: { id: 'p', label: msgs.buildPathway, variant: 'primary' },
+        secondary: [{
+          id: 's', label: msgs.skip, destination: 'https://example.com/form', testId: 'link-action',
+        }],
       }}
       />,
     );
-    expect(screen.getByTestId('icon-after-btn')).toContainElement(screen.getByTestId('mock-icon-after'));
+    const link = screen.getByTestId('link-action');
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', 'https://example.com/form');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(screen.getByRole('button', { name: 'Build pathway' })).toBeInTheDocument();
   });
 
-  it('renders both iconBefore and iconAfter on the same button without regressing either', () => {
-    const MockIconBefore = () => <svg data-testid="mock-icon-before" />;
-    const MockIconAfter = () => <svg data-testid="mock-icon-after" />;
+  it('defaults a destination action to target="_blank" and respects an explicit target', () => {
     renderWithProvider(
       <ActionRegistrar config={{
-        primary: {
-          id: 'p',
-          label: msgs.buildPathway,
-          variant: 'tertiary',
-          iconBefore: MockIconBefore,
-          iconAfter: MockIconAfter,
-          testId: 'icon-both-btn',
-        },
+        secondary: [{
+          id: 's', label: msgs.skip, destination: 'https://example.com/form', target: '_self', testId: 'link-action',
+        }],
       }}
       />,
     );
-    expect(screen.getByTestId('icon-both-btn')).toContainElement(screen.getByTestId('mock-icon-before'));
-    expect(screen.getByTestId('icon-both-btn')).toContainElement(screen.getByTestId('mock-icon-after'));
+    expect(screen.getByTestId('link-action')).toHaveAttribute('target', '_self');
+  });
+
+  it('invokes onClick for a destination-based action', async () => {
+    const user = userEvent.setup();
+    const onClick = jest.fn();
+    renderWithProvider(
+      <ActionRegistrar config={{
+        secondary: [{
+          id: 's', label: msgs.skip, destination: 'https://example.com/form', onClick, testId: 'link-action',
+        }],
+      }}
+      />,
+    );
+    await user.click(screen.getByTestId('link-action'));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('sets aria-label on the footer landmark', () => {

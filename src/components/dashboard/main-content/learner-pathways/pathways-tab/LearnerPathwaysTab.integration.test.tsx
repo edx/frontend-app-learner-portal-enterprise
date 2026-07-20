@@ -5,6 +5,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { mergeConfig } from '@edx/frontend-platform';
 import { MemoryRouter } from 'react-router-dom';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
@@ -13,6 +14,7 @@ import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
 import { fetchLearningIntent, fetchRecommendationFeedback } from '../../../../app/data/services/xpert';
 import { careerRetrievalService, courseRetrievalService } from './services';
+import { PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY } from './pathway-courses/constants';
 
 // PathwayCoursesContainer's one-time feedback prompt scopes its localStorage marker
 // by username — every path that reaches the Pathway page with real courses now calls
@@ -287,16 +289,30 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
   });
 
   describe('Give feedback', () => {
+    const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
+    const seenKey = () => PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY('test-learner');
+
     beforeEach(() => {
       usePathwaysStore.getState().resetPathwaysState();
       localStorage.clear();
+      mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
     });
 
     afterEach(() => {
       jest.useRealTimers();
     });
 
-    it('reaches the generated Pathway page, shows both footer actions, auto-opens the feedback modal once at 15s, and allows manual reopen after dismissal', async () => {
+    it('shows the Give feedback link, pointing directly at the form, on the Intake and Profile pages before any pathway is built', async () => {
+      renderComponent();
+      const introLink = screen.getByTestId('pathway-feedback-button');
+      expect(introLink).toHaveAttribute('href', FEEDBACK_FORM_URL);
+
+      act(() => { usePathwaysStore.setState({ section: 'profile' }); });
+      const profileLink = screen.getByTestId('pathway-feedback-button');
+      expect(profileLink).toHaveAttribute('href', FEEDBACK_FORM_URL);
+    });
+
+    it('auto-opens the blocking modal once at 15s, only marks the prompt seen on Maybe later, and never reopens automatically afterwards', async () => {
       // Enabled before the Pathway page ever mounts, so the container's 15s timer is
       // scheduled as a fake timer from the start — a real setTimeout scheduled before
       // switching to fake timers would keep running on the real wall clock and never
@@ -314,9 +330,16 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
 
       act(() => { jest.advanceTimersByTime(15000); });
       expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+      // Firing/opening alone must not mark it seen.
+      expect(localStorage.getItem(seenKey())).toBeNull();
+
+      // Blocking: Escape must not dismiss it.
+      await user.keyboard('{Escape}');
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: 'Maybe later' }));
       expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+      expect(localStorage.getItem(seenKey())).toBe('true');
       // Dismissing the automatic prompt must not touch pathway content/state.
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(coursesBeforeFeedback);
 
@@ -324,9 +347,8 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       act(() => { jest.advanceTimersByTime(60000); });
       expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
 
-      // The footer action still allows manually reopening it afterwards.
-      await user.click(screen.getByTestId('pathway-feedback-button'));
-      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+      // The footer link remains present and still points directly at the form.
+      expect(screen.getByTestId('pathway-feedback-button')).toHaveAttribute('href', FEEDBACK_FORM_URL);
     });
 
     it('never starts the feedback timer/modal when the Pathway page is reached without canonical generated courses', () => {

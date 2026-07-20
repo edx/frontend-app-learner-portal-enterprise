@@ -28,13 +28,27 @@ describe('useOneTimeFeedbackPrompt', () => {
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('opens at 15 seconds after a real generated pathway becomes active', () => {
+  it('opens at 15 seconds after a real generated pathway becomes active, without marking the prompt as seen yet', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
 
     act(() => { jest.advanceTimersByTime(15000); });
 
     expect(result.current.isOpen).toBe(true);
+    // Merely firing/opening must not mark it seen — only actual interaction (dismiss) does.
+    expect(global.localStorage.getItem(PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY(USERNAME))).toBeNull();
+  });
+
+  it('marks the prompt as seen only once dismiss() is called, not when the timer fires', () => {
+    jest.useFakeTimers();
+    const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
+
+    act(() => { jest.advanceTimersByTime(15000); });
+    expect(global.localStorage.getItem(PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY(USERNAME))).toBeNull();
+
+    act(() => { result.current.dismiss(); });
+
+    expect(result.current.isOpen).toBe(false);
     expect(global.localStorage.getItem(PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY(USERNAME))).toBe('true');
   });
 
@@ -90,21 +104,6 @@ describe('useOneTimeFeedbackPrompt', () => {
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('manually opening before 15 seconds clears the pending timer and does not cause a second open at 15 seconds', () => {
-    jest.useFakeTimers();
-    const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
-
-    act(() => { jest.advanceTimersByTime(5000); });
-    act(() => { result.current.openManually(); });
-    expect(result.current.isOpen).toBe(true);
-
-    act(() => { result.current.close(); });
-    expect(result.current.isOpen).toBe(false);
-
-    act(() => { jest.advanceTimersByTime(15000); });
-    expect(result.current.isOpen).toBe(false);
-  });
-
   it('dismissing the automatically opened modal does not schedule another automatic open', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
@@ -112,23 +111,38 @@ describe('useOneTimeFeedbackPrompt', () => {
     act(() => { jest.advanceTimersByTime(15000); });
     expect(result.current.isOpen).toBe(true);
 
-    act(() => { result.current.close(); });
+    act(() => { result.current.dismiss(); });
     act(() => { jest.advanceTimersByTime(60000); });
 
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('does not reopen on remount after the one-time marker has been recorded', () => {
+  it('does not reopen on remount after the learner has dismissed it (one-time marker recorded)', () => {
     jest.useFakeTimers();
     const first = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
     act(() => { jest.advanceTimersByTime(15000); });
     expect(first.result.current.isOpen).toBe(true);
+    act(() => { first.result.current.dismiss(); });
     first.unmount();
 
     const second = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
     act(() => { jest.advanceTimersByTime(20000); });
 
     expect(second.result.current.isOpen).toBe(false);
+  });
+
+  it('can still open again on a later visit if the learner never dismissed it (e.g. closed the tab mid-session)', () => {
+    jest.useFakeTimers();
+    const first = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
+    act(() => { jest.advanceTimersByTime(15000); });
+    expect(first.result.current.isOpen).toBe(true);
+    // Session ends without ever calling dismiss() — marker was never set.
+    first.unmount();
+
+    const second = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
+    act(() => { jest.advanceTimersByTime(15000); });
+
+    expect(second.result.current.isOpen).toBe(true);
   });
 
   it('never auto-prompts when there is no authenticated username to scope storage by', () => {

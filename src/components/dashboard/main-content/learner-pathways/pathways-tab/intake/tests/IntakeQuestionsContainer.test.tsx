@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { mergeConfig } from '@edx/frontend-platform';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../constants';
 import messages from '../messages';
@@ -34,9 +35,12 @@ const MockIntakeQuestionsContainer = ({
   </IntlProvider>
 );
 
+const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
+
 describe('IntakeQuestionsContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
+    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
   });
 
   it('renders translated question section titles', () => {
@@ -179,6 +183,42 @@ describe('IntakeQuestionsContainer', () => {
     await user.click(screen.getByRole('button', { name: messages.skipToDashboard.defaultMessage }));
 
     expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Give feedback link', () => {
+    it('renders leftmost among secondary actions, as a link pointing directly at the form', () => {
+      render(<MockIntakeQuestionsContainer onSkip={jest.fn()} />);
+
+      const feedbackLink = screen.getByTestId('pathway-feedback-button');
+      expect(feedbackLink.tagName).toBe('A');
+      expect(feedbackLink).toHaveAttribute('href', FEEDBACK_FORM_URL);
+      expect(feedbackLink).toHaveAttribute('target', '_blank');
+    });
+
+    it('renders even when onSkip is not provided (independent of the skip action)', () => {
+      render(<MockIntakeQuestionsContainer onSkip={undefined} />);
+
+      expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+    });
+
+    it('does not call onSubmit or onSkip when clicked', async () => {
+      const user = userEvent.setup();
+      const onSubmit = jest.fn();
+      const onSkip = jest.fn();
+      render(<MockIntakeQuestionsContainer onSubmit={onSubmit} onSkip={onSkip} />);
+
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(onSkip).not.toHaveBeenCalled();
+    });
+
+    it('is entirely absent when PATHWAYS_FEEDBACK_FORM_URL is not configured', () => {
+      mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: null });
+      render(<MockIntakeQuestionsContainer onSkip={jest.fn()} />);
+
+      expect(screen.queryByTestId('pathway-feedback-button')).not.toBeInTheDocument();
+    });
   });
 
   describe('profile-submission pending/error state', () => {

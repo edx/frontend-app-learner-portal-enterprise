@@ -1,36 +1,30 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Button, ModalDialog, Stack } from '@openedx/paragon';
 import { Launch } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from './messages';
+import sharedMessages from '../shared/messages';
 
 export interface PathwayFeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGiveFeedback: () => void;
   feedbackFormUrl?: string | null;
-  triggerRef?: React.RefObject<HTMLButtonElement>;
 }
 
+/**
+ * The one-time, 15-seconds-after-first-generated-pathway auto-popup. Always blocking
+ * (no Escape/backdrop dismiss) — the learner must explicitly act via "Maybe later" or
+ * the in-modal link, since nothing else opens this modal for focus to return to.
+ */
 const PathwayFeedbackModal = ({
   isOpen,
   onClose,
   onGiveFeedback,
   feedbackFormUrl,
-  triggerRef,
 }: PathwayFeedbackModalProps) => {
   const intl = useIntl();
-
-  // Return focus to the trigger element when the modal closes.
-  const prevIsOpenRef = useRef(isOpen);
-  useEffect(() => {
-    const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isOpen;
-    if (wasOpen && !isOpen) {
-      triggerRef?.current?.focus();
-    }
-  }, [isOpen, triggerRef]);
 
   return (
     <ModalDialog
@@ -39,6 +33,7 @@ const PathwayFeedbackModal = ({
       onClose={onClose}
       size="md"
       hasCloseButton={false}
+      isBlocking
       isOverflowVisible={false}
     >
       <ModalDialog.Header>
@@ -66,7 +61,7 @@ const PathwayFeedbackModal = ({
             iconAfter={Launch}
             onClick={onGiveFeedback}
           >
-            {intl.formatMessage(messages.giveFeedback)}
+            {intl.formatMessage(sharedMessages.giveFeedback)}
             <span className="sr-only">
               {intl.formatMessage(messages.feedbackModalOpensNewTab)}
             </span>

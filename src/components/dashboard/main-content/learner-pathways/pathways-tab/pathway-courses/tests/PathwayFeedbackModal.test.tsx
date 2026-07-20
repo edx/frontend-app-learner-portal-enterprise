@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/extend-expect';
-import { createRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -49,12 +48,13 @@ describe('PathwayFeedbackModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose on Escape/supported dismiss behavior', async () => {
+  it('is a blocking modal — Escape does not close it', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
     renderModal({ isOpen: true, onClose });
     await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
   });
 
   it('points the primary action at the exact configured Google Form URL and opens it securely in a new tab', () => {
@@ -78,36 +78,5 @@ describe('PathwayFeedbackModal', () => {
     renderModal({ isOpen: true });
     const link = screen.getByRole('link', { name: 'Give feedback (opens in a new tab)' });
     expect(link).toBeInTheDocument();
-  });
-
-  it('returns focus to the trigger element when a manually opened modal closes', () => {
-    const triggerRef = createRef<HTMLButtonElement>();
-    const { rerender } = render(
-      <IntlProvider locale="en">
-        <button type="button" ref={triggerRef}>Open</button>
-        <PathwayFeedbackModal
-          isOpen
-          onClose={jest.fn()}
-          onGiveFeedback={jest.fn()}
-          feedbackFormUrl={FEEDBACK_FORM_URL}
-          triggerRef={triggerRef}
-        />
-      </IntlProvider>,
-    );
-
-    rerender(
-      <IntlProvider locale="en">
-        <button type="button" ref={triggerRef}>Open</button>
-        <PathwayFeedbackModal
-          isOpen={false}
-          onClose={jest.fn()}
-          onGiveFeedback={jest.fn()}
-          feedbackFormUrl={FEEDBACK_FORM_URL}
-          triggerRef={triggerRef}
-        />
-      </IntlProvider>,
-    );
-
-    expect(triggerRef.current).toHaveFocus();
   });
 });

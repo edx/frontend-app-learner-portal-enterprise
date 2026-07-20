@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ArrowBack } from '@openedx/paragon/icons';
+import { getConfig } from '@edx/frontend-platform/config';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
 import type { GoalSummaryFormValues } from './career-selection/GoalSummaryCard';
@@ -20,6 +21,7 @@ import {
 import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
 import type { PathwaysAction } from './action-bar';
+import { buildGiveFeedbackAction } from './shared';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
@@ -71,6 +73,7 @@ const CareerSelectionContainer = ({
   // Narrow selector: only subscribes to course count, not full array.
   const pathwayCourses = usePathwaysCourses();
   const hasExistingPathway = pathwayCourses.length > 0;
+  const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
 
   const {
     profile: profileRequestState,
@@ -293,35 +296,45 @@ const CareerSelectionContainer = ({
   const isProfileSubmitting = profileRequestState.status === 'pending';
 
   // Trailing action-bar buttons, state-dependent per the Career Profile action matrix.
+  // "Give feedback" is a plain external link (not a button/modal trigger), so it's
+  // prepended ahead of the state-dependent buttons below rather than participating in
+  // that branching.
   const trailingActions = useMemo((): PathwaysAction[] => {
+    const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
+    const leadingActions = giveFeedbackAction ? [giveFeedbackAction] : [];
     if (careerActionState === 'new-pathway') {
-      return [{
-        id: 'career-build-pathway',
-        label: careerMessages.buildPathway,
-        loadingLabel: careerMessages.buildingPathway,
-        variant: 'primary',
-        type: 'button',
-        disabled: !selectedCareer || isPathwayPending || isProfileSubmitting,
-        loading: isPathwayPending,
-        onClick: buildPathway,
-        buttonRef: buildButtonRef,
-        testId: 'career-build-pathway-button',
-      }];
+      return [
+        ...leadingActions,
+        {
+          id: 'career-build-pathway',
+          label: careerMessages.buildPathway,
+          loadingLabel: careerMessages.buildingPathway,
+          variant: 'primary',
+          type: 'button',
+          disabled: !selectedCareer || isPathwayPending || isProfileSubmitting,
+          loading: isPathwayPending,
+          onClick: buildPathway,
+          buttonRef: buildButtonRef,
+          testId: 'career-build-pathway-button',
+        }];
     }
     if (careerActionState === 'existing-pathway-unchanged') {
-      return [{
-        id: 'career-build-pathway',
-        label: careerMessages.buildPathway,
-        variant: 'primary',
-        type: 'button',
-        disabled: isPathwayPending || isProfileSubmitting,
-        onClick: viewExistingPathway,
-        buttonRef: buildButtonRef,
-        testId: 'career-build-pathway-button',
-      }];
+      return [
+        ...leadingActions,
+        {
+          id: 'career-build-pathway',
+          label: careerMessages.buildPathway,
+          variant: 'primary',
+          type: 'button',
+          disabled: isPathwayPending || isProfileSubmitting,
+          onClick: viewExistingPathway,
+          buttonRef: buildButtonRef,
+          testId: 'career-build-pathway-button',
+        }];
     }
     // existing-pathway-edited
     return [
+      ...leadingActions,
       {
         id: 'career-view-current-pathway',
         label: careerMessages.viewCurrentPathway,
@@ -352,6 +365,7 @@ const CareerSelectionContainer = ({
     buildPathway,
     viewExistingPathway,
     openRebuildModal,
+    feedbackFormUrl,
   ]);
 
   // Register leading (Retake quiz) + trailing action-bar buttons.

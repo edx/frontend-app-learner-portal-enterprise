@@ -13,18 +13,19 @@ export interface UseOneTimeFeedbackPromptOptions {
 
 export interface UseOneTimeFeedbackPromptResult {
   isOpen: boolean;
-  /** Opens immediately (e.g. footer click), clearing any pending automatic-open timer. */
-  openManually: () => void;
-  close: () => void;
+  /** Closes the modal and marks the prompt as seen — call only on actual learner
+   * interaction (e.g. "Maybe later" or the in-modal link), never merely because the
+   * timer fired, so a learner who never interacts can still be prompted on a later visit. */
+  dismiss: () => void;
 }
 
 const DEFAULT_DELAY_MS = 15000;
 
 /**
  * Schedules the pathways feedback modal to open once, `delayMs` after a real
- * (non-fixture) pathway becomes active — never re-firing once shown. Narrowly
- * scoped to this one prompt rather than a generic useTimeout/useOneTimePrompt,
- * since nothing else in the repo needs either yet.
+ * (non-fixture) pathway becomes active — never re-firing once the learner has actually
+ * dismissed it. Narrowly scoped to this one prompt rather than a generic
+ * useTimeout/useOneTimePrompt, since nothing else in the repo needs either yet.
  */
 const useOneTimeFeedbackPrompt = ({
   hasGeneratedCourses,
@@ -64,20 +65,16 @@ const useOneTimeFeedbackPrompt = ({
     timeoutRef.current = setTimeout(() => {
       timeoutRef.current = null;
       setIsOpen(true);
-      markShown();
     }, delayMs);
     return clearPendingTimeout;
-  }, [hasGeneratedCourses, hasBeenShown, markShown, clearPendingTimeout, delayMs]);
+  }, [hasGeneratedCourses, hasBeenShown, clearPendingTimeout, delayMs]);
 
-  const openManually = useCallback(() => {
-    clearPendingTimeout();
-    setIsOpen(true);
+  const dismiss = useCallback(() => {
+    setIsOpen(false);
     markShown();
-  }, [clearPendingTimeout, markShown]);
+  }, [markShown]);
 
-  const close = useCallback(() => setIsOpen(false), []);
-
-  return { isOpen, openManually, close };
+  return { isOpen, dismiss };
 };
 
 export default useOneTimeFeedbackPrompt;
