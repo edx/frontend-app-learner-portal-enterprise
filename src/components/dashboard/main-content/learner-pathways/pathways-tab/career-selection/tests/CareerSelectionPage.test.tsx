@@ -116,6 +116,16 @@ describe('CareerSelectionPage', () => {
     expect(screen.getByText('Matches error message.')).toBeInTheDocument();
   });
 
+  it('shows a pathway build/rebuild error alert when pathwayError is set', () => {
+    renderPage({ pathwayError: 'Unable to build the learning pathway.' });
+    expect(screen.getByText('Unable to build the learning pathway.')).toBeInTheDocument();
+  });
+
+  it('renders no pathway error alert when pathwayError is absent', () => {
+    renderPage();
+    expect(screen.queryByText('Unable to build the learning pathway.')).not.toBeInTheDocument();
+  });
+
   it('renders visible skills passed from the container', () => {
     renderPage({ visibleSkills: ['Python', 'SQL'] });
     expect(screen.getByText('Python')).toBeInTheDocument();

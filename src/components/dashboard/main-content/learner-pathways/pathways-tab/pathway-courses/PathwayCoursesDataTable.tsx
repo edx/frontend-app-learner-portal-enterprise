@@ -36,14 +36,15 @@ const WhyThisFitsYouCell = ({ row }: PathwayCourseRow) => {
   );
 };
 
-const LengthCell = ({ row }: PathwayCourseRow) => {
-  const intl = useIntl();
-  return row.original.length ? (
-    <span>{row.original.length}</span>
-  ) : (
-    <span className="text-muted">{intl.formatMessage(messages.notAvailable)}</span>
-  );
-};
+// TODO: Determine why length is not being serialized into Algolia
+// const LengthCell = ({ row }: PathwayCourseRow) => {
+//   const intl = useIntl();
+//   return row.original.length ? (
+//     <span>{row.original.length}</span>
+//   ) : (
+//     <span className="text-muted">{intl.formatMessage(messages.notAvailable)}</span>
+//   );
+// };
 
 const ActionCell = ({ row }: PathwayCourseRow) => (
   <PathwayCourseActionButton course={row.original} />
@@ -70,11 +71,12 @@ const getPathwayCoursesColumns = (intl: ReturnType<typeof useIntl>) => [
     accessor: 'whyThisFitsYou',
     Cell: WhyThisFitsYouCell,
   },
-  {
-    Header: intl.formatMessage(messages.lengthColumn),
-    accessor: 'length',
-    Cell: LengthCell,
-  },
+  // TODO: Fix this, Commented out as none of the lengths are being serialized from Algolia
+  // {
+  //   Header: intl.formatMessage(messages.lengthColumn),
+  //   accessor: 'length',
+  //   Cell: LengthCell,
+  // },
   {
     Header: intl.formatMessage(messages.actionColumn),
     accessor: 'courseKey',
