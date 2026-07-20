@@ -27,6 +27,11 @@ jest.mock('./workflows', () => {
   };
 });
 
+jest.mock('../../../../app/data/hooks', () => ({
+  useSearchCatalogs: jest.fn(() => ['cat-1']),
+  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+}));
+
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
 
 const renderComponent = () => render(

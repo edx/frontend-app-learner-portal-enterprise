@@ -150,6 +150,10 @@ const CareerSelectionContainer = ({
   // Freeze the displayed action state for the duration of an in-flight build/rebuild so
   // the trailing button's label/variant can't change out from under the learner mid-spin.
   const isPathwayPending = pathwayRequestState.status === 'pending';
+  // Closes a narrow race isPathwayPending alone can't: it's captured at render time, so
+  // two synchronous buildPathway invocations with no re-render between them would both
+  // read the same stale value. This ref is checked/set synchronously instead.
+  const isBuildingRef = useRef(false);
   const displayedCareerActionStateRef = useRef(rawCareerActionState);
   if (!isPathwayPending) {
     displayedCareerActionStateRef.current = rawCareerActionState;
@@ -193,11 +197,13 @@ const CareerSelectionContainer = ({
   // fingerprint, and commits the result atomically via commitPathwayBuild (courses +
   // fingerprint together — see state/pathwaysStore.ts). Recommendation Feedback cannot
   // run before course retrieval returns candidates; generatePathwayWorkflow owns
-  // that ordering once real Algolia/Recommendation Feedback integration lands.
+  // that ordering (see its own file for the Catalog Retrieval -> Recommendation
+  // Feedback sequencing).
   const buildPathway = useCallback(async () => {
-    if (!selectedCareer || isPathwayPending) {
+    if (!selectedCareer || isPathwayPending || isBuildingRef.current) {
       return;
     }
+    isBuildingRef.current = true;
 
     // Building from the legacy stub-display state (no real profile-generation commit
     // has ever happened — see usesStubData above) durably persists the stub
@@ -227,7 +233,7 @@ const CareerSelectionContainer = ({
     };
 
     try {
-      const result = await generatePathway(request);
+      const result = await generatePathway(request, selectedCareer);
       if (result.courses.length === 0) {
         // Expected edge state, not a rejected request: end the pending state without
         // committing courses/fingerprint or navigating, and let the learner adjust
@@ -245,6 +251,8 @@ const CareerSelectionContainer = ({
       onNext?.();
     } catch (error) {
       failPathway(errorMessage(error, 'Unable to build the learning pathway.'));
+    } finally {
+      isBuildingRef.current = false;
     }
   }, [
     selectedCareer,
@@ -374,6 +382,7 @@ const CareerSelectionContainer = ({
       isCareerMatchesLoading={isProfileSubmitting && displayedMatches.length === 0}
       isBuildingPathway={isPathwayPending}
       profileError={profileRequestState.error}
+      pathwayError={pathwayRequestState.error}
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={handleSelectCareer}
       isOverwriteOpen={isOverwriteOpen}
