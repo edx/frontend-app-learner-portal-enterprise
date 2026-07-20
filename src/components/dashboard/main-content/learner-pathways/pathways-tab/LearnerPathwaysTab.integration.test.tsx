@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  act, render, screen, waitFor,
+  act, fireEvent, render, screen, waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -463,7 +463,7 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       expect(usePathwaysStore.getState().pathwayInputFingerprint).toEqual(priorFingerprint);
     });
 
-    it('issues exactly one retrieval/feedback call pair on rapid duplicate build clicks', async () => {
+    it('the disabled button prevents a second awaited click from issuing a duplicate retrieval/feedback call pair', async () => {
       const user = userEvent.setup();
       renderComponent();
       await reachCareerSelectionViaIntake(user);
@@ -475,6 +475,36 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       const button = screen.getByTestId('career-build-pathway-button');
       await user.click(button);
       await user.click(button);
+
+      expect(courseRetrievalService.searchCourses).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveSearch([{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }]);
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(fetchRecommendationFeedback).toHaveBeenCalledTimes(1);
+    });
+
+    it('a true synchronous double-click (no render between clicks) still issues only one retrieval call', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      await reachCareerSelectionViaIntake(user);
+      let resolveSearch: (value: unknown) => void = () => {};
+      jest.mocked(courseRetrievalService.searchCourses).mockImplementationOnce(() => new Promise((resolve) => {
+        resolveSearch = resolve;
+      }));
+
+      const button = screen.getByTestId('career-build-pathway-button');
+      // fireEvent.click dispatches synchronously with no await/tick between the two
+      // calls, so React hasn't re-rendered the disabled button yet — this exercises
+      // buildPathway's internal isBuildingRef guard directly, not the DOM disabled
+      // attribute a real double-click would also be blocked by.
+      act(() => {
+        fireEvent.click(button);
+        fireEvent.click(button);
+      });
 
       expect(courseRetrievalService.searchCourses).toHaveBeenCalledTimes(1);
 

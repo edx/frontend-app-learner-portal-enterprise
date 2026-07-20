@@ -241,18 +241,20 @@ describe('CareerSelectionContainer', () => {
           commitObserved();
         }
       });
-      seedLegacyNoProfileState();
-      renderContainer({ onNext });
+      try {
+        seedLegacyNoProfileState();
+        renderContainer({ onNext });
 
-      await user.click(screen.getByTestId('career-build-pathway-button'));
+        await user.click(screen.getByTestId('career-build-pathway-button'));
 
-      await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
-      expect(commitObserved).toHaveBeenCalled();
-      const commitOrder = commitObserved.mock.invocationCallOrder[0];
-      const navigateOrder = onNext.mock.invocationCallOrder[0];
-      expect(commitOrder).toBeLessThan(navigateOrder);
-
-      unsubscribe();
+        await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+        expect(commitObserved).toHaveBeenCalled();
+        const commitOrder = commitObserved.mock.invocationCallOrder[0];
+        const navigateOrder = onNext.mock.invocationCallOrder[0];
+        expect(commitOrder).toBeLessThan(navigateOrder);
+      } finally {
+        unsubscribe();
+      }
     });
 
     it('a later successful retry commits and navigates after a rejected build', async () => {
