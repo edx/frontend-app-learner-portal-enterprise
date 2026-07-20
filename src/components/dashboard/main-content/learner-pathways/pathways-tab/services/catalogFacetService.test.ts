@@ -37,14 +37,12 @@ describe('catalogFacetService.getFacetSnapshot', () => {
     }));
   });
 
-  it('reads out all five facet groups from a fully-populated response', async () => {
+  it('reads out all three facet groups from a fully-populated response', async () => {
     const index = buildIndex({
       facets: {
         skill_names: { SQL: 10, Python: 5 },
         'skills.name': { Agile: 3 },
         subjects: { 'Data Analysis': 8 },
-        level_type: { Introductory: 20 },
-        'partners.name': { edX: 15 },
       },
     });
 
@@ -54,8 +52,6 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       skill_names: ['SQL', 'Python'],
       'skills.name': ['Agile'],
       subjects: ['Data Analysis'],
-      level_type: ['Introductory'],
-      'partners.name': ['edX'],
     });
   });
 
@@ -68,8 +64,6 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       skill_names: [],
       'skills.name': [],
       subjects: [],
-      level_type: [],
-      'partners.name': [],
     });
   });
 
@@ -86,8 +80,6 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       skill_names: ['SQL'],
       'skills.name': [],
       subjects: [],
-      level_type: [],
-      'partners.name': [],
     });
   });
 
