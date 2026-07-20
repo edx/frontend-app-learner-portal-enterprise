@@ -5,11 +5,15 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import type { PathwayCourse, PathwayProgress } from '../state';
 import PathwayProgressCard from './PathwayProgressCard';
 import PathwayCoursesDataTable from './PathwayCoursesDataTable';
+import NeedHelpCard from './NeedHelpCard';
 import messages from './messages';
 
 export interface PathwayCoursesPageProps {
   courses: PathwayCourse[];
   progress: PathwayProgress;
+  courseSearchUrl: string;
+  contactEmail?: string | string[] | null;
+  helpCenterUrl: string;
 }
 
 /**
@@ -19,7 +23,9 @@ export interface PathwayCoursesPageProps {
  * constrain its own width (no `mx-auto`/`maxWidth`) — the courses table
  * benefits from the full width the tab's `Container` already provides.
  */
-const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
+const PathwayCoursesPage = ({
+  courses, progress, courseSearchUrl, contactEmail, helpCenterUrl,
+}: PathwayCoursesPageProps) => {
   const intl = useIntl();
 
   return (
@@ -36,6 +42,11 @@ const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
         </header>
         <PathwayProgressCard progress={progress} />
         <PathwayCoursesDataTable courses={courses} />
+        <NeedHelpCard
+          courseSearchUrl={courseSearchUrl}
+          contactEmail={contactEmail}
+          helpCenterUrl={helpCenterUrl}
+        />
       </Stack>
     </section>
   );

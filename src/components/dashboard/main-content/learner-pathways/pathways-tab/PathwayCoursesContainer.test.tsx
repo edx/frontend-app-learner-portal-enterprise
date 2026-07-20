@@ -2,23 +2,39 @@ import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { PathwaysActionBarProvider } from './action-bar';
 import { usePathwaysStore } from './state';
+import { useEnterpriseCustomer } from '../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+
+jest.mock('../../../../app/data', () => ({
+  ...jest.requireActual('../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+
+const mockEnterpriseCustomer = enterpriseCustomerFactory({
+  slug: 'test-enterprise',
+  contact_email: 'admin@example.com',
+});
 
 const renderComponent = (props = {}) => render(
-  <IntlProvider locale="en">
-    <PathwaysActionBarProvider>
-      <PathwayCoursesContainer {...props} />
-    </PathwaysActionBarProvider>
-  </IntlProvider>,
+  <MemoryRouter>
+    <IntlProvider locale="en">
+      <PathwaysActionBarProvider>
+        <PathwayCoursesContainer {...props} />
+      </PathwaysActionBarProvider>
+    </IntlProvider>
+  </MemoryRouter>,
 );
 
 describe('PathwayCoursesContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
   });
 
   it('renders the pathway courses scaffold using fixture data when the store has no courses', () => {
@@ -66,5 +82,34 @@ describe('PathwayCoursesContainer', () => {
     await user.click(screen.getByTestId('pathway-rebuild-button'));
 
     expect(onBackToProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves the course search link from the active enterprise slug', () => {
+    renderComponent();
+
+    const searchLink = screen.getByRole('link', { name: 'course search' });
+    expect(searchLink).toHaveAttribute('href', '/test-enterprise/search');
+  });
+
+  it('uses the enterprise customer contact_email in the rendered admin link when available', () => {
+    renderComponent();
+
+    const adminLink = screen.getByRole('link', { name: /contact your organization's edX administrator/ });
+    expect(adminLink).toHaveAttribute('href', expect.stringContaining('mailto:admin@example.com'));
+  });
+
+  it('falls back to the admin-user list when contact_email is unavailable', () => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({
+        slug: 'test-enterprise',
+        contact_email: '',
+        admin_users: [{ email: 'fallback-admin@example.com' }],
+      }),
+    });
+
+    renderComponent();
+
+    const adminLink = screen.getByRole('link', { name: /contact your organization's edX administrator/ });
+    expect(adminLink).toHaveAttribute('href', expect.stringContaining('mailto:fallback-admin@example.com'));
   });
 });

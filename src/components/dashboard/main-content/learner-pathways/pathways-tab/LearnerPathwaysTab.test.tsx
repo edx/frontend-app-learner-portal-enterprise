@@ -12,6 +12,8 @@ import { usePathwaysStore } from './state';
 import type { LearnerProfile, CareerMatch } from './state';
 import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
 import { generateProfileWorkflow } from './workflows';
+import { useEnterpriseCustomer } from '../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 
 jest.mock('./workflows', () => {
   // eslint-disable-next-line global-require
@@ -31,6 +33,9 @@ jest.mock('../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
   useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
 }));
+jest.mock('../../../../app/data', () => ({
+  useEnterpriseCustomer: jest.fn(),
+}));
 
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
 
@@ -46,6 +51,9 @@ describe('LearnerPathwaysTab', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     mockGenerateProfileWorkflow.mockClear();
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
   });
 
   it('navigates Onboarding -> Profile -> Pathway and uses breadcrumbs', async () => {
