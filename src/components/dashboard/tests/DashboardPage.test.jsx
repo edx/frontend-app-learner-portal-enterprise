@@ -114,6 +114,17 @@ jest.mock('../../app/data', () => ({
   useSubscriptions: jest.fn(),
 }));
 
+// usePathwaysController (mounted when the Pathways tab renders) resolves catalog scope
+// via useSearchCatalogs/useAlgoliaSearch, and useAlgoliaSearch is backed by a
+// Suspense-based BFF query — without a mock, clicking into the Pathways tab suspends
+// synchronously and React throws instead of rendering. Stubbed here the same way as
+// the other Learner Pathways test files that exercise this hook chain.
+jest.mock('../../app/data/hooks', () => ({
+  ...jest.requireActual('../../app/data/hooks'),
+  useSearchCatalogs: jest.fn(() => []),
+  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: {} })),
+}));
+
 jest.mock('@edx/frontend-platform/analytics', () => ({
   ...jest.requireActual('@edx/frontend-platform/analytics'),
   sendPageEvent: jest.fn(),

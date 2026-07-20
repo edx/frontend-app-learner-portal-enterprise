@@ -1,3 +1,4 @@
+import { isMalformedCompound, normalizeString } from './algoliaStrings';
 import type { CatalogFacetSnapshot, CourseSearchOptions } from '../types';
 
 /** Reduced strict-skill cap for introductory learners (fewer hard filters = broader results). */
@@ -34,11 +35,7 @@ interface SkillSignal {
   priority: number;
 }
 
-const normalizeText = (value?: string | null): string => (value || '').trim();
-
 const normalizeCatalogTerm = (value: string): string => value.trim().toLowerCase();
-
-const isMalformedCompound = (name: string): boolean => name.includes(' & ') || name.includes(' + ');
 
 /**
  * Builds the deduplicated skill signal list from all three sources — required skills
@@ -50,9 +47,9 @@ const buildSkillSignals = (options: CourseSearchOptions): SkillSignal[] => {
   const { intent, selectedCareer } = options;
 
   const candidates: SkillSignal[] = [
-    ...intent.skillsRequired.map((name) => ({ name: normalizeText(name), tier: 'strict' as const, priority: 0 })),
-    ...intent.skillsPreferred.map((name) => ({ name: normalizeText(name), tier: 'boost' as const, priority: 1 })),
-    ...(selectedCareer.skillsToDevelop ?? []).map((name) => ({ name: normalizeText(name), tier: 'boost' as const, priority: 2 })),
+    ...intent.skillsRequired.map((name) => ({ name: normalizeString(name), tier: 'strict' as const, priority: 0 })),
+    ...intent.skillsPreferred.map((name) => ({ name: normalizeString(name), tier: 'boost' as const, priority: 1 })),
+    ...(selectedCareer.skillsToDevelop ?? []).map((name) => ({ name: normalizeString(name), tier: 'boost' as const, priority: 2 })),
   ];
 
   const deduped = new Map<string, SkillSignal>();
@@ -161,8 +158,8 @@ export const translateSkillsToCatalog = (
     boostSkillFilters = [];
   }
 
-  const careerTitle = normalizeText(selectedCareer.title);
-  const requiredSkills = intent.skillsRequired.map(normalizeText).filter(Boolean);
+  const careerTitle = normalizeString(selectedCareer.title);
+  const requiredSkills = intent.skillsRequired.map(normalizeString).filter(Boolean);
 
   let query: string;
   if (requiredSkills.length) {

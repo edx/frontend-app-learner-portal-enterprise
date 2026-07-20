@@ -1,6 +1,7 @@
 import type {
   CareerMatch, LearnerIntent, LearnerProfile, PathwayCourse, PathwayGenerationRequest,
 } from '../state';
+import type { CourseRetrievalCatalogScope } from '../types';
 
 /**
  * Explicit profile-generation input: the canonical learner intent, unmapped and
@@ -16,10 +17,20 @@ export interface GenerateProfileWorkflowResult {
 }
 
 /**
- * Explicit pathway-generation input: the complete, canonical request the pathway is
- * built from — the same shape whose fingerprint gets stored via commitPathwayBuild.
+ * Explicit pathway-generation input. `request` is the complete, canonical, fingerprinted
+ * request (unchanged — `computePathwayInputFingerprint` still hashes only this).
+ * `selectedCareer` and `catalogScope` are workflow-only execution inputs, never persisted
+ * and never added to the fingerprint: `selectedCareer` is the full domain object Catalog
+ * Retrieval and Recommendation Feedback need (the durable request only keeps
+ * `selectedCareerId`); `catalogScope` is resolved from React hooks
+ * (`useSearchCatalogs`/`useAlgoliaSearch`) by the composition layer, since the workflow
+ * itself must stay hook-free.
  */
-export type GeneratePathwayWorkflowInput = PathwayGenerationRequest;
+export interface GeneratePathwayWorkflowInput {
+  request: PathwayGenerationRequest;
+  selectedCareer: CareerMatch;
+  catalogScope: CourseRetrievalCatalogScope;
+}
 
 /** Result the controller/container commits atomically via commitPathwayBuild. */
 export interface GeneratePathwayWorkflowResult {

@@ -3,6 +3,8 @@ import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
 import { catalogFacetService } from './catalogFacetService';
 import { translateSkillsToCatalog } from './catalogSkillTranslation';
 import type { CatalogSkillMatch } from './catalogSkillTranslation';
+import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
+import { normalizeString, quoteFacetValue } from './algoliaStrings';
 import type { PathwayCourse } from '../state';
 import type { CareerSearchLearnerLevel, CourseSearchOptions } from '../types';
 
@@ -32,20 +34,6 @@ interface CourseHit {
   skill_names?: string[];
   'skills.name'?: string[];
 }
-
-const normalizeString = (value?: string | null): string => (value || '').trim();
-
-const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
-
-const buildBaseScopeFilters = (options: CourseSearchOptions): string => (
-  new AlgoliaFilterBuilder()
-    .and('content_type', 'course')
-    .filterByCatalogQueryUuids(
-      options.catalogScope.searchCatalogs,
-      options.catalogScope.catalogUuidsToCatalogQueryUuids,
-    )
-    .build()
-);
 
 /**
  * Builds the strict skills OR-group manually: a matched group can span two different
@@ -211,12 +199,14 @@ export const courseRetrievalService = {
   async searchCourses(index: SearchIndex, options: CourseSearchOptions): Promise<PathwayCourse[]> {
     const facetSnapshot = await catalogFacetService.getFacetSnapshot(index, options.catalogScope);
     const translation = translateSkillsToCatalog(options, facetSnapshot);
-    const baseScopeFilters = buildBaseScopeFilters(options);
+    const baseScopeFilters = buildCourseCatalogScopeFilters(options.catalogScope);
     const { learnerLevel } = options.intent;
 
     if (translation.strictSkillFilters.length || translation.boostSkillFilters.length) {
       const strictOrGroup = buildStrictOrGroup(translation.strictSkillFilters);
-      const filters = [baseScopeFilters, strictOrGroup].filter(Boolean).join(' AND ');
+      const filters = strictOrGroup
+        ? new AlgoliaFilterBuilder().andRaw(baseScopeFilters).andRaw(strictOrGroup).build()
+        : baseScopeFilters;
       const optionalFilters = buildBoostOptionalFilters(translation.boostSkillFilters);
 
       const searchParams: Record<string, unknown> = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, filters };

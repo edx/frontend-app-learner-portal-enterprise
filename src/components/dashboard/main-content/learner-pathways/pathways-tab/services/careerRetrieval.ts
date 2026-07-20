@@ -1,5 +1,6 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
+import { isMalformedCompound, normalizeString, quoteFacetValue } from './algoliaStrings';
 import type { CareerMatch } from '../state';
 import type { CareerSearchIntent } from '../types';
 
@@ -27,17 +28,11 @@ interface TaxonomyCareerHit {
   skills?: Array<{ name?: string }>;
 }
 
-const normalizeString = (value?: string | null): string => (value || '').trim();
-
 const isNonEmptyString = (value?: string | null): value is string => Boolean(normalizeString(value));
-
-const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
 
 const dedupeStrings = (values: Array<string | undefined | null>): string[] => (
   Array.from(new Set(values.map(normalizeString).filter(Boolean)))
 );
-
-const isMalformedCompound = (name: string): boolean => name.includes(' & ') || name.includes(' + ');
 
 const buildOptionalSkillFilter = (skill: string, score?: number): string => {
   const quotedSkill = `${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(skill)}`;

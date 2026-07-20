@@ -1,34 +1,82 @@
-import { PATHWAY_COURSES_STUB } from '../pathway-courses/fixtures';
+import { fetchRecommendationFeedback } from '../../../../../app/data/services/xpert';
+import { courseRetrievalService, getCourseAlgoliaIndex } from '../services';
+import { normalizeSkillsList } from '../state';
+import type { CareerMatch, PathwayCourse, PathwayGenerationRequest } from '../state';
+import type { CourseSearchIntentSignal, CourseSearchSelectedCareer } from '../types';
 import type { GeneratePathwayWorkflowInput, GeneratePathwayWorkflowResult } from './types';
 
 /**
- * Integration seam: owns selected-career -> course retrieval -> Recommendation
- * Feedback -> enriched PathwayCourse[] mapping.
+ * Course-retrieval career projection, driven by the learner-*approved* skill selection
+ * (`request.selectedSkills`) rather than `selectedCareer.skillsToDevelop` (the full
+ * recommended list) — a skill the learner has dismissed must not silently reappear as a
+ * course-search signal.
+ */
+const buildCourseSearchCareer = (
+  selectedCareer: CareerMatch,
+  request: PathwayGenerationRequest,
+): CourseSearchSelectedCareer => ({
+  title: selectedCareer.title,
+  skillsToDevelop: normalizeSkillsList(request.selectedSkills),
+});
+
+/**
+ * Deliberate adapter, not a reconstructed `CareerSearchIntent`: the real normalized
+ * Learning Intent (`condensedAlgoliaQuery`, etc.) doesn't survive past profile
+ * generation, and `courseRetrievalService` only ever reads `skillsRequired`/
+ * `skillsPreferred`/`learnerLevel` (see `CourseSearchIntentSignal`). Built entirely from
+ * data that genuinely exists in the durable request: the learner-approved selected
+ * skills are the strongest (required) signal; the generated profile's skills, minus
+ * whatever's already selected, are the supporting (preferred) signal. `learnerLevel` is
+ * omitted — no canonical source for it exists anywhere in durable state today, and it
+ * must not be fabricated from `learningStyle`/`weeklyTimeCommitment`.
+ */
+const buildCourseSearchIntent = (request: PathwayGenerationRequest): CourseSearchIntentSignal => {
+  const skillsRequired = normalizeSkillsList(request.selectedSkills);
+  const requiredLookup = new Set(skillsRequired.map((skill) => skill.toLowerCase()));
+  const skillsPreferred = normalizeSkillsList(request.learnerProfile.skills)
+    .filter((skill) => !requiredLookup.has(skill.toLowerCase()));
+
+  return { skillsRequired, skillsPreferred };
+};
+
+/**
+ * Integration seam: selected career -> Catalog Retrieval -> Recommendation Feedback ->
+ * enriched `PathwayCourse[]`. A linear `async` sequence with no defensive `catch` (mirrors
+ * `generateProfileWorkflow`'s convention) — a Catalog Retrieval rejection propagates
+ * before Recommendation Feedback is ever called, and a Recommendation Feedback rejection
+ * propagates rather than falling back to unenriched courses.
  *
- * Future flow:
- * 1. Build an Algolia course query from the request's learner intent, learner
- *    profile, selected career, and selected skills.
- * 2. Retrieve candidate course hits and normalize to PathwayCourse[], reading
- *    hit.key (not objectID) as the stable courseKey identifier.
- * 3. Call fetchRecommendationFeedback({ selectedCareer, courseKeys, learnerProfile })
- *    (src/components/app/data/services/xpert.ts), sending a deliberate
- *    learner-profile projection rather than the entire Zustand store.
- * 4. Merge reasons[courseKey] into each course's whyThisFitsYou.
- * 5. Return the enriched courses for the controller to commit.
- *
- * This workflow owns ordering, projection, and joining; the application
- * service owns only HTTP transport.
- *
- * Until that lands, this returns the same static stub course set used elsewhere in
- * the scaffold (input is accepted for the future contract but not yet used), each
- * course already carrying a `courseKey` and stand-in `whyThisFitsYou` content.
+ * `catalogScope` is supplied by the composition layer (`usePathwaysController`, which
+ * resolves it via React hooks) since this workflow must stay hook-free; the course
+ * catalog index itself is resolved directly here via the non-hook `getCourseAlgoliaIndex`,
+ * exactly like `generateProfileWorkflow` resolves the career/taxonomy index.
  */
 export const generatePathwayWorkflow = async (
-  input: GeneratePathwayWorkflowInput,
+  { request, selectedCareer, catalogScope }: GeneratePathwayWorkflowInput,
 ): Promise<GeneratePathwayWorkflowResult> => {
-  if (input.selectedCareerId) {
-    // Placeholder read to keep the explicit input contract enforced until the
-    // real Algolia/Recommendation Feedback orchestration lands.
+  const index = getCourseAlgoliaIndex();
+
+  const courses = await courseRetrievalService.searchCourses(index, {
+    selectedCareer: buildCourseSearchCareer(selectedCareer, request),
+    intent: buildCourseSearchIntent(request),
+    catalogScope,
+  });
+
+  if (courses.length === 0) {
+    return { courses: [] };
   }
-  return { courses: PATHWAY_COURSES_STUB };
+
+  const courseKeys = courses.map((course) => course.courseKey);
+  const feedback = await fetchRecommendationFeedback({
+    selectedCareer: selectedCareer.title,
+    courseKeys,
+    learnerProfile: { ...request.learnerProfile },
+  });
+
+  const enrichedCourses: PathwayCourse[] = courses.map((course) => {
+    const reason = feedback.reasons[course.courseKey];
+    return reason ? { ...course, whyThisFitsYou: reason } : course;
+  });
+
+  return { courses: enrichedCourses };
 };

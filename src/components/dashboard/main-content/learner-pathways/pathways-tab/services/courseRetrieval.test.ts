@@ -20,7 +20,6 @@ const searchResponse = (hits: Record<string, unknown>[]) => ({ hits });
 const buildOptions = (overrides: Partial<CourseSearchOptions> = {}): CourseSearchOptions => ({
   selectedCareer: { title: 'Data Analyst', skillsToDevelop: ['Excel'] },
   intent: {
-    condensedAlgoliaQuery: 'data analysis',
     skillsRequired: ['SQL'],
     skillsPreferred: [],
   },
@@ -66,7 +65,7 @@ describe('courseRetrievalService.searchCourses', () => {
         searchResponse([course('c1'), course('c2'), course('c3')]),
       ]);
       const options = buildOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['Data "Wrangling"'], skillsPreferred: [] },
+        intent: { skillsRequired: ['Data "Wrangling"'], skillsPreferred: [] },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
       });
 
@@ -85,7 +84,7 @@ describe('courseRetrievalService.searchCourses', () => {
       ]);
       const options = buildOptions({
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: [], skillsPreferred: [] },
+        intent: { skillsRequired: [], skillsPreferred: [] },
       });
 
       const result = await courseRetrievalService.searchCourses(index, options);
@@ -287,7 +286,7 @@ describe('courseRetrievalService.searchCourses', () => {
       const options = buildOptions({
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
         intent: {
-          condensedAlgoliaQuery: 'q', skillsRequired: [], skillsPreferred: [], learnerLevel: 'introductory',
+          skillsRequired: [], skillsPreferred: [], learnerLevel: 'introductory',
         },
       });
 

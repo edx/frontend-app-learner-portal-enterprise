@@ -16,7 +16,7 @@ const renderComponent = (courses: PathwayCourse[] = PATHWAY_COURSES_STUB) => ren
 describe('PathwayCoursesDataTable', () => {
   it('renders the expected column headers', () => {
     renderComponent();
-    ['Status', 'Course', 'Level', 'Why this fits you', 'Length', 'Action'].forEach((header) => {
+    ['Status', 'Course', 'Level', 'Why this fits you', 'Action'].forEach((header) => {
       expect(screen.getByRole('columnheader', { name: header })).toBeInTheDocument();
     });
   });
@@ -47,12 +47,6 @@ describe('PathwayCoursesDataTable', () => {
     expect(screen.getByText(PATHWAY_COURSES_STUB[0].whyThisFitsYou as string)).toBeInTheDocument();
   });
 
-  it('renders length values', () => {
-    renderComponent();
-    expect(screen.getAllByText('2 weeks')).toHaveLength(1);
-    expect(screen.getAllByText('8 weeks')).toHaveLength(2);
-  });
-
   it('renders row action buttons mapped from course status', () => {
     renderComponent();
     expect(screen.getAllByRole('button', { name: 'View Certificate' })).toHaveLength(1);
@@ -60,10 +54,10 @@ describe('PathwayCoursesDataTable', () => {
     expect(screen.getAllByRole('button', { name: 'Register' })).toHaveLength(3);
   });
 
-  it('renders "Not available" for missing length and "why this fits you" values', () => {
+  it('renders "Not available" for a missing "why this fits you" value', () => {
     renderComponent([
       { courseKey: 'sparse-course', title: 'Sparse Course', status: 'not_started' },
     ]);
-    expect(screen.getAllByText('Not available')).toHaveLength(2);
+    expect(screen.getAllByText('Not available')).toHaveLength(1);
   });
 });
