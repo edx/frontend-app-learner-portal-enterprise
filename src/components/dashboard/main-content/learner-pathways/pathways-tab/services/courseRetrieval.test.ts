@@ -65,7 +65,7 @@ describe('courseRetrievalService.searchCourses', () => {
         searchResponse([course('c1'), course('c2'), course('c3')]),
       ]);
       const options = buildOptions({
-        intent: { condensedAlgoliaQuery: 'q', skillsRequired: ['Data "Wrangling"'], skillsPreferred: [] },
+        intent: { skillsRequired: ['Data "Wrangling"'], skillsPreferred: [] },
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: [] },
       });
 
