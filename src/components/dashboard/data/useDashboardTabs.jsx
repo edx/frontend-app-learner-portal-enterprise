@@ -15,7 +15,6 @@ import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
 import {
-  DASHBOARD_AI_PATHWAYS_TAB,
   DASHBOARD_COURSES_TAB,
   DASHBOARD_MY_CAREER_TAB,
   DASHBOARD_PATHWAYS_TAB,
@@ -36,12 +35,6 @@ const MyCareerTab = loadable(() => import(
   '../../my-career/MyCareerTab'
 ), {
   fallback: <MyCareerTabSkeleton />,
-});
-
-const AIPathwaysTab = loadable(() => import(
-  '../../ai-pathways/AIPathwaysTab'
-), {
-  fallback: <div>Loading AI Pathways...</div>,
 });
 
 const getDashboardPageVisitEvent = tabName => (
@@ -66,16 +59,13 @@ const useDashboardTabs = () => {
   const enablePathways = !!enterpriseCustomer?.enablePathways;
   const enableMyCareer = features.FEATURE_ENABLE_MY_CAREER;
 
-  // TODO: Remove or pare down to a single feature flag from enterpriseFeatures (waffle)
-  //      when ai-pathways POC is no longer needed.
-  const enableAIPathways = !!(
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS
-    && enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled
-  );
+  const isLearnerPathwaysEnabled = !!enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
+  const hasExistingPathways = enterprisePathways.length > 0;
+  const hasPathwaysTab = enablePathways && (isLearnerPathwaysEnabled || hasExistingPathways);
+  const showLearnerPathwaysAlert = enablePathways && isLearnerPathwaysEnabled;
 
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
-  const hasPathwaysTab = enablePathways && enableAIPathways;
   const requestedTab = searchParams.get('tab');
 
   const tabState = useMemo(() => ({
@@ -89,25 +79,18 @@ const useDashboardTabs = () => {
     },
     [DASHBOARD_PATHWAYS_TAB]: {
       isVisible: enablePathways,
-      isAvailable: enablePathways && (
-        enableAIPathways || enterprisePathways.length > 0
-      ),
+      isAvailable: hasPathwaysTab,
     },
     [DASHBOARD_MY_CAREER_TAB]: {
       isVisible: enableMyCareer,
       isAvailable: enableMyCareer,
     },
-    [DASHBOARD_AI_PATHWAYS_TAB]: {
-      isVisible: enableAIPathways,
-      isAvailable: enableAIPathways,
-    },
   }), [
-    enableAIPathways,
     enableMyCareer,
     enablePathways,
     enablePrograms,
-    enterprisePathways.length,
     enterprisePrograms.length,
+    hasPathwaysTab,
   ]);
 
   const activeTab = tabState[requestedTab]?.isAvailable
@@ -194,7 +177,7 @@ const useDashboardTabs = () => {
         <CoursesTabComponent
           onSelectTab={onSelectHandler}
           hasPathwaysTab={hasPathwaysTab}
-          showLearnerPathwaysAlert={enableAIPathways}
+          showLearnerPathwaysAlert={showLearnerPathwaysAlert}
         />
       )}
     </Tab>,
@@ -226,7 +209,7 @@ const useDashboardTabs = () => {
         disabled={!tabState[DASHBOARD_PATHWAYS_TAB].isAvailable}
       >
         {activeTab === DASHBOARD_PATHWAYS_TAB && (
-          enableAIPathways ? (
+          isLearnerPathwaysEnabled ? (
             <LearnerPathwaysTab />
           ) : (
             <PathwayProgressListingPage />
@@ -250,27 +233,14 @@ const useDashboardTabs = () => {
         )}
       </Tab>
     ),
-
-    tabState[DASHBOARD_AI_PATHWAYS_TAB].isVisible && (
-      <Tab
-        key={DASHBOARD_AI_PATHWAYS_TAB}
-        eventKey={DASHBOARD_AI_PATHWAYS_TAB}
-        title={intl.formatMessage({
-          id: 'enterprise.dashboard.tab.ai.pathways',
-          defaultMessage: 'AI Pathways',
-          description: 'Title for AI pathways tab on enterprise dashboard.',
-        })}
-      >
-        {activeTab === DASHBOARD_AI_PATHWAYS_TAB && <AIPathwaysTab />}
-      </Tab>
-    ),
   ].filter(Boolean)), [
     activeTab,
-    enableAIPathways,
     hasPathwaysTab,
     intl,
+    isLearnerPathwaysEnabled,
     learnerCurrentJobID,
     onSelectHandler,
+    showLearnerPathwaysAlert,
     tabState,
   ]);
 

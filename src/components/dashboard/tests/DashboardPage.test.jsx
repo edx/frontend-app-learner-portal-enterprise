@@ -135,7 +135,6 @@ jest.mock('../../../config', () => ({
     FEATURE_ENABLE_PATHWAY_PROGRESS: jest.fn(),
     FEATURE_ENABLE_MY_CAREER: jest.fn(),
     FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT: jest.fn(),
-    FEATURE_ENABLE_AI_LEARNER_PATHWAYS: false,
   },
 }));
 
@@ -227,7 +226,6 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
@@ -333,17 +331,15 @@ describe('<Dashboard />', () => {
 
   it('renders pathway tab', async () => {
     const user = userEvent.setup();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
   });
 
-  it('renders learner pathways tab scaffold in pathways tab when dual AI pathways flags are enabled', async () => {
+  it('renders learner pathways tab scaffold in pathways tab when Learner Pathways is enabled', async () => {
     const user = userEvent.setup();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
@@ -351,6 +347,37 @@ describe('<Dashboard />', () => {
     await user.click(screen.getByText('Pathways'));
 
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+  });
+
+  it('renders Pathways tab as disabled and falls back to Courses when Learner Pathways is disabled and there are no existing pathways', () => {
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+    useEnterprisePathwaysList.mockReturnValue({ data: [] });
+    renderWithRouter(<DashboardWithContext />);
+    const pathwaysTab = screen.getByText('Pathways');
+    expect(pathwaysTab).toBeInTheDocument();
+    expect(pathwaysTab).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not render Pathways tab or learner pathways alert when customer pathways is disabled, even if Learner Pathways is enabled', () => {
+    useEnterpriseCustomer.mockReturnValue({
+      data: enterpriseCustomerFactory({ enable_pathways: false, enable_programs: true }),
+    });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByText('Pathways')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
+  });
+
+  it('normalizes a request for the removed ai-pathways tab back to Courses', () => {
+    renderWithRouter(<DashboardWithContext />, { route: '/?tab=ai-pathways' });
+    expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
+    expect(sendPageEvent).toHaveBeenCalledWith(
+      'enterprise_learner_portal',
+      expect.stringContaining('courses_tab'),
+      expect.objectContaining({ tab: 'courses' }),
+    );
   });
 
   it('renders programs tab', async () => {
@@ -367,39 +394,16 @@ describe('<Dashboard />', () => {
     expect(screen.getByText('My Career')).toBeInTheDocument();
   });
 
-  it('renders AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS and enterpriseAiPathwaysOperatorEnabled are both enabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
-    renderWithRouter(<DashboardWithContext />);
-    expect(screen.getByText('AI Pathways')).toBeInTheDocument();
-  });
-
-  it('renders learner pathways alert scaffold in courses tab when AI learner pathways flag is enabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+  it('renders learner pathways alert scaffold in courses tab when Learner Pathways operator flag is enabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByTestId('learner-pathways-alert')).toBeInTheDocument();
   });
 
-  it('does not render AI Pathways tab when enterpriseAiPathwaysOperatorEnabled is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+  it('does not render learner pathways alert scaffold when operator flag is disabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
-  });
-
-  it('does not render learner pathways alert scaffold when AI learner pathways flag is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
-    renderWithRouter(<DashboardWithContext />);
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
-  });
-
-  it('does not render AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
-    renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
   });
 
   it('renders subsidies summary on a small screen', () => {
