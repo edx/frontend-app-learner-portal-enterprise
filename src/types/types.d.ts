@@ -125,6 +125,10 @@ declare global {
     PATHWAYS_FEEDBACK_FORM_URL: string | null;
   };
 
+  type LearnerPathwaysAllowlistConfiguration = {
+    FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: string[] | null;
+  };
+
   interface Configuration extends
     AlgoliaConfiguration,
     ServiceUrls,
@@ -134,7 +138,8 @@ declare global {
     FeatureFlagConfiguration,
     CookieConfiguration,
     OptimizelyConfiguration,
-    PathwaysFeedbackConfiguration {}
+    PathwaysFeedbackConfiguration,
+    LearnerPathwaysAllowlistConfiguration {}
 
   // Application Data (enterprise)
 

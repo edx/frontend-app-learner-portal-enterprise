@@ -9,8 +9,9 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { camelCaseObject } from '@edx/frontend-platform/utils';
+import { mergeConfig } from '@edx/frontend-platform';
 import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid';
+import { NIL as NIL_UUID, v4 as uuidv4 } from 'uuid';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import { SEEN_SUBSCRIPTION_EXPIRATION_MODAL_COOKIE_PREFIX } from '../../../config/constants';
 import { features } from '../../../config';
@@ -228,6 +229,9 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Nil-uuid wildcard by default so every existing test below (which never touches this
+    // allowlist itself) keeps its current "enabled for all" expectations.
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
@@ -408,6 +412,15 @@ describe('<Dashboard />', () => {
   it('does not render learner pathways alert scaffold when operator flag is disabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not throw and omits the learner pathways alert when the allowlist config is null', () => {
+    // Regression test for the real production error: getConfig() returned null for this
+    // field and `null.filter` threw a TypeError.
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: null });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    expect(() => renderWithRouter(<DashboardWithContext />)).not.toThrow();
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
