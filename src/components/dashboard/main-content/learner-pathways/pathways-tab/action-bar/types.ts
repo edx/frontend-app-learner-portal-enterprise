@@ -6,7 +6,8 @@ export interface PathwaysAction {
   label: MessageDescriptor;
   /** Shown in place of label while loading: true */
   loadingLabel?: MessageDescriptor;
-  variant: string;
+  /** Paragon Button variant. Not applicable (and ignored) when `destination` is set. */
+  variant?: string;
   disabled?: boolean;
   loading?: boolean;
   type?: 'button' | 'submit';
@@ -17,6 +18,10 @@ export interface PathwaysAction {
   testId?: string;
   /** Rendered before the label via Paragon Button's iconBefore prop. */
   iconBefore?: React.ComponentType;
+  /** If set, renders this action as a Paragon Hyperlink to this URL instead of a Button. */
+  destination?: string;
+  /** Hyperlink target — only meaningful when `destination` is set. Defaults to '_blank'. */
+  target?: '_blank' | '_self';
 }
 
 export interface PathwaysActionBarConfig {

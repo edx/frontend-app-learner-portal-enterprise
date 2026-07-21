@@ -121,6 +121,10 @@ declare global {
     EXPERIMENT_2_VARIANT_2_ID: string | null;
   };
 
+  type PathwaysFeedbackConfiguration = {
+    PATHWAYS_FEEDBACK_FORM_URL: string | null;
+  };
+
   interface Configuration extends
     AlgoliaConfiguration,
     ServiceUrls,
@@ -129,7 +133,8 @@ declare global {
     MaintenanceConfiguration,
     FeatureFlagConfiguration,
     CookieConfiguration,
-    OptimizelyConfiguration {}
+    OptimizelyConfiguration,
+    PathwaysFeedbackConfiguration {}
 
   // Application Data (enterprise)
 
