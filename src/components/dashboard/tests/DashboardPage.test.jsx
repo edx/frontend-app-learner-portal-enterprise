@@ -267,6 +267,9 @@ describe('<Dashboard />', () => {
             hasAssignmentsForDisplay: false,
           },
         },
+        // Matches the real hook's shape (see useEnterpriseCourseEnrollments.js) — the
+        // Learner Pathways banner reads this field directly.
+        enterpriseCourseEnrollments: [],
       },
     });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });
@@ -439,19 +442,23 @@ describe('<Dashboard />', () => {
     expect(screen.getByTestId('subsidies-summary')).toBeInTheDocument();
   });
 
-  it('renders "Find a course" when search is enabled for the customer', () => {
+  it('renders the generic My Courses empty state with a search link when search is enabled for the customer', () => {
     features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
     renderWithRouter(<DashboardWithContext />);
-    expect(screen.getByText('Find a course')).toBeInTheDocument();
+    expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'exploring courses' }))
+      .toHaveAttribute('href', `/${mockEnterpriseCustomer.slug}/search`);
   });
 
-  it('does not render "Find a course" when search is disabled for the customer', () => {
+  it('renders the disableSearch message instead of the generic empty state when search is disabled for the customer', () => {
     const mockEnterpriseCustomerWithoutSearch = enterpriseCustomerFactory({
       disable_search: true,
     });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomerWithoutSearch });
     renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('Find a course')).toBeFalsy();
+    expect(screen.getByText('Reach out to your administrator for instructions on how to start learning with edX!', { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'exploring courses' })).not.toBeInTheDocument();
   });
 
   it('Renders all tabs for progress in dashboard page', () => {
