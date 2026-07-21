@@ -90,7 +90,7 @@ describe('useDashboardTabs', () => {
     features.FEATURE_ENABLE_MY_CAREER = false;
     // Nil-uuid wildcard by default so every existing test below (which never touches this
     // allowlist itself) keeps its current "enabled for all" expectations.
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: NIL_UUID });
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
   });
 
   it('always returns courses tab', () => {
@@ -279,7 +279,7 @@ describe('useDashboardTabs', () => {
     const OTHER_UUID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
     it('behaves identically to the nil-uuid wildcard default when the customer uuid is explicitly allowlisted', () => {
-      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ALLOWLISTED_UUID });
+      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
       useEnterpriseCustomer.mockReturnValue({
         data: enterpriseCustomerFactory({ enable_pathways: true, uuid: ALLOWLISTED_UUID }),
       });
@@ -296,7 +296,7 @@ describe('useDashboardTabs', () => {
       // excluding the customer from the allowlist suppresses isLearnerPathwaysEnabled the
       // same way a disabled operator flag would, so with no legacy pathways to fall back
       // on, hasPathwaysTab correctly becomes false rather than showing a legacy page.
-      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ALLOWLISTED_UUID });
+      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
       useEnterpriseCustomer.mockReturnValue({
         data: enterpriseCustomerFactory({ enable_pathways: true, uuid: OTHER_UUID }),
       });
@@ -311,7 +311,7 @@ describe('useDashboardTabs', () => {
     });
 
     it('still shows an available Pathways tab (legacy PathwayProgressListingPage) for a customer excluded from the allowlist who already has existing pathways', () => {
-      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ALLOWLISTED_UUID });
+      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
       useEnterpriseCustomer.mockReturnValue({
         data: enterpriseCustomerFactory({ enable_pathways: true, uuid: OTHER_UUID }),
       });
