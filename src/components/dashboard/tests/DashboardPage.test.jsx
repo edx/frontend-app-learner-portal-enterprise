@@ -415,6 +415,15 @@ describe('<Dashboard />', () => {
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
+  it('does not throw and omits the learner pathways alert when the allowlist config is null', () => {
+    // Regression test for the real production error: getConfig() returned null for this
+    // field and `null.filter` threw a TypeError.
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: null });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    expect(() => renderWithRouter(<DashboardWithContext />)).not.toThrow();
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
+  });
+
   it('renders subsidies summary on a small screen', () => {
     window.matchMedia.setConfig({ ...mockWindowConfig, width: breakpoints.large.minWidth - 1 });
     useSubscriptions.mockReturnValue({

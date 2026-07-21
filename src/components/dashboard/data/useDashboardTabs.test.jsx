@@ -330,6 +330,26 @@ describe('useDashboardTabs', () => {
       const pathwaysTabChild = getPathwaysTabChild(result.current.tabs);
       expect(pathwaysTabChild.type).toBe(PathwayProgressListingPage);
     });
+
+    it('does not throw and disables the banner/tab-availability when the allowlist config is null', () => {
+      // Regression test for the real production error: getConfig() returned null for this
+      // field and `null.filter` threw a TypeError.
+      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: null });
+      useEnterpriseCustomer.mockReturnValue({
+        data: enterpriseCustomerFactory({ enable_pathways: true, uuid: OTHER_UUID }),
+      });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      useEnterprisePathwaysList.mockReturnValue({ data: [] });
+
+      let result;
+      expect(() => {
+        ({ result } = renderHook(() => useDashboardTabs(), { wrapper }));
+      }).not.toThrow();
+
+      const coursesProps = getCoursesTabChildProps(result.current.tabs);
+      expect(coursesProps.showLearnerPathwaysAlert).toBe(false);
+      expect(coursesProps.hasPathwaysTab).toBe(false);
+    });
   });
 
   describe('removed AI Pathways query value normalization', () => {

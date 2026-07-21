@@ -44,16 +44,17 @@ export function getExpiringAssignmentsAcknowledgementState(assignments) {
 
 /**
  * Whether the Learner Pathways feature is enabled for a specific enterprise customer, per the
- * FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS allowlist — always a list of enterprise
- * customer UUIDs (or an empty list). The nil UUID (`uuid`'s `NIL` export) is a wildcard meaning
- * "enabled for every enterprise customer".
+ * FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS allowlist — a list of enterprise
+ * customer UUIDs, or null/undefined/empty when unset (observed in production: getConfig() can
+ * return null for this field, not just `[]`). The nil UUID (`uuid`'s `NIL` export) is a wildcard
+ * meaning "enabled for every enterprise customer".
  *
  * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
- * @param {string[]} allowlist - The FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS config value.
+ * @param {string[]|null} allowlist - The FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS config value.
  * @returns {Boolean} - Returns true if the feature is enabled for this customer.
  */
 export function isLearnerPathwaysEnabledForEnterpriseCustomer(enterpriseCustomerUuid, allowlist) {
-  const normalizedAllowlist = allowlist.filter(Boolean);
+  const normalizedAllowlist = (allowlist || []).filter(Boolean);
   return normalizedAllowlist.includes(NIL_UUID)
     || (!!enterpriseCustomerUuid && normalizedAllowlist.includes(enterpriseCustomerUuid));
 }

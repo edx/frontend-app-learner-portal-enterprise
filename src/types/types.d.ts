@@ -126,7 +126,7 @@ declare global {
   };
 
   type LearnerPathwaysAllowlistConfiguration = {
-    FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: string[];
+    FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: string[] | null;
   };
 
   interface Configuration extends
