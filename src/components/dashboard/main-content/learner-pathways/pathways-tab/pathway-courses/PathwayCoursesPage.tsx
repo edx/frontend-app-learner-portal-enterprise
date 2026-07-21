@@ -5,6 +5,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import type { PathwayCourse, PathwayProgress } from '../state';
 import PathwayProgressCard from './PathwayProgressCard';
 import PathwayCoursesDataTable from './PathwayCoursesDataTable';
+import NeedHelpCard from './NeedHelpCard';
 import messages from './messages';
 
 export interface PathwayCoursesPageProps {
@@ -36,6 +37,7 @@ const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
         </header>
         <PathwayProgressCard progress={progress} />
         <PathwayCoursesDataTable courses={courses} />
+        <NeedHelpCard />
       </Stack>
     </section>
   );

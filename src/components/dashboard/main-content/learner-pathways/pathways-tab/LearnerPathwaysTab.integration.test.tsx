@@ -13,6 +13,8 @@ import intakeMessages from './intake/messages';
 import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
 import { fetchLearningIntent, fetchRecommendationFeedback } from '../../../../app/data/services/xpert';
+import { useEnterpriseCustomer } from '../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 import { careerRetrievalService, courseRetrievalService } from './services';
 import { PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY } from './pathway-courses/constants';
 
@@ -54,6 +56,10 @@ jest.mock('./services', () => ({
 jest.mock('../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
   useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+}));
+jest.mock('../../../../app/data', () => ({
+  ...jest.requireActual('../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
 }));
 
 /**
@@ -147,6 +153,9 @@ const editCareerGoalFromPathwayPage = async (user: ReturnType<typeof userEvent.s
 
 describe('LearnerPathwaysTab integration — edge cases from this session', () => {
   beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
   });
 
