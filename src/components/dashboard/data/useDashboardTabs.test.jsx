@@ -77,6 +77,7 @@ describe('useDashboardTabs', () => {
   };
   const getPathwaysTab = (tabs) => tabs.find(tab => tab.props.eventKey === DASHBOARD_PATHWAYS_TAB);
   const getPathwaysTabChild = (tabs) => getPathwaysTab(tabs)?.props?.children;
+  const getPathwaysTabBetaBadge = (tabs) => getPathwaysTab(tabs)?.props?.title?.props?.children?.[1];
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -196,6 +197,24 @@ describe('useDashboardTabs', () => {
       });
 
       expect(result.current.activeTab).toBe(DASHBOARD_COURSES_TAB);
+    });
+
+    it('includes the Beta badge in the tab title when the tab is available', () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      useEnterprisePathwaysList.mockReturnValue({ data: [] });
+
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(getPathwaysTabBetaBadge(result.current.tabs)).toBeTruthy();
+    });
+
+    it('omits the Beta badge when the tab is visible but unavailable', () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+      useEnterprisePathwaysList.mockReturnValue({ data: [] });
+
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(getPathwaysTabBetaBadge(result.current.tabs)).toBeFalsy();
     });
   });
 

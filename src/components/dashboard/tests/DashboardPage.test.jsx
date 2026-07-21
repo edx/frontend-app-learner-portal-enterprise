@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { screen, waitFor } from '@testing-library/react';
+import {
+  screen, waitFor, within,
+} from '@testing-library/react';
 import { AppContext } from '@edx/frontend-platform/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { breakpoints } from '@openedx/paragon';
@@ -334,6 +336,7 @@ describe('<Dashboard />', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
+    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
   });
@@ -343,6 +346,7 @@ describe('<Dashboard />', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
+    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
 
     await user.click(screen.getByText('Pathways'));
 
@@ -356,6 +360,7 @@ describe('<Dashboard />', () => {
     const pathwaysTab = screen.getByText('Pathways');
     expect(pathwaysTab).toBeInTheDocument();
     expect(pathwaysTab).toHaveAttribute('aria-disabled', 'true');
+    expect(within(screen.getByRole('tablist')).queryByText('Beta')).not.toBeInTheDocument();
     expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
   });
 

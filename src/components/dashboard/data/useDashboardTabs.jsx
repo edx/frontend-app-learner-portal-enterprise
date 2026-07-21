@@ -4,7 +4,7 @@ import {
 import loadable from '@loadable/component';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Tab } from '@openedx/paragon';
+import { Badge, Tab } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 
@@ -201,11 +201,24 @@ const useDashboardTabs = () => {
       <Tab
         key={DASHBOARD_PATHWAYS_TAB}
         eventKey={DASHBOARD_PATHWAYS_TAB}
-        title={intl.formatMessage({
-          id: 'enterprise.dashboard.tab.pathways',
-          defaultMessage: 'Pathways',
-          description: 'Title for pathways tab on enterprise dashboard.',
-        })}
+        title={(
+          <>
+            {intl.formatMessage({
+              id: 'enterprise.dashboard.tab.pathways',
+              defaultMessage: 'Pathways',
+              description: 'Title for pathways tab on enterprise dashboard.',
+            })}
+            {hasPathwaysTab && (
+              <Badge variant="info" className="ml-2 text-uppercase font-weight-bold">
+                {intl.formatMessage({
+                  id: 'enterprise.dashboard.tab.pathways.beta',
+                  defaultMessage: 'Beta',
+                  description: 'Label for the beta badge shown next to the Pathways tab title on the enterprise dashboard when the tab is available.',
+                })}
+              </Badge>
+            )}
+          </>
+        )}
         disabled={!tabState[DASHBOARD_PATHWAYS_TAB].isAvailable}
       >
         {activeTab === DASHBOARD_PATHWAYS_TAB && (
