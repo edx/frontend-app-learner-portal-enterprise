@@ -1,0 +1,57 @@
+// Gradient hex stops are transcribed from the Figma source
+// (docs/projects/learner-pathway/screenshots/mycoursestab.svg) — no matching Paragon
+// token exists for a custom 3-stop linear-gradient alert background, so this is scoped
+// custom SCSS rather than a hardcoded inline style.
+.pathways-alert {
+  color: #fff !important;
+  border: none;
+
+  &--purple {
+    background: linear-gradient(135deg, #312e81 0%, #41338c 50%, #7c3aed 100%) !important;
+  }
+
+  &--blue {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%) !important;
+  }
+
+  &--green {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #0d9488 100%) !important;
+  }
+
+  .alert-heading,
+  p {
+    color: inherit;
+  }
+
+  &__eyebrow-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  // Paragon's outline-primary/tertiary buttons default to dark-on-light styling —
+  // override for legibility against these dark gradient backgrounds.
+  .btn-outline-primary {
+    color: #fff;
+    border-color: #fff;
+
+    &:hover,
+    &:focus {
+      color: inherit;
+      background-color: #fff;
+    }
+  }
+
+  .btn-tertiary {
+    color: #fff;
+
+    &:hover,
+    &:focus {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+}

@@ -20,6 +20,7 @@ export type PathwaysExperienceStatus =
   | 'onboarding_in_progress'
   | 'profile_ready'
   | 'pathway_ready'
+  | 'course_registered'
   | 'pathway_in_progress'
   | 'pathway_completed';
 

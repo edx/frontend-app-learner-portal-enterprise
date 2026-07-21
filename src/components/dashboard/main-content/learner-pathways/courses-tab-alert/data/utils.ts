@@ -1,17 +1,15 @@
 import { LEARNER_PATHWAYS_ALERT_DESCRIPTORS } from './constants';
-import {
-  LearnerPathwaysAlertDescriptor,
-  LearnerPathwaysAlertStateKey,
-} from '../types';
+import type { PathwaysExperienceStatus } from '../../pathways-tab/state/types';
+import type { LearnerPathwaysAlertDescriptor } from '../types';
 
 /**
- * Resolves the display descriptor for the provided alert state key.
+ * Resolves the display descriptor for the provided experience status.
  *
- * @param state - Current learner pathways alert state.
- * @returns Descriptor containing i18n keys and CTA metadata for rendering.
+ * @param status - Current learner pathways experience status.
+ * @returns Descriptor containing message descriptors and CTA metadata for rendering.
  */
 export function resolveLearnerPathwaysAlertDescriptor(
-  state: LearnerPathwaysAlertStateKey,
+  status: PathwaysExperienceStatus,
 ): LearnerPathwaysAlertDescriptor {
-  return LEARNER_PATHWAYS_ALERT_DESCRIPTORS[state];
+  return LEARNER_PATHWAYS_ALERT_DESCRIPTORS[status];
 }

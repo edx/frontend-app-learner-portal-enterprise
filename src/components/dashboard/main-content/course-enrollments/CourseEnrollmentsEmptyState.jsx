@@ -1,15 +1,14 @@
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
-import { Button } from '@openedx/paragon';
+import { Icon } from '@openedx/paragon';
+import { MenuBook } from '@openedx/paragon/icons';
 import { Link } from 'react-router-dom';
 
-import { useCanOnlyViewHighlights, useAcademies, useEnterpriseFeatures } from '../../../app/data';
+import { useAcademies, useEnterpriseFeatures } from '../../../app/data';
 import { useGroupAssociationsAlert } from './data';
-import CourseRecommendations from '../CourseRecommendations';
 import GoToAcademy from '../../../academies/GoToAcademy';
 import NewGroupAssignmentAlert from './NewGroupAssignmentAlert';
 
 const CourseEnrollmentsEmptyState = () => {
-  const { data: canOnlyViewHighlightSets } = useCanOnlyViewHighlights();
   const { data: academies } = useAcademies();
   const { data: enterpriseFeatures } = useEnterpriseFeatures();
   const {
@@ -46,26 +45,34 @@ const CourseEnrollmentsEmptyState = () => {
           enterpriseCustomer={enterpriseCustomer}
         />
       )}
-      <p>
-        <FormattedMessage
-          id="enterprise.dashboard.tab.courses.default.message"
-          defaultMessage="Getting started with edX is easy. Simply find a course from your catalog, request enrollment, and get started on your learning journey."
-          description="Default message shown to a learner on enterprise dashboard."
-        />
-      </p>
-      <Button
-        as={Link}
-        to={`/${enterpriseCustomer.slug}/search`}
-        className="btn-brand-primary d-block d-md-inline-block"
-      >
-        <FormattedMessage
-          id="enterprise.dashboard.tab.courses.find.course"
-          defaultMessage="Find a course"
-          description="Label for Find a course button on enterprise dashboard's courses tab."
-        />
-      </Button>
-      <br />
-      {canOnlyViewHighlightSets === false && <CourseRecommendations />}
+      <div className="d-flex flex-column align-items-center text-center py-4">
+        <Icon src={MenuBook} className="mb-3" aria-hidden="true" />
+        <h3 className="mb-2">
+          <FormattedMessage
+            id="enterprise.dashboard.tab.courses.no.courses.registered.heading"
+            defaultMessage="No courses registered yet"
+            description="Heading for the default (no enrollments, no admin restrictions) My Courses empty state."
+          />
+        </h3>
+        <p className="mb-0">
+          <FormattedMessage
+            id="enterprise.dashboard.tab.courses.no.courses.registered.body"
+            defaultMessage="Once you enroll in a course, it will appear here. Start by {exploringCoursesLink} or building your personalized pathway above."
+            description="Body for the default My Courses empty state, with an inline link to course search."
+            values={{
+              exploringCoursesLink: (
+                <Link to={`/${enterpriseCustomer.slug}/search`}>
+                  <FormattedMessage
+                    id="enterprise.dashboard.tab.courses.no.courses.registered.explore.link"
+                    defaultMessage="exploring courses"
+                    description="Inline link text within the default My Courses empty-state body sentence."
+                  />
+                </Link>
+              ),
+            }}
+          />
+        </p>
+      </div>
     </>
   );
 };

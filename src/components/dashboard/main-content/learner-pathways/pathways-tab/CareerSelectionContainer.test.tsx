@@ -17,6 +17,7 @@ import {
 import { PATHWAY_COURSES_STUB } from './pathway-courses/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
+import { getDismissedRank, recordDismissal } from '../courses-tab-alert/data/bannerDismissal';
 
 jest.mock('../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
@@ -97,6 +98,7 @@ const submitGoalSummaryEdit = async (
 describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
+    global.localStorage.clear();
     jest.clearAllMocks();
     jest.mocked(generateProfileWorkflow).mockImplementation(() => Promise.resolve({
       learnerProfile: CAREER_SELECTION_STUB_PROFILE,
@@ -807,6 +809,30 @@ describe('CareerSelectionContainer', () => {
       expect(usePathwaysStore.getState().selectedSkills).toBeNull();
       expect(usePathwaysStore.getState().learnerProfile).toBeNull();
       expect(usePathwaysStore.getState().careerMatches).toEqual([]);
+    });
+
+    it('clears a prior Courses-tab banner dismissal when confirming retake', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      recordDismissal('pathway_in_progress');
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-retake-quiz-button'));
+      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+      expect(getDismissedRank()).toBeNull();
+    });
+
+    it('does not clear a prior Courses-tab banner dismissal when cancelling retake', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      recordDismissal('pathway_in_progress');
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-retake-quiz-button'));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(getDismissedRank()).not.toBeNull();
     });
 
     it('does not clear the existing saved pathway, intake draft, or career/skill selection when cancelling retake', async () => {

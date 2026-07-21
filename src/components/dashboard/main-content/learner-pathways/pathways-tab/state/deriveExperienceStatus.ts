@@ -1,5 +1,5 @@
 import type { LearnerIntent } from './learnerIntent';
-import type { LearnerProfile, PathwayCourse, PathwaysExperienceStatus } from './types';
+import type { LearnerProfile, PathwayProgress, PathwaysExperienceStatus } from './types';
 
 const isEmptyIntent = (learnerIntent: LearnerIntent): boolean => (
   !learnerIntent.careerGoal.trim()
@@ -11,31 +11,39 @@ const isEmptyIntent = (learnerIntent: LearnerIntent): boolean => (
 export interface DerivePathwaysExperienceStatusInput {
   learnerIntent: LearnerIntent;
   learnerProfile: LearnerProfile | null;
-  pathwayCourses: PathwayCourse[];
+  /**
+   * The enrollment-derived progress summary from `pathway-courses/resolvePathwayCourses.ts` —
+   * the sole source of truth for whether a pathway exists and how far along it is. Passing
+   * `pathwayCourses` directly is deliberately not supported: `progress.totalCourses` already
+   * encodes "a pathway exists", and `completed`/`inProgress` already encode real enrollment
+   * status, so there is nothing left for this function to re-derive from the raw course list.
+   */
+  progress: PathwayProgress;
 }
 
 /**
- * Derives the learner's experience-level status purely from canonical facts already
- * in the store — never stored/mutated independently, so it can't drift out of sync
- * with the state it summarizes.
- *
- * Has no current callers (reserved for a future Courses-tab banner). Note that
- * `pathwayCourses[].status` is a persisted seed that a future caller should not read
- * directly for that banner — prefer feeding it the same enrollment-derived summary
- * `pathway-courses/resolvePathwayCourses.ts` already produces, so enrollment matching
- * isn't re-implemented a second time.
+ * Derives the learner's experience-level status purely from canonical facts already in the
+ * store plus the enrollment-derived pathway progress — never stored/mutated independently, so
+ * it can't drift out of sync with the state it summarizes. Sole caller:
+ * `courses-tab-alert/data/useLearnerPathwaysAlertViewModel.ts`.
  */
 export const derivePathwaysExperienceStatus = (
-  { learnerIntent, learnerProfile, pathwayCourses }: DerivePathwaysExperienceStatusInput,
+  { learnerIntent, learnerProfile, progress }: DerivePathwaysExperienceStatusInput,
 ): PathwaysExperienceStatus => {
-  if (pathwayCourses.length > 0) {
-    if (pathwayCourses.every((course) => course.status === 'completed')) {
-      return 'pathway_completed';
-    }
-    if (pathwayCourses.every((course) => course.status === 'not_started')) {
-      return 'pathway_ready';
-    }
+  const { completed, inProgress, totalCourses } = progress;
+  const hasPathway = totalCourses > 0;
+
+  if (hasPathway && completed === totalCourses) {
+    return 'pathway_completed';
+  }
+  if (completed > 0) {
     return 'pathway_in_progress';
+  }
+  if (inProgress > 0) {
+    return 'course_registered';
+  }
+  if (hasPathway) {
+    return 'pathway_ready';
   }
   if (learnerProfile !== null) {
     return 'profile_ready';

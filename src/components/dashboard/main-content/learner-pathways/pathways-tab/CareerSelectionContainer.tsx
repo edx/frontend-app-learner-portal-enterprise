@@ -22,6 +22,7 @@ import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
 import type { PathwaysAction } from './action-bar';
 import { buildGiveFeedbackAction } from './shared';
+import { clearPathwaysBannerDismissal } from '../courses-tab-alert/data/bannerDismissal';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
@@ -285,6 +286,9 @@ const CareerSelectionContainer = ({
   const confirmRetakeQuiz = useCallback(() => {
     setIsRetakeOpen(false);
     resetPathwaysState();
+    // The Courses-tab banner's dismissal is stored outside this store (localStorage,
+    // not Zustand) — clear it here, alongside the reset, so the banner starts fresh.
+    clearPathwaysBannerDismissal();
     onRetakeQuiz?.();
   }, [onRetakeQuiz, resetPathwaysState]);
 
