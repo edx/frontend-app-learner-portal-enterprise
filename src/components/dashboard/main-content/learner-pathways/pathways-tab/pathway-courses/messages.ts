@@ -106,6 +106,16 @@ const messages = defineMessages({
     defaultMessage: 'Not available',
     description: 'Fallback copy shown when a pathway course field has no value.',
   },
+  needHelpTitle: {
+    id: 'learner.pathways.courses.needHelp.title',
+    defaultMessage: 'Need help?',
+    description: 'Heading for the support card shown at the end of the pathway courses page.',
+  },
+  needHelpMessage: {
+    id: 'learner.pathways.courses.needHelp.message',
+    defaultMessage: 'If you still need help finding courses, try the <searchLink>course search</searchLink> or <adminLink>contact your organization\'s edX administrator</adminLink>. For technical support, visit the <helpLink>edX Help Center</helpLink>.',
+    description: 'Body copy for the support card shown at the end of the pathway courses page. searchLink links to course search, adminLink links to the enterprise admin contact, helpLink links to the edX Help Center.',
+  },
   feedbackModalTitle: {
     id: 'learner.pathways.courses.feedback.title',
     defaultMessage: 'Help us improve learning pathways!',
