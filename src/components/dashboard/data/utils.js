@@ -1,3 +1,5 @@
+import { NIL as NIL_UUID } from 'uuid';
+
 import { ASSIGNMENTS_EXPIRING_WARNING_LOCALSTORAGE_KEY, BUDGET_STATUSES } from './constants';
 
 /**
@@ -38,6 +40,22 @@ export function getExpiringAssignmentsAcknowledgementState(assignments) {
     acknowledgedExpiringAssignments,
     hasAcknowledgedExpiringAssignments: acknowledgedExpiringAssignments.length > 0,
   };
+}
+
+/**
+ * Whether the Learner Pathways feature is enabled for a specific enterprise customer, per the
+ * FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS allowlist (a comma-separated string of
+ * enterprise customer UUIDs, or the empty-array fallback when unset). The nil UUID (`uuid`'s `NIL`
+ * export) is a wildcard meaning "enabled for every enterprise customer".
+ *
+ * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
+ * @param {string[]|string} allowlist - The FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS config value.
+ * @returns {Boolean} - Returns true if the feature is enabled for this customer.
+ */
+export function isLearnerPathwaysEnabledForEnterpriseCustomer(enterpriseCustomerUuid, allowlist) {
+  const normalizedAllowlist = String(allowlist ?? '').split(',').map((uuid) => uuid.trim()).filter(Boolean);
+  return normalizedAllowlist.includes(NIL_UUID)
+    || (!!enterpriseCustomerUuid && normalizedAllowlist.includes(enterpriseCustomerUuid));
 }
 
 //  Utility function to check the budget status

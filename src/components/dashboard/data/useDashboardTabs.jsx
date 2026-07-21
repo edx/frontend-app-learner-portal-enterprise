@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Badge, Tab } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
+import { getConfig } from '@edx/frontend-platform/config';
 
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
@@ -21,6 +22,7 @@ import {
   DASHBOARD_PROGRAMS_TAB,
   DASHBOARD_TABS_SEGMENT_KEY,
 } from './constants';
+import { isLearnerPathwaysEnabledForEnterpriseCustomer } from './utils';
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
   queryLearnerSkillLevels,
@@ -59,7 +61,11 @@ const useDashboardTabs = () => {
   const enablePathways = !!enterpriseCustomer?.enablePathways;
   const enableMyCareer = features.FEATURE_ENABLE_MY_CAREER;
 
-  const isLearnerPathwaysEnabled = !!enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled;
+  const isLearnerPathwaysEnabled = !!enterpriseFeatures?.enterpriseAiPathwaysOperatorEnabled
+    && isLearnerPathwaysEnabledForEnterpriseCustomer(
+      enterpriseCustomerUuid,
+      getConfig().FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS,
+    );
   const hasExistingPathways = enterprisePathways.length > 0;
   const hasPathwaysTab = enablePathways && (isLearnerPathwaysEnabled || hasExistingPathways);
   const showLearnerPathwaysAlert = enablePathways && isLearnerPathwaysEnabled;
