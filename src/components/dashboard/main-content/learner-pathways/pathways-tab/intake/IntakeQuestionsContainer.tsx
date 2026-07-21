@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
 import { Form, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { getConfig } from '@edx/frontend-platform/config';
 import { FormProvider, useForm } from 'react-hook-form';
 import { debounce } from 'lodash-es';
 import { EMPTY_LEARNER_INTENT, usePathwaysStore } from '../state';
 import type { LearnerIntent } from '../state';
 import { usePathwaysActionBar } from '../action-bar';
-import { RequestErrorAlert } from '../shared';
+import { RequestErrorAlert, buildGiveFeedbackAction } from '../shared';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
 import IntakeGoalsQuestions from './IntakeGoalsQuestions';
@@ -41,6 +42,8 @@ const IntakeQuestionsContainer = ({
   const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
+  const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
+  const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
 
   const methods = useForm<IntakeFormValues>({
     mode: 'onSubmit',
@@ -117,21 +120,24 @@ const IntakeQuestionsContainer = ({
         disabled: isProfileSubmitting,
         testId: 'intake-submit-button',
       },
-      secondary: onSkip
-        ? [{
-          id: 'intake-skip',
-          label: messages.skipToDashboard,
-          variant: 'tertiary',
-          type: 'button',
-          disabled: isProfileSubmitting,
-          onClick: onSkip,
-          testId: 'intake-skip-button',
-        }]
-        : [],
+      secondary: [
+        ...(giveFeedbackAction ? [giveFeedbackAction] : []),
+        ...(onSkip
+          ? [{
+            id: 'intake-skip',
+            label: messages.skipToDashboard,
+            variant: 'tertiary',
+            type: 'button' as const,
+            disabled: isProfileSubmitting,
+            onClick: onSkip,
+            testId: 'intake-skip-button',
+          }]
+          : []),
+      ],
       alignment: 'end',
     });
     return () => clearActions();
-  }, [onSkip, isProfileSubmitting, registerActions, clearActions, intl]);
+  }, [onSkip, isProfileSubmitting, registerActions, clearActions, intl, giveFeedbackAction]);
 
   return (
     <section data-testid="intake-questions-container">

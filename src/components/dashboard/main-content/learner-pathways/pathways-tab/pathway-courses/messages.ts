@@ -116,6 +116,31 @@ const messages = defineMessages({
     defaultMessage: 'If you still need help finding courses, try the <searchLink>course search</searchLink> or <adminLink>contact your organization\'s edX administrator</adminLink>. For technical support, visit the <helpLink>edX Help Center</helpLink>.',
     description: 'Body copy for the support card shown at the end of the pathway courses page. searchLink links to course search, adminLink links to the enterprise admin contact, helpLink links to the edX Help Center.',
   },
+  feedbackModalTitle: {
+    id: 'learner.pathways.courses.feedback.title',
+    defaultMessage: 'Help us improve learning pathways!',
+    description: 'Title of the pathways feedback modal.',
+  },
+  feedbackModalBody: {
+    id: 'learner.pathways.courses.feedback.body',
+    defaultMessage: 'We’re actively iterating on this new experience. Tell us what you think of the overall feature and the quality of your AI recommendations.',
+    description: 'Body copy of the pathways feedback modal.',
+  },
+  feedbackModalSupportingCopy: {
+    id: 'learner.pathways.courses.feedback.supportingCopy',
+    defaultMessage: 'Want to explore your courses first? You can always access this form later via the footer link.',
+    description: 'Supporting copy in the pathways feedback modal reassuring the learner they can revisit the form later.',
+  },
+  feedbackModalMaybeLater: {
+    id: 'learner.pathways.courses.feedback.maybeLater',
+    defaultMessage: 'Maybe later',
+    description: 'Dismiss action for the pathways feedback modal.',
+  },
+  feedbackModalOpensNewTab: {
+    id: 'learner.pathways.courses.feedback.opensNewTab',
+    defaultMessage: '(opens in a new tab)',
+    description: 'Screen-reader-only text indicating the feedback form link opens in a new browser tab.',
+  },
 });
 
 export default messages;

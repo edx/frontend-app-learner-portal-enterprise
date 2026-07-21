@@ -4,6 +4,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { MemoryRouter } from 'react-router-dom';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
@@ -14,6 +15,12 @@ import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './
 import { generateProfileWorkflow } from './workflows';
 import { useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+
+// PathwayCoursesContainer's one-time feedback prompt calls getAuthenticatedUser() to
+// scope its localStorage marker, so every path that reaches a populated Pathway page
+// needs this mocked.
+jest.mock('@edx/frontend-platform/auth');
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.Mock;
 
 jest.mock('./workflows', () => {
   // eslint-disable-next-line global-require
@@ -54,6 +61,8 @@ describe('LearnerPathwaysTab', () => {
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
       data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
     });
+    mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
+    global.localStorage.clear();
   });
 
   it('navigates Onboarding -> Profile -> Pathway and uses breadcrumbs', async () => {
