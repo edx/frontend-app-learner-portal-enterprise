@@ -11,9 +11,6 @@ import messages from './messages';
 export interface PathwayCoursesPageProps {
   courses: PathwayCourse[];
   progress: PathwayProgress;
-  courseSearchUrl: string;
-  contactEmail?: string | string[] | null;
-  helpCenterUrl: string;
 }
 
 /**
@@ -23,9 +20,7 @@ export interface PathwayCoursesPageProps {
  * constrain its own width (no `mx-auto`/`maxWidth`) — the courses table
  * benefits from the full width the tab's `Container` already provides.
  */
-const PathwayCoursesPage = ({
-  courses, progress, courseSearchUrl, contactEmail, helpCenterUrl,
-}: PathwayCoursesPageProps) => {
+const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
   const intl = useIntl();
 
   return (
@@ -42,11 +37,7 @@ const PathwayCoursesPage = ({
         </header>
         <PathwayProgressCard progress={progress} />
         <PathwayCoursesDataTable courses={courses} />
-        <NeedHelpCard
-          courseSearchUrl={courseSearchUrl}
-          contactEmail={contactEmail}
-          helpCenterUrl={helpCenterUrl}
-        />
+        <NeedHelpCard />
       </Stack>
     </section>
   );

@@ -7,6 +7,15 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import PathwayCoursesPage from '../PathwayCoursesPage';
 import { PATHWAY_COURSES_STUB } from '../fixtures';
 import { derivePathwayProgress } from '../utils';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+
+// PathwayCoursesPage transitively renders NeedHelpCard, which resolves its own
+// enterprise-customer-derived links via useEnterpriseCustomer().
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
 
 const renderComponent = () => render(
   <MemoryRouter>
@@ -14,15 +23,18 @@ const renderComponent = () => render(
       <PathwayCoursesPage
         courses={PATHWAY_COURSES_STUB}
         progress={derivePathwayProgress(PATHWAY_COURSES_STUB)}
-        courseSearchUrl="/test-enterprise/search"
-        contactEmail="admin@example.com"
-        helpCenterUrl="https://enterprise-support.edx.org/s/"
       />
     </IntlProvider>
   </MemoryRouter>,
 );
 
 describe('PathwayCoursesPage', () => {
+  beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: 'test-enterprise', contact_email: 'admin@example.com' }),
+    });
+  });
+
   it('renders the pathway-container test id', () => {
     renderComponent();
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
@@ -47,7 +59,7 @@ describe('PathwayCoursesPage', () => {
     expect(screen.getByText('Introduction to Corporate Finance')).toBeInTheDocument();
   });
 
-  it('renders the Need Help card after the courses table and before the end of the page', () => {
+  it('renders the Need Help card immediately after the courses table (page-level render order)', () => {
     renderComponent();
     const container = screen.getByTestId('pathway-container');
     const table = screen.getByRole('table');

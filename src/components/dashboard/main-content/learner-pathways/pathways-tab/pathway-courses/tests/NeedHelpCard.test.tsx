@@ -3,24 +3,40 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { getConfig } from '@edx/frontend-platform/config';
 
-import NeedHelpCard, { NeedHelpCardProps } from '../NeedHelpCard';
+import NeedHelpCard from '../NeedHelpCard';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
 
-const defaultProps: NeedHelpCardProps = {
-  courseSearchUrl: '/test-enterprise/search',
-  contactEmail: 'admin@example.com',
-  helpCenterUrl: 'https://enterprise-support.edx.org/s/',
-};
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@edx/frontend-platform/config', () => ({
+  ...jest.requireActual('@edx/frontend-platform/config'),
+  getConfig: jest.fn(),
+}));
 
-const renderComponent = (props: Partial<NeedHelpCardProps> = {}) => render(
+const mockEnterpriseCustomer = enterpriseCustomerFactory({
+  slug: 'test-enterprise',
+  contact_email: 'admin@example.com',
+});
+
+const renderComponent = () => render(
   <MemoryRouter>
     <IntlProvider locale="en">
-      <NeedHelpCard {...defaultProps} {...props} />
+      <NeedHelpCard />
     </IntlProvider>
   </MemoryRouter>,
 );
 
 describe('NeedHelpCard', () => {
+  beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
+    (getConfig as jest.Mock).mockReturnValue({ LEARNER_SUPPORT_URL: 'https://enterprise-support.edx.org/s/' });
+  });
+
   it('renders the heading and full support copy', () => {
     renderComponent();
     expect(screen.getByRole('heading', { name: 'Need help?' })).toBeInTheDocument();
@@ -40,13 +56,23 @@ describe('NeedHelpCard', () => {
   });
 
   it('renders the admin contact text without a link when contactEmail is not provided', () => {
-    renderComponent({ contactEmail: null });
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: 'test-enterprise', contact_email: '', admin_users: [] }),
+    });
+    renderComponent();
     expect(screen.queryByRole('link', { name: /contact your organization's edX administrator/ })).not.toBeInTheDocument();
     expect(screen.getByText(/contact your organization's edX administrator/)).toBeInTheDocument();
   });
 
   it('supports an array of admin emails from the contact-resolution fallback', () => {
-    renderComponent({ contactEmail: ['admin1@example.com', 'admin2@example.com'] });
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({
+        slug: 'test-enterprise',
+        contact_email: '',
+        admin_users: [{ email: 'admin1@example.com' }, { email: 'admin2@example.com' }],
+      }),
+    });
+    renderComponent();
     const adminLink = screen.getByRole('link', { name: /contact your organization's edX administrator/ });
     expect(adminLink).toHaveAttribute('href', expect.stringContaining('mailto:admin1@example.com,admin2@example.com'));
   });

@@ -2,22 +2,24 @@ import React, { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Hyperlink, MailtoLink } from '@openedx/paragon';
 import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
+import { getConfig } from '@edx/frontend-platform/config';
 
+import { useEnterpriseCustomer } from '../../../../../app/data';
+import { getContactEmail } from '../../../../../../utils/common';
 import messages from './messages';
 
-export interface NeedHelpCardProps {
-  courseSearchUrl: string;
-  contactEmail?: string | string[] | null;
-  helpCenterUrl: string;
-}
-
 /**
- * Presentational support card shown at the end of the pathway courses page.
- * Inputs are already-resolved link destinations; this component has no
- * awareness of enterprise context, routing, or state.
+ * Support card shown at the end of the pathway courses page. Resolves its own
+ * link destinations (course search, admin contact, Help Center) rather than
+ * taking them as props, to avoid threading them through PathwayCoursesPage,
+ * which has no other use for them.
  */
-const NeedHelpCard = ({ courseSearchUrl, contactEmail, helpCenterUrl }: NeedHelpCardProps) => {
+const NeedHelpCard = () => {
   const intl = useIntl();
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  const courseSearchUrl = `/${enterpriseCustomer?.slug}/search`;
+  const contactEmail = getContactEmail(enterpriseCustomer);
+  const helpCenterUrl = getConfig().LEARNER_SUPPORT_URL;
 
   return (
     <Card className="mt-3" data-testid="pathway-need-help">
