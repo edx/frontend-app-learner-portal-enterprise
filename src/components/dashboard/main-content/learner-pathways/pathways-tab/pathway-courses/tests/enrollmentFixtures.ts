@@ -87,3 +87,59 @@ export const newerCompletedForFinance: NormalizedEnrollment = {
   ...completedWithCertificateMatch,
   created: '2026-06-01T00:00:00Z',
 };
+
+/**
+ * Older completed match WITH a certificate, for the same courseKey as
+ * `newerCompletedWithoutCertificateForFinance` — both are completed, so the
+ * certificate-preference tie-break (not the completed-vs-non-completed one) must decide.
+ */
+export const olderCompletedWithCertificateForFinance: NormalizedEnrollment = {
+  ...completedWithCertificateMatch,
+  courseRunId: 'course-v1:edX+FA+cert-old',
+  created: '2025-06-01T00:00:00Z',
+};
+
+/** Newer completed match WITHOUT a certificate, for the same courseKey as above. */
+export const newerCompletedWithoutCertificateForFinance: NormalizedEnrollment = {
+  ...completedWithCertificateMatch,
+  courseRunId: 'course-v1:edX+FA+cert-new',
+  created: '2026-06-01T00:00:00Z',
+  linkToCertificate: null,
+};
+
+/** Older in_progress match — same status as its sibling below, different `created`. */
+export const olderInProgressMatch: NormalizedEnrollment = {
+  ...inProgressMatch,
+  courseRunId: 'course-v1:edX+CF+older',
+  created: '2025-01-01T00:00:00Z',
+};
+
+/** Newer in_progress match for the same courseKey as `olderInProgressMatch`. */
+export const newerInProgressMatch: NormalizedEnrollment = {
+  ...inProgressMatch,
+  courseRunId: 'course-v1:edX+CF+newer',
+  created: '2026-06-01T00:00:00Z',
+};
+
+/**
+ * Two in_progress matches with identical `created` timestamps, differing only by
+ * `courseRunId` — exercises the final, deterministic `courseRunId.localeCompare` tie-break.
+ */
+export const tiedCreatedMatchA: NormalizedEnrollment = {
+  ...inProgressMatch,
+  courseRunId: 'course-v1:edX+CF+tie-a',
+  created: '2026-03-01T00:00:00Z',
+};
+
+export const tiedCreatedMatchB: NormalizedEnrollment = {
+  ...inProgressMatch,
+  courseRunId: 'course-v1:edX+CF+tie-b',
+  created: '2026-03-01T00:00:00Z',
+};
+
+/** A `courseRunStatus` outside the recognized COURSE_STATUSES values. */
+export const unknownStatusMatch: NormalizedEnrollment = {
+  ...inProgressMatch,
+  courseRunId: 'course-v1:edX+CF+unknown',
+  courseRunStatus: 'archived',
+};

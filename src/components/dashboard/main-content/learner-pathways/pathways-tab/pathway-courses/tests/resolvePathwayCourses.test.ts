@@ -9,10 +9,17 @@ import {
   inProgressMatchNoLink,
   matchingTitleDifferentCourseKeyDecoy,
   newerCompletedForFinance,
+  newerCompletedWithoutCertificateForFinance,
+  newerInProgressMatch,
+  olderCompletedWithCertificateForFinance,
   olderInProgressForFinance,
+  olderInProgressMatch,
   revokedMatch,
   sameRunIdDifferentCourseKeyDecoy,
   savedForLaterMatch,
+  tiedCreatedMatchA,
+  tiedCreatedMatchB,
+  unknownStatusMatch,
   upcomingMatch,
 } from './enrollmentFixtures';
 
@@ -25,7 +32,10 @@ const buildCourse = (overrides: Partial<PathwayCourse> = {}): PathwayCourse => (
   ...overrides,
 });
 
-const resolveOne = (enrollments: NormalizedEnrollment[], course: PathwayCourse = buildCourse()) => {
+const resolveOne = (
+  enrollments: NormalizedEnrollment[] | null | undefined,
+  course: PathwayCourse = buildCourse(),
+) => {
   const { courses } = resolvePathwayCourses({
     pathwayCourses: [course],
     enrollments,
@@ -180,5 +190,50 @@ describe('resolvePathwayCourses', () => {
       totalCourses: resolved.length,
     });
     expect(progress.totalCourses).toBe(courses.length);
+  });
+
+  it('A21: prefers the certificate-bearing match when both candidates are completed, regardless of which is more recently created', () => {
+    const course = buildCourse({ courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation' });
+    const row = resolveOne(
+      [olderCompletedWithCertificateForFinance, newerCompletedWithoutCertificateForFinance],
+      course,
+    );
+    expect(row.status).toBe('completed');
+    expect(row.action).toEqual({
+      kind: 'view_certificate',
+      destination: olderCompletedWithCertificateForFinance.linkToCertificate,
+      isExternal: true,
+    });
+  });
+
+  it('A22: prefers the more recently created match when two candidates share the same status', () => {
+    const row = resolveOne([olderInProgressMatch, newerInProgressMatch]);
+    expect(row.status).toBe('in_progress');
+    expect(row.action.destination).toBe(newerInProgressMatch.linkToCourse);
+  });
+
+  it('A23: breaks a tie deterministically by courseRunId when two same-status candidates share the same created timestamp', () => {
+    const forward = resolveOne([tiedCreatedMatchA, tiedCreatedMatchB]);
+    const reversed = resolveOne([tiedCreatedMatchB, tiedCreatedMatchA]);
+    expect(forward).toEqual(reversed);
+    expect(forward.action.destination).toBe(tiedCreatedMatchA.linkToCourse);
+  });
+
+  it('A24: derives not_started for a matched enrollment whose courseRunStatus is not a recognized value', () => {
+    const row = resolveOne([unknownStatusMatch]);
+    expect(row.status).toBe('not_started');
+    expect(row.action.kind).toBe('view_course');
+  });
+
+  // Regression test for a real production TypeError: useEnterpriseCourseEnrollments's
+  // BFF-path select has no fallback on data.enterpriseCourseEnrollments, so `enrollments`
+  // can legitimately be undefined/null here.
+  it('A25: does not throw and derives not_started for every course when enrollments is undefined or null', () => {
+    const course = buildCourse();
+    expect(() => resolvePathwayCourses({
+      pathwayCourses: [course], enrollments: undefined, enterpriseSlug: ENTERPRISE_SLUG,
+    })).not.toThrow();
+    expect(resolveOne(undefined, course).status).toBe('not_started');
+    expect(resolveOne(null, course).status).toBe('not_started');
   });
 });

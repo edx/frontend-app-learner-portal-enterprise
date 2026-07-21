@@ -35,7 +35,12 @@ export interface NormalizedEnrollment {
 
 export interface ResolvePathwayCoursesInput {
   pathwayCourses: PathwayCourse[];
-  enrollments: NormalizedEnrollment[];
+  /**
+   * Normally an array, but `useEnterpriseCourseEnrollments`'s BFF-path `select` has no
+   * fallback on `data.enterpriseCourseEnrollments`, so this can legitimately be
+   * `undefined` (observed in production as a `TypeError` here before this was guarded).
+   */
+  enrollments: NormalizedEnrollment[] | null | undefined;
   enterpriseSlug: string;
 }
 
@@ -149,7 +154,7 @@ export const resolvePathwayCourses = ({
   enrollments,
   enterpriseSlug,
 }: ResolvePathwayCoursesInput): ResolvePathwayCoursesResult => {
-  const eligibleEnrollments = enrollments.filter(
+  const eligibleEnrollments = (enrollments || []).filter(
     (enrollment) => enrollment.isEnrollmentActive === true && enrollment.isRevoked !== true,
   );
 
