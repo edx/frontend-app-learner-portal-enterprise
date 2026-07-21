@@ -3,6 +3,7 @@ import {
   render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,8 +14,9 @@ import { usePathwaysStore } from './state';
 import type { LearnerProfile, CareerMatch } from './state';
 import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
 import { generateProfileWorkflow } from './workflows';
-import { useEnterpriseCustomer } from '../../../../app/data';
+import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+import { queryClient } from '../../../../../utils/tests';
 
 // PathwayCoursesContainer's one-time feedback prompt calls getAuthenticatedUser() to
 // scope its localStorage marker, so every path that reaches a populated Pathway page
@@ -42,16 +44,19 @@ jest.mock('../../../../app/data/hooks', () => ({
 }));
 jest.mock('../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
+  useEnterpriseCourseEnrollments: jest.fn(),
 }));
 
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
 
 const renderComponent = () => render(
-  <MemoryRouter>
-    <IntlProvider locale="en">
-      <LearnerPathwaysTab />
-    </IntlProvider>
-  </MemoryRouter>,
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter>
+      <IntlProvider locale="en">
+        <LearnerPathwaysTab />
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
 );
 
 describe('LearnerPathwaysTab', () => {
@@ -60,6 +65,9 @@ describe('LearnerPathwaysTab', () => {
     mockGenerateProfileWorkflow.mockClear();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
       data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
+    (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+      data: { enterpriseCourseEnrollments: [], allEnrollmentsByStatus: {} },
     });
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
     global.localStorage.clear();

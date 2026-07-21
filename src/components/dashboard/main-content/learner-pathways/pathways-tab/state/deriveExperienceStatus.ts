@@ -18,6 +18,12 @@ export interface DerivePathwaysExperienceStatusInput {
  * Derives the learner's experience-level status purely from canonical facts already
  * in the store — never stored/mutated independently, so it can't drift out of sync
  * with the state it summarizes.
+ *
+ * Has no current callers (reserved for a future Courses-tab banner). Note that
+ * `pathwayCourses[].status` is a persisted seed that a future caller should not read
+ * directly for that banner — prefer feeding it the same enrollment-derived summary
+ * `pathway-courses/resolvePathwayCourses.ts` already produces, so enrollment matching
+ * isn't re-implemented a second time.
  */
 export const derivePathwaysExperienceStatus = (
   { learnerIntent, learnerProfile, pathwayCourses }: DerivePathwaysExperienceStatusInput,

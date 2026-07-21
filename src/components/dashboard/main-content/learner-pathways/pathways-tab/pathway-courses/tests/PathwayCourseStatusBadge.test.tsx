@@ -12,18 +12,24 @@ const renderComponent = (status: 'completed' | 'in_progress' | 'not_started') =>
 );
 
 describe('PathwayCourseStatusBadge', () => {
-  it('renders "Completed" for a completed course', () => {
+  it('renders "Completed" with the success variant for a completed course', () => {
     renderComponent('completed');
-    expect(screen.getByText('Completed')).toBeInTheDocument();
+    const badge = screen.getByText('Completed');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('badge-success');
   });
 
-  it('renders "In progress" for an in-progress course', () => {
+  it('renders "In progress" with the warning variant for an in-progress course', () => {
     renderComponent('in_progress');
-    expect(screen.getByText('In progress')).toBeInTheDocument();
+    const badge = screen.getByText('In progress');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('badge-warning');
   });
 
-  it('renders "Not started" for a not-started course', () => {
+  it('renders "Not started" with the light variant for a not-started course', () => {
     renderComponent('not_started');
-    expect(screen.getByText('Not started')).toBeInTheDocument();
+    const badge = screen.getByText('Not started');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('badge-light');
   });
 });

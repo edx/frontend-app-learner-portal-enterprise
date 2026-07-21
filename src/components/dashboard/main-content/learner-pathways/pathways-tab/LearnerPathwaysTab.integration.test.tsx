@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  act, fireEvent, render, screen, waitFor,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { mergeConfig } from '@edx/frontend-platform';
@@ -13,10 +14,11 @@ import intakeMessages from './intake/messages';
 import { usePathwaysStore, getInitialPathwaysState } from './state';
 import { PATHWAYS_STORAGE_KEY, PATHWAYS_STORAGE_VERSION } from './state/persistence';
 import { fetchLearningIntent, fetchRecommendationFeedback } from '../../../../app/data/services/xpert';
-import { useEnterpriseCustomer } from '../../../../app/data';
+import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 import { careerRetrievalService, courseRetrievalService } from './services';
 import { PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY } from './pathway-courses/constants';
+import { queryClient } from '../../../../../utils/tests';
 
 // PathwayCoursesContainer's one-time feedback prompt scopes its localStorage marker
 // by username — every path that reaches the Pathway page with real courses now calls
@@ -60,6 +62,7 @@ jest.mock('../../../../app/data/hooks', () => ({
 jest.mock('../../../../app/data', () => ({
   ...jest.requireActual('../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
+  useEnterpriseCourseEnrollments: jest.fn(),
 }));
 
 /**
@@ -82,11 +85,13 @@ jest.mock('../../../../app/data', () => ({
  */
 
 const renderComponent = () => render(
-  <MemoryRouter>
-    <IntlProvider locale="en">
-      <LearnerPathwaysTab />
-    </IntlProvider>
-  </MemoryRouter>,
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter>
+      <IntlProvider locale="en">
+        <LearnerPathwaysTab />
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
 );
 
 const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -155,6 +160,9 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
   beforeEach(() => {
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
       data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
+    (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+      data: { enterpriseCourseEnrollments: [], allEnrollmentsByStatus: {} },
     });
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
   });
@@ -652,6 +660,131 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       await user.click(screen.getByTestId('career-view-current-pathway-button'));
 
       await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+    });
+  });
+
+  describe('enrollment-derived pathway course states (feature regression)', () => {
+    beforeEach(() => {
+      usePathwaysStore.getState().resetPathwaysState();
+      jest.mocked(courseRetrievalService.searchCourses).mockReset().mockResolvedValue([
+        { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' },
+      ]);
+    });
+
+    it('renders a generated pathway with enrollment data matched by exact courseKey, agreeing row status/action and summary counts', async () => {
+      (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+        data: {
+          enterpriseCourseEnrollments: [{
+            courseKey: 'course-1',
+            courseRunId: 'course-v1:edX+SQL+2024',
+            courseRunStatus: 'in_progress',
+            isEnrollmentActive: true,
+            isRevoked: false,
+            created: '2026-01-10T00:00:00Z',
+            linkToCourse: 'https://learning.edx.org/course/course-v1:edX+SQL+2024/resume',
+            linkToCertificate: null,
+          }],
+          allEnrollmentsByStatus: {},
+        },
+      });
+      const user = userEvent.setup();
+      renderComponent();
+      await buildViaStateA(user);
+
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+      const table = screen.getByRole('table');
+      expect(within(table).getByText('In progress')).toBeInTheDocument();
+      expect(within(table).getByRole('link', { name: /Continue/ }))
+        .toHaveAttribute('href', 'https://learning.edx.org/course/course-v1:edX+SQL+2024/resume');
+      expect(screen.getByTestId('pathway-progress-in-progress')).toHaveTextContent('1');
+    });
+
+    it('is unaffected by enrollments for unrelated courseKeys', async () => {
+      (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+        data: {
+          enterpriseCourseEnrollments: [{
+            courseKey: 'unrelated-course',
+            courseRunId: 'course-v1:edX+SQL+2024',
+            courseRunStatus: 'in_progress',
+            isEnrollmentActive: true,
+            isRevoked: false,
+            created: '2026-01-10T00:00:00Z',
+            linkToCourse: 'https://learning.edx.org/unrelated',
+            linkToCertificate: null,
+          }],
+          allEnrollmentsByStatus: {},
+        },
+      });
+      const user = userEvent.setup();
+      renderComponent();
+      await buildViaStateA(user);
+
+      const table = screen.getByRole('table');
+      expect(within(table).getByText('Not started')).toBeInTheDocument();
+      expect(within(table).getByRole('link', { name: /View Course/ })).toBeInTheDocument();
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('1');
+    });
+
+    it('leaves persistence/hydration contracts unchanged when enrollment-derived states render', async () => {
+      (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+        data: {
+          enterpriseCourseEnrollments: [{
+            courseKey: 'course-1',
+            courseRunId: 'course-v1:edX+SQL+2024',
+            courseRunStatus: 'completed',
+            isEnrollmentActive: true,
+            isRevoked: false,
+            created: '2026-01-10T00:00:00Z',
+            linkToCourse: 'https://learning.edx.org/course/course-v1:edX+SQL+2024/home',
+            linkToCertificate: 'https://courses.edx.org/certificates/abc123',
+          }],
+          allEnrollmentsByStatus: {},
+        },
+      });
+      const user = userEvent.setup();
+      renderComponent();
+      await buildViaStateA(user);
+
+      await waitFor(() => expect(screen.getByRole('link', { name: /View Certificate/ })).toBeInTheDocument());
+
+      const persisted = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) ?? '{}');
+      expect(persisted.state.pathwayCourses).toEqual([
+        { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' },
+      ]);
+      expect(persisted.state.pathwayInputFingerprint).not.toBeNull();
+    });
+
+    it('introduces no workflow/controller calls when rendering or clicking a resolved row navigation link', async () => {
+      (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+        data: {
+          enterpriseCourseEnrollments: [{
+            courseKey: 'course-1',
+            courseRunId: 'course-v1:edX+SQL+2024',
+            courseRunStatus: 'in_progress',
+            isEnrollmentActive: true,
+            isRevoked: false,
+            created: '2026-01-10T00:00:00Z',
+            linkToCourse: 'https://learning.edx.org/course/course-v1:edX+SQL+2024/resume',
+            linkToCertificate: null,
+          }],
+          allEnrollmentsByStatus: {},
+        },
+      });
+      const user = userEvent.setup();
+      renderComponent();
+      await buildViaStateA(user);
+
+      const coursesRef = usePathwaysStore.getState().pathwayCourses;
+      jest.mocked(courseRetrievalService.searchCourses).mockClear();
+      jest.mocked(fetchRecommendationFeedback).mockClear();
+      jest.mocked(careerRetrievalService.searchCareers).mockClear();
+
+      await user.click(screen.getByRole('link', { name: /Continue/ }));
+
+      expect(courseRetrievalService.searchCourses).not.toHaveBeenCalled();
+      expect(fetchRecommendationFeedback).not.toHaveBeenCalled();
+      expect(careerRetrievalService.searchCareers).not.toHaveBeenCalled();
+      expect(usePathwaysStore.getState().pathwayCourses).toBe(coursesRef);
     });
   });
 });
