@@ -1,0 +1,26 @@
+// Same hex values as _PathwayCourseStatusBadge.scss's status colors (Paragon design
+// tokens, hardcoded rather than re-imported — see that file's comment for why).
+.pathway-progress-card {
+  // Success 100 / Success 900
+  &--completed {
+    background-color: #F1F8F5;
+    color: #105B3A;
+  }
+
+  // Warning 100 / Text on light gray 700
+  &--in-progress {
+    background-color: #FFFDF0;
+    color: #454545;
+  }
+
+  // Light 300 / Text on light gray 700
+  &--upcoming {
+    background-color: #F0EEED;
+    color: #454545;
+  }
+
+  // Total courses: plain card, no tint.
+  &--total {
+    color: #454545;
+  }
+}
