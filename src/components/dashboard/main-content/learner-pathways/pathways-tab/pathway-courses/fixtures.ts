@@ -8,6 +8,11 @@ import type { PathwayCourse } from '../state';
  * defensive render-time fallback for the rare case the Pathway page is reached with
  * an empty store. `whyThisFitsYou` stands in for Recommendation Feedback content
  * until that service is actually wired up.
+ *
+ * Every `status` below is `not_started`: this fixture must never imply real learner
+ * progress. `resolvePathwayCourses` ignores this seed value anyway (status is always
+ * re-derived from the learner's actual enrollments at render time), but the seed
+ * itself should not lie either.
  */
 export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
   {
@@ -16,7 +21,7 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     level: 'Introductory',
     length: '2 weeks',
     whyThisFitsYou: 'Understanding corporate finance fundamentals is key for making informed decisions in investment banking.',
-    status: 'completed',
+    status: 'not_started',
   },
   {
     courseKey: 'financial-analysis-evaluation',
@@ -24,7 +29,7 @@ export const PATHWAY_COURSES_STUB: PathwayCourse[] = [
     level: 'Intermediate',
     length: '4 weeks',
     whyThisFitsYou: 'This course provides essential skills in financial modeling and evaluation, which are crucial for an investment banking analyst.',
-    status: 'in_progress',
+    status: 'not_started',
   },
   {
     courseKey: 'advanced-excel-financial-analysis',

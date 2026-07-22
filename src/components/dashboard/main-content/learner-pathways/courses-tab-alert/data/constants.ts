@@ -1,64 +1,71 @@
-import {
-  LearnerPathwaysAlertDescriptor,
-  LearnerPathwaysAlertStateKey,
-} from '../types';
+import type { PathwaysExperienceStatus } from '../../pathways-tab/state/types';
+import type { LearnerPathwaysAlertDescriptor } from '../types';
+import messages from '../messages';
 
 /**
- * Default render state for the PDF-driven learner pathways alert scaffold.
+ * Descriptor registry for every learner pathways alert state. Keyed by the full
+ * `PathwaysExperienceStatus` union so the compiler forces an update here if that union
+ * ever grows — mirrors the `STATUS_MESSAGE`/`STATUS_BADGE_VARIANT` pattern already used
+ * in `pathway-courses/constants.ts`.
  */
-export const DEFAULT_LEARNER_PATHWAYS_ALERT_STATE: LearnerPathwaysAlertStateKey = 'not_started';
-
-/**
- * Lookup map of display descriptors keyed by
- * {@link LearnerPathwaysAlertStateKey}.
- */
-type LearnerPathwaysAlertDescriptorMap = Record<
-LearnerPathwaysAlertStateKey,
-LearnerPathwaysAlertDescriptor
->;
-
-/**
- * Descriptor registry for all learner pathways alert states.
- *
- * All user-facing strings are represented as translation keys and resolved
- * in the render layer via `FormattedMessage`.
- */
-export const LEARNER_PATHWAYS_ALERT_DESCRIPTORS: LearnerPathwaysAlertDescriptorMap = {
+export const LEARNER_PATHWAYS_ALERT_DESCRIPTORS: Record<PathwaysExperienceStatus, LearnerPathwaysAlertDescriptor> = {
   not_started: {
-    headingKey: 'notStartedHeading',
-    bodyKey: 'notStartedBody',
-    actions: [
-      {
-        id: 'start-onboarding',
-        labelKey: 'startOnboarding',
-        variant: 'primary',
-      },
-    ],
+    family: 'purple',
+    headingMessage: messages.notStartedHeading,
+    bodyMessage: messages.notStartedBody,
+    ctaMessage: messages.ctaTakeOnboardingQuiz,
+    targetSection: 'onboarding',
+    progressVariant: null,
   },
-  active_zero_started: {
-    headingKey: 'activeZeroStartedHeading',
-    bodyKey: 'activeZeroStartedBody',
-    actions: [
-      { id: 'view-pathway-profile', labelKey: 'viewPathwayProfile', variant: 'outline-primary' },
-      { id: 'view-pathway-courses', labelKey: 'viewPathwayCourses', variant: 'outline-primary' },
-      { id: 'redo-onboarding', labelKey: 'redoOnboardingQuiz', variant: 'tertiary' },
-    ],
+  onboarding_in_progress: {
+    family: 'purple',
+    headingMessage: messages.onboardingInProgressHeading,
+    bodyMessage: messages.onboardingInProgressBody,
+    ctaMessage: messages.ctaContinueQuiz,
+    targetSection: 'onboarding',
+    progressVariant: null,
   },
-  active_in_progress: {
-    headingKey: 'activeInProgressHeading',
-    bodyKey: 'activeInProgressBody',
-    actions: [
-      { id: 'view-pathway-profile', labelKey: 'viewPathwayProfile', variant: 'outline-primary' },
-      { id: 'view-pathway-courses', labelKey: 'viewPathwayCourses', variant: 'outline-primary' },
-      { id: 'redo-onboarding', labelKey: 'redoOnboardingQuiz', variant: 'tertiary' },
-    ],
+  profile_ready: {
+    family: 'purple',
+    headingMessage: messages.profileReadyHeading,
+    bodyMessage: messages.profileReadyBody,
+    ctaMessage: messages.ctaReviewCareerProfile,
+    targetSection: 'profile',
+    progressVariant: null,
   },
-  completed: {
-    headingKey: 'completedHeading',
-    bodyKey: 'completedBody',
-    actions: [
-      { id: 'start-new-pathway', labelKey: 'startNewPathway', variant: 'primary' },
-      { id: 'view-pathway-profile', labelKey: 'viewPathwayProfile', variant: 'outline-primary' },
-    ],
+  pathway_ready: {
+    family: 'blue',
+    headingMessage: messages.pathwayHeading,
+    bodyMessage: messages.pathwayReadyBody,
+    ctaMessage: messages.ctaViewLearningPathway,
+    targetSection: 'pathway',
+    progressVariant: 'ready',
+  },
+  course_registered: {
+    family: 'blue',
+    headingMessage: messages.pathwayHeading,
+    bodyMessage: messages.courseRegisteredBody,
+    ctaMessage: messages.ctaViewLearningPathway,
+    targetSection: 'pathway',
+    progressVariant: 'in_progress',
+  },
+  pathway_in_progress: {
+    family: 'blue',
+    headingMessage: messages.pathwayHeading,
+    bodyMessage: messages.pathwayInProgressBody,
+    ctaMessage: messages.ctaViewLearningPathway,
+    targetSection: 'pathway',
+    progressVariant: 'partial',
+  },
+  pathway_completed: {
+    family: 'green',
+    headingMessage: messages.pathwayCompletedHeading,
+    bodyMessage: messages.pathwayCompletedBody,
+    ctaMessage: messages.ctaRetakeOnboardingQuiz,
+    // Routes to 'profile', not a new reset flow: the "Retake quiz" button + confirmation
+    // modal live in LearnerPathwaysTab (reachable from the Profile page's action row and
+    // from the pathway breadcrumb) — this CTA's only job is navigation.
+    targetSection: 'profile',
+    progressVariant: 'completed',
   },
 };

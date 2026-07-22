@@ -19,20 +19,20 @@ describe('useOneTimeFeedbackPrompt', () => {
     jest.useRealTimers();
   });
 
-  it('does not open before 15 seconds', () => {
+  it('does not open before 30 seconds', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
 
-    act(() => { jest.advanceTimersByTime(14999); });
+    act(() => { jest.advanceTimersByTime(29999); });
 
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('opens at 15 seconds after a real generated pathway becomes active, without marking the prompt as seen yet', () => {
+  it('opens at 30 seconds after a real generated pathway becomes active, without marking the prompt as seen yet', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
 
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
 
     expect(result.current.isOpen).toBe(true);
     // Merely firing/opening must not mark it seen — only actual interaction (dismiss) does.
@@ -43,7 +43,7 @@ describe('useOneTimeFeedbackPrompt', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
 
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
     expect(global.localStorage.getItem(PATHWAY_FEEDBACK_PROMPT_SEEN_LOCALSTORAGE_KEY(USERNAME))).toBeNull();
 
     act(() => { result.current.dismiss(); });
@@ -68,10 +68,10 @@ describe('useOneTimeFeedbackPrompt', () => {
       { initialProps: { hasGeneratedCourses: true } },
     );
 
-    act(() => { jest.advanceTimersByTime(10000); });
+    act(() => { jest.advanceTimersByTime(20000); });
     // Rerender with an equivalent (new-reference but equal) props object — should not reset the effect's timer.
     rerender({ hasGeneratedCourses: true });
-    act(() => { jest.advanceTimersByTime(5000); });
+    act(() => { jest.advanceTimersByTime(10000); });
 
     expect(result.current.isOpen).toBe(true);
   });
@@ -83,7 +83,7 @@ describe('useOneTimeFeedbackPrompt', () => {
 
     act(() => { jest.advanceTimersByTime(5000); });
     unmount();
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
     expect(result.current.isOpen).toBe(false);
@@ -99,7 +99,7 @@ describe('useOneTimeFeedbackPrompt', () => {
 
     act(() => { jest.advanceTimersByTime(5000); });
     rerender({ hasGeneratedCourses: false });
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
 
     expect(result.current.isOpen).toBe(false);
   });
@@ -108,7 +108,7 @@ describe('useOneTimeFeedbackPrompt', () => {
     jest.useFakeTimers();
     const { result } = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
 
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
     expect(result.current.isOpen).toBe(true);
 
     act(() => { result.current.dismiss(); });
@@ -120,7 +120,7 @@ describe('useOneTimeFeedbackPrompt', () => {
   it('does not reopen on remount after the learner has dismissed it (one-time marker recorded)', () => {
     jest.useFakeTimers();
     const first = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
     expect(first.result.current.isOpen).toBe(true);
     act(() => { first.result.current.dismiss(); });
     first.unmount();
@@ -134,13 +134,13 @@ describe('useOneTimeFeedbackPrompt', () => {
   it('can still open again on a later visit if the learner never dismissed it (e.g. closed the tab mid-session)', () => {
     jest.useFakeTimers();
     const first = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
     expect(first.result.current.isOpen).toBe(true);
     // Session ends without ever calling dismiss() — marker was never set.
     first.unmount();
 
     const second = renderHook(() => useOneTimeFeedbackPrompt({ hasGeneratedCourses: true }));
-    act(() => { jest.advanceTimersByTime(15000); });
+    act(() => { jest.advanceTimersByTime(30000); });
 
     expect(second.result.current.isOpen).toBe(true);
   });

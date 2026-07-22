@@ -1,4 +1,9 @@
-import { normalizePathwaysState, normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
+import {
+  normalizePathwaysState,
+  normalizeSelectedCareerId,
+  orderDisplayableCareerMatches,
+  recommendedSkillsForCareer,
+} from './normalize';
 import { getInitialPathwaysState } from './pathwaysStore';
 import type { CareerMatch, PathwaysState } from './types';
 
@@ -37,6 +42,59 @@ describe('recommendedSkillsForCareer', () => {
   it('returns null when the candidate id does not reference a current match', () => {
     expect(recommendedSkillsForCareer(matches, 'stale-id')).toBeNull();
     expect(recommendedSkillsForCareer(matches, null)).toBeNull();
+  });
+});
+
+describe('orderDisplayableCareerMatches', () => {
+  it('excludes a career with no associated skills', () => {
+    const withSkillless: CareerMatch[] = [
+      { id: 'no-skills', title: 'No Skills Role', matchPercentage: 90 },
+      {
+        id: 'has-skills', title: 'Has Skills Role', matchPercentage: 50, skillsToDevelop: ['SQL'],
+      },
+    ];
+    expect(orderDisplayableCareerMatches(withSkillless).map((m) => m.id)).toEqual(['has-skills']);
+  });
+
+  it('excludes a career below the minimum visible match threshold', () => {
+    const belowThreshold: CareerMatch[] = [
+      {
+        id: 'weak', title: 'Weak Role', matchPercentage: 20, skillsToDevelop: ['SQL'],
+      },
+      {
+        id: 'strong', title: 'Strong Role', matchPercentage: 80, skillsToDevelop: ['SQL'],
+      },
+    ];
+    expect(orderDisplayableCareerMatches(belowThreshold).map((m) => m.id)).toEqual(['strong']);
+  });
+
+  it('sorts by match percentage descending, regardless of input order', () => {
+    const outOfOrder: CareerMatch[] = [
+      {
+        id: 'mid', title: 'Mid', matchPercentage: 60, skillsToDevelop: ['SQL'],
+      },
+      {
+        id: 'top', title: 'Top', matchPercentage: 95, skillsToDevelop: ['SQL'],
+      },
+      {
+        id: 'low', title: 'Low', matchPercentage: 30, skillsToDevelop: ['SQL'],
+      },
+    ];
+    expect(orderDisplayableCareerMatches(outOfOrder).map((m) => m.id)).toEqual(['top', 'mid', 'low']);
+  });
+
+  it('does not mutate the input array', () => {
+    const outOfOrder: CareerMatch[] = [
+      {
+        id: 'mid', title: 'Mid', matchPercentage: 60, skillsToDevelop: ['SQL'],
+      },
+      {
+        id: 'top', title: 'Top', matchPercentage: 95, skillsToDevelop: ['SQL'],
+      },
+    ];
+    const snapshot = [...outOfOrder];
+    orderDisplayableCareerMatches(outOfOrder);
+    expect(outOfOrder).toEqual(snapshot);
   });
 });
 
@@ -147,6 +205,23 @@ describe('normalizePathwaysState', () => {
     expect(normalized.section).toBe('profile');
     expect(normalized.selectedCareerId).toBe('reporting-data-analysis-manager');
     expect(normalized.selectedSkills).toEqual(['SQL']);
+  });
+
+  it('falls back to the true top-match career on hydration, not the raw-first one, when they diverge', () => {
+    const outOfOrder: CareerMatch[] = [
+      {
+        id: 'raw-first', title: 'Raw First', matchPercentage: 40, skillsToDevelop: ['SQL'],
+      },
+      {
+        id: 'top-match', title: 'Top Match', matchPercentage: 90, skillsToDevelop: ['Python'],
+      },
+    ];
+    const state: PathwaysState = {
+      ...baseState(),
+      careerMatches: outOfOrder,
+      selectedCareerId: null,
+    };
+    expect(normalizePathwaysState(state).selectedCareerId).toBe('top-match');
   });
 
   it('normalizes a selected career id that no longer references a current match', () => {

@@ -16,6 +16,7 @@ describe('IntakeHeader', () => {
     render(<MockIntakeHeader />);
 
     expect(screen.getByRole('heading', { name: messages.heading.defaultMessage })).toBeInTheDocument();
+    expect(screen.getByText(messages.beta.defaultMessage)).toBeInTheDocument();
     expect(screen.getByText(messages.helperText.defaultMessage)).toBeInTheDocument();
     expect(screen.getByLabelText(messages.privacyTriggerLabel.defaultMessage)).toBeInTheDocument();
   });

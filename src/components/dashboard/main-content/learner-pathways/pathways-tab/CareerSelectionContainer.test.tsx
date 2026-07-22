@@ -8,7 +8,7 @@ import { mergeConfig } from '@edx/frontend-platform';
 
 import CareerSelectionContainer from './CareerSelectionContainer';
 import type { CareerSelectionContainerProps } from './CareerSelectionContainer';
-import { computePathwayInputFingerprint, EMPTY_LEARNER_INTENT, usePathwaysStore } from './state';
+import { computePathwayInputFingerprint, usePathwaysStore } from './state';
 import type { LearnerIntent, PathwayGenerationRequest } from './state';
 import {
   CAREER_SELECTION_STUB_MATCHES,
@@ -97,6 +97,7 @@ const submitGoalSummaryEdit = async (
 describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
+    global.localStorage.clear();
     jest.clearAllMocks();
     jest.mocked(generateProfileWorkflow).mockImplementation(() => Promise.resolve({
       learnerProfile: CAREER_SELECTION_STUB_PROFILE,
@@ -183,6 +184,18 @@ describe('CareerSelectionContainer', () => {
       expect(screen.getByTestId('career-build-pathway-button')).toHaveTextContent('Build my learning pathway');
       expect(screen.queryByTestId('career-view-current-pathway-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('career-rebuild-pathway-button')).not.toBeInTheDocument();
+    });
+
+    it('disables the build button while editing the goal summary, and re-enables it on cancel', async () => {
+      const user = userEvent.setup();
+      seedLegacyNoProfileState();
+      renderContainer();
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-build-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
     });
 
     it('never persists fixture/stub data as a real pathway before a build succeeds', () => {
@@ -327,6 +340,32 @@ describe('CareerSelectionContainer', () => {
 
       expect(screen.getByTestId('skills-empty-state')).toBeInTheDocument();
       expect(screen.queryByText('Fallback Skill')).not.toBeInTheDocument();
+    });
+
+    it('populates the top-match career\'s skills immediately on render, before any click, when the taxonomy connector returns matches out of percentage order', () => {
+      act(() => {
+        usePathwaysStore.setState({
+          learnerProfile: CAREER_SELECTION_STUB_PROFILE,
+          careerMatches: [
+            {
+              id: 'raw-first', title: 'Raw First', matchPercentage: 40, skillsToDevelop: ['Excel'],
+            },
+            {
+              id: 'top-match', title: 'Top Match', matchPercentage: 90, skillsToDevelop: ['SQL', 'Python'],
+            },
+          ],
+          selectedCareerId: null,
+          selectedSkills: null,
+        });
+      });
+      renderContainer();
+
+      // The top-match career (not raw-first) is the one visually selected...
+      expect(screen.getByTestId('career-match-top-match')).toHaveAttribute('aria-pressed', 'true');
+      // ...and its skills populate immediately, with no click required.
+      expect(screen.getByText('SQL')).toBeInTheDocument();
+      expect(screen.getByText('Python')).toBeInTheDocument();
+      expect(screen.queryByText('Excel')).not.toBeInTheDocument();
     });
 
     it('recovers without navigating or persisting a pathway when generatePathway rejects', async () => {
@@ -605,6 +644,34 @@ describe('CareerSelectionContainer', () => {
       expect(generatePathwayWorkflow).not.toHaveBeenCalled();
       expect(screen.queryByText('Rebuild your Pathway?')).not.toBeInTheDocument();
     });
+
+    it('disables the rebuild button while editing the goal summary, and re-enables it on cancel', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-rebuild-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-rebuild-pathway-button')).not.toBeDisabled();
+    });
+
+    it('disables the view-current-pathway button while editing the goal summary, and re-enables it on cancel', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-view-current-pathway-button'));
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-view-current-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-view-current-pathway-button')).not.toBeDisabled();
+    });
   });
 
   describe('non-edits do not mark the pathway dirty', () => {
@@ -614,9 +681,12 @@ describe('CareerSelectionContainer', () => {
       renderContainer();
 
       await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-build-pathway-button')).toBeDisabled();
+
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(screen.getByTestId('career-build-pathway-button')).toBeInTheDocument();
+      expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
       expect(screen.queryByTestId('career-view-current-pathway-button')).not.toBeInTheDocument();
     });
 
@@ -630,6 +700,9 @@ describe('CareerSelectionContainer', () => {
 
       await waitFor(() => expect(screen.getByText('network down')).toBeInTheDocument());
       expect(screen.getByTestId('career-build-pathway-button')).toBeInTheDocument();
+      // A failed submission stays in edit mode for retry (GoalSummaryCard only calls
+      // onEndEditing on success), so the build button must stay disabled too.
+      expect(screen.getByTestId('career-build-pathway-button')).toBeDisabled();
       expect(screen.queryByTestId('career-view-current-pathway-button')).not.toBeInTheDocument();
     });
 
@@ -759,79 +832,19 @@ describe('CareerSelectionContainer', () => {
   });
 
   describe('Retake quiz', () => {
-    it('opens the warning modal', async () => {
-      const user = userEvent.setup();
-      renderContainer();
-
-      await user.click(screen.getByTestId('career-retake-quiz-button'));
-
-      expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
-    });
-
-    it('cancel closes the modal without navigating', async () => {
+    // The retake-quiz confirmation modal, store reset, and banner-dismissal clearing are
+    // now owned by LearnerPathwaysTab (so the same shared modal is reachable from the
+    // breadcrumb's "Onboarding Quiz" link, not just this container) — covered there.
+    // This container's only remaining responsibility is wiring its action-row button
+    // directly to the passed-in trigger.
+    it('clicking Retake quiz calls the onRetakeQuiz prop directly', async () => {
       const user = userEvent.setup();
       const onRetakeQuiz = jest.fn();
       renderContainer({ onRetakeQuiz });
 
       await user.click(screen.getByTestId('career-retake-quiz-button'));
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-      expect(onRetakeQuiz).not.toHaveBeenCalled();
-      expect(screen.queryByText('Retake your onboarding quiz?')).not.toBeInTheDocument();
-    });
-
-    it('confirm invokes onRetakeQuiz', async () => {
-      const user = userEvent.setup();
-      const onRetakeQuiz = jest.fn();
-      renderContainer({ onRetakeQuiz });
-
-      await user.click(screen.getByTestId('career-retake-quiz-button'));
-      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
 
       expect(onRetakeQuiz).toHaveBeenCalledTimes(1);
-    });
-
-    it('resets the entire store to its initial zero state when confirming retake', async () => {
-      const user = userEvent.setup();
-      const onRetakeQuiz = jest.fn();
-      seedExistingUnchangedPathway();
-      renderContainer({ onRetakeQuiz });
-
-      await user.click(screen.getByTestId('career-retake-quiz-button'));
-      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
-
-      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
-      expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
-      expect(usePathwaysStore.getState().learnerIntent).toEqual(EMPTY_LEARNER_INTENT);
-      expect(usePathwaysStore.getState().selectedCareerId).toBeNull();
-      expect(usePathwaysStore.getState().selectedSkills).toBeNull();
-      expect(usePathwaysStore.getState().learnerProfile).toBeNull();
-      expect(usePathwaysStore.getState().careerMatches).toEqual([]);
-    });
-
-    it('does not clear the existing saved pathway, intake draft, or career/skill selection when cancelling retake', async () => {
-      const user = userEvent.setup();
-      seedExistingUnchangedPathway();
-      renderContainer();
-
-      await user.click(screen.getByTestId('career-retake-quiz-button'));
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-      expect(usePathwaysStore.getState().pathwayCourses).not.toEqual([]);
-      expect(usePathwaysStore.getState().pathwayInputFingerprint).not.toBeNull();
-      expect(usePathwaysStore.getState().learnerIntent).toEqual(baseLearnerIntent);
-      expect(usePathwaysStore.getState().selectedCareerId).toBe(SELECTED_CAREER_ID);
-      expect(usePathwaysStore.getState().selectedSkills).not.toBeNull();
-    });
-
-    it('returns focus to the trigger after the modal closes', async () => {
-      const user = userEvent.setup();
-      renderContainer();
-
-      await user.click(screen.getByTestId('career-retake-quiz-button'));
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-      expect(screen.getByTestId('career-retake-quiz-button')).toHaveFocus();
     });
   });
 

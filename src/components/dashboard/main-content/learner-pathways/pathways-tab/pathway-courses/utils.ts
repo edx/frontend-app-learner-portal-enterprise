@@ -1,4 +1,4 @@
-import type { PathwayCourse, PathwayProgress } from '../state';
+import type { PathwayCourse } from '../state';
 import { PATHWAY_COURSES_STUB } from './fixtures';
 
 /**
@@ -13,14 +13,3 @@ import { PATHWAY_COURSES_STUB } from './fixtures';
 export const getDisplayedPathwayCourses = (storeCourses: PathwayCourse[]): PathwayCourse[] => (
   storeCourses.length > 0 ? storeCourses : PATHWAY_COURSES_STUB
 );
-
-/**
- * Derives pathway progress metrics from the courses actually displayed,
- * so the summary card always stays consistent with the table.
- */
-export const derivePathwayProgress = (courses: PathwayCourse[]): PathwayProgress => ({
-  completed: courses.filter((course) => course.status === 'completed').length,
-  inProgress: courses.filter((course) => course.status === 'in_progress').length,
-  upcoming: courses.filter((course) => course.status === 'not_started').length,
-  totalCourses: courses.length,
-});

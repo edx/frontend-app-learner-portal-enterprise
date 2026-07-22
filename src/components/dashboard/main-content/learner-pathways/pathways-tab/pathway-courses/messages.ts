@@ -91,10 +91,15 @@ const messages = defineMessages({
     defaultMessage: 'Continue',
     description: 'Row action label for an in-progress course.',
   },
-  actionRegister: {
-    id: 'learner.pathways.courses.actions.register',
-    defaultMessage: 'Register',
-    description: 'Row action label for a not-started course.',
+  actionViewCourse: {
+    id: 'learner.pathways.courses.actions.viewCourse',
+    defaultMessage: 'View Course',
+    description: 'Row action label for a not-started course, or the safe fallback action when a resume/certificate destination is unavailable.',
+  },
+  actionForCourse: {
+    id: 'learner.pathways.courses.actions.forCourse',
+    defaultMessage: 'for {courseTitle}',
+    description: 'Screen reader suffix appended to a pathway course row action label so identically-labeled actions are distinguishable.',
   },
   rebuildPathway: {
     id: 'learner.pathways.courses.actions.rebuildPathway',

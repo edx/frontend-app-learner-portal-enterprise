@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import IntakeIntroCollapsible from './IntakeIntroCollapsible';
 import IntakePrivacyHelper from './IntakePrivacyHelper';
@@ -9,9 +10,14 @@ const IntakeHeader = () => {
 
   return (
     <header data-testid="intake-header">
-      <h1 className="h2 text-center mb-4">
-        {intl.formatMessage(messages.heading)}
-      </h1>
+      <div className="d-flex align-items-center justify-content-center mb-4">
+        <h1 className="h2 mb-0">
+          {intl.formatMessage(messages.heading)}
+        </h1>
+        <Badge variant="info" className="ml-2 text-uppercase font-weight-bold">
+          {intl.formatMessage(messages.beta)}
+        </Badge>
+      </div>
       <IntakeIntroCollapsible />
       <div
         data-testid="intake-helper-message"

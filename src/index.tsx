@@ -66,6 +66,12 @@ initialize({
         XPERT_AI_CLIENT_ID: process.env.XPERT_AI_CLIENT_ID || null,
         XPERT_API_BASE_URL: process.env.XPERT_API_BASE_URL || null,
         PATHWAYS_FEEDBACK_FORM_URL: process.env.PATHWAYS_FEEDBACK_FORM_URL || null,
+        FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: (
+          process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS
+            ?.split(',')
+            .map((uuid) => uuid.trim())
+            .filter(Boolean) || []
+        ),
         // These fields are to support access to prod catalog metadata in stage, ai-pathways feature
         ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE: process.env.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE || null,
         ALGOLIA_STAGE_APP_ID_OVERRIDE: process.env.ALGOLIA_STAGE_APP_ID_OVERRIDE || null,
