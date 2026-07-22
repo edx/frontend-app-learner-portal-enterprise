@@ -1,9 +1,16 @@
 import '@testing-library/jest-dom/extend-expect';
 import { screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { mergeConfig } from '@edx/frontend-platform';
+import { NIL as NIL_UUID } from 'uuid';
 
 import CourseEnrollmentsEmptyState from './CourseEnrollmentsEmptyState';
-import { useAcademies, useEnterpriseCustomer, useEnterpriseFeatures } from '../../../app/data';
+import {
+  useAcademies,
+  useCanOnlyViewHighlights,
+  useEnterpriseCustomer,
+  useEnterpriseFeatures,
+} from '../../../app/data';
 import { useGroupAssociationsAlert } from './data';
 import { enterpriseCustomerFactory, academiesFactory } from '../../../app/data/services/data/__factories__';
 import { renderWithRouter } from '../../../../utils/tests';
@@ -13,6 +20,7 @@ jest.mock('../../../app/data', () => ({
   useAcademies: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseFeatures: jest.fn(),
+  useCanOnlyViewHighlights: jest.fn(),
 }));
 
 jest.mock('./data', () => ({
@@ -43,6 +51,7 @@ describe('CourseEnrollmentsEmptyState', () => {
     useAcademies.mockReturnValue({ data: [] });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
+    useCanOnlyViewHighlights.mockReturnValue({ data: false });
     mockGroupAssociationsAlert();
   });
 
@@ -69,17 +78,30 @@ describe('CourseEnrollmentsEmptyState', () => {
     expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
   });
 
-  it('renders the new group assignment alert alongside the generic message when enterpriseGroupsV1 is enabled', () => {
+  it('renders the new group assignment alert alongside the legacy generic message when enterpriseGroupsV1 is enabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: true } });
     mockGroupAssociationsAlert({ showNewGroupAssociationAlert: true });
 
     renderComponent();
 
     expect(screen.getByText('You have new courses to browse')).toBeInTheDocument();
-    expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
+    expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
   });
 
-  it('renders the redesigned generic empty state with no Find a course button and no course recommendations', () => {
+  it('renders the legacy empty state with a Find a course button when Learner Pathways is not enabled', () => {
+    renderComponent();
+
+    expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
+    expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
+
+    const findCourseButton = screen.getByRole('link', { name: 'Find a course' });
+    expect(findCourseButton).toHaveAttribute('href', '/test-enterprise/search');
+  });
+
+  it('renders the redesigned generic empty state with no Find a course button and no course recommendations when Learner Pathways is enabled', () => {
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+
     renderComponent();
 
     expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
