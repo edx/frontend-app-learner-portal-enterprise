@@ -4,7 +4,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
 import { NIL as NIL_UUID } from 'uuid';
 
-import CourseEnrollmentsEmptyState from './CourseEnrollmentsEmptyState';
+import CourseEnrollmentsEmptyStateContainer from './CourseEnrollmentsEmptyStateContainer';
 import {
   useAcademies,
   useCanOnlyViewHighlights,
@@ -41,11 +41,11 @@ const mockGroupAssociationsAlert = (overrides = {}) => {
 
 const renderComponent = () => renderWithRouter(
   <IntlProvider locale="en">
-    <CourseEnrollmentsEmptyState />
+    <CourseEnrollmentsEmptyStateContainer />
   </IntlProvider>,
 );
 
-describe('CourseEnrollmentsEmptyState', () => {
+describe('CourseEnrollmentsEmptyStateContainer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useAcademies.mockReturnValue({ data: [] });
