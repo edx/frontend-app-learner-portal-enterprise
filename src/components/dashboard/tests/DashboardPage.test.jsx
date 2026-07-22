@@ -445,7 +445,6 @@ describe('<Dashboard />', () => {
   it('renders the generic My Courses empty state with a search link when search is enabled for the customer', () => {
     features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
 
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
