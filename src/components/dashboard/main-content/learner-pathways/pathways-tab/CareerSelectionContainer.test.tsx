@@ -18,9 +18,9 @@ import { PATHWAY_COURSES_STUB } from './pathway-courses/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
 
+const mockSecuredCourseIndex = { search: jest.fn() };
 jest.mock('../../../../app/data/hooks', () => ({
-  useSearchCatalogs: jest.fn(() => ['cat-1']),
-  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+  useAlgoliaSearch: jest.fn(() => ({ searchIndex: mockSecuredCourseIndex })),
 }));
 
 jest.mock('./workflows', () => {
@@ -220,7 +220,7 @@ describe('CareerSelectionContainer', () => {
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(PATHWAY_COURSES_STUB);
     });
 
-    it('invokes generatePathwayWorkflow with the exact composed request, selected career, and catalog scope', async () => {
+    it('invokes generatePathwayWorkflow with the exact composed request, selected career, and secured course index', async () => {
       const user = userEvent.setup();
       act(() => {
         usePathwaysStore.setState({
@@ -239,10 +239,7 @@ describe('CareerSelectionContainer', () => {
       expect(generatePathwayWorkflow).toHaveBeenCalledWith({
         request: unchangedRequest,
         selectedCareer: CAREER_SELECTION_STUB_MATCHES.find((match) => match.id === SELECTED_CAREER_ID),
-        catalogScope: {
-          searchCatalogs: ['cat-1'],
-          catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
-        },
+        index: mockSecuredCourseIndex,
       });
     });
 

@@ -1,15 +1,14 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
-import { isMalformedCompound, normalizeString, quoteFacetValue } from './algoliaStrings';
+import { careerFacetService } from './careerFacetService';
+import { translateCareerSkillsToCatalog } from './careerSkillTranslation';
+import type { CatalogSkillMatch } from './catalogSkillTranslation';
+import { normalizeString } from './algoliaStrings';
 import type { CareerMatch } from '../state';
 import type { CareerSearchIntent } from '../types';
 
 /** Maximum number of career taxonomy hits requested per search. */
 const CAREER_RETRIEVAL_LIMIT = 10;
-/** Maximum number of required-skill optional filters applied to a single search. */
-const CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT = 4;
-/** Maximum number of preferred-skill optional filters applied to a single search. */
-const CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT = 2;
 
 const FACET_FIELDS = {
   INDUSTRY_NAMES: 'industry_names',
@@ -28,15 +27,13 @@ interface TaxonomyCareerHit {
   skills?: Array<{ name?: string }>;
 }
 
-const isNonEmptyString = (value?: string | null): value is string => Boolean(normalizeString(value));
-
 const dedupeStrings = (values: Array<string | undefined | null>): string[] => (
   Array.from(new Set(values.map(normalizeString).filter(Boolean)))
 );
 
 const buildOptionalSkillFilter = (skill: string, score?: number): string => {
-  const quotedSkill = `${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(skill)}`;
-  return score ? `${quotedSkill}<score=${score}>` : quotedSkill;
+  const entry = AlgoliaFilterBuilder.facetEntry(FACET_FIELDS.SKILLS_DOT_NAME, skill);
+  return score ? `${entry}<score=${score}>` : entry;
 };
 
 /**
@@ -55,56 +52,58 @@ const buildCareerQuery = (intent: CareerSearchIntent): string => {
 };
 
 /**
- * Builds the Algolia hard filters (must-match) from industries, job sources, and
- * excluded tags. Returns `undefined` when no hard filter applies.
+ * Builds the industry/job-source/exclude-tag hard `facetFilters` entries: industries and
+ * job sources each become their own nested OR-group (a record must match at least one
+ * value in each present group); each excluded tag becomes its own top-level,
+ * independently-negated entry (every exclusion must hold). Returns `[]` when none apply —
+ * the grounded strict-skill group (built separately, see `buildStrictSkillGroup`) is
+ * appended to this by the caller.
  */
-const buildFilters = (intent: CareerSearchIntent): string | undefined => {
-  const builder = new AlgoliaFilterBuilder();
-
+const buildIndustryJobExcludeFilters = (intent: CareerSearchIntent): (string | string[])[] => {
   const industries = dedupeStrings(intent.industries ?? []);
   const jobSources = dedupeStrings(intent.jobSources ?? []);
   const excludeTags = dedupeStrings(intent.excludeTags ?? []);
 
+  const entries: (string | string[])[] = [];
+
   if (industries.length) {
-    builder.or(FACET_FIELDS.INDUSTRY_NAMES, industries, { stringify: true });
+    entries.push(industries.map((industry) => AlgoliaFilterBuilder.facetEntry(FACET_FIELDS.INDUSTRY_NAMES, industry)));
   }
 
   if (jobSources.length) {
-    builder.or(FACET_FIELDS.JOB_SOURCES, jobSources, { stringify: true });
+    entries.push(jobSources.map((jobSource) => AlgoliaFilterBuilder.facetEntry(FACET_FIELDS.JOB_SOURCES, jobSource)));
   }
 
   excludeTags.forEach((tag) => {
-    builder.andRaw(`NOT ${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(tag)}`);
+    entries.push(AlgoliaFilterBuilder.facetEntry(FACET_FIELDS.SKILLS_DOT_NAME, tag, { negate: true }));
   });
 
-  const builtFilters = builder.build();
-  return isNonEmptyString(builtFilters) ? builtFilters : undefined;
+  return entries;
 };
 
 /**
- * Builds Algolia `optionalFilters` (soft-boosting) from required and preferred skills.
- * Required skills are unscored, higher-weight signals; preferred skills are added at a
- * lower weight and are suppressed entirely for introductory learners to avoid
- * over-narrowing. Malformed compound skill strings (e.g. "SQL & Python") are dropped.
+ * Builds the grounded strict-skill `facetFilters` nested OR-group (a record must match at
+ * least one broad/required skill), mirroring course retrieval's `buildStrictFacetGroup`.
+ * Returns `undefined` when no strict skills survived grounding/classification.
  */
-const buildOptionalFilters = (intent: CareerSearchIntent): string[] | undefined => {
-  const requiredSkillFilters = dedupeStrings(intent.skillsRequired)
-    .filter((skill) => !isMalformedCompound(skill))
-    .slice(0, CAREER_REQUIRED_OPTIONAL_FILTER_LIMIT);
+const buildStrictSkillGroup = (strictSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
+  strictSkillFilters.length
+    ? strictSkillFilters.map(
+      ({ catalogField, catalogSkill }) => AlgoliaFilterBuilder.facetEntry(catalogField, catalogSkill),
+    )
+    : undefined
+);
 
-  const preferredSkillFilters = intent.learnerLevel === 'introductory'
-    ? []
-    : dedupeStrings(intent.skillsPreferred)
-      .filter((skill) => !isMalformedCompound(skill))
-      .slice(0, CAREER_PREFERRED_OPTIONAL_FILTER_LIMIT);
-
-  const optionalFilters = [
-    ...requiredSkillFilters.map((skill) => buildOptionalSkillFilter(skill)),
-    ...preferredSkillFilters.map((skill) => buildOptionalSkillFilter(skill, 1)),
-  ];
-
-  return optionalFilters.length ? optionalFilters : undefined;
-};
+/**
+ * Builds Algolia `optionalFilters` (soft-boosting) from the grounded, classified boost
+ * (narrow/preferred) skills, each scored `<score=1>` — matching the pre-existing
+ * preferred-skill weighting. Returns `undefined` when there are none.
+ */
+const buildBoostOptionalFilters = (boostSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
+  boostSkillFilters.length
+    ? boostSkillFilters.map(({ catalogSkill }) => buildOptionalSkillFilter(catalogSkill, 1))
+    : undefined
+);
 
 /**
  * Maps a raw taxonomy hit to the existing `CareerMatch` domain model. Returns `null`
@@ -129,42 +128,107 @@ const mapTaxonomyHitToCareerMatch = (hit: TaxonomyCareerHit): CareerMatch | null
   };
 };
 
+const mapHitsToCareerMatches = (hits: TaxonomyCareerHit[]): CareerMatch[] => hits
+  .map(mapTaxonomyHitToCareerMatch)
+  .filter((careerMatch): careerMatch is CareerMatch => careerMatch !== null);
+
 /**
- * Service for deterministic career retrieval from the Algolia career/taxonomy index.
- * Transforms a normalized `CareerSearchIntent` into one taxonomy search and maps the
- * results into the existing `CareerMatch[]` domain model.
+ * Service for career retrieval from the Algolia career/taxonomy index. Transforms a
+ * normalized `CareerSearchIntent` into a progressively loosened sequence of taxonomy
+ * searches, stopping at the first that returns any real match.
  */
 export const careerRetrievalService = {
   /**
    * Queries the given career/taxonomy index for roles matching the learner's intent,
-   * then maps the raw hits into `CareerMatch[]`. Makes exactly one search request; the
-   * configured index must be injected by the caller.
+   * retrying with progressively loosened search parameters when a step returns zero
+   * matches, then maps the winning step's raw hits into `CareerMatch[]`. The configured
+   * index must be injected by the caller.
+   *
+   * Required/broad skills are classified as strict (a nested `facetFilters` OR-group,
+   * alongside any industry/job-source/exclude-tag entries) and preferred/narrow skills as
+   * boost (`optionalFilters`), grounded against a real facet snapshot of the career/
+   * taxonomy index's `skills.name` vocabulary — mirroring course retrieval's strict/boost
+   * split exactly, via the shared `classifySkillSignals` mechanism.
+   *
+   * Ladder (each step only runs if it would differ from the ones before it):
+   * 1. Strict + Boost + Query — every available signal. Requires a real query *or* a
+   *    real strict `facetFilters` group before it runs — an empty query with only boost
+   *    (optional) filters is never enough on its own, since nothing would actually
+   *    constrain the search. When skipped, execution falls through to Step 2 exactly as
+   *    it already does for any other insufficient step.
+   * 2. Strict + Boost — drops the query, keeps both facet tiers.
+   * 3. Boost Only — drops the strict (hard) filter too, keeping only the soft boost.
+   * 4. Query Only — last resort, no facets of any kind.
    *
    * @param index The configured Algolia `SearchIndex` for the career/taxonomy catalog.
    * @param intent The normalized search intent.
-   * @returns The mapped career matches, in Algolia result order.
+   * @returns The mapped career matches from the first successful step, in Algolia result
+   * order, or `[]` once the ladder is exhausted.
    */
   async searchCareers(index: SearchIndex, intent: CareerSearchIntent): Promise<CareerMatch[]> {
+    const facetSnapshot = await careerFacetService.getFacetSnapshot(index);
+    const { strictSkillFilters, boostSkillFilters } = translateCareerSkillsToCatalog(intent, facetSnapshot);
+
     const query = buildCareerQuery(intent);
-    const filters = buildFilters(intent);
-    const optionalFilters = buildOptionalFilters(intent);
+    const industryJobExcludeFilters = buildIndustryJobExcludeFilters(intent);
+    const strictSkillGroup = buildStrictSkillGroup(strictSkillFilters);
+    const facetFilterEntries = strictSkillGroup
+      ? [...industryJobExcludeFilters, strictSkillGroup]
+      : industryJobExcludeFilters;
+    const facetFilters = facetFilterEntries.length ? facetFilterEntries : undefined;
+    const optionalFilters = buildBoostOptionalFilters(boostSkillFilters);
 
-    const searchParams: Record<string, unknown> = {
-      hitsPerPage: CAREER_RETRIEVAL_LIMIT,
-    };
+    // STEP 1 — Strict + Boost + Query: every available signal, but skipped for the one
+    // combination that would search on optional boost filters alone with nothing to
+    // actually constrain the results: no query and no strict facet group.
+    if (query || facetFilters || !optionalFilters) {
+      const searchParams: Record<string, unknown> = { hitsPerPage: CAREER_RETRIEVAL_LIMIT };
+      if (facetFilters) { searchParams.facetFilters = facetFilters; }
+      if (optionalFilters) { searchParams.optionalFilters = optionalFilters; }
 
-    if (filters) {
-      searchParams.filters = filters;
+      const response = await index.search<TaxonomyCareerHit>(query, searchParams);
+      const matches = mapHitsToCareerMatches(response.hits);
+      if (matches.length > 0) {
+        return matches;
+      }
     }
 
-    if (optionalFilters) {
-      searchParams.optionalFilters = optionalFilters;
+    // STEP 2 — Strict + Boost: drop the query, keep both facet tiers. Only meaningful if
+    // there was a query to drop and at least one facet tier to fall back on.
+    if (query && (facetFilters || optionalFilters)) {
+      const searchParams: Record<string, unknown> = { hitsPerPage: CAREER_RETRIEVAL_LIMIT };
+      if (facetFilters) { searchParams.facetFilters = facetFilters; }
+      if (optionalFilters) { searchParams.optionalFilters = optionalFilters; }
+
+      const response = await index.search<TaxonomyCareerHit>('', searchParams);
+      const matches = mapHitsToCareerMatches(response.hits);
+      if (matches.length > 0) {
+        return matches;
+      }
     }
 
-    const response = await index.search<TaxonomyCareerHit>(query, searchParams);
+    // STEP 3 — Boost Only: drop the strict (hard) filter too, keeping only the soft
+    // boost. Runs whenever there's a boost to fall back on, unless it would exactly
+    // repeat Step 2 (query was truthy and there was never a strict facet to drop, so
+    // Step 2 already degenerated into this same boost-only, empty-query request).
+    if (optionalFilters && (facetFilters || !query)) {
+      const response = await index.search<TaxonomyCareerHit>('', {
+        hitsPerPage: CAREER_RETRIEVAL_LIMIT,
+        optionalFilters,
+      });
+      const matches = mapHitsToCareerMatches(response.hits);
+      if (matches.length > 0) {
+        return matches;
+      }
+    }
 
-    return response.hits
-      .map(mapTaxonomyHitToCareerMatch)
-      .filter((careerMatch): careerMatch is CareerMatch => careerMatch !== null);
+    // STEP 4 — Query Only: last resort, no facets of any kind. Only meaningful if step 1
+    // actually had a facet to drop — otherwise step 1 already was this exact case.
+    if (facetFilters || optionalFilters) {
+      const response = await index.search<TaxonomyCareerHit>(query, { hitsPerPage: CAREER_RETRIEVAL_LIMIT });
+      return mapHitsToCareerMatches(response.hits);
+    }
+
+    return [];
   },
 };

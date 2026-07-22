@@ -1,4 +1,9 @@
-import { translateSkillsToCatalog } from './catalogSkillTranslation';
+import {
+  buildLookupFromFacetGroups,
+  classifySkillSignals,
+  dedupeSkillSignals,
+  translateSkillsToCatalog,
+} from './catalogSkillTranslation';
 import type { CatalogFacetSnapshot, CourseSearchOptions } from '../types';
 
 const emptyFacetSnapshot: CatalogFacetSnapshot = {
@@ -13,7 +18,6 @@ const baseOptions = (overrides: Partial<CourseSearchOptions> = {}): CourseSearch
     skillsRequired: [],
     skillsPreferred: [],
   },
-  catalogScope: { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} },
   ...overrides,
 });
 
@@ -258,5 +262,105 @@ describe('translateSkillsToCatalog', () => {
       expect(translation.query).toBe('sql');
       expect(translation.queryAlternates).toEqual(['Data Analyst']);
     });
+  });
+});
+
+describe('dedupeSkillSignals', () => {
+  it('drops blank and malformed-compound names', () => {
+    const result = dedupeSkillSignals([
+      { name: '', tier: 'strict', priority: 0 },
+      { name: 'SQL & Python', tier: 'strict', priority: 0 },
+      { name: 'SQL', tier: 'strict', priority: 0 },
+    ]);
+
+    expect(result).toEqual([{ name: 'SQL', tier: 'strict', priority: 0 }]);
+  });
+
+  it('keeps the lowest-priority (highest precedence) signal on a case-insensitive collision', () => {
+    const result = dedupeSkillSignals([
+      { name: 'sql', tier: 'boost', priority: 1 },
+      { name: 'SQL', tier: 'strict', priority: 0 },
+    ]);
+
+    expect(result).toEqual([{ name: 'SQL', tier: 'strict', priority: 0 }]);
+  });
+});
+
+describe('buildLookupFromFacetGroups', () => {
+  it('gives an earlier group priority over a later one on a collision', () => {
+    const lookup = buildLookupFromFacetGroups([
+      { field: 'skill_names', values: ['SQL'] },
+      { field: 'skills.name', values: ['SQL'] },
+    ]);
+
+    expect(lookup.get('sql')).toEqual({ value: 'SQL', field: 'skill_names' });
+  });
+
+  it('supports a single facet group (career/taxonomy has only skills.name)', () => {
+    const lookup = buildLookupFromFacetGroups([
+      { field: 'skills.name', values: ['React', 'SQL'] },
+    ]);
+
+    expect(lookup.get('react')).toEqual({ value: 'React', field: 'skills.name' });
+    expect(lookup.get('sql')).toEqual({ value: 'SQL', field: 'skills.name' });
+  });
+});
+
+describe('classifySkillSignals', () => {
+  const caps = { maxStrict: 4, maxBoost: 8, fallbackPromotionLimit: 2 };
+
+  it('grounds and tiers strict/boost signals independently when strict signals exist', () => {
+    const lookup = buildLookupFromFacetGroups([{ field: 'skills.name', values: ['React', 'AWS'] }]);
+    const result = classifySkillSignals([
+      { name: 'React', tier: 'strict', priority: 0 },
+      { name: 'AWS', tier: 'boost', priority: 1 },
+    ], lookup, caps);
+
+    expect(result.strictSkillFilters).toEqual([{ catalogSkill: 'React', catalogField: 'skills.name' }]);
+    expect(result.boostSkillFilters).toEqual([{ catalogSkill: 'AWS', catalogField: 'skills.name' }]);
+  });
+
+  it('drops an ungrounded signal rather than passing it through', () => {
+    const lookup = buildLookupFromFacetGroups([{ field: 'skills.name', values: ['React'] }]);
+    const result = classifySkillSignals([
+      { name: 'React', tier: 'strict', priority: 0 },
+      { name: 'NotInCatalog', tier: 'strict', priority: 0 },
+    ], lookup, caps);
+
+    expect(result.strictSkillFilters).toEqual([{ catalogSkill: 'React', catalogField: 'skills.name' }]);
+  });
+
+  it('promotes up to fallbackPromotionLimit boost signals to strict when zero strict signals ground', () => {
+    const lookup = buildLookupFromFacetGroups([{ field: 'skills.name', values: ['AWS', 'GCP', 'Azure'] }]);
+    const result = classifySkillSignals([
+      { name: 'AWS', tier: 'boost', priority: 1 },
+      { name: 'GCP', tier: 'boost', priority: 1 },
+      { name: 'Azure', tier: 'boost', priority: 1 },
+    ], lookup, caps);
+
+    expect(result.strictSkillFilters).toEqual([
+      { catalogSkill: 'AWS', catalogField: 'skills.name' },
+      { catalogSkill: 'GCP', catalogField: 'skills.name' },
+    ]);
+    expect(result.boostSkillFilters).toEqual([{ catalogSkill: 'Azure', catalogField: 'skills.name' }]);
+  });
+
+  it('caps strict and boost filters at the given maxStrict/maxBoost', () => {
+    const lookup = buildLookupFromFacetGroups([{ field: 'skills.name', values: ['A', 'B', 'C'] }]);
+    const result = classifySkillSignals([
+      { name: 'A', tier: 'strict', priority: 0 },
+      { name: 'B', tier: 'strict', priority: 0 },
+      { name: 'C', tier: 'boost', priority: 1 },
+    ], lookup, { maxStrict: 1, maxBoost: 0, fallbackPromotionLimit: 2 });
+
+    expect(result.strictSkillFilters).toEqual([{ catalogSkill: 'A', catalogField: 'skills.name' }]);
+    expect(result.boostSkillFilters).toEqual([]);
+  });
+
+  it('returns empty strict and boost filters when nothing grounds', () => {
+    const lookup = buildLookupFromFacetGroups([{ field: 'skills.name', values: [] }]);
+    const result = classifySkillSignals([], lookup, caps);
+
+    expect(result).toEqual({ strictSkillFilters: [], boostSkillFilters: [] });
   });
 });

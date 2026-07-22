@@ -1,5 +1,6 @@
+import type { SearchIndex } from 'algoliasearch/lite';
 import { fetchRecommendationFeedback } from '../../../../../app/data/services/xpert';
-import { courseRetrievalService, getCourseAlgoliaIndex } from '../services';
+import { courseRetrievalService } from '../services';
 import { generatePathwayWorkflow } from './generatePathwayWorkflow';
 import type { GeneratePathwayWorkflowInput } from './types';
 import type { CareerMatch, PathwayCourse, PathwayGenerationRequest } from '../state';
@@ -7,19 +8,12 @@ import type { CareerMatch, PathwayCourse, PathwayGenerationRequest } from '../st
 jest.mock('../../../../../app/data/services/xpert', () => ({ fetchRecommendationFeedback: jest.fn() }));
 jest.mock('../services', () => ({
   courseRetrievalService: { searchCourses: jest.fn() },
-  getCourseAlgoliaIndex: jest.fn(),
 }));
 
 const mockFetchRecommendationFeedback = fetchRecommendationFeedback as jest.Mock;
 const mockSearchCourses = courseRetrievalService.searchCourses as jest.Mock;
-const mockGetCourseAlgoliaIndex = getCourseAlgoliaIndex as jest.Mock;
 
-const sentinelIndex = { search: jest.fn() };
-
-const catalogScope = {
-  searchCatalogs: ['cat-1'],
-  catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
-};
+const sentinelIndex = { search: jest.fn() } as unknown as SearchIndex;
 
 const selectedCareer: CareerMatch = {
   id: 'career-1',
@@ -41,7 +35,7 @@ const request: PathwayGenerationRequest = {
 const buildInput = (overrides: Partial<GeneratePathwayWorkflowInput> = {}): GeneratePathwayWorkflowInput => ({
   request,
   selectedCareer,
-  catalogScope,
+  index: sentinelIndex,
   ...overrides,
 });
 
@@ -53,22 +47,19 @@ const sampleCourses: PathwayCourse[] = [
 describe('generatePathwayWorkflow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCourseAlgoliaIndex.mockReturnValue(sentinelIndex);
   });
 
   describe('successful orchestration and ordering', () => {
-    it('resolves the course index, calls searchCourses once with the grounded projection, and preserves course order', async () => {
+    it('calls searchCourses once with the injected index and the grounded projection, preserving course order', async () => {
       mockSearchCourses.mockResolvedValueOnce(sampleCourses);
       mockFetchRecommendationFeedback.mockResolvedValueOnce({ reasons: { c1: 'Matches your SQL and Excel skills.' } });
 
       const result = await generatePathwayWorkflow(buildInput());
 
-      expect(mockGetCourseAlgoliaIndex).toHaveBeenCalledTimes(1);
       expect(mockSearchCourses).toHaveBeenCalledTimes(1);
       expect(mockSearchCourses).toHaveBeenCalledWith(sentinelIndex, {
         selectedCareer: { title: 'Data Analyst', skillsToDevelop: ['SQL', 'Excel'] },
         intent: { skillsRequired: ['SQL', 'Excel'], skillsPreferred: ['Python'] },
-        catalogScope,
       });
 
       expect(result.courses).toEqual([

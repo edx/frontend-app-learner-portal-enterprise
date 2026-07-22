@@ -39,8 +39,7 @@ jest.mock('./workflows', () => {
 });
 
 jest.mock('../../../../app/data/hooks', () => ({
-  useSearchCatalogs: jest.fn(() => ['cat-1']),
-  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+  useAlgoliaSearch: jest.fn(() => ({ searchIndex: { search: jest.fn() } })),
 }));
 jest.mock('../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),

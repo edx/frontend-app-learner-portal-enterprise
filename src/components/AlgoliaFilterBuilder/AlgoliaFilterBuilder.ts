@@ -217,4 +217,27 @@ export default class AlgoliaFilterBuilder {
   build() {
     return this.filters.join(' AND ');
   }
+
+  /**
+   * Builds a single `facetFilters`/`optionalFilters` entry: a literal `attribute:value`
+   * facet match. Unlike `.and()`/`.or()`/`.build()`, which produce the `filters` boolean
+   * expression grammar, `facetFilters`/`optionalFilters` use exact facet matching with no
+   * expression parsing — so quoting a multi-word value doesn't protect it, it changes
+   * what's matched (the indexed facet value itself has no literal quote characters).
+   *
+   * A value that itself starts with `-` is escaped (`\-...`) so it isn't misread as facet
+   * negation. `options.negate` deliberately prefixes the whole entry with `-` to express
+   * negation (e.g. an excluded tag).
+   *
+   * @example
+   *   AlgoliaFilterBuilder.facetEntry('skills.name', 'Performance Art')
+   *   // → 'skills.name:Performance Art'
+   *   AlgoliaFilterBuilder.facetEntry('skills.name', 'PHP', { negate: true })
+   *   // → '-skills.name:PHP'
+   */
+  static facetEntry(attribute: string, value: string, options: { negate?: boolean } = {}): string {
+    const { negate = false } = options;
+    const escapedValue = value.startsWith('-') ? `\\${value}` : value;
+    return `${negate ? '-' : ''}${attribute}:${escapedValue}`;
+  }
 }

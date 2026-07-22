@@ -38,3 +38,14 @@ export interface CareerSearchIntent {
   timeCommitment?: CareerSearchTimeCommitment;
   excludeTags?: string[];
 }
+
+/**
+ * Facet vocabulary snapshot from the career/taxonomy index, used to ground
+ * `CareerSearchIntent` skill signals against catalog-valid terms before they become
+ * strict `facetFilters`. Much narrower than course retrieval's `CatalogFacetSnapshot` —
+ * the jobs/taxonomy index only has `skills.name`, no `skill_names`/`subjects` equivalent,
+ * and it isn't catalog/tenant-scoped.
+ */
+export interface CareerFacetSnapshot {
+  'skills.name': string[];
+}

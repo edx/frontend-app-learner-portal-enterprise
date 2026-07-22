@@ -53,11 +53,11 @@ jest.mock('./services', () => ({
       { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' },
     ]),
   },
-  getCourseAlgoliaIndex: jest.fn(),
+  getDebugCourseAlgoliaIndexOverride: jest.fn(() => null),
 }));
+const mockSecuredCourseIndex = { search: jest.fn() };
 jest.mock('../../../../app/data/hooks', () => ({
-  useSearchCatalogs: jest.fn(() => ['cat-1']),
-  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+  useAlgoliaSearch: jest.fn(() => ({ searchIndex: mockSecuredCourseIndex })),
 }));
 jest.mock('../../../../app/data', () => ({
   ...jest.requireActual('../../../../app/data'),
@@ -417,12 +417,9 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
 
       await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
 
-      const [, searchOptions] = jest.mocked(courseRetrievalService.searchCourses).mock.calls[0];
+      const [searchIndex, searchOptions] = jest.mocked(courseRetrievalService.searchCourses).mock.calls[0];
+      expect(searchIndex).toBe(mockSecuredCourseIndex);
       expect(searchOptions.selectedCareer.title).toBe('Data Analyst');
-      expect(searchOptions.catalogScope).toEqual({
-        searchCatalogs: ['cat-1'],
-        catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
-      });
 
       expect(fetchRecommendationFeedback).toHaveBeenCalledWith(expect.objectContaining({
         selectedCareer: 'Data Analyst',

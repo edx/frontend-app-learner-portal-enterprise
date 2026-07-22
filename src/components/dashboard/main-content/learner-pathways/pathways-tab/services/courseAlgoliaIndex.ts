@@ -14,28 +14,23 @@ const isDebugCatalogOverrideEnabled = (): boolean => (
 );
 
 /**
- * Resolves the configured Algolia `SearchIndex` for the course catalog
- * (`ALGOLIA_INDEX_NAME_V2` falling back to `ALGOLIA_INDEX_NAME`, matching
- * `useAlgoliaSearch.ts`'s real resolution) that `courseRetrievalService.searchCourses`
- * is injected with. Non-hook, synchronous composition, so a plain workflow function can
- * call it directly — mirrors `getCareerAlgoliaIndex`'s convention for the jobs index.
- *
- * With `?debug=true` in the URL and both `ALGOLIA_STAGE_APP_ID_OVERRIDE`/
- * `ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE` configured, resolves the stage override
- * catalog instead. No credential is hard-coded either way — both paths read from
- * `getConfig()`; the override path silently falls through to the normal path when
- * either override key is absent, so this only ever swaps *which configured* credentials
- * are used, gated on an explicit opt-in flag.
+ * Resolves the stage "override catalog" Algolia course index when explicitly opted into
+ * via `?debug=true` in the URL, with both `ALGOLIA_STAGE_APP_ID_OVERRIDE`/
+ * `ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE` configured. Returns `null` otherwise, so the
+ * caller (`usePathwaysController`) falls through to the normal, secured-key course index
+ * `useAlgoliaSearch` resolves — that hook has no equivalent debug/stage-override
+ * capability of its own, which is why this narrow, non-hook piece still exists
+ * standalone rather than folding into it.
  */
-export const getCourseAlgoliaIndex = (): SearchIndex => {
+export const getDebugCourseAlgoliaIndexOverride = (): SearchIndex | null => {
   const config = getConfig();
-  const resolvedIndexName = config.ALGOLIA_INDEX_NAME_V2 || config.ALGOLIA_INDEX_NAME;
 
   if (
     isDebugCatalogOverrideEnabled()
     && config.ALGOLIA_STAGE_APP_ID_OVERRIDE
     && config.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE
   ) {
+    const resolvedIndexName = config.ALGOLIA_INDEX_NAME_V2 || config.ALGOLIA_INDEX_NAME;
     const overrideClient = algoliasearch(
       config.ALGOLIA_STAGE_APP_ID_OVERRIDE,
       config.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE,
@@ -43,6 +38,5 @@ export const getCourseAlgoliaIndex = (): SearchIndex => {
     return overrideClient.initIndex(resolvedIndexName);
   }
 
-  const searchClient = algoliasearch(config.ALGOLIA_APP_ID, config.ALGOLIA_SEARCH_API_KEY);
-  return searchClient.initIndex(resolvedIndexName);
+  return null;
 };

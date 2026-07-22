@@ -1,7 +1,7 @@
+import type { SearchIndex } from 'algoliasearch/lite';
 import type {
   CareerMatch, LearnerIntent, LearnerProfile, PathwayCourse, PathwayGenerationRequest,
 } from '../state';
-import type { CourseRetrievalCatalogScope } from '../types';
 
 /**
  * Explicit profile-generation input: the canonical learner intent, unmapped and
@@ -19,17 +19,19 @@ export interface GenerateProfileWorkflowResult {
 /**
  * Explicit pathway-generation input. `request` is the complete, canonical, fingerprinted
  * request (unchanged — `computePathwayInputFingerprint` still hashes only this).
- * `selectedCareer` and `catalogScope` are workflow-only execution inputs, never persisted
- * and never added to the fingerprint: `selectedCareer` is the full domain object Catalog
+ * `selectedCareer` and `index` are workflow-only execution inputs, never persisted and
+ * never added to the fingerprint: `selectedCareer` is the full domain object Catalog
  * Retrieval and Recommendation Feedback need (the durable request only keeps
- * `selectedCareerId`); `catalogScope` is resolved from React hooks
- * (`useSearchCatalogs`/`useAlgoliaSearch`) by the composition layer, since the workflow
- * itself must stay hook-free.
+ * `selectedCareerId`); `index` is the secured, catalog-scoped Algolia course index
+ * resolved from React hooks (`useAlgoliaSearch`) by the composition layer, since the
+ * workflow itself must stay hook-free. Catalog scoping is enforced server-side by the
+ * secured API key baked into this index, so the workflow never builds its own
+ * catalog-scope filter.
  */
 export interface GeneratePathwayWorkflowInput {
   request: PathwayGenerationRequest;
   selectedCareer: CareerMatch;
-  catalogScope: CourseRetrievalCatalogScope;
+  index: SearchIndex;
 }
 
 /** Result the controller/container commits atomically via commitPathwayBuild. */
