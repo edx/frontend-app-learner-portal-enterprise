@@ -12,6 +12,7 @@ import {
   useAcademies,
   useEnterpriseFeatures,
   useRedeemablePolicies,
+  useCanOnlyViewHighlights,
 } from '../../app/data';
 import {
   authenticatedUserFactory,
@@ -26,6 +27,7 @@ jest.mock('../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseFeatures: jest.fn(),
   useRedeemablePolicies: jest.fn(),
+  useCanOnlyViewHighlights: jest.fn(),
 }));
 
 const mockAuthenticatedUser = authenticatedUserFactory();
@@ -48,6 +50,7 @@ describe('DashboardMainContent', () => {
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useRedeemablePolicies.mockReturnValue({ data: { redeemablePolicies: [] } });
+    useCanOnlyViewHighlights.mockReturnValue({ data: false });
     useEnterpriseCourseEnrollments.mockReturnValue({
       data: {
         allEnrollmentsByStatus: {
@@ -65,12 +68,12 @@ describe('DashboardMainContent', () => {
       },
     });
   });
-  it('renders the generic My Courses empty state when there are no enrollments', async () => {
+  it('renders the legacy My Courses empty state when there are no enrollments', async () => {
     renderWithRouter(
       <DashboardMainContentWrapper />,
     );
     await waitFor(() => {
-      expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
+      expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
     });
   });
 

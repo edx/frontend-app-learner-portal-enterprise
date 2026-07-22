@@ -343,7 +343,7 @@ describe('<Dashboard />', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
-    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
+    expect(within(screen.getByRole('tablist')).getByText('Pathways')).toBeInTheDocument();
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
   });
@@ -444,6 +444,8 @@ describe('<Dashboard />', () => {
 
   it('renders the generic My Courses empty state with a search link when search is enabled for the customer', () => {
     features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
+
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'exploring courses' }))
