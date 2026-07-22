@@ -32,7 +32,7 @@ const PathwayFeedbackModal = ({
       isOpen={isOpen}
       onClose={onClose}
       size="md"
-      hasCloseButton={false}
+      hasCloseButton
       isBlocking
       isOverflowVisible={false}
     >

@@ -345,7 +345,7 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
       expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
 
-      act(() => { jest.advanceTimersByTime(15000); });
+      act(() => { jest.advanceTimersByTime(30000); });
       expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
       // Firing/opening alone must not mark it seen.
       expect(localStorage.getItem(seenKey())).toBeNull();
@@ -660,6 +660,48 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       await user.click(screen.getByTestId('career-view-current-pathway-button'));
 
       await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+    });
+
+    it('disables the build button while the goal summary is being edited, preventing navigation mid-edit', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      await reachCareerSelectionViaIntake(user);
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-build-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-build-pathway-button')).not.toBeDisabled();
+    });
+
+    it('disables the rebuild button while the goal summary is being edited, preventing navigation mid-edit', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      await reachCareerSelectionViaIntake(user);
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      await editCareerGoalFromPathwayPage(user);
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-rebuild-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-rebuild-pathway-button')).not.toBeDisabled();
+    });
+
+    it('disables the view-current-pathway button while the goal summary is being edited, preventing navigation mid-edit', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      await reachCareerSelectionViaIntake(user);
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      await editCareerGoalFromPathwayPage(user);
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+      expect(screen.getByTestId('career-view-current-pathway-button')).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('career-view-current-pathway-button')).not.toBeDisabled();
     });
   });
 

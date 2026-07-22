@@ -23,7 +23,7 @@ describe('usePathwaysStore <-> localStorage', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
       state: {
         section: 'profile',
-        careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
+        careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
         selectedCareerId: 'career-1',
       },
       version: PATHWAYS_STORAGE_VERSION,
@@ -57,7 +57,7 @@ describe('usePathwaysStore <-> localStorage', () => {
 
   it('normalizes an invalid persisted combination during hydration', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
-      state: { section: 'pathway', careerMatches: [{ id: 'career-1', title: 'Data Analyst' }], pathwayCourses: [] },
+      state: { section: 'pathway', careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }], pathwayCourses: [] },
       version: PATHWAYS_STORAGE_VERSION,
     }));
 
@@ -128,7 +128,7 @@ describe('usePathwaysStore <-> localStorage', () => {
           certificatePreference: 'c',
           skills: ['SQL'],
         },
-        careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
+        careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
         selectedCareerId: 'career-1',
         pathwayCourses: [{
           id: 'course-1', courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started',
@@ -148,7 +148,7 @@ describe('usePathwaysStore <-> localStorage', () => {
     // The old shape's `section`/`careerMatches`/`selectedCareerId`/`pathwayCourses` keys
     // happen to share their names with the new shape, so those carry over verbatim.
     expect(state.section).toBe('profile');
-    expect(state.careerMatches).toEqual([{ id: 'career-1', title: 'Data Analyst' }]);
+    expect(state.careerMatches).toEqual([{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }]);
     expect(state.selectedCareerId).toBe('career-1');
     // But every renamed/removed field resets to a fresh default rather than being
     // migrated — `learnerIntent` is NOT populated from the old `onboarding.answers`,
@@ -174,6 +174,32 @@ describe('usePathwaysStore <-> localStorage', () => {
     expect(stored.state).not.toHaveProperty('errors');
   });
 
+  it('does not persist skill-less or below-threshold careers to localStorage', () => {
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+
+    usePathwaysStore.getState().commitProfileSuccess({
+      learnerIntent: {
+        careerGoal: 'Data Analyst', targetIndustry: 'Tech', background: 'b', motivation: 'm',
+      },
+      learnerProfile: {
+        summary: 's', learningStyle: 'l', weeklyTimeCommitment: 't', certificatePreference: 'c', skills: ['SQL'],
+      },
+      careerMatches: [
+        { id: 'no-skills', title: 'No Skills Role', matchPercentage: 90 },
+        {
+          id: 'below-threshold', title: 'Below Threshold Role', matchPercentage: 20, skillsToDevelop: ['SQL'],
+        },
+        {
+          id: 'rendered', title: 'Rendered Role', matchPercentage: 90, skillsToDevelop: ['SQL'],
+        },
+      ],
+    });
+
+    const stored = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) as string);
+    expect(stored.state.careerMatches.map((match: { id: string }) => match.id)).toEqual(['rendered']);
+  });
+
   it('serializes a full round-trip: write, then hydrate a fresh store instance from it', () => {
     // eslint-disable-next-line global-require
     const first = require('./pathwaysStore').usePathwaysStore;
@@ -184,7 +210,7 @@ describe('usePathwaysStore <-> localStorage', () => {
       learnerProfile: {
         summary: 's', learningStyle: 'l', weeklyTimeCommitment: 't', certificatePreference: 'c', skills: ['SQL'],
       },
-      careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
+      careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
     });
 
     jest.resetModules();
@@ -197,7 +223,7 @@ describe('usePathwaysStore <-> localStorage', () => {
 
   it('restores initial state after localStorage is cleared externally', () => {
     localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
-      state: { section: 'profile', careerMatches: [{ id: 'career-1', title: 'Data Analyst' }] },
+      state: { section: 'profile', careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }] },
       version: PATHWAYS_STORAGE_VERSION,
     }));
     // eslint-disable-next-line global-require

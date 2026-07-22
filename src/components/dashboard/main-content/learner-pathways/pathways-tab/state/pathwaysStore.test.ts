@@ -181,6 +181,25 @@ describe('pathwaysStore', () => {
       expect(state.selectedCareerId).toBe('career-1');
       expect(state.selectedSkills).toEqual(['SQL']);
     });
+
+    it('defaults to the true top-match career, not the raw-first one, when the taxonomy connector returns them out of percentage order', () => {
+      const outOfOrder = [
+        {
+          id: 'raw-first', title: 'Raw First', matchPercentage: 40, skillsToDevelop: ['Excel'],
+        },
+        {
+          id: 'top-match', title: 'Top Match', matchPercentage: 90, skillsToDevelop: ['SQL'],
+        },
+      ];
+
+      usePathwaysStore.getState().commitProfileSuccess({
+        learnerIntent, learnerProfile, careerMatches: outOfOrder,
+      });
+
+      const state = usePathwaysStore.getState();
+      expect(state.selectedCareerId).toBe('top-match');
+      expect(state.selectedSkills).toEqual(['SQL']);
+    });
   });
 
   describe('commitPathwayBuild', () => {

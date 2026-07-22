@@ -45,8 +45,8 @@ const CourseEnrollmentsEmptyState = () => {
           enterpriseCustomer={enterpriseCustomer}
         />
       )}
-      <div className="d-flex flex-column align-items-center text-center py-4">
-        <Icon src={MenuBook} className="mb-3" aria-hidden="true" />
+      <div className="d-flex flex-column align-items-center text-center py-4 w-50 mx-auto">
+        <Icon src={MenuBook} className="mb-3" aria-hidden="true" style={{ color: '#312e81', width: '96px', height: '72px' }} />
         <h3 className="mb-2">
           <FormattedMessage
             id="enterprise.dashboard.tab.courses.no.courses.registered.heading"

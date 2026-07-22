@@ -37,11 +37,11 @@ const LearnerPathwaysAlert = ({
     dismissible
     onClose={onDismiss}
     data-testid="learner-pathways-alert"
-    className={classNames('pathways-alert', `pathways-alert--${descriptor.family}`, 'mb-3')}
+    className={classNames('pathways-alert', `pathways-alert--${descriptor.family}`, 'mb-5')}
     actions={[
       <Button
         key="cta"
-        variant="outline-primary"
+        variant="inverse-outline-primary"
         iconAfter={ArrowForward}
         onClick={onCtaClick}
         disabled={ctaDisabled}
@@ -50,19 +50,20 @@ const LearnerPathwaysAlert = ({
         <FormattedMessage {...descriptor.ctaMessage} />
       </Button>,
     ]}
+    stacked
   >
     <div className="pathways-alert__eyebrow d-flex align-items-center mb-2">
       <span className="pathways-alert__eyebrow-badge">
-        <Icon src={AutoAwesome} aria-hidden="true" />
+        <Icon size="lg" className="p-1" src={AutoAwesome} aria-hidden="true" />
       </span>
-      <span className="pathways-alert__eyebrow-label text-uppercase small font-weight-bold ml-2">
+      <span className="pathways-alert__eyebrow-label text-uppercase medium ml-2" style={{ fontFamily: 'Roboto Mono, monospace' }}>
         <FormattedMessage {...messages.eyebrowLabel} />
       </span>
     </div>
-    <Alert.Heading className="h3">
+    <Alert.Heading>
       <FormattedMessage {...descriptor.headingMessage} />
     </Alert.Heading>
-    <p className="mb-0">
+    <p className="mb-0 font-weight-light" style={{ fontFamily: 'Inter Regular, sans-serif' }}>
       <FormattedMessage {...descriptor.bodyMessage} />
     </p>
     {progress && descriptor.progressVariant && (
