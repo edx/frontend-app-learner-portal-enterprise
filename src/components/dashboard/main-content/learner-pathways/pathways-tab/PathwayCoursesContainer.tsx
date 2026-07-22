@@ -10,11 +10,12 @@ import { buildGiveFeedbackAction } from './shared';
 import {
   PathwayCoursesPage,
   PathwayFeedbackModal,
-  derivePathwayProgress,
   getDisplayedPathwayCourses,
+  resolvePathwayCourses,
   useOneTimeFeedbackPrompt,
 } from './pathway-courses';
 import messages from './pathway-courses/messages';
+import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 
 export interface PathwayCoursesContainerProps {
   onBackToProfile?: () => void;
@@ -28,13 +29,19 @@ const PathwayCoursesContainer = ({
   const storeCourses = usePathwaysCourses();
   const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
 
-  const courses = getDisplayedPathwayCourses(storeCourses);
-  // `state.progress` is reserved for a future workflow-computed value (see
-  // generatePathwayWorkflow.ts) that may not be derivable client-side from
-  // the displayed course list alone. Until that workflow exists, derive
-  // progress from the same courses shown in the table so the summary card
-  // and table never disagree.
-  const progress = useMemo(() => derivePathwayProgress(courses), [courses]);
+  const { data: enterpriseCustomer } = useEnterpriseCustomer<EnterpriseCustomer>();
+  const { data: { enterpriseCourseEnrollments } } = useEnterpriseCourseEnrollments();
+
+  const pathwayCourses = getDisplayedPathwayCourses(storeCourses);
+  // Enrollment-derived status/action are computed here, at render time, from the
+  // same courses shown in the table — never written back to the Zustand store — so
+  // the summary card and table can never disagree with each other or with the
+  // learner's real enrollment state.
+  const { courses, progress } = useMemo(() => resolvePathwayCourses({
+    pathwayCourses,
+    enrollments: enterpriseCourseEnrollments,
+    enterpriseSlug: enterpriseCustomer.slug,
+  }), [pathwayCourses, enterpriseCourseEnrollments, enterpriseCustomer.slug]);
 
   const handleBackToProfile = useCallback(() => {
     onBackToProfile?.();

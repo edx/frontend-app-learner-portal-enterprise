@@ -3,6 +3,7 @@ import {
   render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,8 +14,9 @@ import { usePathwaysStore } from './state';
 import type { LearnerProfile, CareerMatch } from './state';
 import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
 import { generateProfileWorkflow } from './workflows';
-import { useEnterpriseCustomer } from '../../../../app/data';
+import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+import { queryClient } from '../../../../../utils/tests';
 
 // PathwayCoursesContainer's one-time feedback prompt calls getAuthenticatedUser() to
 // scope its localStorage marker, so every path that reaches a populated Pathway page
@@ -42,16 +44,19 @@ jest.mock('../../../../app/data/hooks', () => ({
 }));
 jest.mock('../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
+  useEnterpriseCourseEnrollments: jest.fn(),
 }));
 
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
 
 const renderComponent = () => render(
-  <MemoryRouter>
-    <IntlProvider locale="en">
-      <LearnerPathwaysTab />
-    </IntlProvider>
-  </MemoryRouter>,
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter>
+      <IntlProvider locale="en">
+        <LearnerPathwaysTab />
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
 );
 
 describe('LearnerPathwaysTab', () => {
@@ -60,6 +65,9 @@ describe('LearnerPathwaysTab', () => {
     mockGenerateProfileWorkflow.mockClear();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
       data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
+    (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+      data: { enterpriseCourseEnrollments: [], allEnrollmentsByStatus: {} },
     });
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
     global.localStorage.clear();
@@ -88,9 +96,83 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByRole('link', { name: 'Profile' }));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
-    // breadcrumb: click Onboarding link to go back
+    // breadcrumb: click Onboarding link — opens the same retake-quiz confirmation modal
+    // as the dedicated action-row button, rather than navigating immediately.
     await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+    expect(screen.queryByTestId('intake-questions-container')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+  });
+
+  it('opening the retake-quiz modal via the breadcrumb from the Profile page, then cancelling, resets nothing and restores focus to the breadcrumb link', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+
+    const breadcrumbLink = screen.getByRole('link', { name: 'Onboarding Quiz' });
+    await user.click(breadcrumbLink);
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+    expect(screen.queryByText('Retake your onboarding quiz?')).not.toBeInTheDocument();
+    expect(breadcrumbLink).toHaveFocus();
+  });
+
+  it('opening the retake-quiz modal via the breadcrumb from the Pathway Courses page (its only path back to onboarding) confirms and resets the store', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+    // PathwayCoursesContainer registers no retake-quiz action-row button of its own —
+    // the breadcrumb is the only path back to onboarding from this page.
+    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+    expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+    expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+    expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
+  });
+
+  it('cancelling the breadcrumb-triggered retake-quiz modal from the Pathway Courses page leaves the existing pathway untouched', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+    const priorCourses = usePathwaysStore.getState().pathwayCourses;
+    const priorFingerprint = usePathwaysStore.getState().pathwayInputFingerprint;
+
+    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+    expect(usePathwaysStore.getState().pathwayCourses).toEqual(priorCourses);
+    expect(usePathwaysStore.getState().pathwayInputFingerprint).toEqual(priorFingerprint);
   });
 
   it('renders onboarding breadcrumb on initial', () => {
@@ -253,7 +335,9 @@ describe('LearnerPathwaysTab', () => {
       const generatedProfile: LearnerProfile = {
         summary: 'A generated summary', learningStyle: '', weeklyTimeCommitment: '', certificatePreference: '', skills: ['SQL'],
       };
-      const generatedMatches: CareerMatch[] = [{ id: 'real-career-1', title: 'Real Career' }];
+      const generatedMatches: CareerMatch[] = [
+        { id: 'real-career-1', title: 'Real Career', skillsToDevelop: ['SQL'] },
+      ];
       mockGenerateProfileWorkflow.mockResolvedValueOnce({
         learnerProfile: generatedProfile,
         careerMatches: generatedMatches,

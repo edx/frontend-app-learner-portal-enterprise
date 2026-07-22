@@ -5,5 +5,14 @@ export { default as PathwayCoursesDataTable } from './PathwayCoursesDataTable';
 export { default as PathwayCourseStatusBadge } from './PathwayCourseStatusBadge';
 export { default as PathwayCourseActionButton } from './PathwayCourseActionButton';
 export { PATHWAY_COURSES_STUB } from './fixtures';
-export { derivePathwayProgress, getDisplayedPathwayCourses } from './utils';
+export { getDisplayedPathwayCourses } from './utils';
 export { default as useOneTimeFeedbackPrompt } from './useOneTimeFeedbackPrompt';
+export { resolvePathwayCourses } from './resolvePathwayCourses';
+export type {
+  NormalizedEnrollment,
+  PathwayCourseActionKind,
+  ResolvedPathwayCourse,
+  ResolvedPathwayCourseAction,
+  ResolvePathwayCoursesInput,
+  ResolvePathwayCoursesResult,
+} from './resolvePathwayCourses';

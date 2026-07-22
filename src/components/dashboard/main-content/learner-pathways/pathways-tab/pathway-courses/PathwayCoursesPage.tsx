@@ -2,14 +2,15 @@ import React from 'react';
 import { Badge, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import type { PathwayCourse, PathwayProgress } from '../state';
+import type { PathwayProgress } from '../state';
 import PathwayProgressCard from './PathwayProgressCard';
 import PathwayCoursesDataTable from './PathwayCoursesDataTable';
 import NeedHelpCard from './NeedHelpCard';
 import messages from './messages';
+import type { ResolvedPathwayCourse } from './resolvePathwayCourses';
 
 export interface PathwayCoursesPageProps {
-  courses: PathwayCourse[];
+  courses: ResolvedPathwayCourse[];
   progress: PathwayProgress;
 }
 
@@ -25,7 +26,7 @@ const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
 
   return (
     <section data-testid="pathway-container" className="pb-5">
-      <Stack gap={4}>
+      <Stack gap={4.5} direction="column">
         <header className="text-center">
           <div className="d-flex align-items-center justify-content-center mb-2">
             <h1 className="h2 mb-0">{intl.formatMessage(messages.title)}</h1>

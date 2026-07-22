@@ -1,4 +1,4 @@
-import { normalizePathwaysState } from './normalize';
+import { normalizePathwaysState, orderDisplayableCareerMatches } from './normalize';
 import type { PathwaysState, PathwaysStore } from './types';
 
 /** Single localStorage key for the whole Learner Pathways durable subset. */
@@ -38,7 +38,9 @@ export const partializePathwaysState = (state: PathwaysStore): PersistedPathways
   section: state.section,
   learnerIntent: state.learnerIntent,
   learnerProfile: state.learnerProfile,
-  careerMatches: state.careerMatches,
+  // Only the careers actually rendered are worth persisting — one with no skills (or
+  // below the minimum visible match threshold) never shows up as a selectable option.
+  careerMatches: orderDisplayableCareerMatches(state.careerMatches),
   selectedCareerId: state.selectedCareerId,
   selectedSkills: state.selectedSkills,
   pathwayCourses: state.pathwayCourses,

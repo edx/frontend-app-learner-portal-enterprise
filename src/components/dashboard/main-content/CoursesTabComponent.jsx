@@ -8,7 +8,7 @@ import { MainContent, Sidebar } from '../../layout';
 import CourseEnrollmentFailedAlert, { ENROLLMENT_SOURCE } from '../../course/CourseEnrollmentFailedAlert';
 import DashboardMainContent from './DashboardMainContent';
 import { DashboardSidebar } from '../sidebar';
-import { LearnerPathwaysAlert } from './learner-pathways/courses-tab-alert';
+import { LearnerPathwaysAlertContainer } from './learner-pathways/courses-tab-alert';
 
 /**
  * @typedef {Object} CoursesTabComponentProps
@@ -38,7 +38,7 @@ const CoursesTabComponent = ({
     <div className="w-100">
       <CourseEnrollmentFailedAlert className="mt-0 mb-3" enrollmentSource={ENROLLMENT_SOURCE.DASHBOARD} />
       {showLearnerPathwaysAlert && (
-        <LearnerPathwaysAlert
+        <LearnerPathwaysAlertContainer
           onSelectTab={onSelectTab}
           hasPathwaysTab={hasPathwaysTab}
         />

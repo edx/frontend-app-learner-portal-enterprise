@@ -19,9 +19,6 @@ const IntakePrivacyHelper = () => {
         placement="right"
         overlay={(
           <Tooltip id="intake-privacy-helper-tooltip">
-            <p className="mb-2 text-left">
-              {intl.formatMessage(messages.privacyTooltipFirstLine)}
-            </p>
             <p className="mb-0 text-left">
               {intl.formatMessage(messages.privacyTooltipSecondLine)}
             </p>

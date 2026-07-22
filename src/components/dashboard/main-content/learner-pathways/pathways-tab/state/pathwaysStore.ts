@@ -13,7 +13,7 @@ import {
   mergePathwaysState,
   partializePathwaysState,
 } from './persistence';
-import { normalizeSelectedCareerId, recommendedSkillsForCareer } from './normalize';
+import { normalizeSelectedCareerId, orderDisplayableCareerMatches, recommendedSkillsForCareer } from './normalize';
 
 /**
  * Factory for creating a fresh pathways initial state object.
@@ -64,7 +64,10 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
     selectedSkills: recommendedSkills ?? recommendedSkillsForCareer(state.careerMatches, state.selectedCareerId),
   })),
   commitProfileSuccess: ({ learnerIntent, learnerProfile, careerMatches }) => set((state) => {
-    const selectedCareerId = normalizeSelectedCareerId(careerMatches, state.selectedCareerId);
+    const selectedCareerId = normalizeSelectedCareerId(
+      orderDisplayableCareerMatches(careerMatches),
+      state.selectedCareerId,
+    );
     return {
       learnerIntent,
       learnerProfile,
