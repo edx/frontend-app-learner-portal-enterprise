@@ -8,7 +8,7 @@ export interface RetakeQuizModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  triggerRef?: React.RefObject<HTMLButtonElement>;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 const RetakeQuizModal = ({

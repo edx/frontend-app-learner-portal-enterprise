@@ -5,18 +5,16 @@ import { Badge, Col, Row } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import type { CareerMatch, LearnerIntent } from '../state';
+import { normalizeMatchPercentage, orderDisplayableCareerMatches } from '../state';
 import GoalSummaryCard, { type GoalSummaryCardHandle, type GoalSummaryFormValues } from './GoalSummaryCard';
 import CareerMatchesCard from './CareerMatchesCard';
 import type { OrderedMatch } from './CareerMatchesCard';
 import SkillsToDevelopCard from './SkillsToDevelopCard';
 import OverwritePathwayModal from './OverwritePathwayModal';
-import RetakeQuizModal from './RetakeQuizModal';
 import NoPathwayCoursesModal from './NoPathwayCoursesModal';
 import { deriveSelectedCareer } from './selectors';
 import messages from './messages';
 import { RequestErrorAlert } from '../shared';
-
-const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
 
 export interface CareerSelectionPageProps {
   learnerIntent: LearnerIntent;
@@ -37,12 +35,6 @@ export interface CareerSelectionPageProps {
   onConfirmOverwrite: () => Promise<void>;
   /** Ref attached to the portaled build button; used for focus restoration. */
   buildButtonRef: React.RefObject<HTMLButtonElement>;
-  /** Controlled by CareerSelectionContainer (lifted state). */
-  isRetakeOpen: boolean;
-  onCloseRetake: () => void;
-  onConfirmRetake: () => void;
-  /** Ref attached to the portaled retake-quiz button; used for focus restoration. */
-  retakeButtonRef: React.RefObject<HTMLButtonElement>;
   /** Controlled by CareerSelectionContainer; opened when a build/rebuild resolves with no courses. */
   isNoCoursesOpen: boolean;
   onCloseNoCourses: () => void;
@@ -51,15 +43,9 @@ export interface CareerSelectionPageProps {
   dismissedSkillCount: number;
   onDismissSkill: (skill: string) => void;
   onRestoreSkills: () => void;
+  /** Notified whenever the Goal Summary edit form opens/closes. */
+  onEditingChange?: (isEditing: boolean) => void;
 }
-
-const normalizePercentage = (value?: number): number | null => {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return null;
-  }
-  const normalized = value <= 1 ? value * 100 : value;
-  return Math.max(0, Math.min(100, Math.round(normalized)));
-};
 
 const CareerSelectionPage = ({
   learnerIntent,
@@ -77,16 +63,13 @@ const CareerSelectionPage = ({
   onCloseOverwrite,
   onConfirmOverwrite,
   buildButtonRef,
-  isRetakeOpen,
-  onCloseRetake,
-  onConfirmRetake,
-  retakeButtonRef,
   isNoCoursesOpen,
   onCloseNoCourses,
   visibleSkills,
   dismissedSkillCount,
   onDismissSkill,
   onRestoreSkills,
+  onEditingChange,
 }: CareerSelectionPageProps) => {
   const intl = useIntl();
   const [isEditing, setIsEditing] = useState(false);
@@ -94,6 +77,10 @@ const CareerSelectionPage = ({
   // Set when the no-courses modal's primary action opens edit mode, so the focus
   // effect below only fires for that flow and not for a manual "Edit" click.
   const [pendingGoalSummaryFocus, setPendingGoalSummaryFocus] = useState(false);
+
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
 
   useEffect(() => {
     if (isEditing && pendingGoalSummaryFocus) {
@@ -115,15 +102,11 @@ const CareerSelectionPage = ({
   };
 
   const orderedMatches = useMemo(
-    (): OrderedMatch[] => careerMatches
+    (): OrderedMatch[] => orderDisplayableCareerMatches(careerMatches)
       .map((match) => ({
         match,
-        percentage: normalizePercentage(match.matchPercentage),
-      }))
-      .filter(
-        ({ percentage }) => percentage === null || percentage > MIN_VISIBLE_MATCH_PERCENTAGE,
-      )
-      .sort((a, b) => (b.percentage ?? -1) - (a.percentage ?? -1)),
+        percentage: normalizeMatchPercentage(match.matchPercentage),
+      })),
     [careerMatches],
   );
 
@@ -192,13 +175,6 @@ const CareerSelectionPage = ({
         onClose={onCloseOverwrite}
         onConfirm={onConfirmOverwrite}
         triggerRef={buildButtonRef}
-      />
-
-      <RetakeQuizModal
-        isOpen={isRetakeOpen}
-        onClose={onCloseRetake}
-        onConfirm={onConfirmRetake}
-        triggerRef={retakeButtonRef}
       />
 
       <NoPathwayCoursesModal

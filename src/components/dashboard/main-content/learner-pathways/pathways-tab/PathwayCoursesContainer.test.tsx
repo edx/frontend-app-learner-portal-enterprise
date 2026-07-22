@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import {
+  act, render, screen, within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
@@ -10,12 +13,20 @@ import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { PathwaysActionBarProvider } from './action-bar';
 import { usePathwaysStore } from './state';
-import { useEnterpriseCustomer } from '../../../../app/data';
+import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+import { queryClient } from '../../../../../utils/tests';
+import {
+  completedWithCertificateMatch,
+  inProgressMatch,
+  matchingTitleDifferentCourseKeyDecoy,
+  sameRunIdDifferentCourseKeyDecoy,
+} from './pathway-courses/tests/enrollmentFixtures';
 
 jest.mock('../../../../app/data', () => ({
   ...jest.requireActual('../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
+  useEnterpriseCourseEnrollments: jest.fn(),
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory({
@@ -28,20 +39,29 @@ jest.mock('@edx/frontend-platform/auth');
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.Mock;
 const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
 
+const mockEnrollments = (enterpriseCourseEnrollments: unknown[]) => {
+  (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+    data: { enterpriseCourseEnrollments, allEnrollmentsByStatus: {} },
+  });
+};
+
 const renderComponent = (props = {}) => render(
-  <MemoryRouter>
-    <IntlProvider locale="en">
-      <PathwaysActionBarProvider>
-        <PathwayCoursesContainer {...props} />
-      </PathwaysActionBarProvider>
-    </IntlProvider>
-  </MemoryRouter>,
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter>
+      <IntlProvider locale="en">
+        <PathwaysActionBarProvider>
+          <PathwayCoursesContainer {...props} />
+        </PathwaysActionBarProvider>
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
 );
 
 describe('PathwayCoursesContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
+    mockEnrollments([]);
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
     global.localStorage.clear();
     mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
@@ -66,15 +86,6 @@ describe('PathwayCoursesContainer', () => {
 
     expect(screen.getByText('Custom Store Course')).toBeInTheDocument();
     expect(screen.queryByText('Introduction to Corporate Finance')).not.toBeInTheDocument();
-  });
-
-  it('derives progress metrics from the displayed (fixture) courses', () => {
-    renderComponent();
-
-    expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('1');
-    expect(screen.getByTestId('pathway-progress-in-progress')).toHaveTextContent('1');
-    expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('3');
-    expect(screen.getByTestId('pathway-progress-total')).toHaveTextContent('5');
   });
 
   it('registers the Rebuild pathway action-bar button', () => {
@@ -178,7 +189,7 @@ describe('PathwayCoursesContainer', () => {
       });
       renderComponent();
 
-      act(() => { jest.advanceTimersByTime(15000); });
+      act(() => { jest.advanceTimersByTime(30000); });
       expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: 'Maybe later' }));
@@ -206,6 +217,134 @@ describe('PathwayCoursesContainer', () => {
       act(() => { jest.advanceTimersByTime(20000); });
 
       expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('enrollment-derived course states', () => {
+    beforeEach(() => {
+      usePathwaysStore.setState({
+        pathwayCourses: [
+          { courseKey: 'corporate-finance', title: 'Introduction to Corporate Finance', status: 'not_started' },
+          { courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation', status: 'not_started' },
+        ],
+      });
+    });
+
+    const getRow = (title: string) => screen.getByText(title).closest('tr') as HTMLElement;
+
+    it('renders every row as Not started with a View Course action when there are no enrollments', () => {
+      renderComponent();
+
+      expect(screen.getAllByText('Not started')).toHaveLength(2);
+      expect(screen.getAllByRole('link', { name: /View Course/ })).toHaveLength(2);
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('2');
+    });
+
+    it('flips only the matching row and progress to in_progress/Continue for an active enrollment', () => {
+      mockEnrollments([inProgressMatch]);
+      renderComponent();
+
+      const financeRow = getRow('Introduction to Corporate Finance');
+      expect(within(financeRow).getByText('In progress')).toBeInTheDocument();
+      expect(within(financeRow).getByRole('link', { name: /Continue/ })).toHaveAttribute('href', inProgressMatch.linkToCourse);
+
+      const otherRow = getRow('Financial Analysis & Evaluation');
+      expect(within(otherRow).getByText('Not started')).toBeInTheDocument();
+
+      expect(screen.getByTestId('pathway-progress-in-progress')).toHaveTextContent('1');
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('1');
+    });
+
+    it('flips only the matching row and progress to completed/View Certificate for a completed enrollment', () => {
+      mockEnrollments([completedWithCertificateMatch]);
+      renderComponent();
+
+      const financeRow = getRow('Financial Analysis & Evaluation');
+      expect(within(financeRow).getByText('Completed')).toBeInTheDocument();
+      expect(within(financeRow).getByRole('link', { name: /View Certificate/ }))
+        .toHaveAttribute('href', completedWithCertificateMatch.linkToCertificate);
+
+      const otherRow = getRow('Introduction to Corporate Finance');
+      expect(within(otherRow).getByText('Not started')).toBeInTheDocument();
+
+      expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('1');
+    });
+
+    it('leaves all rows and progress unchanged when only unrelated enrollments exist', () => {
+      mockEnrollments([sameRunIdDifferentCourseKeyDecoy, matchingTitleDifferentCourseKeyDecoy]);
+      renderComponent();
+
+      const table = screen.getByRole('table');
+      expect(within(table).getAllByText('Not started')).toHaveLength(2);
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('2');
+      expect(within(table).queryByText('In progress')).not.toBeInTheDocument();
+      expect(within(table).queryByText('Completed')).not.toBeInTheDocument();
+    });
+
+    it('keeps the progress card and the table in agreement', () => {
+      mockEnrollments([inProgressMatch]);
+      renderComponent();
+
+      const table = screen.getByRole('table');
+      const notStartedBadges = within(table).getAllByText('Not started').length;
+      const inProgressBadges = within(table).getAllByText('In progress').length;
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent(String(notStartedBadges));
+      expect(screen.getByTestId('pathway-progress-in-progress')).toHaveTextContent(String(inProgressBadges));
+    });
+
+    it('does not fabricate completion/progress from the fallback fixture stub', () => {
+      usePathwaysStore.setState({ pathwayCourses: [] });
+      renderComponent();
+
+      expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('0');
+      expect(screen.getByTestId('pathway-progress-in-progress')).toHaveTextContent('0');
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('5');
+    });
+
+    it('updates badges/actions/progress on rerender when the hook data changes, without writing to Zustand', () => {
+      const before = usePathwaysStore.getState().pathwayCourses;
+      const { rerender } = renderComponent();
+
+      expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('0');
+
+      mockEnrollments([completedWithCertificateMatch]);
+      rerender(
+        <QueryClientProvider client={queryClient()}>
+          <MemoryRouter>
+            <IntlProvider locale="en">
+              <PathwaysActionBarProvider>
+                <PathwayCoursesContainer />
+              </PathwaysActionBarProvider>
+            </IntlProvider>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('1');
+      expect(usePathwaysStore.getState().pathwayCourses).toBe(before);
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(before);
+    });
+
+    it('leaves stored pathwayCourses byte-for-byte unchanged after rendering enrollment-derived states', () => {
+      const beforeRef = usePathwaysStore.getState().pathwayCourses;
+      const beforePersisted = global.localStorage.getItem('edx.learner-pathways.state');
+
+      mockEnrollments([completedWithCertificateMatch]);
+      renderComponent();
+
+      expect(screen.getByTestId('pathway-progress-completed')).toHaveTextContent('1');
+      expect(usePathwaysStore.getState().pathwayCourses).toBe(beforeRef);
+      expect(global.localStorage.getItem('edx.learner-pathways.state')).toBe(beforePersisted);
+    });
+
+    it('still renders the Need Help card, feedback link, rebuild action, and pathway page content alongside derived states', () => {
+      mockEnrollments([completedWithCertificateMatch]);
+      renderComponent();
+
+      expect(screen.getByTestId('pathway-need-help')).toBeInTheDocument();
+      expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+      expect(screen.getByTestId('pathway-rebuild-button')).toBeInTheDocument();
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
     });
   });
 });

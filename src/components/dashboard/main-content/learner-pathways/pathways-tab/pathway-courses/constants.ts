@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@edx/frontend-platform/i18n';
 
 import type { PathwayCourseStatus } from '../state';
+import type { PathwayCourseActionKind } from './resolvePathwayCourses';
 import messages from './messages';
 
 /**
@@ -21,10 +22,13 @@ export const STATUS_MESSAGE: Record<PathwayCourseStatus, MessageDescriptor> = {
   not_started: messages.statusNotStarted,
 };
 
-export const ACTION_MESSAGE: Record<PathwayCourseStatus, MessageDescriptor> = {
-  completed: messages.actionViewCertificate,
-  in_progress: messages.actionContinue,
-  not_started: messages.actionRegister,
+/** Keyed by resolved action *kind*, not course status — the same status can produce
+ * different actions (e.g. a completed course without a certificate still falls back
+ * to `view_course`), so the label lookup must follow the action, not the status. */
+export const ACTION_MESSAGE: Record<PathwayCourseActionKind, MessageDescriptor> = {
+  view_certificate: messages.actionViewCertificate,
+  continue: messages.actionContinue,
+  view_course: messages.actionViewCourse,
 };
 
 /**

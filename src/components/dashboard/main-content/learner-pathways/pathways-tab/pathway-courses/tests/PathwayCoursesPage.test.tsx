@@ -6,7 +6,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import PathwayCoursesPage from '../PathwayCoursesPage';
 import { PATHWAY_COURSES_STUB } from '../fixtures';
-import { derivePathwayProgress } from '../utils';
+import { resolvePathwayCourses } from '../resolvePathwayCourses';
 import { useEnterpriseCustomer } from '../../../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
 
@@ -17,12 +17,18 @@ jest.mock('../../../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
 }));
 
+const { courses, progress } = resolvePathwayCourses({
+  pathwayCourses: PATHWAY_COURSES_STUB,
+  enrollments: [],
+  enterpriseSlug: 'test-enterprise',
+});
+
 const renderComponent = () => render(
   <MemoryRouter>
     <IntlProvider locale="en">
       <PathwayCoursesPage
-        courses={PATHWAY_COURSES_STUB}
-        progress={derivePathwayProgress(PATHWAY_COURSES_STUB)}
+        courses={courses}
+        progress={progress}
       />
     </IntlProvider>
   </MemoryRouter>,

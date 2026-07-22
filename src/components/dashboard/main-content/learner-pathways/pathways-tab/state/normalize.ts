@@ -31,6 +31,34 @@ export const normalizeSelectedCareerId = (
   return matches[0]?.id ?? null;
 };
 
+export const MIN_VISIBLE_MATCH_PERCENTAGE = 25;
+
+export const normalizeMatchPercentage = (value?: number): number | null => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return null;
+  }
+  const normalized = value <= 1 ? value * 100 : value;
+  return Math.max(0, Math.min(100, Math.round(normalized)));
+};
+
+/**
+ * The canonical "what the learner actually sees, in order" list — excludes careers with
+ * no associated skills and those below the minimum visible match threshold, sorted by
+ * match percentage descending. Used both to render the Career Matches list and to pick
+ * the default/fallback selected career (here and in commitProfileSuccess), so the two
+ * can never disagree about "the first one."
+ */
+export const orderDisplayableCareerMatches = (matches: CareerMatch[]): CareerMatch[] => matches
+  .filter((match) => (match.skillsToDevelop?.length ?? 0) > 0)
+  .filter((match) => {
+    const percentage = normalizeMatchPercentage(match.matchPercentage);
+    return percentage === null || percentage > MIN_VISIBLE_MATCH_PERCENTAGE;
+  })
+  .slice()
+  .sort((a, b) => (
+    (normalizeMatchPercentage(b.matchPercentage) ?? -1) - (normalizeMatchPercentage(a.matchPercentage) ?? -1)
+  ));
+
 /**
  * Whether the learner has actually completed Intake — all four fields present, the
  * same invariant react-hook-form enforces (via `requiredNonWhitespace`) before
@@ -58,7 +86,7 @@ export const normalizePathwaysState = (state: PathwaysState): PathwaysState => {
   // validate the persisted selectedCareerId against, so trust it as-is rather than
   // treating "no real matches yet" as "stale selection."
   const selectedCareerId = state.careerMatches.length > 0
-    ? normalizeSelectedCareerId(state.careerMatches, state.selectedCareerId)
+    ? normalizeSelectedCareerId(orderDisplayableCareerMatches(state.careerMatches), state.selectedCareerId)
     : state.selectedCareerId;
 
   const hasPathway = state.pathwayCourses.length > 0;

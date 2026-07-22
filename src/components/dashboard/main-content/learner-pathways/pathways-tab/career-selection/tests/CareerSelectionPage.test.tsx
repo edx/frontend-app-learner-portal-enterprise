@@ -48,10 +48,6 @@ const defaults: CareerSelectionPageProps = {
   onCloseOverwrite: noop,
   onConfirmOverwrite: jest.fn().mockResolvedValue(undefined),
   buildButtonRef: React.createRef(),
-  isRetakeOpen: false,
-  onCloseRetake: noop,
-  onConfirmRetake: noop,
-  retakeButtonRef: React.createRef(),
   isNoCoursesOpen: false,
   onCloseNoCourses: noop,
   visibleSkills: ['SQL', 'Data Visualization'],
@@ -96,6 +92,36 @@ describe('CareerSelectionPage', () => {
   it('shows the edit prompt when no match is above the threshold', () => {
     renderPage({
       careerMatches: [{ id: 'weak', title: 'Weak', matchPercentage: 25 }],
+      visibleSkills: [],
+    });
+    expect(screen.getByTestId('career-matches-empty-state')).toBeInTheDocument();
+  });
+
+  it('filters out a career with no associated skills, leaving other matches visible', () => {
+    renderPage({
+      careerMatches: [
+        { id: 'no-skills', title: 'No Skills Role', matchPercentage: 90 },
+        {
+          id: 'empty-skills', title: 'Empty Skills Role', matchPercentage: 90, skillsToDevelop: [],
+        },
+        {
+          id: 'has-skills', title: 'Has Skills Role', matchPercentage: 90, skillsToDevelop: ['SQL'],
+        },
+      ],
+    });
+    expect(screen.queryByText('No Skills Role')).not.toBeInTheDocument();
+    expect(screen.queryByText('Empty Skills Role')).not.toBeInTheDocument();
+    expect(screen.getByText('Has Skills Role')).toBeInTheDocument();
+  });
+
+  it('shows the edit prompt when every returned career has no associated skills', () => {
+    renderPage({
+      careerMatches: [
+        { id: 'no-skills', title: 'No Skills Role', matchPercentage: 90 },
+        {
+          id: 'empty-skills', title: 'Empty Skills Role', matchPercentage: 90, skillsToDevelop: [],
+        },
+      ],
       visibleSkills: [],
     });
     expect(screen.getByTestId('career-matches-empty-state')).toBeInTheDocument();
@@ -151,27 +177,6 @@ describe('CareerSelectionPage', () => {
     renderPage({ isOverwriteOpen: true, onConfirmOverwrite });
     await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
     expect(onConfirmOverwrite).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows the retake-quiz modal when isRetakeOpen is true', () => {
-    renderPage({ isRetakeOpen: true });
-    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
-  });
-
-  it('calls onCloseRetake when Cancel is clicked in the retake-quiz modal', async () => {
-    const user = userEvent.setup();
-    const onCloseRetake = jest.fn();
-    renderPage({ isRetakeOpen: true, onCloseRetake });
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(onCloseRetake).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onConfirmRetake when Retake quiz is clicked in the retake-quiz modal', async () => {
-    const user = userEvent.setup();
-    const onConfirmRetake = jest.fn();
-    renderPage({ isRetakeOpen: true, onConfirmRetake });
-    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
-    expect(onConfirmRetake).toHaveBeenCalledTimes(1);
   });
 
   it('shows the no-courses modal when isNoCoursesOpen is true', () => {
@@ -230,12 +235,28 @@ describe('CareerSelectionPage', () => {
     expect(screen.getByTestId('career-match-medium')).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('notifies onEditingChange when the goal summary edit form opens and closes', async () => {
+    const user = userEvent.setup();
+    const onEditingChange = jest.fn();
+    renderPage({ onEditingChange });
+
+    await user.click(screen.getByTestId('goal-summary-edit-button'));
+    expect(onEditingChange).toHaveBeenLastCalledWith(true);
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onEditingChange).toHaveBeenLastCalledWith(false);
+  });
+
   it('clamps out-of-range match percentages and omits the badge when percentage is missing', () => {
     renderPage({
       careerMatches: [
-        { id: 'no-pct', title: 'No Percentage Role' },
-        { id: 'over', title: 'Over Max Role', matchPercentage: 150 },
-        { id: 'under', title: 'Under Min Role', matchPercentage: -10 },
+        { id: 'no-pct', title: 'No Percentage Role', skillsToDevelop: ['SQL'] },
+        {
+          id: 'over', title: 'Over Max Role', matchPercentage: 150, skillsToDevelop: ['SQL'],
+        },
+        {
+          id: 'under', title: 'Under Min Role', matchPercentage: -10, skillsToDevelop: ['SQL'],
+        },
       ],
     });
     const noPctButton = screen.getByTestId('career-match-no-pct');

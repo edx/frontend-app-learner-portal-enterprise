@@ -1,9 +1,15 @@
 import type { SearchIndex } from 'algoliasearch/lite';
-import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
-import type { CatalogFacetSnapshot, CourseRetrievalCatalogScope } from '../types';
+import type { CatalogFacetSnapshot } from '../types';
 
 /** Maximum number of facet values to fetch from Algolia (to ensure high coverage). */
 const MAX_VALUES_PER_FACET = 1000;
+
+/**
+ * Fixed scope constraint for the facet snapshot query: course content only. Catalog/tenant
+ * scoping is enforced server-side by the secured Algolia API key the injected `index` is
+ * resolved with, so this never varies per call.
+ */
+const CONTENT_TYPE_FILTER = 'content_type:course';
 
 const FACET_FIELDS = {
   SKILL_NAMES: 'skill_names',
@@ -29,25 +35,19 @@ const safeReadFacet = (facets: Record<string, Record<string, number>> | undefine
  */
 export const catalogFacetService = {
   /**
-   * Issues a zero-hit Algolia search (`hitsPerPage: 0`) scoped to course content within
-   * the given catalog scope, and reads out the three facet groups the retrieval ladder
-   * and skill translation need.
+   * Issues a zero-hit Algolia search (`hitsPerPage: 0`) scoped to course content, and
+   * reads out the three facet groups the retrieval ladder and skill translation need.
    *
-   * @param index The configured Algolia `SearchIndex` for the course catalog.
-   * @param catalogScope Already-resolved enterprise catalog scope to restrict the snapshot to.
+   * @param index The configured, secured (catalog-scoped) Algolia `SearchIndex` for the
+   * course catalog.
    * @returns A `CatalogFacetSnapshot` with all three groups normalized to arrays.
    */
-  async getFacetSnapshot(
-    index: SearchIndex,
-    catalogScope: CourseRetrievalCatalogScope,
-  ): Promise<CatalogFacetSnapshot> {
-    const filters = buildCourseCatalogScopeFilters(catalogScope);
-
+  async getFacetSnapshot(index: SearchIndex): Promise<CatalogFacetSnapshot> {
     const response = await index.search('', {
       facets: ['*'],
       hitsPerPage: 0,
       maxValuesPerFacet: MAX_VALUES_PER_FACET,
-      filters,
+      filters: CONTENT_TYPE_FILTER,
     });
 
     const { facets } = response;

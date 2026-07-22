@@ -1,115 +1,85 @@
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
-import { Alert, Button } from '@openedx/paragon';
+import { Alert, Button, Icon } from '@openedx/paragon';
+import {
+  ArrowForward, AutoAwesome, CheckCircle, School,
+} from '@openedx/paragon/icons';
+import classNames from 'classnames';
 
-import {
-  DEFAULT_LEARNER_PATHWAYS_ALERT_STATE,
-} from './data/constants';
-import {
-  resolveLearnerPathwaysAlertDescriptor,
-} from './data/utils';
-import {
-  LearnerPathwaysAlertStateKey,
-  LearnerPathwaysProgressCounts,
-} from './types';
-import learnerPathwaysMessages from './messages';
-import { DASHBOARD_PATHWAYS_TAB } from '../../../data/constants';
+import messages from './messages';
+import type { LearnerPathwaysAlertViewModel } from './types';
+import './styles/index.scss';
 
-/**
- * Props for {@link LearnerPathwaysAlert}.
- */
-type LearnerPathwaysAlertProps = {
-  /**
-   * Callback used to activate a dashboard tab when a CTA is pressed.
-   */
-  onSelectTab: (tabName: string) => void;
-  /**
-   * Whether the classic Pathways tab is available.
-   */
-  hasPathwaysTab: boolean;
-  /**
-   * Visual state of the learner pathways scaffold card.
-   */
-  initialState?: LearnerPathwaysAlertStateKey;
-  /**
-   * Dynamic counters used by progress-oriented messages.
-   */
-  progressCounts?: LearnerPathwaysProgressCounts;
+export type LearnerPathwaysAlertProps = LearnerPathwaysAlertViewModel;
+
+const PROGRESS_MESSAGE_BY_VARIANT = {
+  in_progress: messages.progressInProgressTemplate,
+  partial: messages.progressPartialTemplate,
+  completed: messages.progressCompletedTemplate,
 };
 
 /**
- * Renders the learner pathways alert scaffold shown on the dashboard courses tab.
- *
- * The component is intentionally state-driven and translation-key-based so it can
- * evolve from scaffold data to live backend state while preserving its UI contract.
+ * Purely presentational — every value it renders is already resolved by
+ * `useLearnerPathwaysAlertViewModel`. No store, query, or persistence primitive is
+ * imported here.
  */
 const LearnerPathwaysAlert = ({
-  onSelectTab,
-  hasPathwaysTab,
-  initialState = DEFAULT_LEARNER_PATHWAYS_ALERT_STATE,
-  progressCounts = {
-    startedCount: 0,
-    completedCount: 0,
-    totalCount: 5,
-  },
-}: LearnerPathwaysAlertProps) => {
-  /**
-   * Resolve the state-specific descriptor used to render heading/body/actions.
-   */
-  const alertDescriptor = resolveLearnerPathwaysAlertDescriptor(initialState);
-
-  const targetTab = hasPathwaysTab ? DASHBOARD_PATHWAYS_TAB : null;
-  const areActionsDisabled = !targetTab;
-
-  /**
-   * Shared interpolation values for messages that include progress counters.
-   */
-  const alertMessageValues = {
-    startedCount: progressCounts.startedCount,
-    completedCount: progressCounts.completedCount,
-    totalCount: progressCounts.totalCount,
-  };
-
-  /**
-   * Build CTA buttons from descriptor metadata.
-   */
-  const actions = alertDescriptor.actions.map((action) => (
-    <Button
-      key={action.id}
-      variant={action.variant || 'primary'}
-      onClick={() => {
-        if (targetTab) {
-          onSelectTab(targetTab);
-        }
-      }}
-      disabled={areActionsDisabled}
-      aria-disabled={areActionsDisabled}
-    >
-      <FormattedMessage {...learnerPathwaysMessages[action.labelKey]} />
-    </Button>
-  ));
-
-  return (
-    <Alert
-      variant="info"
-      show
-      data-testid="learner-pathways-alert"
-      actions={actions}
-      className="mb-3"
-    >
-      <Alert.Heading>
-        <FormattedMessage
-          {...learnerPathwaysMessages[alertDescriptor.headingKey]}
-          values={alertMessageValues}
+  show,
+  descriptor,
+  careerGoal,
+  progress,
+  ctaDisabled,
+  onCtaClick,
+  onDismiss,
+}: LearnerPathwaysAlertProps) => (
+  <Alert
+    variant="dark"
+    show={show}
+    dismissible
+    onClose={onDismiss}
+    data-testid="learner-pathways-alert"
+    className={classNames('pathways-alert', `pathways-alert--${descriptor.family}`, 'mb-5')}
+    actions={[
+      <Button
+        key="cta"
+        variant="inverse-outline-primary"
+        iconAfter={ArrowForward}
+        onClick={onCtaClick}
+        disabled={ctaDisabled}
+        aria-disabled={ctaDisabled}
+      >
+        <FormattedMessage {...descriptor.ctaMessage} />
+      </Button>,
+    ]}
+    stacked
+  >
+    <div className="pathways-alert__eyebrow d-flex align-items-center mb-2">
+      <span className="pathways-alert__eyebrow-badge">
+        <Icon size="lg" className="p-1" src={AutoAwesome} aria-hidden="true" />
+      </span>
+      <span className="pathways-alert__eyebrow-label text-uppercase medium ml-2" style={{ fontFamily: 'Roboto Mono, monospace' }}>
+        <FormattedMessage {...messages.eyebrowLabel} />
+      </span>
+    </div>
+    <Alert.Heading>
+      <FormattedMessage {...descriptor.headingMessage} />
+    </Alert.Heading>
+    <p className="mb-0 font-weight-light" style={{ fontFamily: 'Inter Regular, sans-serif' }}>
+      <FormattedMessage {...descriptor.bodyMessage} />
+    </p>
+    {progress && descriptor.progressVariant && (
+      <p className="pathways-alert__progress d-flex align-items-center mt-2 mb-0">
+        <Icon
+          src={descriptor.progressVariant === 'completed' ? CheckCircle : School}
+          aria-hidden="true"
+          className="mr-1"
         />
-      </Alert.Heading>
-      <p className="mb-0">
         <FormattedMessage
-          {...learnerPathwaysMessages[alertDescriptor.bodyKey]}
-          values={alertMessageValues}
+          {...PROGRESS_MESSAGE_BY_VARIANT[descriptor.progressVariant]}
+          values={{ careerGoal, ...progress }}
         />
       </p>
-    </Alert>
-  );
-};
+    )}
+  </Alert>
+);
 
 export default LearnerPathwaysAlert;

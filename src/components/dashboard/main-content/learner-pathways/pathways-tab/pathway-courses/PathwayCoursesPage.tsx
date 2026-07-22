@@ -2,14 +2,15 @@ import React from 'react';
 import { Badge, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import type { PathwayCourse, PathwayProgress } from '../state';
+import type { PathwayProgress } from '../state';
 import PathwayProgressCard from './PathwayProgressCard';
 import PathwayCoursesDataTable from './PathwayCoursesDataTable';
 import NeedHelpCard from './NeedHelpCard';
 import messages from './messages';
+import type { ResolvedPathwayCourse } from './resolvePathwayCourses';
 
 export interface PathwayCoursesPageProps {
-  courses: PathwayCourse[];
+  courses: ResolvedPathwayCourse[];
   progress: PathwayProgress;
 }
 

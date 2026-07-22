@@ -6,9 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 
 import DashboardMainContent from './DashboardMainContent';
 import { queryClient, renderWithRouter } from '../../../utils/tests';
-import { features } from '../../../config';
 import {
-  useCanOnlyViewHighlights,
   useEnterpriseCourseEnrollments,
   useEnterpriseCustomer,
   useAcademies,
@@ -24,18 +22,10 @@ import {
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useAcademies: jest.fn(),
-  useCanOnlyViewHighlights: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseFeatures: jest.fn(),
   useRedeemablePolicies: jest.fn(),
-}));
-
-jest.mock('../../../config', () => ({
-  ...jest.requireActual('../../../config'),
-  features: {
-    FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT: jest.fn(),
-  },
 }));
 
 const mockAuthenticatedUser = authenticatedUserFactory();
@@ -56,7 +46,6 @@ describe('DashboardMainContent', () => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
-    useCanOnlyViewHighlights.mockReturnValue({ data: false });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useRedeemablePolicies.mockReturnValue({ data: { redeemablePolicies: [] } });
     useEnterpriseCourseEnrollments.mockReturnValue({
@@ -76,22 +65,12 @@ describe('DashboardMainContent', () => {
       },
     });
   });
-  it('does not render recommended courses when canOnlyViewHighlightSets true', async () => {
-    useCanOnlyViewHighlights.mockReturnValue({ data: true });
+  it('renders the generic My Courses empty state when there are no enrollments', async () => {
     renderWithRouter(
       <DashboardMainContentWrapper />,
     );
     await waitFor(() => {
-      expect(screen.queryByText('Recommend courses for me')).not.toBeInTheDocument();
-    });
-  });
-  it('renders recommended courses when canOnlyViewHighlightSets false', async () => {
-    features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
-    renderWithRouter(
-      <DashboardMainContentWrapper />,
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Recommend courses for me')).toBeInTheDocument();
+      expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
     });
   });
 

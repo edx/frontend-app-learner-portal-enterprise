@@ -2,17 +2,17 @@ import React, { useMemo } from 'react';
 import { Badge, Card, DataTable } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
-import type { PathwayCourse } from '../state';
 import PathwayCourseStatusBadge from './PathwayCourseStatusBadge';
 import PathwayCourseActionButton from './PathwayCourseActionButton';
 import messages from './messages';
+import type { ResolvedPathwayCourse } from './resolvePathwayCourses';
 
 export interface PathwayCoursesDataTableProps {
-  courses: PathwayCourse[];
+  courses: ResolvedPathwayCourse[];
 }
 
 interface PathwayCourseRow {
-  row: { original: PathwayCourse };
+  row: { original: ResolvedPathwayCourse };
 }
 
 const StatusCell = ({ row }: PathwayCourseRow) => (
@@ -47,7 +47,7 @@ const WhyThisFitsYouCell = ({ row }: PathwayCourseRow) => {
 // };
 
 const ActionCell = ({ row }: PathwayCourseRow) => (
-  <PathwayCourseActionButton course={row.original} />
+  <PathwayCourseActionButton action={row.original.action} courseTitle={row.original.title} />
 );
 
 const getPathwayCoursesColumns = (intl: ReturnType<typeof useIntl>) => [

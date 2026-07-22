@@ -6,6 +6,11 @@ const messages = defineMessages({
     defaultMessage: 'Get started with your learning journey',
     description: 'Main heading for the learner pathways intake page.',
   },
+  beta: {
+    id: 'learner.pathways.intake.beta',
+    defaultMessage: 'Beta',
+    description: 'Beta status label shown next to the intake onboarding heading.',
+  },
   introCollapsibleTitle: {
     id: 'learner.pathways.intake.intro.collapsible.title',
     defaultMessage: "Here's how this works",

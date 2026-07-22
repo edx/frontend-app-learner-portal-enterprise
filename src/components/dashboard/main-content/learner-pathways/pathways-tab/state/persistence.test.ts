@@ -43,6 +43,24 @@ describe('partializePathwaysState', () => {
       expect(typeof value).not.toBe('function');
     });
   });
+
+  it('only persists rendered careers, excluding skill-less and below-threshold matches', () => {
+    const store = buildStore({
+      careerMatches: [
+        { id: 'no-skills', title: 'No Skills Role', matchPercentage: 90 },
+        {
+          id: 'below-threshold', title: 'Below Threshold Role', matchPercentage: 20, skillsToDevelop: ['SQL'],
+        },
+        {
+          id: 'rendered', title: 'Rendered Role', matchPercentage: 90, skillsToDevelop: ['SQL'],
+        },
+      ],
+    });
+
+    const persisted = partializePathwaysState(store);
+
+    expect(persisted.careerMatches.map((match) => match.id)).toEqual(['rendered']);
+  });
 });
 
 describe('mergePathwaysState', () => {
@@ -51,14 +69,14 @@ describe('mergePathwaysState', () => {
     const persistedState = {
       section: 'profile',
       selectedCareerId: 'career-1',
-      careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
+      careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
     };
 
     const merged = mergePathwaysState(persistedState, currentState);
 
     expect(merged.section).toBe('profile');
     expect(merged.selectedCareerId).toBe('career-1');
-    expect(merged.careerMatches).toEqual([{ id: 'career-1', title: 'Data Analyst' }]);
+    expect(merged.careerMatches).toEqual([{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }]);
     // Actions survive the merge (they only exist on currentState, not persistedState).
     expect(typeof merged.setSection).toBe('function');
   });

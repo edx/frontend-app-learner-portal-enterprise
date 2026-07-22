@@ -14,6 +14,7 @@ import careerMessages from './career-selection/messages';
 import { usePathwaysController, usePathwaysRequestState } from './hooks';
 import {
   computePathwayInputFingerprint,
+  orderDisplayableCareerMatches,
   recommendedSkillsForCareer,
   usePathwaysCourses,
   usePathwaysStore,
@@ -25,6 +26,7 @@ import { buildGiveFeedbackAction } from './shared';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
+  /** Opens the shared retake-quiz confirmation modal, owned by LearnerPathwaysTab. */
   onRetakeQuiz?: () => void;
 }
 
@@ -51,7 +53,6 @@ const CareerSelectionContainer = ({
     commitProfileSuccess,
     commitPathwayBuild,
     commitStubProfile,
-    resetPathwaysState,
   } = usePathwaysStore(
     useShallow((state) => ({
       learnerIntent: state.learnerIntent,
@@ -66,7 +67,6 @@ const CareerSelectionContainer = ({
       commitProfileSuccess: state.commitProfileSuccess,
       commitPathwayBuild: state.commitPathwayBuild,
       commitStubProfile: state.commitStubProfile,
-      resetPathwaysState: state.resetPathwaysState,
     })),
   );
 
@@ -90,13 +90,14 @@ const CareerSelectionContainer = ({
 
   // Ref shared between the portaled build/rebuild button and OverwritePathwayModal.
   const buildButtonRef = useRef<HTMLButtonElement>(null);
-  // Ref shared between the portaled retake-quiz button and RetakeQuizModal.
-  const retakeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Modal state lifted from CareerSelectionPage.
   const [isOverwriteOpen, setIsOverwriteOpen] = useState(false);
-  const [isRetakeOpen, setIsRetakeOpen] = useState(false);
   const [isNoCoursesOpen, setIsNoCoursesOpen] = useState(false);
+
+  // Mirrors CareerSelectionPage's local isEditing state (Goal Summary edit form),
+  // so the build button can be disabled while the learner is mid-edit.
+  const [isEditingGoalSummary, setIsEditingGoalSummary] = useState(false);
 
   // Before any real profile/career-matches commit exists, the page displays stub
   // data so there's something to interact with. `learnerIntent` never needs a stub —
@@ -109,9 +110,16 @@ const CareerSelectionContainer = ({
   const effectiveLearnerProfile = learnerProfile ?? CAREER_SELECTION_STUB_PROFILE;
   const displayedMatches = usesStubData ? CAREER_SELECTION_STUB_MATCHES : careerMatches;
 
+  // Same displayable order CareerSelectionPage renders from, so the two can never
+  // disagree about which career counts as "selected" before the learner has clicked one.
+  const displayableMatches = useMemo(
+    () => orderDisplayableCareerMatches(displayedMatches),
+    [displayedMatches],
+  );
+
   const selectedCareer = useMemo(
-    () => deriveSelectedCareer(displayedMatches, selectedCareerId),
-    [displayedMatches, selectedCareerId],
+    () => deriveSelectedCareer(displayableMatches, selectedCareerId),
+    [displayableMatches, selectedCareerId],
   );
 
   // The career's recommended list as currently displayed (stub-or-real) — used both
@@ -280,14 +288,6 @@ const CareerSelectionContainer = ({
     onNext?.();
   }, [onNext]);
 
-  const openRetakeQuiz = useCallback(() => setIsRetakeOpen(true), []);
-  const closeRetakeQuiz = useCallback(() => setIsRetakeOpen(false), []);
-  const confirmRetakeQuiz = useCallback(() => {
-    setIsRetakeOpen(false);
-    resetPathwaysState();
-    onRetakeQuiz?.();
-  }, [onRetakeQuiz, resetPathwaysState]);
-
   const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
   const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);
 
@@ -311,7 +311,7 @@ const CareerSelectionContainer = ({
           loadingLabel: careerMessages.buildingPathway,
           variant: 'primary',
           type: 'button',
-          disabled: !selectedCareer || isPathwayPending || isProfileSubmitting,
+          disabled: !selectedCareer || isPathwayPending || isProfileSubmitting || isEditingGoalSummary,
           loading: isPathwayPending,
           onClick: buildPathway,
           buttonRef: buildButtonRef,
@@ -326,7 +326,7 @@ const CareerSelectionContainer = ({
           label: careerMessages.buildPathway,
           variant: 'primary',
           type: 'button',
-          disabled: isPathwayPending || isProfileSubmitting,
+          disabled: isPathwayPending || isProfileSubmitting || isEditingGoalSummary,
           onClick: viewExistingPathway,
           buttonRef: buildButtonRef,
           testId: 'career-build-pathway-button',
@@ -340,7 +340,7 @@ const CareerSelectionContainer = ({
         label: careerMessages.viewCurrentPathway,
         variant: 'outline-primary',
         type: 'button',
-        disabled: isPathwayPending,
+        disabled: isPathwayPending || isEditingGoalSummary,
         onClick: viewExistingPathway,
         testId: 'career-view-current-pathway-button',
       },
@@ -350,7 +350,7 @@ const CareerSelectionContainer = ({
         loadingLabel: careerMessages.buildingPathway,
         variant: 'primary',
         type: 'button',
-        disabled: isPathwayPending || isProfileSubmitting,
+        disabled: isPathwayPending || isProfileSubmitting || isEditingGoalSummary,
         loading: isPathwayPending,
         onClick: openRebuildModal,
         buttonRef: buildButtonRef,
@@ -362,6 +362,7 @@ const CareerSelectionContainer = ({
     selectedCareer,
     isPathwayPending,
     isProfileSubmitting,
+    isEditingGoalSummary,
     buildPathway,
     viewExistingPathway,
     openRebuildModal,
@@ -377,15 +378,14 @@ const CareerSelectionContainer = ({
         variant: 'tertiary',
         type: 'button',
         iconBefore: ArrowBack,
-        onClick: openRetakeQuiz,
-        buttonRef: retakeButtonRef,
+        onClick: onRetakeQuiz,
         testId: 'career-retake-quiz-button',
       },
       secondary: trailingActions,
       alignment: 'split',
     });
     return () => clearActions();
-  }, [trailingActions, openRetakeQuiz, registerActions, clearActions]);
+  }, [trailingActions, onRetakeQuiz, registerActions, clearActions]);
 
   return (
     <CareerSelectionPage
@@ -399,14 +399,11 @@ const CareerSelectionContainer = ({
       pathwayError={pathwayRequestState.error}
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={handleSelectCareer}
+      onEditingChange={setIsEditingGoalSummary}
       isOverwriteOpen={isOverwriteOpen}
       onCloseOverwrite={closeRebuildModal}
       onConfirmOverwrite={buildPathway}
       buildButtonRef={buildButtonRef}
-      isRetakeOpen={isRetakeOpen}
-      onCloseRetake={closeRetakeQuiz}
-      onConfirmRetake={confirmRetakeQuiz}
-      retakeButtonRef={retakeButtonRef}
       isNoCoursesOpen={isNoCoursesOpen}
       onCloseNoCourses={closeNoCoursesModal}
       visibleSkills={displayedSelectedSkills}

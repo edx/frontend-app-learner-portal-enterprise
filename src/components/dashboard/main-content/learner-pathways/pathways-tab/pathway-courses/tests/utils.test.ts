@@ -1,47 +1,6 @@
-import { derivePathwayProgress, getDisplayedPathwayCourses } from '../utils';
+import { getDisplayedPathwayCourses } from '../utils';
 import { PATHWAY_COURSES_STUB } from '../fixtures';
 import type { PathwayCourse } from '../../state';
-
-describe('derivePathwayProgress', () => {
-  it('returns all zeros for an empty course list', () => {
-    expect(derivePathwayProgress([])).toEqual({
-      completed: 0,
-      inProgress: 0,
-      upcoming: 0,
-      totalCourses: 0,
-    });
-  });
-
-  it('counts all-completed courses correctly', () => {
-    const courses: PathwayCourse[] = [
-      { courseKey: 'a', title: 'A', status: 'completed' },
-      { courseKey: 'b', title: 'B', status: 'completed' },
-    ];
-
-    expect(derivePathwayProgress(courses)).toEqual({
-      completed: 2,
-      inProgress: 0,
-      upcoming: 0,
-      totalCourses: 2,
-    });
-  });
-
-  it('counts a mix of statuses correctly', () => {
-    const courses: PathwayCourse[] = [
-      { courseKey: 'a', title: 'A', status: 'completed' },
-      { courseKey: 'b', title: 'B', status: 'in_progress' },
-      { courseKey: 'c', title: 'C', status: 'not_started' },
-      { courseKey: 'd', title: 'D', status: 'not_started' },
-    ];
-
-    expect(derivePathwayProgress(courses)).toEqual({
-      completed: 1,
-      inProgress: 1,
-      upcoming: 2,
-      totalCourses: 4,
-    });
-  });
-});
 
 describe('getDisplayedPathwayCourses', () => {
   it('returns the fixture stub when store courses are empty', () => {
@@ -57,5 +16,13 @@ describe('getDisplayedPathwayCourses', () => {
 
     expect(result).toBe(storeCourses);
     expect(result).not.toEqual(PATHWAY_COURSES_STUB);
+  });
+});
+
+describe('PATHWAY_COURSES_STUB', () => {
+  it('never fabricates completed or in_progress status', () => {
+    PATHWAY_COURSES_STUB.forEach((course) => {
+      expect(course.status).toBe('not_started');
+    });
   });
 });

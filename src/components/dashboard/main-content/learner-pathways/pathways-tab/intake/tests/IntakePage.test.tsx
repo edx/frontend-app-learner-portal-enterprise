@@ -22,5 +22,6 @@ describe('IntakePage', () => {
     expect(screen.getByTestId('intake-header')).toBeInTheDocument();
     expect(screen.getByTestId('intake-form')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: messages.heading.defaultMessage })).toBeInTheDocument();
+    expect(screen.getByText(messages.beta.defaultMessage)).toBeInTheDocument();
   });
 });

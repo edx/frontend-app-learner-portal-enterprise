@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { screen, waitFor } from '@testing-library/react';
+import {
+  screen, waitFor, within,
+} from '@testing-library/react';
 import { AppContext } from '@edx/frontend-platform/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { breakpoints } from '@openedx/paragon';
@@ -7,8 +9,9 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { camelCaseObject } from '@edx/frontend-platform/utils';
+import { mergeConfig } from '@edx/frontend-platform';
 import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid';
+import { NIL as NIL_UUID, v4 as uuidv4 } from 'uuid';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import { SEEN_SUBSCRIPTION_EXPIRATION_MODAL_COOKIE_PREFIX } from '../../../config/constants';
 import { features } from '../../../config';
@@ -135,7 +138,6 @@ jest.mock('../../../config', () => ({
     FEATURE_ENABLE_PATHWAY_PROGRESS: jest.fn(),
     FEATURE_ENABLE_MY_CAREER: jest.fn(),
     FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT: jest.fn(),
-    FEATURE_ENABLE_AI_LEARNER_PATHWAYS: false,
   },
 }));
 
@@ -227,7 +229,9 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+    // Nil-uuid wildcard by default so every existing test below (which never touches this
+    // allowlist itself) keeps its current "enabled for all" expectations.
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
@@ -263,6 +267,9 @@ describe('<Dashboard />', () => {
             hasAssignmentsForDisplay: false,
           },
         },
+        // Matches the real hook's shape (see useEnterpriseCourseEnrollments.js) — the
+        // Learner Pathways banner reads this field directly.
+        enterpriseCourseEnrollments: [],
       },
     });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });
@@ -333,24 +340,56 @@ describe('<Dashboard />', () => {
 
   it('renders pathway tab', async () => {
     const user = userEvent.setup();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
+    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
   });
 
-  it('renders learner pathways tab scaffold in pathways tab when dual AI pathways flags are enabled', async () => {
+  it('renders learner pathways tab scaffold in pathways tab when Learner Pathways is enabled', async () => {
     const user = userEvent.setup();
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
+    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
 
     await user.click(screen.getByText('Pathways'));
 
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+  });
+
+  it('renders Pathways tab as disabled and falls back to Courses when Learner Pathways is disabled and there are no existing pathways', () => {
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+    useEnterprisePathwaysList.mockReturnValue({ data: [] });
+    renderWithRouter(<DashboardWithContext />);
+    const pathwaysTab = screen.getByText('Pathways');
+    expect(pathwaysTab).toBeInTheDocument();
+    expect(pathwaysTab).toHaveAttribute('aria-disabled', 'true');
+    expect(within(screen.getByRole('tablist')).queryByText('Beta')).not.toBeInTheDocument();
+    expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not render Pathways tab or learner pathways alert when customer pathways is disabled, even if Learner Pathways is enabled', () => {
+    useEnterpriseCustomer.mockReturnValue({
+      data: enterpriseCustomerFactory({ enable_pathways: false, enable_programs: true }),
+    });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    expect(screen.queryByText('Pathways')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
+  });
+
+  it('normalizes a request for the removed ai-pathways tab back to Courses', () => {
+    renderWithRouter(<DashboardWithContext />, { route: '/?tab=ai-pathways' });
+    expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
+    expect(sendPageEvent).toHaveBeenCalledWith(
+      'enterprise_learner_portal',
+      expect.stringContaining('courses_tab'),
+      expect.objectContaining({ tab: 'courses' }),
+    );
   });
 
   it('renders programs tab', async () => {
@@ -367,39 +406,25 @@ describe('<Dashboard />', () => {
     expect(screen.getByText('My Career')).toBeInTheDocument();
   });
 
-  it('renders AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS and enterpriseAiPathwaysOperatorEnabled are both enabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
-    renderWithRouter(<DashboardWithContext />);
-    expect(screen.getByText('AI Pathways')).toBeInTheDocument();
-  });
-
-  it('renders learner pathways alert scaffold in courses tab when AI learner pathways flag is enabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+  it('renders learner pathways alert scaffold in courses tab when Learner Pathways operator flag is enabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByTestId('learner-pathways-alert')).toBeInTheDocument();
   });
 
-  it('does not render AI Pathways tab when enterpriseAiPathwaysOperatorEnabled is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = true;
+  it('does not render learner pathways alert scaffold when operator flag is disabled', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
-    renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
-  });
-
-  it('does not render learner pathways alert scaffold when AI learner pathways flag is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
-    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
-  it('does not render AI Pathways tab when FEATURE_ENABLE_AI_LEARNER_PATHWAYS is disabled', () => {
-    features.FEATURE_ENABLE_AI_LEARNER_PATHWAYS = false;
+  it('does not throw and omits the learner pathways alert when the allowlist config is null', () => {
+    // Regression test for the real production error: getConfig() returned null for this
+    // field and `null.filter` threw a TypeError.
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: null });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
-    renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
+    expect(() => renderWithRouter(<DashboardWithContext />)).not.toThrow();
+    expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
   it('renders subsidies summary on a small screen', () => {
@@ -417,19 +442,23 @@ describe('<Dashboard />', () => {
     expect(screen.getByTestId('subsidies-summary')).toBeInTheDocument();
   });
 
-  it('renders "Find a course" when search is enabled for the customer', () => {
+  it('renders the generic My Courses empty state with a search link when search is enabled for the customer', () => {
     features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
     renderWithRouter(<DashboardWithContext />);
-    expect(screen.getByText('Find a course')).toBeInTheDocument();
+    expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'exploring courses' }))
+      .toHaveAttribute('href', `/${mockEnterpriseCustomer.slug}/search`);
   });
 
-  it('does not render "Find a course" when search is disabled for the customer', () => {
+  it('renders the disableSearch message instead of the generic empty state when search is disabled for the customer', () => {
     const mockEnterpriseCustomerWithoutSearch = enterpriseCustomerFactory({
       disable_search: true,
     });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomerWithoutSearch });
     renderWithRouter(<DashboardWithContext />);
-    expect(screen.queryByText('Find a course')).toBeFalsy();
+    expect(screen.getByText('Reach out to your administrator for instructions on how to start learning with edX!', { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'exploring courses' })).not.toBeInTheDocument();
   });
 
   it('Renders all tabs for progress in dashboard page', () => {
