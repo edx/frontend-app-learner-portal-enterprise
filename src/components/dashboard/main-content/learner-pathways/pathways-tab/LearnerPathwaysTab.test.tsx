@@ -96,9 +96,83 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByRole('link', { name: 'Profile' }));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
-    // breadcrumb: click Onboarding link to go back
+    // breadcrumb: click Onboarding link — opens the same retake-quiz confirmation modal
+    // as the dedicated action-row button, rather than navigating immediately.
     await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+    expect(screen.queryByTestId('intake-questions-container')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
     expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+  });
+
+  it('opening the retake-quiz modal via the breadcrumb from the Profile page, then cancelling, resets nothing and restores focus to the breadcrumb link', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+
+    const breadcrumbLink = screen.getByRole('link', { name: 'Onboarding Quiz' });
+    await user.click(breadcrumbLink);
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+    expect(screen.queryByText('Retake your onboarding quiz?')).not.toBeInTheDocument();
+    expect(breadcrumbLink).toHaveFocus();
+  });
+
+  it('opening the retake-quiz modal via the breadcrumb from the Pathway Courses page (its only path back to onboarding) confirms and resets the store', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+    // PathwayCoursesContainer registers no retake-quiz action-row button of its own —
+    // the breadcrumb is the only path back to onboarding from this page.
+    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+    expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+    expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+    expect(usePathwaysStore.getState().pathwayInputFingerprint).toBeNull();
+  });
+
+  it('cancelling the breadcrumb-triggered retake-quiz modal from the Pathway Courses page leaves the existing pathway untouched', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+    await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+    await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+    await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+    await user.click(screen.getByTestId('career-build-pathway-button'));
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+    const priorCourses = usePathwaysStore.getState().pathwayCourses;
+    const priorFingerprint = usePathwaysStore.getState().pathwayInputFingerprint;
+
+    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+    expect(usePathwaysStore.getState().pathwayCourses).toEqual(priorCourses);
+    expect(usePathwaysStore.getState().pathwayInputFingerprint).toEqual(priorFingerprint);
   });
 
   it('renders onboarding breadcrumb on initial', () => {
@@ -261,7 +335,9 @@ describe('LearnerPathwaysTab', () => {
       const generatedProfile: LearnerProfile = {
         summary: 'A generated summary', learningStyle: '', weeklyTimeCommitment: '', certificatePreference: '', skills: ['SQL'],
       };
-      const generatedMatches: CareerMatch[] = [{ id: 'real-career-1', title: 'Real Career' }];
+      const generatedMatches: CareerMatch[] = [
+        { id: 'real-career-1', title: 'Real Career', skillsToDevelop: ['SQL'] },
+      ];
       mockGenerateProfileWorkflow.mockResolvedValueOnce({
         learnerProfile: generatedProfile,
         careerMatches: generatedMatches,

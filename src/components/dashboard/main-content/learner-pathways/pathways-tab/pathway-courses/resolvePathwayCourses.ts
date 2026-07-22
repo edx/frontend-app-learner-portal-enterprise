@@ -155,7 +155,7 @@ export const resolvePathwayCourses = ({
   enterpriseSlug,
 }: ResolvePathwayCoursesInput): ResolvePathwayCoursesResult => {
   const eligibleEnrollments = (enrollments || []).filter(
-    (enrollment) => enrollment.isEnrollmentActive === true && enrollment.isRevoked !== true,
+    (enrollment) => enrollment.isEnrollmentActive && !enrollment.isRevoked,
   );
 
   const enrollmentsByCourseKey = new Map<string, NormalizedEnrollment[]>();

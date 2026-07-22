@@ -189,7 +189,7 @@ describe('PathwayCoursesContainer', () => {
       });
       renderComponent();
 
-      act(() => { jest.advanceTimersByTime(15000); });
+      act(() => { jest.advanceTimersByTime(30000); });
       expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: 'Maybe later' }));

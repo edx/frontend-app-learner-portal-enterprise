@@ -24,7 +24,7 @@ const CourseCell = ({ row }: PathwayCourseRow) => (
 );
 
 const LevelCell = ({ row }: PathwayCourseRow) => (
-  row.original.level ? <Badge variant="light">{row.original.level}</Badge> : null
+  row.original.level ? <Badge variant="light" className="font-weight-light p-2">{row.original.level}</Badge> : null
 );
 
 const WhyThisFitsYouCell = ({ row }: PathwayCourseRow) => {

@@ -19,7 +19,7 @@ export interface UseOneTimeFeedbackPromptResult {
   dismiss: () => void;
 }
 
-const DEFAULT_DELAY_MS = 15000;
+const DEFAULT_DELAY_MS = 30000;
 
 /**
  * Schedules the pathways feedback modal to open once, `delayMs` after a real
