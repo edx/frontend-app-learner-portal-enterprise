@@ -9,7 +9,7 @@ import type { PathwaysExperienceStatus, PathwaysSection } from '../pathways-tab/
 export type LearnerPathwaysAlertGradientFamily = 'purple' | 'blue' | 'green';
 
 /** Which progress-line copy template applies, given the resolved progress counts. */
-export type LearnerPathwaysProgressVariant = 'in_progress' | 'partial' | 'completed';
+export type LearnerPathwaysProgressVariant = 'ready' | 'in_progress' | 'partial' | 'completed';
 
 /**
  * Static, per-status display descriptor. Keyed by the full `PathwaysExperienceStatus`

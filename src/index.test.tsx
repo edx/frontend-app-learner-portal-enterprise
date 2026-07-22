@@ -79,8 +79,8 @@ describe('src/index.tsx bootstrap', () => {
     );
   });
 
-  it('passes through FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS when set', () => {
-    process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS = 'uuid-1,uuid-2';
+  it('parses FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS into an array when set', () => {
+    process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS = 'uuid-1, uuid-2';
 
     // eslint-disable-next-line global-require
     require('./index');
@@ -89,7 +89,7 @@ describe('src/index.tsx bootstrap', () => {
     handlers.config();
 
     expect(mockMergeConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: 'uuid-1,uuid-2' }),
+      expect.objectContaining({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ['uuid-1', 'uuid-2'] }),
     );
   });
 });

@@ -39,7 +39,7 @@ export const LEARNER_PATHWAYS_ALERT_DESCRIPTORS: Record<PathwaysExperienceStatus
     bodyMessage: messages.pathwayReadyBody,
     ctaMessage: messages.ctaViewLearningPathway,
     targetSection: 'pathway',
-    progressVariant: 'in_progress',
+    progressVariant: 'ready',
   },
   course_registered: {
     family: 'blue',
@@ -62,9 +62,9 @@ export const LEARNER_PATHWAYS_ALERT_DESCRIPTORS: Record<PathwaysExperienceStatus
     headingMessage: messages.pathwayCompletedHeading,
     bodyMessage: messages.pathwayCompletedBody,
     ctaMessage: messages.ctaRetakeOnboardingQuiz,
-    // Routes to 'profile', not a new reset flow: the existing "Retake quiz" button +
-    // confirmation modal already live inside CareerSelectionContainer (rendered when
-    // section === 'profile') — this CTA's only job is navigation.
+    // Routes to 'profile', not a new reset flow: the "Retake quiz" button + confirmation
+    // modal live in LearnerPathwaysTab (reachable from the Profile page's action row and
+    // from the pathway breadcrumb) — this CTA's only job is navigation.
     targetSection: 'profile',
     progressVariant: 'completed',
   },
