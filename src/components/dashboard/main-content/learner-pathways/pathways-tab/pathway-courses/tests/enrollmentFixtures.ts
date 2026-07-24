@@ -31,8 +31,6 @@ export const completedWithCertificateMatch: NormalizedEnrollment = {
   isRevoked: false,
   created: '2026-02-01T00:00:00Z',
   linkToCourse: 'https://learning.edx.org/course/course-v1:edX+FA+2024/home',
-  // The real API returns a relative path, not an absolute URL — resolvePathwayCourses
-  // must join this with the configured LMS_BASE_URL.
   linkToCertificate: '/certificates/abc123',
 };
 

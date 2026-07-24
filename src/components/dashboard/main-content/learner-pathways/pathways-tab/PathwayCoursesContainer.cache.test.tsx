@@ -122,7 +122,6 @@ describe('PathwayCoursesContainer TanStack Query cache reactivity', () => {
             ? {
               ...enrollment,
               courseRunStatus: 'completed',
-              // Real API shape is a relative path, not an absolute URL.
               certificateDownloadUrl: '/certificates/abc123',
             }
             : enrollment

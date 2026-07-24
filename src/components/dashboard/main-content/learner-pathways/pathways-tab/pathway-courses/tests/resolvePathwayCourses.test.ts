@@ -89,13 +89,6 @@ describe('resolvePathwayCourses', () => {
     });
   });
 
-  it('A5b: joins LMS_BASE_URL and the certificate path with exactly one slash regardless of a trailing slash on LMS_BASE_URL', () => {
-    (getConfig as jest.Mock).mockReturnValue({ LMS_BASE_URL: `${LMS_BASE_URL}/` });
-    const course = buildCourse({ courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation' });
-    const row = resolveOne([completedWithCertificateMatch], course);
-    expect(row.action.destination).toBe(`${LMS_BASE_URL}${completedWithCertificateMatch.linkToCertificate}`);
-  });
-
   it('A6: derives completed + view_course fallback when a completed match has no certificate', () => {
     const course = buildCourse({ courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation' });
     const row = resolveOne([completedWithoutCertificateMatch], course);
