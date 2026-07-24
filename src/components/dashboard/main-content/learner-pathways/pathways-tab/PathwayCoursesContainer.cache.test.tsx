@@ -34,6 +34,7 @@ jest.mock('@edx/frontend-platform/auth');
 
 const TEST_UUID = 'test-enterprise-uuid';
 const RUN_ID = 'course-v1:edX+CF+2024';
+const LMS_BASE_URL = 'https://courses.edx.org';
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory({
   uuid: TEST_UUID,
@@ -68,7 +69,7 @@ describe('PathwayCoursesContainer TanStack Query cache reactivity', () => {
       ],
     });
     global.localStorage.clear();
-    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: null });
+    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: null, LMS_BASE_URL });
 
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
     (useBrowseAndRequest as jest.Mock).mockReturnValue({ data: { requests: {} } });
@@ -121,7 +122,8 @@ describe('PathwayCoursesContainer TanStack Query cache reactivity', () => {
             ? {
               ...enrollment,
               courseRunStatus: 'completed',
-              certificateDownloadUrl: 'https://courses.edx.org/certificates/abc123',
+              // Real API shape is a relative path, not an absolute URL.
+              certificateDownloadUrl: '/certificates/abc123',
             }
             : enrollment
         )),
@@ -130,7 +132,7 @@ describe('PathwayCoursesContainer TanStack Query cache reactivity', () => {
 
     await waitFor(() => expect(within(table).getByText('Completed')).toBeInTheDocument());
     expect(screen.getByRole('link', { name: /View Certificate/ }))
-      .toHaveAttribute('href', 'https://courses.edx.org/certificates/abc123');
+      .toHaveAttribute('href', `${LMS_BASE_URL}/certificates/abc123`);
 
     expect(usePathwaysStore.getState().pathwayCourses).toBe(coursesRefBefore);
     expect(usePathwaysStore.getState().pathwayInputFingerprint).toBe(fingerprintBefore);

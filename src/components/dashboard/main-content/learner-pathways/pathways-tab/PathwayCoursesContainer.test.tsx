@@ -38,6 +38,7 @@ jest.mock('@edx/frontend-platform/auth');
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.Mock;
 const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
+const LMS_BASE_URL = 'https://courses.edx.org';
 
 const mockEnrollments = (enterpriseCourseEnrollments: unknown[]) => {
   (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
@@ -64,7 +65,7 @@ describe('PathwayCoursesContainer', () => {
     mockEnrollments([]);
     mockGetAuthenticatedUser.mockReturnValue({ username: 'test-learner' });
     global.localStorage.clear();
-    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
+    mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL, LMS_BASE_URL });
   });
 
   it('renders the pathway courses scaffold using fixture data when the store has no courses', () => {
@@ -262,7 +263,7 @@ describe('PathwayCoursesContainer', () => {
       const financeRow = getRow('Financial Analysis & Evaluation');
       expect(within(financeRow).getByText('Completed')).toBeInTheDocument();
       expect(within(financeRow).getByRole('link', { name: /View Certificate/ }))
-        .toHaveAttribute('href', completedWithCertificateMatch.linkToCertificate);
+        .toHaveAttribute('href', `${LMS_BASE_URL}${completedWithCertificateMatch.linkToCertificate}`);
 
       const otherRow = getRow('Introduction to Corporate Finance');
       expect(within(otherRow).getByText('Not started')).toBeInTheDocument();

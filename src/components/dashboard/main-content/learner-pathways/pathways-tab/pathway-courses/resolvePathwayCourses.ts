@@ -1,3 +1,4 @@
+import { getConfig } from '@edx/frontend-platform/config';
 import { getLinkToCourse } from '../../../../../course/data/utils';
 import { COURSE_STATUSES } from '../../../../../../constants';
 import type { PathwayCourse, PathwayCourseStatus, PathwayProgress } from '../state';
@@ -69,7 +70,12 @@ const deriveAction = (
 ): ResolvedPathwayCourseAction => {
   if (status === 'completed') {
     if (isNonEmpty(winner.linkToCertificate)) {
-      return { kind: 'view_certificate', destination: winner.linkToCertificate, isExternal: true };
+      // `linkToCertificate` is a relative path (e.g. "/certificates/<id>") from the
+      // API, not an absolute URL — it must be joined with LMS_BASE_URL, or the
+      // Hyperlink resolves against this app's own origin instead of the LMS.
+      const lmsBaseUrl = getConfig().LMS_BASE_URL.replace(/\/+$/, '');
+      const certificatePath = winner.linkToCertificate.replace(/^\/+/, '');
+      return { kind: 'view_certificate', destination: `${lmsBaseUrl}/${certificatePath}`, isExternal: true };
     }
     // Completed but no certificate URL yet — safe internal fallback, status stays completed.
     return buildViewCourseAction(courseKey, enterpriseSlug);
