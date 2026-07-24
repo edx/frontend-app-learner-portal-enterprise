@@ -381,10 +381,9 @@ describe('<Dashboard />', () => {
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
-  it('normalizes a request for the removed ai-pathways tab back to Courses', () => {
-    renderWithRouter(<DashboardWithContext />, { route: '/?tab=ai-pathways' });
+  it('normalizes a request for an unrecognized tab back to Courses', () => {
+    renderWithRouter(<DashboardWithContext />, { route: '/?tab=unknown-tab' });
     expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
     expect(sendPageEvent).toHaveBeenCalledWith(
       'enterprise_learner_portal',
       expect.stringContaining('courses_tab'),

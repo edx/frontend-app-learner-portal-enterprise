@@ -15,8 +15,7 @@ export type CareerSearchTimeCommitment = 'short' | 'medium' | 'long';
  * background, motivation), which this service never accepts.
  *
  * `condensedAlgoliaQuery` matches the field name already used by the real, checked-in
- * `LearningIntentResponse` (see `src/components/app/data/services/xpert.ts`) rather
- * than the unrelated `ai-pathways` prototype's `condensedQuery`.
+ * `LearningIntentResponse` (see `src/components/app/data/services/xpert.ts`).
  *
  * Only `condensedAlgoliaQuery`/`skillsRequired`/`skillsPreferred` are required, matching
  * the real, checked-in `LearningIntentResponse` today. The other 6 fields are optional
