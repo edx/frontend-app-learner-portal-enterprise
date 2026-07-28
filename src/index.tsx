@@ -72,7 +72,7 @@ initialize({
             .map((uuid) => uuid.trim())
             .filter(Boolean) || []
         ),
-        // These fields are to support access to prod catalog metadata in stage, ai-pathways feature
+        // These fields are to support access to prod catalog metadata in stage
         ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE: process.env.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE || null,
         ALGOLIA_STAGE_APP_ID_OVERRIDE: process.env.ALGOLIA_STAGE_APP_ID_OVERRIDE || null,
       });
