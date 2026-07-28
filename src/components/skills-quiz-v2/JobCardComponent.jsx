@@ -5,7 +5,7 @@ import {
 import { camelCaseObject } from '@edx/frontend-platform/utils';
 import { logError } from '@edx/frontend-platform/logging';
 import PropTypes from 'prop-types';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { SkillsContext } from '../skills-quiz/SkillsContextProvider';
 import { SET_KEY_VALUE } from '../skills-quiz/data/constants';
 import TopSkillsOverview from '../skills-quiz/TopSkillsOverview';
@@ -15,6 +15,7 @@ import { saveSkillsGoalsAndJobsUserSelected } from '../skills-quiz/data/utils';
 import SkillsQuizContentCards from '../skills-quiz/SkillsQuizContentCards';
 
 const JobCardComponent = ({ jobs, isLoading }) => {
+  const intl = useIntl();
   const { dispatch, state } = useContext(SkillsContext);
   const { goal, currentJobRole, interestedJobs } = state;
   const [jobSelected, setJobSelected] = useState(undefined);
@@ -89,7 +90,11 @@ const JobCardComponent = ({ jobs, isLoading }) => {
         name="industry"
         columns="3"
         className="selectable-box mt-4"
-        aria-label="Select a job"
+        aria-label={intl.formatMessage({
+          id: 'enterprise.skills.quiz.v2.job.card.select.a.job.ariaLabel',
+          defaultMessage: 'Select a job',
+          description: 'Accessible label for the group of selectable job options in the skills quiz.',
+        })}
       >
         {jobs.map((job) => (
           <SelectableBox
