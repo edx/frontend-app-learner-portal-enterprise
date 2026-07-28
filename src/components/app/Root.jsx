@@ -3,19 +3,31 @@ import { Outlet, ScrollRestoration } from 'react-router-dom';
 import { getLoginRedirectUrl } from '@edx/frontend-platform/auth';
 import { AppContext } from '@edx/frontend-platform/react';
 import { Hyperlink } from '@openedx/paragon';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
 import { Toasts, ToastsProvider } from '../Toasts';
 import { ErrorPage } from '../error-page';
 import { useNProgressLoader } from './data';
+import messages from './messages';
 
-const UnauthenticatedRoot = () => (
-  <ErrorPage title="You are now logged out." showSiteFooter={false}>
-    Please log back in {' '}
-    <Hyperlink destination={getLoginRedirectUrl(global.location.href)}>
-      here.
-    </Hyperlink>
-  </ErrorPage>
-);
+const UnauthenticatedRoot = () => {
+  const intl = useIntl();
+
+  return (
+    <ErrorPage title={intl.formatMessage(messages.loggedOutTitle)} showSiteFooter={false}>
+      <FormattedMessage
+        {...messages.loggedOutBody}
+        values={{
+          loginLink: (
+            <Hyperlink destination={getLoginRedirectUrl(global.location.href)}>
+              {intl.formatMessage(messages.loggedOutLoginLinkText)}
+            </Hyperlink>
+          ),
+        }}
+      />
+    </ErrorPage>
+  );
+};
 
 const AuthenticatedRoot = () => (
   <>
