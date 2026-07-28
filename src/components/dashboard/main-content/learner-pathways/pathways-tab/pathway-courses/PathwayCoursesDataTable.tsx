@@ -47,7 +47,12 @@ const WhyThisFitsYouCell = ({ row }: PathwayCourseRow) => {
 // };
 
 const ActionCell = ({ row }: PathwayCourseRow) => (
-  <PathwayCourseActionButton action={row.original.action} courseTitle={row.original.title} />
+  <PathwayCourseActionButton
+    action={row.original.action}
+    courseKey={row.original.courseKey}
+    courseTitle={row.original.title}
+    courseStatus={row.original.status}
+  />
 );
 
 const getPathwayCoursesColumns = (intl: ReturnType<typeof useIntl>) => [

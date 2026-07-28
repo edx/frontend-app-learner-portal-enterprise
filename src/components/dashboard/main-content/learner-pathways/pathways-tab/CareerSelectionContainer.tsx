@@ -4,6 +4,7 @@ import React, {
 import { useShallow } from 'zustand/react/shallow';
 import { ArrowBack } from '@openedx/paragon/icons';
 import { getConfig } from '@edx/frontend-platform/config';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
 import type { GoalSummaryFormValues } from './career-selection/GoalSummaryCard';
@@ -23,6 +24,8 @@ import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
 import type { PathwaysAction } from './action-bar';
 import { buildGiveFeedbackAction } from './shared';
+import { useEnterpriseCustomer } from '../../../../app/data';
+import { PATHWAYS_EVENTS } from '../../../../../eventTracking';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
@@ -69,6 +72,8 @@ const CareerSelectionContainer = ({
       commitStubProfile: state.commitStubProfile,
     })),
   );
+
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
 
   // Narrow selector: only subscribes to course count, not full array.
   const pathwayCourses = usePathwaysCourses();
@@ -175,15 +180,32 @@ const CareerSelectionContainer = ({
 
   const handleSelectCareer = useCallback((careerId: string) => {
     selectCareer(careerId, recommendedSkillsForCareer(displayedMatches, careerId) ?? undefined);
-  }, [selectCareer, displayedMatches]);
+    const career = displayedMatches.find((match) => match.id === careerId);
+    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.CAREER_SELECTED, {
+      careerId,
+      matchPercentage: career?.matchPercentage ?? null,
+      skillsToDevelopCount: career?.skillsToDevelop?.length ?? 0,
+    });
+  }, [selectCareer, displayedMatches, enterpriseCustomer?.uuid]);
 
   const handleDismissSkill = useCallback((skill: string) => {
     removeSelectedSkill(skill, recommendedSkills);
-  }, [removeSelectedSkill, recommendedSkills]);
+    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.SKILL_UPDATED, {
+      action: 'dismissed',
+      skill,
+      careerId: selectedCareer?.id ?? null,
+      dismissedSkillCount: dismissedSkillCount + 1,
+    });
+  }, [removeSelectedSkill, recommendedSkills, enterpriseCustomer?.uuid, selectedCareer, dismissedSkillCount]);
 
   const handleRestoreSkills = useCallback(() => {
     restoreSelectedSkills(recommendedSkills);
-  }, [restoreSelectedSkills, recommendedSkills]);
+    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.SKILL_UPDATED, {
+      action: 'restored',
+      careerId: selectedCareer?.id ?? null,
+      dismissedSkillCount: 0,
+    });
+  }, [restoreSelectedSkills, recommendedSkills, enterpriseCustomer?.uuid, selectedCareer]);
 
   // Atomically commits the profile/career-matches success result — see
   // state/pathwaysStore.ts:commitProfileSuccess. Always replaces career matches
@@ -197,8 +219,20 @@ const CareerSelectionContainer = ({
         learnerProfile: result.learnerProfile,
         careerMatches: result.careerMatches,
       });
+      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED, {
+        source: 'goal_summary_edit',
+        outcome: result.careerMatches.length === 0 ? 'no_matches' : 'succeeded',
+        careerMatchCount: result.careerMatches.length,
+        displayableCareerMatchCount: orderDisplayableCareerMatches(result.careerMatches).length,
+        careerMatchIds: result.careerMatches.slice(0, 10).map((match) => match.id),
+        intentSkillsCount: result.learnerProfile.skills.length,
+      });
       resolveProfile();
     } catch (error) {
+      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED, {
+        source: 'goal_summary_edit',
+        outcome: 'failed',
+      });
       failProfile(errorMessage(error, 'Unable to update the learner profile.'));
       throw error;
     }
@@ -236,6 +270,16 @@ const CareerSelectionContainer = ({
     setIsOverwriteOpen(false);
     beginPathway();
 
+    // Read from the same ref the trailing button freezes its label/variant against
+    // (see displayedCareerActionStateRef above) rather than the `careerActionState`
+    // variable directly — this callback's own dependency array doesn't include it, so
+    // closing over the variable would capture a stale value from whenever this
+    // useCallback instance was created.
+    const careerActionStateAtRequest = displayedCareerActionStateRef.current;
+    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_REQUESTED, {
+      careerActionState: careerActionStateAtRequest,
+    });
+
     const request: PathwayGenerationRequest = {
       learnerIntent,
       learnerProfile: effectiveLearnerProfile,
@@ -252,15 +296,30 @@ const CareerSelectionContainer = ({
         // left untouched since commitPathwayBuild is never called.
         resolvePathway();
         setIsNoCoursesOpen(true);
+        sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+          outcome: 'empty',
+          careerActionState: careerActionStateAtRequest,
+        });
         return;
       }
       commitPathwayBuild({
         courses: result.courses,
         fingerprint: computePathwayInputFingerprint(request),
       });
+      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+        outcome: 'succeeded',
+        careerActionState: careerActionStateAtRequest,
+        courseCount: result.courses.length,
+        courseKeys: result.courses.slice(0, 5).map((course) => course.courseKey),
+        hasRecommendationExplanations: result.courses.some((course) => Boolean(course.whyThisFitsYou)),
+      });
       resolvePathway();
       onNext?.();
     } catch (error) {
+      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+        outcome: 'failed',
+        careerActionState: careerActionStateAtRequest,
+      });
       failPathway(errorMessage(error, 'Unable to build the learning pathway.'));
     } finally {
       isBuildingRef.current = false;
@@ -281,6 +340,7 @@ const CareerSelectionContainer = ({
     beginPathway,
     resolvePathway,
     failPathway,
+    enterpriseCustomer?.uuid,
   ]);
 
   // Navigate to the existing pathway without building/rebuilding it.

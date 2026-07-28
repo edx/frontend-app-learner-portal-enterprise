@@ -1,18 +1,42 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import PathwayCourseActionButton from '../PathwayCourseActionButton';
 import type { ResolvedPathwayCourseAction } from '../resolvePathwayCourses';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../../../eventTracking';
+
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
 
 const COURSE_TITLE = 'Financial Analysis & Evaluation';
+const COURSE_KEY = 'edX+FA101';
+const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
 
-const renderComponent = (action: ResolvedPathwayCourseAction) => render(
+const renderComponent = (
+  action: ResolvedPathwayCourseAction,
+  courseStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started',
+) => render(
   <MemoryRouter>
     <IntlProvider locale="en">
-      <PathwayCourseActionButton action={action} courseTitle={COURSE_TITLE} />
+      <PathwayCourseActionButton
+        action={action}
+        courseKey={COURSE_KEY}
+        courseTitle={COURSE_TITLE}
+        courseStatus={courseStatus}
+      />
     </IntlProvider>
   </MemoryRouter>,
 );
@@ -36,6 +60,11 @@ const viewCertificateAction: ResolvedPathwayCourseAction = {
 };
 
 describe('PathwayCourseActionButton', () => {
+  beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
+    (sendEnterpriseTrackEvent as jest.Mock).mockClear();
+  });
+
   it('renders View Course as an internal link to the exact enterprise course route', () => {
     renderComponent(viewCourseAction);
     const link = screen.getByRole('link', { name: /View Course/ });
@@ -132,6 +161,51 @@ describe('PathwayCourseActionButton', () => {
       expect(href).not.toBe('#');
       expect(href).not.toBe('');
       unmount();
+    });
+  });
+
+  describe('pathways.course.clicked analytics', () => {
+    it('fires with the courseKey, actionKind, and courseStatus for an in-app view_course click', async () => {
+      const user = userEvent.setup();
+      renderComponent(viewCourseAction, 'not_started');
+
+      await user.click(screen.getByRole('link', { name: /View Course/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledTimes(1);
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.COURSE_CLICKED,
+        { courseKey: COURSE_KEY, actionKind: 'view_course', courseStatus: 'not_started' },
+      );
+    });
+
+    it('fires with courseStatus in_progress for a continue click', async () => {
+      const user = userEvent.setup();
+      renderComponent(continueAction, 'in_progress');
+
+      await user.click(screen.getByRole('link', { name: /Continue/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.COURSE_CLICKED,
+        { courseKey: COURSE_KEY, actionKind: 'continue', courseStatus: 'in_progress' },
+      );
+    });
+
+    it('fires for the external view_certificate action without preventing the new-tab navigation', async () => {
+      const user = userEvent.setup();
+      renderComponent(viewCertificateAction, 'completed');
+      const link = screen.getByRole('link', { name: /View Certificate/ });
+
+      await user.click(link);
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.COURSE_CLICKED,
+        { courseKey: COURSE_KEY, actionKind: 'view_certificate', courseStatus: 'completed' },
+      );
+      expect(link).toHaveAttribute('href', viewCertificateAction.destination);
+      expect(link).toHaveAttribute('target', '_blank');
     });
   });
 });

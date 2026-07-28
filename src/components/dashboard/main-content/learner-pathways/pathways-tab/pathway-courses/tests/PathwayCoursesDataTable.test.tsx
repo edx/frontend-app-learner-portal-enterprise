@@ -9,6 +9,17 @@ import { PATHWAY_COURSES_STUB } from '../fixtures';
 import { resolvePathwayCourses } from '../resolvePathwayCourses';
 import type { ResolvedPathwayCourse } from '../resolvePathwayCourses';
 import type { PathwayCourse } from '../../state';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
 
 const ENTERPRISE_SLUG = 'test-enterprise';
 
@@ -27,6 +38,12 @@ const renderComponent = (courses: ResolvedPathwayCourse[] = resolve(PATHWAY_COUR
 );
 
 describe('PathwayCoursesDataTable', () => {
+  beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: ENTERPRISE_SLUG }),
+    });
+  });
+
   it('renders the expected column headers', () => {
     renderComponent();
     ['Status', 'Course', 'Level', 'Why this fits you', 'Action'].forEach((header) => {

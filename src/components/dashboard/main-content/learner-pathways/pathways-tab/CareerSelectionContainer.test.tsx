@@ -5,6 +5,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import CareerSelectionContainer from './CareerSelectionContainer';
 import type { CareerSelectionContainerProps } from './CareerSelectionContainer';
@@ -17,10 +18,21 @@ import {
 import { PATHWAY_COURSES_STUB } from './pathway-courses/fixtures';
 import { generatePathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { PathwaysActionBarProvider } from './action-bar';
+import { useEnterpriseCustomer } from '../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../eventTracking';
 
 jest.mock('../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
   useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+}));
+jest.mock('../../../../app/data', () => ({
+  ...jest.requireActual('../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
 }));
 
 jest.mock('./workflows', () => {
@@ -94,6 +106,8 @@ const submitGoalSummaryEdit = async (
   await user.click(screen.getByTestId('goal-summary-submit-button'));
 };
 
+const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
+
 describe('CareerSelectionContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
@@ -104,6 +118,7 @@ describe('CareerSelectionContainer', () => {
       careerMatches: CAREER_SELECTION_STUB_MATCHES,
     }));
     jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: PATHWAY_COURSES_STUB });
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
     mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
   });
 
@@ -875,6 +890,158 @@ describe('CareerSelectionContainer', () => {
       renderContainer();
 
       expect(screen.queryByTestId('pathway-feedback-button')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pathways analytics events', () => {
+    it('fires career.selected with the matched career\'s id, matchPercentage, and skillsToDevelopCount', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByTestId(`career-match-${OTHER_CAREER_ID}`));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CAREER_SELECTED,
+        { careerId: OTHER_CAREER_ID, matchPercentage: 95, skillsToDevelopCount: 5 },
+      );
+    });
+
+    it('fires skill.updated with action "dismissed" and the incremented dismissedSkillCount', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.SKILL_UPDATED,
+        {
+          action: 'dismissed', skill: 'SQL', careerId: SELECTED_CAREER_ID, dismissedSkillCount: 1,
+        },
+      );
+    });
+
+    it('fires skill.updated with action "restored" and a dismissedSkillCount of 0', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByLabelText('Dismiss SQL'));
+      await user.click(screen.getByRole('button', { name: 'Restore skills' }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenLastCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.SKILL_UPDATED,
+        { action: 'restored', careerId: SELECTED_CAREER_ID, dismissedSkillCount: 0 },
+      );
+    });
+
+    it('fires profile.generation_completed with source "goal_summary_edit" and outcome "succeeded" on a successful Goal Summary edit', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        usePathwaysStore.setState({ learnerIntent: { ...baseLearnerIntent } });
+      });
+      renderContainer();
+
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
+        expect.objectContaining({
+          source: 'goal_summary_edit',
+          outcome: 'succeeded',
+          careerMatchCount: CAREER_SELECTION_STUB_MATCHES.length,
+          intentSkillsCount: CAREER_SELECTION_STUB_PROFILE.skills.length,
+        }),
+      ));
+    });
+
+    it('fires profile.generation_completed with outcome "failed" when Goal Summary edit rejects', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generateProfileWorkflow).mockRejectedValueOnce(new Error('boom'));
+      act(() => {
+        usePathwaysStore.setState({ learnerIntent: { ...baseLearnerIntent } });
+      });
+      renderContainer();
+
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
+        { source: 'goal_summary_edit', outcome: 'failed' },
+      ));
+    });
+
+    it('fires build.requested then build.completed(succeeded) with courseCount, courseKeys, and careerActionState on a first build', async () => {
+      const user = userEvent.setup();
+      seedLegacyNoProfileState();
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.BUILD_REQUESTED,
+        { careerActionState: 'new-pathway' },
+      );
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.BUILD_COMPLETED,
+        {
+          outcome: 'succeeded',
+          careerActionState: 'new-pathway',
+          courseCount: PATHWAY_COURSES_STUB.length,
+          courseKeys: PATHWAY_COURSES_STUB.slice(0, 5).map((course) => course.courseKey),
+          hasRecommendationExplanations: PATHWAY_COURSES_STUB.some((course) => Boolean(course.whyThisFitsYou)),
+        },
+      ));
+    });
+
+    it('fires build.completed with outcome "empty" and no course properties when generatePathway returns no courses', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockResolvedValueOnce({ courses: [] });
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.BUILD_COMPLETED,
+        { outcome: 'empty', careerActionState: 'new-pathway' },
+      ));
+    });
+
+    it('fires build.completed with outcome "failed" when generatePathway rejects', async () => {
+      const user = userEvent.setup();
+      jest.mocked(generatePathwayWorkflow).mockRejectedValueOnce(new Error('boom'));
+      renderContainer();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.BUILD_COMPLETED,
+        { outcome: 'failed', careerActionState: 'new-pathway' },
+      ));
+    });
+
+    it('reports careerActionState "existing-pathway-edited" on a rebuild request', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
+
+      await user.click(screen.getByTestId('career-rebuild-pathway-button'));
+      await user.click(screen.getByRole('button', { name: 'Rebuild Pathway' }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.BUILD_REQUESTED,
+        { careerActionState: 'existing-pathway-edited' },
+      );
     });
   });
 });
