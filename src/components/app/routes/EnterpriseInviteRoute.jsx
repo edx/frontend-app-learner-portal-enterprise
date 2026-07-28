@@ -1,7 +1,9 @@
 import { Button, Hyperlink } from '@openedx/paragon';
 import { getConfig } from '@edx/frontend-platform';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
 import { ErrorPage } from '../../error-page';
+import messages from './messages';
 
 export { makeEnterpriseInviteLoader } from './loaders';
 
@@ -12,39 +14,49 @@ export { makeEnterpriseInviteLoader } from './loaders';
  *
  * @returns {JSX.Element} - The EnterpriseInviteRoute component.
  */
-const EnterpriseInviteRoute = () => (
-  <ErrorPage
-    subtitle="We couldn't link your edX account to your organization"
-    errorPageContentClassName="py-4.5"
-    testId="enterprise-invite-error"
-  >
-    <p className="mb-5">
-      Please reach out to your edX administrator or visit the{' '}
-      <Hyperlink
-        destination={getConfig().LEARNER_SUPPORT_URL}
-        target="_blank"
-      >
-        edX Help Center
-      </Hyperlink>{' '}
-      to resolve the error and gain access to subsidized content, or continue to{' '}
-      <Hyperlink
-        destination={getConfig().MARKETING_SITE_BASE_URL}
-        target="_blank"
-      >
-        edX.org
-      </Hyperlink>{' '}
-      to start learning on your own.
-    </p>
-    <Button
-      as={Hyperlink}
-      target="_blank"
-      destination={getConfig().MARKETING_SITE_BASE_URL}
-      variant="primary"
-      size="sm"
+const EnterpriseInviteRoute = () => {
+  const intl = useIntl();
+
+  return (
+    <ErrorPage
+      subtitle={intl.formatMessage(messages.enterpriseInviteSubtitle)}
+      errorPageContentClassName="py-4.5"
+      testId="enterprise-invite-error"
     >
-      Continue to edX.org
-    </Button>
-  </ErrorPage>
-);
+      <p className="mb-5">
+        <FormattedMessage
+          {...messages.enterpriseInviteBody}
+          values={{
+            helpCenterLink: (
+              <Hyperlink
+                destination={getConfig().LEARNER_SUPPORT_URL}
+                target="_blank"
+              >
+                {intl.formatMessage(messages.enterpriseInviteHelpCenterLinkText)}
+              </Hyperlink>
+            ),
+            marketingSiteLink: (
+              <Hyperlink
+                destination={getConfig().MARKETING_SITE_BASE_URL}
+                target="_blank"
+              >
+                {intl.formatMessage(messages.enterpriseInviteMarketingSiteLinkText)}
+              </Hyperlink>
+            ),
+          }}
+        />
+      </p>
+      <Button
+        as={Hyperlink}
+        target="_blank"
+        destination={getConfig().MARKETING_SITE_BASE_URL}
+        variant="primary"
+        size="sm"
+      >
+        {intl.formatMessage(messages.enterpriseInviteContinueCta)}
+      </Button>
+    </ErrorPage>
+  );
+};
 
 export default EnterpriseInviteRoute;

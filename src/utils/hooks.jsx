@@ -1,9 +1,13 @@
 import { useCallback } from 'react';
+import { useIntl } from '@edx/frontend-platform/i18n';
+
+import messages from './messages';
 
 export const useRenderContactHelpText = (enterpriseCustomer) => {
+  const intl = useIntl();
   const renderContactHelpText = useCallback(
     (LinkComponent = 'a') => {
-      const message = 'reach out to your organization\'s edX administrator';
+      const message = intl.formatMessage(messages.contactHelpText);
 
       if (!enterpriseCustomer.contactEmail) {
         return message;
@@ -14,7 +18,7 @@ export const useRenderContactHelpText = (enterpriseCustomer) => {
         </LinkComponent>
       );
     },
-    [enterpriseCustomer.contactEmail],
+    [enterpriseCustomer.contactEmail, intl],
   );
 
   return renderContactHelpText;
