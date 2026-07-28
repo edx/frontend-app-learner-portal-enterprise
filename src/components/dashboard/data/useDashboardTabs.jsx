@@ -215,7 +215,7 @@ const useDashboardTabs = () => {
               description: 'Title for pathways tab on enterprise dashboard.',
             })}
             {hasPathwaysTab && isLearnerPathwaysEnabled && (
-              <Badge variant="info" className="ml-2 text-uppercase font-weight-bold">
+              <Badge variant="info" className="ml-2 font-weight-bold">
                 {intl.formatMessage({
                   id: 'enterprise.dashboard.tab.pathways.beta',
                   defaultMessage: 'Beta',

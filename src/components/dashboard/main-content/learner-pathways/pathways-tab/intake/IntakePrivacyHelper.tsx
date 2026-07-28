@@ -13,7 +13,7 @@ const IntakePrivacyHelper = () => {
   const intl = useIntl();
 
   return (
-    <div className="flex-shrink-0 ml-2">
+    <div className="flex-shrink-0">
       <OverlayTrigger
         trigger={['hover', 'focus']}
         placement="right"

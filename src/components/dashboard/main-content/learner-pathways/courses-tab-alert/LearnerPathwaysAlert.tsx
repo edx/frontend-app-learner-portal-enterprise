@@ -42,7 +42,7 @@ const LearnerPathwaysAlert = ({
     actions={[
       <Button
         key="cta"
-        variant="inverse-outline-primary"
+        variant="inverse-primary"
         iconAfter={ArrowForward}
         onClick={onCtaClick}
         disabled={ctaDisabled}

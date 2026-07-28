@@ -35,7 +35,7 @@ const CoursesTabComponent = ({
   showLearnerPathwaysAlert,
 }) => (
   <Row className="py-5">
-    <div className="w-100">
+    <div className="col-12">
       <CourseEnrollmentFailedAlert className="mt-0 mb-3" enrollmentSource={ENROLLMENT_SOURCE.DASHBOARD} />
       {showLearnerPathwaysAlert && (
         <LearnerPathwaysAlertContainer
