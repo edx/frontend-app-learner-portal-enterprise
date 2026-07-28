@@ -3,8 +3,10 @@ import PropTypes from 'prop-types';
 import { useLocation } from 'react-router-dom';
 import { Container, Alert } from '@openedx/paragon';
 import { Error } from '@openedx/paragon/icons';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 
 import { useRenderContactHelpText } from '../../utils/hooks';
+import messages from './messages';
 import {
   ENROLLMENT_COURSE_RUN_KEY_QUERY_PARAM,
   ENROLLMENT_FAILED_QUERY_PARAM,
@@ -18,47 +20,25 @@ export const ENROLLMENT_SOURCE = {
 };
 
 const createEnrollmentFailureMessages = (contactHelpText) => ({
-  dsc_denied: (
-    <>
-      You were not enrolled in your selected course. In order to enroll, you must accept the data sharing
-      consent terms. Please {contactHelpText} for further information.
-    </>
-  ),
+  dsc_denied: <FormattedMessage {...messages.enrollmentFailedDscDenied} values={{ contactHelpText }} />,
   verified_mode_unavailable: (
-    <>
-      You were not enrolled in your selected course as the verified course mode is
-      unavailable. Please {contactHelpText} for further information.
-    </>
+    <FormattedMessage {...messages.enrollmentFailedVerifiedModeUnavailable} values={{ contactHelpText }} />
   ),
-  default: (
-    <>
-      You were not enrolled in your selected course. Please
-      {' '}{contactHelpText} for further information.
-    </>
-  ),
+  default: <FormattedMessage {...messages.enrollmentFailedDefault} values={{ contactHelpText }} />,
 });
 
 const createUpgradeFailureMessages = (contactHelpText, enrollmentSource) => ({
   dsc_denied: (
-    <>
-      You were not able to access your selected course. To access the course,{' '}
-      {enrollmentSource === ENROLLMENT_SOURCE.DASHBOARD
-        ? 'please select "Continue learning" under your course and accept the data sharing consent terms.'
-        : 'please accept the data sharing consent terms.'}
-    </>
+    <FormattedMessage
+      {...(enrollmentSource === ENROLLMENT_SOURCE.DASHBOARD
+        ? messages.upgradeFailedDscDeniedFromDashboard
+        : messages.upgradeFailedDscDeniedFromCoursePage)}
+    />
   ),
   verified_mode_unavailable: (
-    <>
-      You were not able to access your selected course as the verified course mode is
-      unavailable. Please {contactHelpText} for further information.
-    </>
+    <FormattedMessage {...messages.upgradeFailedVerifiedModeUnavailable} values={{ contactHelpText }} />
   ),
-  default: (
-    <>
-      You were not able to access your selected course. Please
-      {' '}{contactHelpText} for further information.
-    </>
-  ),
+  default: <FormattedMessage {...messages.upgradeFailedDefault} values={{ contactHelpText }} />,
 });
 
 /**
