@@ -4,7 +4,7 @@ import {
   Row, breakpoints, MediaQuery, TransitionReplace, Button, Icon,
 } from '@openedx/paragon';
 import { Plus } from '@openedx/paragon/icons';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { MainContent, Sidebar } from '../layout';
 import { DashboardSidebar } from '../dashboard/sidebar';
 import SearchJobRole from './SearchJobRole';
@@ -20,6 +20,7 @@ const addIcon = () => (
 );
 
 const AddJobRole = ({ submitClickHandler }) => {
+  const intl = useIntl();
   const [isEditable, setIsEditable] = useState(false);
 
   const addRoleClickHandler = () => {
@@ -86,7 +87,11 @@ const AddJobRole = ({ submitClickHandler }) => {
               <img
                 className="job-role-image"
                 src={SkillsQuizImage}
-                alt="Add Job Role CTA"
+                alt={intl.formatMessage({
+                  id: 'enterprise.dashboard.my.career.tab.add.job.role.image.altText',
+                  defaultMessage: 'Add Job Role CTA',
+                  description: 'Alternative text for the decorative image beside the add job role call to action.',
+                })}
               />
             </div>
           </div>

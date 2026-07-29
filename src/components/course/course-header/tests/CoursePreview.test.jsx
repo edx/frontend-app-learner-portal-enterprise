@@ -17,7 +17,11 @@ jest.mock('@edx/frontend-platform/i18n', () => ({
 
 describe('Course Preview Tests', () => {
   it('Renders preview image and not the video when video URL is not given.', () => {
-    const { container, getByAltText } = renderWithRouter(<CoursePreview previewImage={imageURL} />);
+    const { container, getByAltText } = renderWithRouter(
+      <IntlProvider locale="en">
+        <CoursePreview previewImage={imageURL} />
+      </IntlProvider>,
+    );
     expect(container.querySelector('.course-preview-wrapper')).toBeTruthy();
     expect(container.querySelector('.video-component')).toBeFalsy();
 
@@ -25,7 +29,11 @@ describe('Course Preview Tests', () => {
   });
 
   it('Renders preview image and not the video when video URL is an empty string.', () => {
-    const { container, getByAltText } = renderWithRouter(<CoursePreview previewImage={imageURL} previewVideoURL="" />);
+    const { container, getByAltText } = renderWithRouter(
+      <IntlProvider locale="en">
+        <CoursePreview previewImage={imageURL} previewVideoURL="" />
+      </IntlProvider>,
+    );
     expect(container.querySelector('.course-preview-wrapper')).toBeTruthy();
     expect(container.querySelector('.video-component')).toBeFalsy();
 

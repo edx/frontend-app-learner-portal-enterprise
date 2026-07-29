@@ -18,6 +18,11 @@ import { COURSE_STATUSES } from '../../../../../constants';
 import CourseEnrollmentsContext from '../CourseEnrollmentsContext';
 
 const messages = defineMessages({
+  courseDueDatesAriaLabel: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.due_dates.aria_label',
+    defaultMessage: 'course due dates',
+    description: 'Accessible label for the list of upcoming due dates shown on an in-progress course card',
+  },
   saveCourseForLater: {
     id: 'enterprise.learner_portal.dashboard.enrollments.course.save_for_later',
     defaultMessage: 'Save course for later <s>for {courseTitle}</s>',
@@ -58,6 +63,7 @@ export const BaseInProgressCourseCard = ({
   mode = null,
   ...rest
 }) => {
+  const intl = useIntl();
   const { courseCards } = useContext(AppContext);
   const [isMarkCompleteModalOpen, setIsMarkCompleteModalOpen] = useState(false);
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
@@ -136,7 +142,7 @@ export const BaseInProgressCourseCard = ({
     >
       {filteredNotifications.length > 0 && (
         <div className="notifications">
-          <ul className="list-unstyled mb-0" aria-label="course due dates">
+          <ul className="list-unstyled mb-0" aria-label={intl.formatMessage(messages.courseDueDatesAriaLabel)}>
             {filteredNotifications.map(notificationProps => (
               <Notification
                 key={`notification-${notificationProps.url}-${notificationProps.date}`}
