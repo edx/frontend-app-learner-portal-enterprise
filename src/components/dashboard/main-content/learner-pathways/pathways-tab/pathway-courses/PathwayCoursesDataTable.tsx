@@ -55,32 +55,38 @@ const getPathwayCoursesColumns = (intl: ReturnType<typeof useIntl>) => [
     Header: intl.formatMessage(messages.statusColumn),
     accessor: 'status',
     Cell: StatusCell,
+    headerClassName: 'text-uppercase',
   },
   {
     Header: intl.formatMessage(messages.courseColumn),
     accessor: 'title',
     Cell: CourseCell,
+    headerClassName: 'text-uppercase',
   },
   {
     Header: intl.formatMessage(messages.levelColumn),
     accessor: 'level',
     Cell: LevelCell,
+    headerClassName: 'text-uppercase',
   },
   {
     Header: intl.formatMessage(messages.whyThisFitsYouColumn),
     accessor: 'whyThisFitsYou',
     Cell: WhyThisFitsYouCell,
+    headerClassName: 'text-uppercase',
   },
   // TODO: Fix this, Commented out as none of the lengths are being serialized from Algolia
   // {
   //   Header: intl.formatMessage(messages.lengthColumn),
   //   accessor: 'length',
   //   Cell: LengthCell,
+  //   headerClassName: 'text-uppercase',
   // },
   {
     Header: intl.formatMessage(messages.actionColumn),
     accessor: 'courseKey',
     Cell: ActionCell,
+    headerClassName: 'text-uppercase',
   },
 ];
 

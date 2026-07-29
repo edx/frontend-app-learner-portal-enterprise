@@ -13,7 +13,7 @@ const messages = defineMessages({
   },
   instructions: {
     id: 'learner.pathways.courses.instructions',
-    defaultMessage: 'Based on your goals and background, here are the courses we recommend.',
+    defaultMessage: 'Based on your goals and background, here are the courses we recommend',
     description: 'Instructional copy shown below the pathway courses page title.',
   },
   completedLabel: {
