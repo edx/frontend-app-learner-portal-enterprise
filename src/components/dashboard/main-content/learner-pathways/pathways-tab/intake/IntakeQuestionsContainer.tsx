@@ -7,6 +7,7 @@ import { debounce } from 'lodash-es';
 import { EMPTY_LEARNER_INTENT, usePathwaysStore } from '../state';
 import type { LearnerIntent } from '../state';
 import { usePathwaysActionBar } from '../action-bar';
+import { usePathwaysAnalytics } from '../hooks';
 import { RequestErrorAlert, buildGiveFeedbackAction } from '../shared';
 import IntakeQuestionSection from './IntakeQuestionSection';
 import IntakeBackgroundQuestions from './IntakeBackgroundQuestions';
@@ -42,8 +43,12 @@ const IntakeQuestionsContainer = ({
   const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
+  const { trackIntakeValidationFailed, trackFeedbackLinkClicked } = usePathwaysAnalytics();
   const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
-  const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
+  const giveFeedbackAction = buildGiveFeedbackAction(
+    feedbackFormUrl,
+    () => trackFeedbackLinkClicked({ feedbackSurface: 'intake' }),
+  );
 
   const methods = useForm<IntakeFormValues>({
     mode: 'onSubmit',
@@ -94,6 +99,10 @@ const IntakeQuestionsContainer = ({
       // profileError props) — swallow here only so the native form submit handler
       // doesn't surface an unhandled rejection; the learner stays on this view to retry.
     }
+  }, (errors) => {
+    // RHF's second handleSubmit callback fires once per failed submit click — never per
+    // keystroke, even though reValidateMode is 'onChange' after the first failed attempt.
+    trackIntakeValidationFailed({ invalidFieldCount: Object.keys(errors).length });
   });
 
   useEffect(() => {

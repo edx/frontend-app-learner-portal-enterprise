@@ -1,11 +1,12 @@
 import React, {
-  useCallback, useEffect, useMemo,
+  useCallback, useEffect, useMemo, useRef,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform/config';
 import { ArrowBack } from '@openedx/paragon/icons';
 import { usePathwaysActionBar } from './action-bar';
 import { usePathwaysCourses } from './state';
+import { usePathwaysAnalytics } from './hooks';
 import { buildGiveFeedbackAction } from './shared';
 import {
   PathwayCoursesPage,
@@ -26,6 +27,7 @@ const PathwayCoursesContainer = ({
 }: PathwayCoursesContainerProps) => {
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
+  const { trackControlInteracted, trackFeedbackLinkClicked } = usePathwaysAnalytics();
   const storeCourses = usePathwaysCourses();
   const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
 
@@ -47,7 +49,10 @@ const PathwayCoursesContainer = ({
     onBackToProfile?.();
   }, [onBackToProfile]);
 
-  const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
+  const giveFeedbackAction = buildGiveFeedbackAction(
+    feedbackFormUrl,
+    () => trackFeedbackLinkClicked({ feedbackSurface: 'pathway_courses' }),
+  );
 
   // Gated on the raw store, never the fixture-merged `courses` above — fixture/fallback
   // rendering must never be treated as a successfully generated pathway. Also gated on
@@ -56,6 +61,24 @@ const PathwayCoursesContainer = ({
   const { isOpen: isFeedbackOpen, dismiss: dismissFeedbackPrompt } = useOneTimeFeedbackPrompt({
     hasGeneratedCourses,
   });
+
+  const hasTrackedFeedbackPromptOpenRef = useRef(false);
+  useEffect(() => {
+    if (isFeedbackOpen && !hasTrackedFeedbackPromptOpenRef.current) {
+      hasTrackedFeedbackPromptOpenRef.current = true;
+      trackControlInteracted({ sourceComponent: 'feedback_modal', interactionAction: 'opened' });
+    }
+  }, [isFeedbackOpen, trackControlInteracted]);
+
+  const handleFeedbackMaybeLater = useCallback(() => {
+    trackControlInteracted({ sourceComponent: 'feedback_modal', interactionAction: 'dismissed' });
+    dismissFeedbackPrompt();
+  }, [trackControlInteracted, dismissFeedbackPrompt]);
+
+  const handleFeedbackGiveFeedback = useCallback(() => {
+    trackFeedbackLinkClicked({ feedbackSurface: 'feedback_modal' });
+    dismissFeedbackPrompt();
+  }, [trackFeedbackLinkClicked, dismissFeedbackPrompt]);
 
   useEffect(() => {
     registerActions({
@@ -79,8 +102,8 @@ const PathwayCoursesContainer = ({
       <PathwayCoursesPage courses={courses} progress={progress} />
       <PathwayFeedbackModal
         isOpen={isFeedbackOpen}
-        onClose={dismissFeedbackPrompt}
-        onGiveFeedback={dismissFeedbackPrompt}
+        onClose={handleFeedbackMaybeLater}
+        onGiveFeedback={handleFeedbackGiveFeedback}
         feedbackFormUrl={feedbackFormUrl}
       />
     </>

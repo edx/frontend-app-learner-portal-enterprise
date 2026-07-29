@@ -1,13 +1,16 @@
 import '@testing-library/jest-dom/extend-expect';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform/config';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import NeedHelpCard from '../NeedHelpCard';
 import { useEnterpriseCustomer } from '../../../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../../../eventTracking';
 
 jest.mock('../../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../../app/data'),
@@ -16,6 +19,10 @@ jest.mock('../../../../../../app/data', () => ({
 jest.mock('@edx/frontend-platform/config', () => ({
   ...jest.requireActual('@edx/frontend-platform/config'),
   getConfig: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory({
@@ -83,5 +90,46 @@ describe('NeedHelpCard', () => {
     expect(helpLink).toHaveAttribute('href', 'https://enterprise-support.edx.org/s/');
     expect(helpLink).toHaveAttribute('target', '_blank');
     expect(helpLink).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  describe('control.interacted analytics', () => {
+    it('fires with linkType "course_search" when the course search link is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByRole('link', { name: 'course search' }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'need_help_card', interactionAction: 'clicked', linkType: 'course_search' }),
+      );
+    });
+
+    it('fires with linkType "contact_admin" when the admin contact link is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByRole('link', { name: /contact your organization's edX administrator/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'need_help_card', interactionAction: 'clicked', linkType: 'contact_admin' }),
+      );
+    });
+
+    it('fires with linkType "help_center" when the Help Center link is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByRole('link', { name: /edX Help Center/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'need_help_card', interactionAction: 'clicked', linkType: 'help_center' }),
+      );
+    });
   });
 });

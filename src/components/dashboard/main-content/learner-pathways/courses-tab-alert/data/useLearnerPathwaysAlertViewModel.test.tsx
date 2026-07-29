@@ -1,15 +1,21 @@
 import { act, renderHook } from '@testing-library/react';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import { useLearnerPathwaysAlertViewModel } from './useLearnerPathwaysAlertViewModel';
 import { usePathwaysStore } from '../../pathways-tab/state';
 import { getDismissedRank, recordDismissal } from './bannerDismissal';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../../eventTracking';
 
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
@@ -115,6 +121,11 @@ describe('useLearnerPathwaysAlertViewModel', () => {
 
     expect(usePathwaysStore.getState().section).toBe('pathway');
     expect(onSelectTab).toHaveBeenCalledWith('pathways');
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.CONTROL_INTERACTED,
+      expect.objectContaining({ sourceComponent: 'courses_tab_alert', interactionAction: 'clicked' }),
+    );
   });
 
   it('hides the banner once dismissed at the current status, and records the dismissal', () => {
@@ -127,6 +138,11 @@ describe('useLearnerPathwaysAlertViewModel', () => {
 
     expect(result.current.show).toBe(false);
     expect(getDismissedRank()).not.toBeNull();
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.CONTROL_INTERACTED,
+      expect.objectContaining({ sourceComponent: 'courses_tab_alert', interactionAction: 'dismissed' }),
+    );
   });
 
   it('shows the banner again once the status advances past a prior dismissal', () => {

@@ -44,6 +44,8 @@ jest.mock('./workflows', () => {
     generateProfileWorkflow: jest.fn(() => Promise.resolve({
       learnerProfile: profile,
       careerMatches: matches,
+      skillsRequiredCount: 3,
+      skillsPreferredCount: 2,
     })),
     generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses }),
   };
@@ -116,6 +118,8 @@ describe('CareerSelectionContainer', () => {
     jest.mocked(generateProfileWorkflow).mockImplementation(() => Promise.resolve({
       learnerProfile: CAREER_SELECTION_STUB_PROFILE,
       careerMatches: CAREER_SELECTION_STUB_MATCHES,
+      skillsRequiredCount: 3,
+      skillsPreferredCount: 2,
     }));
     jest.mocked(generatePathwayWorkflow).mockResolvedValue({ courses: PATHWAY_COURSES_STUB });
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
@@ -894,7 +898,7 @@ describe('CareerSelectionContainer', () => {
   });
 
   describe('pathways analytics events', () => {
-    it('fires career.selected with the matched career\'s id, matchPercentage, and skillsToDevelopCount', async () => {
+    it('fires career.selected with the new career\'s id/name/position/match data and the previous selection', async () => {
       const user = userEvent.setup();
       renderContainer();
 
@@ -903,11 +907,21 @@ describe('CareerSelectionContainer', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.CAREER_SELECTED,
-        { careerId: OTHER_CAREER_ID, matchPercentage: 95, skillsToDevelopCount: 5 },
+        expect.objectContaining({
+          selectedCareerId: OTHER_CAREER_ID,
+          selectedCareerName: 'Business Data Analyst',
+          selectedCareerPosition: 1,
+          matchPercentage: 95,
+          skillsToDevelopCount: 5,
+          // The top match (SELECTED_CAREER_ID) is auto-selected by deriveSelectedCareer's
+          // fall-back-to-first-match rule before any click, so it's the "previous" value here.
+          previousSelectedCareerId: SELECTED_CAREER_ID,
+          previousSelectedCareerName: 'Reporting and Data Analysis Manager',
+        }),
       );
     });
 
-    it('fires skill.updated with action "dismissed" and the incremented dismissedSkillCount', async () => {
+    it('fires skill.updated with action "dismissed", the incremented dismissedSkillCount, and skill/career context', async () => {
       const user = userEvent.setup();
       renderContainer();
 
@@ -916,9 +930,15 @@ describe('CareerSelectionContainer', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.SKILL_UPDATED,
-        {
-          action: 'dismissed', skill: 'SQL', careerId: SELECTED_CAREER_ID, dismissedSkillCount: 1,
-        },
+        expect.objectContaining({
+          action: 'dismissed',
+          skill: 'SQL',
+          selectedCareerId: SELECTED_CAREER_ID,
+          selectedCareerName: 'Reporting and Data Analysis Manager',
+          suggestedSkillCount: skillsForCareer(SELECTED_CAREER_ID).length,
+          selectedSkillCount: skillsForCareer(SELECTED_CAREER_ID).length - 1,
+          dismissedSkillCount: 1,
+        }),
       );
     });
 
@@ -932,7 +952,14 @@ describe('CareerSelectionContainer', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenLastCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.SKILL_UPDATED,
-        { action: 'restored', careerId: SELECTED_CAREER_ID, dismissedSkillCount: 0 },
+        expect.objectContaining({
+          action: 'restored',
+          selectedCareerId: SELECTED_CAREER_ID,
+          selectedCareerName: 'Reporting and Data Analysis Manager',
+          suggestedSkillCount: skillsForCareer(SELECTED_CAREER_ID).length,
+          selectedSkillCount: skillsForCareer(SELECTED_CAREER_ID).length,
+          dismissedSkillCount: 0,
+        }),
       );
     });
 
@@ -953,6 +980,8 @@ describe('CareerSelectionContainer', () => {
           outcome: 'succeeded',
           careerMatchCount: CAREER_SELECTION_STUB_MATCHES.length,
           intentSkillsCount: CAREER_SELECTION_STUB_PROFILE.skills.length,
+          skillsRequiredCount: 3,
+          skillsPreferredCount: 2,
         }),
       ));
     });
@@ -970,11 +999,11 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
-        { source: 'goal_summary_edit', outcome: 'failed' },
+        expect.objectContaining({ source: 'goal_summary_edit', outcome: 'failed' }),
       ));
     });
 
-    it('fires build.requested then build.completed(succeeded) with courseCount, courseKeys, and careerActionState on a first build', async () => {
+    it('fires build.requested then build.completed(succeeded) with courseCount, courseKeys, careerActionState, and selected-career context on a first build', async () => {
       const user = userEvent.setup();
       seedLegacyNoProfileState();
       renderContainer();
@@ -984,18 +1013,24 @@ describe('CareerSelectionContainer', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.BUILD_REQUESTED,
-        { careerActionState: 'new-pathway' },
+        expect.objectContaining({
+          careerActionState: 'new-pathway',
+          selectedCareerId: SELECTED_CAREER_ID,
+          selectedCareerName: 'Reporting and Data Analysis Manager',
+        }),
       );
       await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.BUILD_COMPLETED,
-        {
+        expect.objectContaining({
           outcome: 'succeeded',
           careerActionState: 'new-pathway',
+          selectedCareerId: SELECTED_CAREER_ID,
+          selectedCareerName: 'Reporting and Data Analysis Manager',
           courseCount: PATHWAY_COURSES_STUB.length,
           courseKeys: PATHWAY_COURSES_STUB.slice(0, 5).map((course) => course.courseKey),
-          hasRecommendationExplanations: PATHWAY_COURSES_STUB.some((course) => Boolean(course.whyThisFitsYou)),
-        },
+          coursesWithExplanationsCount: PATHWAY_COURSES_STUB.filter((course) => Boolean(course.whyThisFitsYou)).length,
+        }),
       ));
     });
 
@@ -1009,7 +1044,7 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.BUILD_COMPLETED,
-        { outcome: 'empty', careerActionState: 'new-pathway' },
+        expect.objectContaining({ outcome: 'empty', careerActionState: 'new-pathway' }),
       ));
     });
 
@@ -1023,7 +1058,7 @@ describe('CareerSelectionContainer', () => {
       await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.BUILD_COMPLETED,
-        { outcome: 'failed', careerActionState: 'new-pathway' },
+        expect.objectContaining({ outcome: 'failed', careerActionState: 'new-pathway' }),
       ));
     });
 
@@ -1040,7 +1075,55 @@ describe('CareerSelectionContainer', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.BUILD_REQUESTED,
-        { careerActionState: 'existing-pathway-edited' },
+        expect.objectContaining({ careerActionState: 'existing-pathway-edited' }),
+      );
+    });
+
+    it('fires control.interacted "opened" when Goal Summary edit begins', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByTestId('goal-summary-edit-button'));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'goal_summary_card', interactionAction: 'opened' }),
+      );
+    });
+
+    it('fires control.interacted for the Overwrite modal on open and cancel', async () => {
+      const user = userEvent.setup();
+      seedExistingUnchangedPathway();
+      renderContainer();
+      await submitGoalSummaryEdit(user, 'Director of Analytics');
+      await waitFor(() => screen.getByTestId('career-rebuild-pathway-button'));
+
+      await user.click(screen.getByTestId('career-rebuild-pathway-button'));
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'overwrite_pathway_modal', interactionAction: 'opened' }),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'overwrite_pathway_modal', interactionAction: 'cancelled' }),
+      );
+    });
+
+    it('fires feedback_link.clicked with feedbackSurface "career_selection"', async () => {
+      const user = userEvent.setup();
+      renderContainer();
+
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.FEEDBACK_LINK_CLICKED,
+        expect.objectContaining({ feedbackSurface: 'career_selection' }),
       );
     });
   });

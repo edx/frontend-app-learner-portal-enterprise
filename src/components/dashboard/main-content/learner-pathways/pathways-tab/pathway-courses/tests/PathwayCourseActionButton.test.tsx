@@ -8,6 +8,7 @@ import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import PathwayCourseActionButton from '../PathwayCourseActionButton';
 import type { ResolvedPathwayCourseAction } from '../resolvePathwayCourses';
+import { usePathwaysStore } from '../../state';
 import { useEnterpriseCustomer } from '../../../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
 import { PATHWAYS_EVENTS } from '../../../../../../../eventTracking';
@@ -28,6 +29,7 @@ const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterpris
 const renderComponent = (
   action: ResolvedPathwayCourseAction,
   courseStatus: 'not_started' | 'in_progress' | 'completed' = 'not_started',
+  extraProps: { coursePosition?: number; hasRecommendationExplanation?: boolean } = {},
 ) => render(
   <MemoryRouter>
     <IntlProvider locale="en">
@@ -36,6 +38,8 @@ const renderComponent = (
         courseKey={COURSE_KEY}
         courseTitle={COURSE_TITLE}
         courseStatus={courseStatus}
+        coursePosition={extraProps.coursePosition ?? 0}
+        hasRecommendationExplanation={extraProps.hasRecommendationExplanation ?? false}
       />
     </IntlProvider>
   </MemoryRouter>,
@@ -61,6 +65,7 @@ const viewCertificateAction: ResolvedPathwayCourseAction = {
 
 describe('PathwayCourseActionButton', () => {
   beforeEach(() => {
+    usePathwaysStore.getState().resetPathwaysState();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
     (sendEnterpriseTrackEvent as jest.Mock).mockClear();
   });
@@ -175,7 +180,7 @@ describe('PathwayCourseActionButton', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.COURSE_CLICKED,
-        { courseKey: COURSE_KEY, actionKind: 'view_course', courseStatus: 'not_started' },
+        expect.objectContaining({ courseKey: COURSE_KEY, actionKind: 'view_course', courseStatus: 'not_started' }),
       );
     });
 
@@ -188,7 +193,7 @@ describe('PathwayCourseActionButton', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.COURSE_CLICKED,
-        { courseKey: COURSE_KEY, actionKind: 'continue', courseStatus: 'in_progress' },
+        expect.objectContaining({ courseKey: COURSE_KEY, actionKind: 'continue', courseStatus: 'in_progress' }),
       );
     });
 
@@ -202,10 +207,47 @@ describe('PathwayCourseActionButton', () => {
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,
         PATHWAYS_EVENTS.COURSE_CLICKED,
-        { courseKey: COURSE_KEY, actionKind: 'view_certificate', courseStatus: 'completed' },
+        expect.objectContaining({ courseKey: COURSE_KEY, actionKind: 'view_certificate', courseStatus: 'completed' }),
       );
       expect(link).toHaveAttribute('href', viewCertificateAction.destination);
       expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('includes courseTitle, coursePosition, and hasRecommendationExplanation', async () => {
+      const user = userEvent.setup();
+      renderComponent(viewCourseAction, 'not_started', { coursePosition: 2, hasRecommendationExplanation: true });
+
+      await user.click(screen.getByRole('link', { name: /View Course/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.COURSE_CLICKED,
+        expect.objectContaining({
+          courseTitle: COURSE_TITLE,
+          coursePosition: 2,
+          hasRecommendationExplanation: true,
+        }),
+      );
+    });
+
+    it('includes the common pathways context (pathwayStep, schema version, selected-career/skill/pathway state)', async () => {
+      const user = userEvent.setup();
+      renderComponent(viewCourseAction);
+
+      await user.click(screen.getByRole('link', { name: /View Course/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.COURSE_CLICKED,
+        expect.objectContaining({
+          pathwayStep: 'onboarding',
+          pathwaysSchemaVersion: 1,
+          selectedCareerId: null,
+          selectedCareerName: null,
+          selectedSkillCount: null,
+          pathwayCourseCount: 0,
+        }),
+      );
     });
   });
 });

@@ -4,11 +4,24 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../constants';
 import messages from '../messages';
 import { usePathwaysStore } from '../../state';
 import { PathwaysActionBarProvider } from '../../action-bar';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../../../eventTracking';
+
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
 
 interface MockIntakeQuestionsContainerProps {
   onSubmit?: jest.Mock;
@@ -36,11 +49,14 @@ const MockIntakeQuestionsContainer = ({
 );
 
 const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/mock-form/viewform';
+const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
 
 describe('IntakeQuestionsContainer', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: FEEDBACK_FORM_URL });
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
+    (sendEnterpriseTrackEvent as jest.Mock).mockClear();
   });
 
   it('renders translated question section titles', () => {
@@ -112,6 +128,29 @@ describe('IntakeQuestionsContainer', () => {
     expect(screen.getByTestId('intake-goal-field')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByTestId('intake-background-field')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByTestId('intake-industry-field')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('fires intake.validation_failed with the count of invalid fields, once per failed submit click', async () => {
+    const user = userEvent.setup();
+    render(<MockIntakeQuestionsContainer onSubmit={jest.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: messages.submitAndReviewProfile.defaultMessage }));
+
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.INTAKE_VALIDATION_FAILED,
+      expect.objectContaining({ invalidFieldCount: 4 }),
+    );
+    expect((sendEnterpriseTrackEvent as jest.Mock).mock.calls.filter(
+      ([, eventName]) => eventName === PATHWAYS_EVENTS.INTAKE_VALIDATION_FAILED,
+    )).toHaveLength(1);
+
+    // reValidateMode is 'onChange' after the first failed submit — typing must not
+    // re-fire the event on every keystroke.
+    await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'a');
+    expect((sendEnterpriseTrackEvent as jest.Mock).mock.calls.filter(
+      ([, eventName]) => eventName === PATHWAYS_EVENTS.INTAKE_VALIDATION_FAILED,
+    )).toHaveLength(1);
   });
 
   it('keeps the action-bar submit button present, single, and enabled after an invalid submission', async () => {
@@ -211,6 +250,19 @@ describe('IntakeQuestionsContainer', () => {
 
       expect(onSubmit).not.toHaveBeenCalled();
       expect(onSkip).not.toHaveBeenCalled();
+    });
+
+    it('fires feedback_link.clicked with feedbackSurface "intake" when clicked', async () => {
+      const user = userEvent.setup();
+      render(<MockIntakeQuestionsContainer onSkip={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pathway-feedback-button'));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.FEEDBACK_LINK_CLICKED,
+        expect.objectContaining({ feedbackSurface: 'intake' }),
+      );
     });
 
     it('is entirely absent when PATHWAYS_FEEDBACK_FORM_URL is not configured', () => {

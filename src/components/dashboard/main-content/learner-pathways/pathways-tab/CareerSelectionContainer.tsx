@@ -4,7 +4,6 @@ import React, {
 import { useShallow } from 'zustand/react/shallow';
 import { ArrowBack } from '@openedx/paragon/icons';
 import { getConfig } from '@edx/frontend-platform/config';
-import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import CareerSelectionPage from './career-selection/CareerSelectionPage';
 import type { GoalSummaryFormValues } from './career-selection/GoalSummaryCard';
@@ -12,7 +11,7 @@ import { getCareerActionState, isPathwayEdited } from './career-selection/career
 import { deriveSelectedCareer } from './career-selection/selectors';
 import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
 import careerMessages from './career-selection/messages';
-import { usePathwaysController, usePathwaysRequestState } from './hooks';
+import { usePathwaysController, usePathwaysRequestState, usePathwaysAnalytics } from './hooks';
 import {
   computePathwayInputFingerprint,
   orderDisplayableCareerMatches,
@@ -24,8 +23,6 @@ import type { PathwayGenerationRequest } from './state';
 import { usePathwaysActionBar } from './action-bar';
 import type { PathwaysAction } from './action-bar';
 import { buildGiveFeedbackAction } from './shared';
-import { useEnterpriseCustomer } from '../../../../app/data';
-import { PATHWAYS_EVENTS } from '../../../../../eventTracking';
 
 export interface CareerSelectionContainerProps {
   onNext?: () => void;
@@ -73,7 +70,10 @@ const CareerSelectionContainer = ({
     })),
   );
 
-  const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  const {
+    trackCareerSelected, trackSkillUpdated, trackProfileGenerationCompleted,
+    trackBuildRequested, trackBuildCompleted, trackControlInteracted, trackFeedbackLinkClicked,
+  } = usePathwaysAnalytics();
 
   // Narrow selector: only subscribes to course count, not full array.
   const pathwayCourses = usePathwaysCourses();
@@ -179,33 +179,54 @@ const CareerSelectionContainer = ({
     : rawCareerActionState;
 
   const handleSelectCareer = useCallback((careerId: string) => {
-    selectCareer(careerId, recommendedSkillsForCareer(displayedMatches, careerId) ?? undefined);
+    // `selectedCareer`/`selectedCareerId` here still reflect the PREVIOUS selection —
+    // selectCareer(...) below updates the store, but React hasn't re-rendered yet, so
+    // usePathwaysAnalytics()'s own common-context selectors are still stale at this point
+    // in the callback. Every field describing the NEW selection is passed explicitly so it
+    // overrides the stale common-context value in the merged payload.
+    const previousSelectedCareerId = selectedCareer?.id ?? null;
+    const previousSelectedCareerName = selectedCareer?.title ?? null;
     const career = displayedMatches.find((match) => match.id === careerId);
-    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.CAREER_SELECTED, {
-      careerId,
+    const selectedCareerPosition = displayableMatches.findIndex((match) => match.id === careerId);
+    selectCareer(careerId, recommendedSkillsForCareer(displayedMatches, careerId) ?? undefined);
+    trackCareerSelected({
+      selectedCareerId: careerId,
+      selectedCareerName: career?.title ?? null,
+      selectedCareerPosition: selectedCareerPosition >= 0 ? selectedCareerPosition : null,
       matchPercentage: career?.matchPercentage ?? null,
       skillsToDevelopCount: career?.skillsToDevelop?.length ?? 0,
+      previousSelectedCareerId,
+      previousSelectedCareerName,
     });
-  }, [selectCareer, displayedMatches, enterpriseCustomer?.uuid]);
+  }, [selectCareer, displayedMatches, displayableMatches, selectedCareer, trackCareerSelected]);
 
   const handleDismissSkill = useCallback((skill: string) => {
     removeSelectedSkill(skill, recommendedSkills);
-    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.SKILL_UPDATED, {
+    trackSkillUpdated({
       action: 'dismissed',
       skill,
-      careerId: selectedCareer?.id ?? null,
+      selectedCareerId: selectedCareer?.id ?? null,
+      selectedCareerName: selectedCareer?.title ?? null,
+      suggestedSkillCount: recommendedSkills.length,
+      selectedSkillCount: displayedSelectedSkills.length - 1,
       dismissedSkillCount: dismissedSkillCount + 1,
     });
-  }, [removeSelectedSkill, recommendedSkills, enterpriseCustomer?.uuid, selectedCareer, dismissedSkillCount]);
+  }, [
+    removeSelectedSkill, recommendedSkills, selectedCareer, dismissedSkillCount,
+    displayedSelectedSkills, trackSkillUpdated,
+  ]);
 
   const handleRestoreSkills = useCallback(() => {
     restoreSelectedSkills(recommendedSkills);
-    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.SKILL_UPDATED, {
+    trackSkillUpdated({
       action: 'restored',
-      careerId: selectedCareer?.id ?? null,
+      selectedCareerId: selectedCareer?.id ?? null,
+      selectedCareerName: selectedCareer?.title ?? null,
+      suggestedSkillCount: recommendedSkills.length,
+      selectedSkillCount: recommendedSkills.length,
       dismissedSkillCount: 0,
     });
-  }, [restoreSelectedSkills, recommendedSkills, enterpriseCustomer?.uuid, selectedCareer]);
+  }, [restoreSelectedSkills, recommendedSkills, selectedCareer, trackSkillUpdated]);
 
   // Atomically commits the profile/career-matches success result — see
   // state/pathwaysStore.ts:commitProfileSuccess. Always replaces career matches
@@ -219,20 +240,19 @@ const CareerSelectionContainer = ({
         learnerProfile: result.learnerProfile,
         careerMatches: result.careerMatches,
       });
-      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED, {
+      trackProfileGenerationCompleted({
         source: 'goal_summary_edit',
         outcome: result.careerMatches.length === 0 ? 'no_matches' : 'succeeded',
         careerMatchCount: result.careerMatches.length,
         displayableCareerMatchCount: orderDisplayableCareerMatches(result.careerMatches).length,
         careerMatchIds: result.careerMatches.slice(0, 10).map((match) => match.id),
         intentSkillsCount: result.learnerProfile.skills.length,
+        skillsRequiredCount: result.skillsRequiredCount,
+        skillsPreferredCount: result.skillsPreferredCount,
       });
       resolveProfile();
     } catch (error) {
-      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED, {
-        source: 'goal_summary_edit',
-        outcome: 'failed',
-      });
+      trackProfileGenerationCompleted({ source: 'goal_summary_edit', outcome: 'failed' });
       failProfile(errorMessage(error, 'Unable to update the learner profile.'));
       throw error;
     }
@@ -276,8 +296,12 @@ const CareerSelectionContainer = ({
     // closing over the variable would capture a stale value from whenever this
     // useCallback instance was created.
     const careerActionStateAtRequest = displayedCareerActionStateRef.current;
-    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_REQUESTED, {
+    trackBuildRequested({
       careerActionState: careerActionStateAtRequest,
+      selectedCareerId: selectedCareer.id,
+      selectedCareerName: selectedCareer.title,
+      selectedSkillCount: skillsForBuild.length,
+      intentSkillsCount: effectiveLearnerProfile.skills.length,
     });
 
     const request: PathwayGenerationRequest = {
@@ -296,9 +320,11 @@ const CareerSelectionContainer = ({
         // left untouched since commitPathwayBuild is never called.
         resolvePathway();
         setIsNoCoursesOpen(true);
-        sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+        trackBuildCompleted({
           outcome: 'empty',
           careerActionState: careerActionStateAtRequest,
+          selectedCareerId: selectedCareer.id,
+          selectedCareerName: selectedCareer.title,
         });
         return;
       }
@@ -306,19 +332,23 @@ const CareerSelectionContainer = ({
         courses: result.courses,
         fingerprint: computePathwayInputFingerprint(request),
       });
-      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+      trackBuildCompleted({
         outcome: 'succeeded',
         careerActionState: careerActionStateAtRequest,
+        selectedCareerId: selectedCareer.id,
+        selectedCareerName: selectedCareer.title,
         courseCount: result.courses.length,
         courseKeys: result.courses.slice(0, 5).map((course) => course.courseKey),
-        hasRecommendationExplanations: result.courses.some((course) => Boolean(course.whyThisFitsYou)),
+        coursesWithExplanationsCount: result.courses.filter((course) => Boolean(course.whyThisFitsYou)).length,
       });
       resolvePathway();
       onNext?.();
     } catch (error) {
-      sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.BUILD_COMPLETED, {
+      trackBuildCompleted({
         outcome: 'failed',
         careerActionState: careerActionStateAtRequest,
+        selectedCareerId: selectedCareer.id,
+        selectedCareerName: selectedCareer.title,
       });
       failPathway(errorMessage(error, 'Unable to build the learning pathway.'));
     } finally {
@@ -340,7 +370,8 @@ const CareerSelectionContainer = ({
     beginPathway,
     resolvePathway,
     failPathway,
-    enterpriseCustomer?.uuid,
+    trackBuildRequested,
+    trackBuildCompleted,
   ]);
 
   // Navigate to the existing pathway without building/rebuilding it.
@@ -348,10 +379,28 @@ const CareerSelectionContainer = ({
     onNext?.();
   }, [onNext]);
 
-  const openRebuildModal = useCallback(() => setIsOverwriteOpen(true), []);
-  const closeRebuildModal = useCallback(() => setIsOverwriteOpen(false), []);
+  const openRebuildModal = useCallback(() => {
+    setIsOverwriteOpen(true);
+    trackControlInteracted({ sourceComponent: 'overwrite_pathway_modal', interactionAction: 'opened' });
+  }, [trackControlInteracted]);
+  const closeRebuildModal = useCallback(() => {
+    setIsOverwriteOpen(false);
+    trackControlInteracted({ sourceComponent: 'overwrite_pathway_modal', interactionAction: 'cancelled' });
+  }, [trackControlInteracted]);
 
   const closeNoCoursesModal = useCallback(() => setIsNoCoursesOpen(false), []);
+
+  // Only the true (opened) transition is tracked — `onEditingChange(false)` fires both on
+  // an explicit Cancel click AND after a successful submit closes the form, and those two
+  // outcomes aren't distinguishable at this boundary. The successful-submit case is
+  // already captured by PROFILE_GENERATION_COMPLETED (source: 'goal_summary_edit'), so
+  // tracking every `false` here would risk mislabeling a success as a cancellation.
+  const handleEditingChange = useCallback((isEditing: boolean) => {
+    if (isEditing) {
+      trackControlInteracted({ sourceComponent: 'goal_summary_card', interactionAction: 'opened' });
+    }
+    setIsEditingGoalSummary(isEditing);
+  }, [trackControlInteracted]);
 
   const isProfileSubmitting = profileRequestState.status === 'pending';
 
@@ -360,7 +409,10 @@ const CareerSelectionContainer = ({
   // prepended ahead of the state-dependent buttons below rather than participating in
   // that branching.
   const trailingActions = useMemo((): PathwaysAction[] => {
-    const giveFeedbackAction = buildGiveFeedbackAction(feedbackFormUrl);
+    const giveFeedbackAction = buildGiveFeedbackAction(
+      feedbackFormUrl,
+      () => trackFeedbackLinkClicked({ feedbackSurface: 'career_selection' }),
+    );
     const leadingActions = giveFeedbackAction ? [giveFeedbackAction] : [];
     if (careerActionState === 'new-pathway') {
       return [
@@ -427,6 +479,7 @@ const CareerSelectionContainer = ({
     viewExistingPathway,
     openRebuildModal,
     feedbackFormUrl,
+    trackFeedbackLinkClicked,
   ]);
 
   // Register leading (Retake quiz) + trailing action-bar buttons.
@@ -459,7 +512,7 @@ const CareerSelectionContainer = ({
       pathwayError={pathwayRequestState.error}
       onSubmitGoalSummary={submitGoalSummary}
       onSelectCareer={handleSelectCareer}
-      onEditingChange={setIsEditingGoalSummary}
+      onEditingChange={handleEditingChange}
       isOverwriteOpen={isOverwriteOpen}
       onCloseOverwrite={closeRebuildModal}
       onConfirmOverwrite={buildPathway}

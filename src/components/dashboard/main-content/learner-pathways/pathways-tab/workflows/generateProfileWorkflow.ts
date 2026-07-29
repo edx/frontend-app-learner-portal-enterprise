@@ -39,5 +39,7 @@ export const generateProfileWorkflow = async (
   return {
     learnerProfile: toLearnerProfile(searchIntent, careerMatches),
     careerMatches,
+    skillsRequiredCount: searchIntent.skillsRequired.length,
+    skillsPreferredCount: searchIntent.skillsPreferred.length,
   };
 };

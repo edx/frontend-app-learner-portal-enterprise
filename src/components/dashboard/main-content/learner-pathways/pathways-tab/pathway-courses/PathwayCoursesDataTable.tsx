@@ -12,7 +12,7 @@ export interface PathwayCoursesDataTableProps {
 }
 
 interface PathwayCourseRow {
-  row: { original: ResolvedPathwayCourse };
+  row: { original: ResolvedPathwayCourse; index: number };
 }
 
 const StatusCell = ({ row }: PathwayCourseRow) => (
@@ -52,6 +52,8 @@ const ActionCell = ({ row }: PathwayCourseRow) => (
     courseKey={row.original.courseKey}
     courseTitle={row.original.title}
     courseStatus={row.original.status}
+    coursePosition={row.index}
+    hasRecommendationExplanation={Boolean(row.original.whyThisFitsYou)}
   />
 );
 

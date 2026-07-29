@@ -2,20 +2,20 @@ import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Hyperlink } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import type { ResolvedPathwayCourseAction } from './resolvePathwayCourses';
 import type { PathwayCourseStatus } from '../state';
 import { ACTION_MESSAGE } from './constants';
 import messages from './messages';
-import { useEnterpriseCustomer } from '../../../../../app/data';
-import { PATHWAYS_EVENTS } from '../../../../../../eventTracking';
+import { usePathwaysAnalytics } from '../hooks';
 
 export interface PathwayCourseActionButtonProps {
   action: ResolvedPathwayCourseAction;
   courseKey: string;
   courseTitle: string;
   courseStatus: PathwayCourseStatus;
+  coursePosition: number;
+  hasRecommendationExplanation: boolean;
 }
 
 /**
@@ -26,10 +26,10 @@ export interface PathwayCourseActionButtonProps {
  * navigating stays a client-side route change instead of a full page reload.
  */
 const PathwayCourseActionButton = ({
-  action, courseKey, courseTitle, courseStatus,
+  action, courseKey, courseTitle, courseStatus, coursePosition, hasRecommendationExplanation,
 }: PathwayCourseActionButtonProps) => {
   const intl = useIntl();
-  const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  const { trackCourseClicked } = usePathwaysAnalytics();
   const label = intl.formatMessage(ACTION_MESSAGE[action.kind]);
   const srSuffix = (
     <span className="sr-only">
@@ -39,12 +39,18 @@ const PathwayCourseActionButton = ({
   );
 
   const trackCourseClick = useCallback(() => {
-    sendEnterpriseTrackEvent(enterpriseCustomer?.uuid, PATHWAYS_EVENTS.COURSE_CLICKED, {
+    trackCourseClicked({
       courseKey,
+      courseTitle,
       actionKind: action.kind,
       courseStatus,
+      coursePosition,
+      hasRecommendationExplanation,
     });
-  }, [enterpriseCustomer?.uuid, courseKey, action.kind, courseStatus]);
+  }, [
+    trackCourseClicked, courseKey, courseTitle, action.kind, courseStatus,
+    coursePosition, hasRecommendationExplanation,
+  ]);
 
   if (action.kind === 'view_certificate') {
     return (
