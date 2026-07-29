@@ -182,7 +182,11 @@ const VideoDetailPage = () => {
               <div className="d-flex align-items-center mt-2.5">
                 <img
                   src={videoData?.institutionLogo}
-                  alt="institution logo"
+                  alt={intl.formatMessage({
+                    id: 'microlearning.videoDetailPage.institutionLogo.altText',
+                    defaultMessage: 'institution logo',
+                    description: 'Alternative text for the logo of the institution that produced the course.',
+                  })}
                   className="mr-2 logo-cutom-style rounded-sm p-1"
                 />
                 <div className="x-small">
