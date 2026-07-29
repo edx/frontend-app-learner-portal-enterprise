@@ -5,7 +5,7 @@ import {
 } from '@openedx/paragon';
 import { Edit } from '@openedx/paragon/icons';
 import { ErrorPage } from '@edx/frontend-platform/react';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import { retrieveErrorMessageForDisplay, useEnterpriseCustomer, useLearnerSkillLevels } from '../app/data';
@@ -14,11 +14,24 @@ import SearchJobRole from './SearchJobRole';
 import SpiderChart from './SpiderChart';
 import { LoadingSpinner } from '../loading-spinner';
 
-const editIcon = () => (
-  <Icon src={Edit} className="edit-job-role-icon" screenReaderText="Edit Role" />
-);
+const EditIcon = () => {
+  const intl = useIntl();
+
+  return (
+    <Icon
+      src={Edit}
+      className="edit-job-role-icon"
+      screenReaderText={intl.formatMessage({
+        id: 'enterprise.dashboard.my.career.tab.edit.role.screenReaderText',
+        defaultMessage: 'Edit Role',
+        description: 'Screen reader only text for the icon on the button that edits the learner\'s current job role.',
+      })}
+    />
+  );
+};
 
 const VisualizeCareer = ({ jobId, submitClickHandler }) => {
+  const intl = useIntl();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const [showInstructions, , , toggleShowInstructions] = useToggle(false);
   const [isEditable, setIsEditable] = useState(false);
@@ -54,7 +67,14 @@ const VisualizeCareer = ({ jobId, submitClickHandler }) => {
   if (isPendingLearnerSkills) {
     return (
       <div className="py-5">
-        <LoadingSpinner data-testid="loading-spinner" screenReaderText="loading your skills" />
+        <LoadingSpinner
+          data-testid="loading-spinner"
+          screenReaderText={intl.formatMessage({
+            id: 'enterprise.dashboard.my.career.tab.loading.skills.screenReaderText',
+            defaultMessage: 'loading your skills',
+            description: 'Screen reader only text announced while the learner\'s skill levels are loading.',
+          })}
+        />
       </div>
     );
   }
@@ -76,7 +96,7 @@ const VisualizeCareer = ({ jobId, submitClickHandler }) => {
                   />
                 </p>
                 <ActionRow.Spacer />
-                <Button variant="link" iconBefore={editIcon} onClick={editOnClickHandler}>
+                <Button variant="link" iconBefore={EditIcon} onClick={editOnClickHandler}>
                   <FormattedMessage
                     id="enterprise.dashboard.my.career.tab.existing.job.role.edit.button"
                     defaultMessage="Edit"

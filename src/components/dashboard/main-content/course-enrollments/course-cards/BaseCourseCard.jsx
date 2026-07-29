@@ -36,6 +36,16 @@ import { isCourseEnded, isDefinedAndNotNull, isTodayWithinDateThreshold } from '
 import { getNormalizedStartDate } from '../../../../course/data';
 
 const messages = defineMessages({
+  courseTypeInfoAltText: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.course_type_info.alt_text',
+    defaultMessage: 'More information about course type',
+    description: 'Accessible label for the icon button that reveals a tooltip explaining the course type',
+  },
+  loading: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.loading',
+    defaultMessage: 'Loading...',
+    description: 'Screen reader only text announced while the course card is loading',
+  },
   statusBadgeLabelInProgress: {
     id: 'enterprise.learner_portal.dashboard.enrollments.course.status_badge_label.in_progress',
     defaultMessage: 'In progress',
@@ -463,7 +473,7 @@ const BaseCourseCard = ({
           iconAs={Icon}
           src={InfoOutline}
           size="inline"
-          alt="More information about course type"
+          alt={intl.formatMessage(messages.courseTypeInfoAltText)}
           invertColors={isExecutiveEducation2UCourse}
         />
       </Stack>
@@ -666,7 +676,7 @@ const BaseCourseCard = ({
       >
         {isLoading ? (
           <>
-            <div className="sr-only">Loading...</div>
+            <div className="sr-only">{intl.formatMessage(messages.loading)}</div>
             <Skeleton height={200} />
           </>
         )

@@ -389,7 +389,11 @@ const UserEnrollmentForm = ({ className }) => {
                             name="dataSharingConsent"
                             onChange={handleChange}
                             onBlur={handleBlur}
-                            aria-label="I have read and accepted GetSmarter's data sharing consent"
+                            aria-label={intl.formatMessage({
+                              id: 'executive.education.external.course.enrollment.page.data.sharing.consent.ariaLabel',
+                              defaultMessage: "I have read and accepted GetSmarter's data sharing consent",
+                              description: 'Accessible label for the data sharing consent checkbox. Mirrors the adjacent visible label, which is hidden from screen readers. GetSmarter is a brand name.',
+                            })}
                           />
                           <span aria-hidden>
                             <FormattedMessage
@@ -438,7 +442,11 @@ const UserEnrollmentForm = ({ className }) => {
                           name="studentTermsAndConditions"
                           onChange={handleChange}
                           onBlur={handleBlur}
-                          aria-label="I agree to GetSmarter's Terms and Conditions for Students"
+                          aria-label={intl.formatMessage({
+                            id: 'executive.education.external.course.enrollment.page.student.terms.conditions.ariaLabel',
+                            defaultMessage: "I agree to GetSmarter's Terms and Conditions for Students",
+                            description: 'Accessible label for the student terms and conditions checkbox. Mirrors the adjacent visible label, which is hidden from screen readers. GetSmarter is a brand name.',
+                          })}
                         />
                         <span aria-hidden>
                           <FormattedMessage
