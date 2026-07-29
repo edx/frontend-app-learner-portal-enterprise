@@ -4,7 +4,7 @@ import loadable from '@loadable/component';
 
 import { PlayCircleFilled } from '@openedx/paragon/icons';
 import { Image, Skeleton, useToggle } from '@openedx/paragon';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import DelayedFallbackContainer from '../../DelayedFallback/DelayedFallbackContainer';
 
 const VideoPlayer = loadable(() => import(/* webpackChunkName: "videojs" */ '../../video/VideoPlayer'), {
@@ -16,6 +16,7 @@ const VideoPlayer = loadable(() => import(/* webpackChunkName: "videojs" */ '../
 });
 
 const CoursePreview = ({ previewImage, previewVideoURL }) => {
+  const intl = useIntl();
   const [isVideoPlaying, playVideo] = useToggle(false);
 
   useEffect(() => {
@@ -51,7 +52,15 @@ const CoursePreview = ({ previewImage, previewVideoURL }) => {
           )}
         </div>
       ) : (
-        <Image src={previewImage} alt="course preview" fluid />
+        <Image
+          src={previewImage}
+          alt={intl.formatMessage({
+            id: 'enterprise.course.about.page.preview.image.altText',
+            defaultMessage: 'course preview',
+            description: 'Alternative text for the course preview image on the course about page.',
+          })}
+          fluid
+        />
       )}
     </div>
   );

@@ -26,8 +26,8 @@ describe('PathwayBreadcrumbs', () => {
     const user = userEvent.setup();
     const onNavigate = jest.fn();
     render(<MockPathwayBreadcrumbs view="profile" onNavigate={onNavigate} />);
-    expect(screen.getByText('Profile')).toBeInTheDocument();
-    await user.click(screen.getByText('Onboarding Quiz'));
+    expect(screen.getByText('Career profile')).toBeInTheDocument();
+    await user.click(screen.getByText('Onboarding quiz'));
     expect(onNavigate).toHaveBeenCalledWith('onboarding');
   });
 
@@ -35,8 +35,8 @@ describe('PathwayBreadcrumbs', () => {
     const user = userEvent.setup();
     const onNavigate = jest.fn();
     render(<MockPathwayBreadcrumbs view="pathway" onNavigate={onNavigate} />);
-    expect(screen.getByText('Your Pathway')).toBeInTheDocument();
-    await user.click(screen.getByText('Profile'));
+    expect(screen.getByText('Pathway')).toBeInTheDocument();
+    await user.click(screen.getByText('Career profile'));
     expect(onNavigate).toHaveBeenCalledWith('profile');
   });
 });

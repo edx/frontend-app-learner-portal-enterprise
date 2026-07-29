@@ -13,22 +13,22 @@ const messages = defineMessages({
   },
   intro: {
     id: 'learner.pathways.career.selection.intro',
-    defaultMessage: 'Review your goal summary and select a career match.',
+    defaultMessage: 'Review your goal summary and select a career match',
     description: 'Career selection page intro.',
   },
   goalSummary: {
     id: 'learner.pathways.career.selection.goal.summary',
-    defaultMessage: 'Goal Summary',
+    defaultMessage: 'Goal summary',
     description: 'Goal summary card heading.',
   },
   careerGoal: {
     id: 'learner.pathways.career.selection.career.goal',
-    defaultMessage: 'Career Goal',
+    defaultMessage: 'Career goal',
     description: 'Career goal label.',
   },
   targetIndustry: {
     id: 'learner.pathways.career.selection.target.industry',
-    defaultMessage: 'Target Industry',
+    defaultMessage: 'Target industry',
     description: 'Target industry label.',
   },
   background: {
@@ -88,13 +88,13 @@ const messages = defineMessages({
   },
   careerMatches: {
     id: 'learner.pathways.career.selection.matches',
-    defaultMessage: 'Career Matches',
+    defaultMessage: 'Career matches',
     description: 'Career matches card heading.',
   },
   careerMatchesHelp: {
     id: 'learner.pathways.career.selection.matches.help',
     defaultMessage:
-      'Based on your goals and current market trends, here are roles that align with your profile.',
+      'Based on your goals, here are roles that align with your profile.',
     description: 'Career matches supporting text.',
   },
   matchPercentage: {

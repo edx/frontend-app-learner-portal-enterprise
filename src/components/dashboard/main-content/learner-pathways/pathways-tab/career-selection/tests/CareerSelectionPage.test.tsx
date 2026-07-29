@@ -98,7 +98,7 @@ describe('CareerSelectionPage', () => {
     const onSubmitGoalSummary = jest.fn().mockResolvedValue(undefined);
     renderPage({ onSubmitGoalSummary });
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const careerGoal = screen.getByLabelText('Career Goal');
+    const careerGoal = screen.getByLabelText('Career goal');
     await user.clear(careerGoal);
     await user.type(careerGoal, 'Director of Analytics');
     await user.click(screen.getByTestId('goal-summary-submit-button'));
@@ -240,7 +240,7 @@ describe('CareerSelectionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
 
     expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    expect(screen.getByLabelText('Career goal')).toBeInTheDocument();
     // isNoCoursesOpen here is a static prop passed by this isolated-component test, so
     // the modal's own focus trap does not actually release the way it does when the
     // container flips it to false in response to onCloseNoCourses — that end-to-end
@@ -262,7 +262,7 @@ describe('CareerSelectionPage', () => {
       act(() => {
         jest.runOnlyPendingTimers();
       });
-      expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+      expect(screen.getByLabelText('Career goal')).toBeInTheDocument();
     } finally {
       setTimeoutSpy.mockRestore();
       jest.useRealTimers();

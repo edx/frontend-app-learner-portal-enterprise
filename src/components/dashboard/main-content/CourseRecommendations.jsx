@@ -1,11 +1,12 @@
 import { Button } from '@openedx/paragon';
 import { Link } from 'react-router-dom';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
 import SkillsQuizImage from '../../../assets/images/skills-quiz/skills-quiz.png';
 import { useEnterpriseCustomer } from '../../app/data';
 
 const CourseRecommendations = () => {
+  const intl = useIntl();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   return (
     <div className="course-recommendations">
@@ -38,7 +39,15 @@ const CourseRecommendations = () => {
           </Button>
         </div>
         <div className="col-lg-6 col-sm-12">
-          <img className="course-recommendations-image" src={SkillsQuizImage} alt="Skills Quiz CTA" />
+          <img
+            className="course-recommendations-image"
+            src={SkillsQuizImage}
+            alt={intl.formatMessage({
+              id: 'enterprise.dashboard.tab.courses.recommendation.section.image.altText',
+              defaultMessage: 'Skills Quiz CTA',
+              description: 'Alternative text for the decorative image beside the course recommendations call to action.',
+            })}
+          />
         </div>
       </div>
     </div>
