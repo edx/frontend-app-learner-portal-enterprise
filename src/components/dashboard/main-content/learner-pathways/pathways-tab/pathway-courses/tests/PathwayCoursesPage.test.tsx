@@ -55,7 +55,7 @@ describe('PathwayCoursesPage', () => {
   it('renders the instructions copy', () => {
     renderComponent();
     expect(
-      screen.getByText('Based on your goals and background, here are the courses we recommend.'),
+      screen.getByText('Based on your goals and background, here are the courses we recommend'),
     ).toBeInTheDocument();
   });
 

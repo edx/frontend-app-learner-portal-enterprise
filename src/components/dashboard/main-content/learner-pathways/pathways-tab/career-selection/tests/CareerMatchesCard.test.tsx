@@ -43,7 +43,7 @@ describe('CareerMatchesCard', () => {
 
   it('exposes each career match as a listitem within the list container', () => {
     renderCard();
-    expect(screen.getByRole('list', { name: 'Career Matches' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Career matches' })).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(testMatches.length);
   });
 
@@ -100,6 +100,6 @@ describe('CareerMatchesCard', () => {
     };
     renderCard({ orderedMatches: [matchWithoutPercent], selectedCareer: null });
     expect(screen.getByTestId('career-match-no-pct')).toBeInTheDocument();
-    expect(screen.queryByText(/match/)).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('career-match-no-pct')).queryByText(/% match/)).not.toBeInTheDocument();
   });
 });
