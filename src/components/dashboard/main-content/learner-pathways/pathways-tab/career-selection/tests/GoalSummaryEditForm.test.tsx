@@ -38,24 +38,24 @@ const Wrapper = ({
 describe('GoalSummaryEditForm', () => {
   it('renders all four textarea fields with correct labels', () => {
     render(<Wrapper />);
-    expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
-    expect(screen.getByLabelText('Target Industry')).toBeInTheDocument();
+    expect(screen.getByLabelText('Career goal')).toBeInTheDocument();
+    expect(screen.getByLabelText('Target industry')).toBeInTheDocument();
     expect(screen.getByLabelText('Background')).toBeInTheDocument();
     expect(screen.getByLabelText('Motivation')).toBeInTheDocument();
   });
 
   it('pre-fills field values from the form defaultValues', () => {
     render(<Wrapper />);
-    expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
-    expect(screen.getByLabelText('Target Industry')).toHaveValue('EdTech');
+    expect(screen.getByLabelText('Career goal')).toHaveValue('Senior Data Analyst');
+    expect(screen.getByLabelText('Target industry')).toHaveValue('EdTech');
     expect(screen.getByLabelText('Background')).toHaveValue('Data analyst background.');
     expect(screen.getByLabelText('Motivation')).toHaveValue('Upskill for promotion.');
   });
 
   it('disables all fields when isProfileSubmitting is true', () => {
     render(<Wrapper isProfileSubmitting />);
-    expect(screen.getByLabelText('Career Goal')).toBeDisabled();
-    expect(screen.getByLabelText('Target Industry')).toBeDisabled();
+    expect(screen.getByLabelText('Career goal')).toBeDisabled();
+    expect(screen.getByLabelText('Target industry')).toBeDisabled();
     expect(screen.getByLabelText('Background')).toBeDisabled();
     expect(screen.getByLabelText('Motivation')).toBeDisabled();
   });
@@ -71,7 +71,7 @@ describe('GoalSummaryEditForm', () => {
   it('shows required error when a field is cleared to empty', async () => {
     const user = userEvent.setup();
     render(<Wrapper />);
-    await user.clear(screen.getByLabelText('Career Goal'));
+    await user.clear(screen.getByLabelText('Career goal'));
     expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
       'Please enter a career goal.',
     );
@@ -80,7 +80,7 @@ describe('GoalSummaryEditForm', () => {
   it('shows required error for whitespace-only input', async () => {
     const user = userEvent.setup();
     render(<Wrapper defaultValues={{ ...NON_EMPTY_DEFAULTS, careerGoal: '' }} />);
-    await user.type(screen.getByLabelText('Career Goal'), '   ');
+    await user.type(screen.getByLabelText('Career goal'), '   ');
     expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
       'Please enter a career goal.',
     );
@@ -89,7 +89,7 @@ describe('GoalSummaryEditForm', () => {
   it('shows character limit error when a field exceeds 300 characters', async () => {
     const user = userEvent.setup();
     render(<Wrapper defaultValues={{ ...NON_EMPTY_DEFAULTS, careerGoal: '' }} />);
-    await user.type(screen.getByLabelText('Career Goal'), 'a'.repeat(301));
+    await user.type(screen.getByLabelText('Career goal'), 'a'.repeat(301));
     expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
       'Please keep your response up to 300 characters.',
     );

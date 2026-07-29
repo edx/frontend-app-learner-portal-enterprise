@@ -24,9 +24,9 @@ const renderHeader = (overrides = {}) => {
 };
 
 describe('GoalSummaryEditHeader', () => {
-  it('renders the Goal Summary title', () => {
+  it('renders the Goal summary title', () => {
     renderHeader();
-    expect(screen.getByRole('heading', { name: 'Goal Summary' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Goal summary' })).toBeInTheDocument();
   });
 
   it('renders Cancel and Submit buttons', () => {

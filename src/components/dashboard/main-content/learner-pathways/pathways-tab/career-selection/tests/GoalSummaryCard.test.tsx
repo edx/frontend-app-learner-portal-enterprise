@@ -55,7 +55,7 @@ describe('GoalSummaryCard', () => {
     const user = userEvent.setup();
     render(<ControlledCard />);
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+    expect(screen.getByLabelText('Career goal')).toBeInTheDocument();
     expect(screen.getByTestId('goal-summary-submit-button')).toBeInTheDocument();
   });
 
@@ -72,7 +72,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, 'Director of Analytics');
     await user.click(screen.getByTestId('goal-summary-submit-button'));
@@ -90,7 +90,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, 'Some other goal');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -163,7 +163,7 @@ describe('GoalSummaryCard', () => {
         </IntlProvider>,
       );
 
-      const goalInput = screen.getByLabelText('Career Goal');
+      const goalInput = screen.getByLabelText('Career goal');
       act(() => {
         ref.current?.focusFirstField();
       });
@@ -206,14 +206,14 @@ describe('GoalSummaryCard', () => {
 
     // First edit session: type something then cancel
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, 'Temporary goal');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     // Second edit session: draft should be reset to intent values
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
+    expect(screen.getByLabelText('Career goal')).toHaveValue('Senior Data Analyst');
   });
 
   it('shows pre-filled intent values in edit mode textarea fields', async () => {
@@ -222,8 +222,8 @@ describe('GoalSummaryCard', () => {
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
 
-    expect(screen.getByLabelText('Career Goal')).toHaveValue('Senior Data Analyst');
-    expect(screen.getByLabelText('Target Industry')).toHaveValue('EdTech');
+    expect(screen.getByLabelText('Career goal')).toHaveValue('Senior Data Analyst');
+    expect(screen.getByLabelText('Target industry')).toHaveValue('EdTech');
     expect(screen.getByLabelText('Background')).toHaveValue('Data analyst with five years experience.');
     expect(screen.getByLabelText('Motivation')).toHaveValue('Upskill for promotion.');
   });
@@ -245,7 +245,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, 'a'.repeat(301));
 
@@ -261,7 +261,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, '  Director of Analytics  ');
     await user.click(screen.getByTestId('goal-summary-submit-button'));
@@ -277,7 +277,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    await user.clear(screen.getByLabelText('Career Goal'));
+    await user.clear(screen.getByLabelText('Career goal'));
 
     expect(screen.getByTestId('goal-summary-career-goal-feedback')).toHaveTextContent(
       'Please enter a career goal.',
@@ -292,7 +292,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard onSubmitGoalSummary={onSubmitGoalSummary} />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    await user.clear(screen.getByLabelText('Career Goal'));
+    await user.clear(screen.getByLabelText('Career goal'));
     await user.click(screen.getByTestId('goal-summary-submit-button'));
 
     expect(onSubmitGoalSummary).not.toHaveBeenCalled();
@@ -303,7 +303,7 @@ describe('GoalSummaryCard', () => {
     render(<ControlledCard />);
 
     await user.click(screen.getByTestId('goal-summary-edit-button'));
-    const goalInput = screen.getByLabelText('Career Goal');
+    const goalInput = screen.getByLabelText('Career goal');
     await user.clear(goalInput);
     await user.type(goalInput, '   ');
 

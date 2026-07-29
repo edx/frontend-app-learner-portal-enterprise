@@ -8,17 +8,17 @@ const messages = defineMessages({
   },
   onboardingQuiz: {
     id: 'learner.pathways.breadcrumb.onboarding',
-    defaultMessage: 'Onboarding Quiz',
+    defaultMessage: 'Onboarding quiz',
     description: 'Breadcrumb label for learner pathways onboarding quiz step',
   },
   profile: {
     id: 'learner.pathways.breadcrumb.profile',
-    defaultMessage: 'Profile',
+    defaultMessage: 'Career profile',
     description: 'Breadcrumb label for learner pathways profile step',
   },
   pathway: {
     id: 'learner.pathways.breadcrumb.pathway',
-    defaultMessage: 'Your Pathway',
+    defaultMessage: 'Pathway',
     description: 'Breadcrumb label for learner pathways pathway step',
   },
 });
