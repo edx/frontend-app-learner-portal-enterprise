@@ -1,7 +1,5 @@
 import {
-  Row,
-  MediaQuery,
-  breakpoints,
+  Col, Row, MediaQuery, breakpoints,
 } from '@openedx/paragon';
 import PropTypes from 'prop-types';
 import { MainContent, Sidebar } from '../../layout';
@@ -35,7 +33,7 @@ const CoursesTabComponent = ({
   showLearnerPathwaysAlert,
 }) => (
   <Row className="py-5">
-    <div className="w-100">
+    <Col xs={12}>
       <CourseEnrollmentFailedAlert className="mt-0 mb-3" enrollmentSource={ENROLLMENT_SOURCE.DASHBOARD} />
       {showLearnerPathwaysAlert && (
         <LearnerPathwaysAlertContainer
@@ -43,7 +41,7 @@ const CoursesTabComponent = ({
           hasPathwaysTab={hasPathwaysTab}
         />
       )}
-    </div>
+    </Col>
     <MainContent>
       <DashboardMainContent />
     </MainContent>
