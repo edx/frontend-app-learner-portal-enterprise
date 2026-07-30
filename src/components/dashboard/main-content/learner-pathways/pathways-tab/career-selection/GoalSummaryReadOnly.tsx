@@ -21,30 +21,30 @@ const GoalSummaryReadOnly = ({ learnerIntent }: GoalSummaryReadOnlyProps) => {
           className="mb-3 mb-md-0"
           data-testid="profile-career-goal"
         >
-          <h3 className="h3 mb-1">
+          <h4 className="h3 mb-1">
             {intl.formatMessage(messages.careerGoal)}
-          </h3>
+          </h4>
           <p className="mb-0">{renderValue(learnerIntent.careerGoal)}</p>
         </Col>
         <Col md={6} data-testid="profile-target-industry">
-          <h3 className="h3 mb-1">
+          <h4 className="h3 mb-1">
             {intl.formatMessage(messages.targetIndustry)}
-          </h3>
+          </h4>
           <p className="mb-0">{renderValue(learnerIntent.targetIndustry)}</p>
         </Col>
       </Row>
       <div className="mb-3" data-testid="profile-background">
-        <h3 className="h3 mb-1">
+        <h4 className="h3 mb-1">
           {intl.formatMessage(messages.background)}
-        </h3>
+        </h4>
         <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
           {renderValue(learnerIntent.background)}
         </p>
       </div>
       <div data-testid="profile-motivation">
-        <h3 className="h3 mb-1">
+        <h4 className="h3 mb-1">
           {intl.formatMessage(messages.motivation)}
-        </h3>
+        </h4>
         <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
           {renderValue(learnerIntent.motivation)}
         </p>

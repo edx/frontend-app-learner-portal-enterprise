@@ -29,7 +29,7 @@ const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
       <Stack gap={4.5} direction="column">
         <header className="text-center">
           <div className="d-flex align-items-center justify-content-center mb-2">
-            <h1 className="h2 mb-0">{intl.formatMessage(messages.title)}</h1>
+            <h2 className="h1 mb-0">{intl.formatMessage(messages.title)}</h2>
             <Badge variant="info" className="ml-2 font-weight-bold">
               {intl.formatMessage(messages.betaLabel)}
             </Badge>

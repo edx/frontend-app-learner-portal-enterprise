@@ -21,9 +21,9 @@ const GoalSummaryEditHeader = ({
 
   return (
     <div className="d-flex justify-content-between align-items-start mb-4.5">
-      <h2 className="mb-0">
+      <h3 className="h2 mb-0">
         {intl.formatMessage(messages.goalSummary)}
-      </h2>
+      </h3>
       <div className="d-flex align-items-center">
         <Button
           type="button"

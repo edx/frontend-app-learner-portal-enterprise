@@ -123,7 +123,7 @@ const CareerSelectionPage = ({
     >
       <header className="text-center mb-4">
         <div className="d-flex align-items-center justify-content-center mb-2">
-          <h1 className="h2 mb-0">{intl.formatMessage(messages.heading)}</h1>
+          <h2 className="h1 mb-0">{intl.formatMessage(messages.heading)}</h2>
           <Badge
             variant="info"
             className="ml-2 font-weight-bold"

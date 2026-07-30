@@ -33,9 +33,9 @@ const CareerMatchesCard = ({
   return (
     <Card className="h-100 shadow-sm" data-testid="profile-career-matches">
       <Card.Body className="p-4">
-        <h2 className="mb-3">
+        <h3 className="h2 mb-3">
           {intl.formatMessage(messages.careerMatches)}
-        </h2>
+        </h3>
         <p className="text-muted mb-4">
           {intl.formatMessage(messages.careerMatchesHelp)}
         </p>

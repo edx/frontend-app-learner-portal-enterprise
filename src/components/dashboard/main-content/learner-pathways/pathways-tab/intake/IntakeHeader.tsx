@@ -11,9 +11,9 @@ const IntakeHeader = () => {
   return (
     <header data-testid="intake-header">
       <div className="d-flex align-items-center justify-content-center mb-4">
-        <h1 className="h2 mb-0">
+        <h2 className="h1 mb-0">
           {intl.formatMessage(messages.heading)}
-        </h1>
+        </h2>
         <Badge variant="info" className="ml-2 font-weight-bold">
           {intl.formatMessage(messages.beta)}
         </Badge>
