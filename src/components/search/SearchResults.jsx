@@ -9,7 +9,7 @@ import {
   CardGrid, Container, Skeleton,
 } from '@openedx/paragon';
 import { v4 as uuidv4 } from 'uuid';
-import { useIntl } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
 import SearchNoResults from './SearchNoResults';
 import SearchError from './SearchError';
@@ -107,7 +107,17 @@ const SearchResults = ({
       return (
         <div className="d-flex align-items-center" id={componentId}>
           {translatedTitle || title} ({nbHits} {resultsLabel}) {showBetaBadge && <BetaBadge />}
-          {query && <>{' '}for &quot;{query}&quot;</>}
+          {query && (
+            <>
+              {' '}
+              <FormattedMessage
+                id="enterprise.search.results.forQuery"
+                defaultMessage='for "{query}"'
+                description="Appended to the search results heading to show what the learner searched for. {query} is the learner's search term."
+                values={{ query }}
+              />
+            </>
+          )}
         </div>
       );
     },

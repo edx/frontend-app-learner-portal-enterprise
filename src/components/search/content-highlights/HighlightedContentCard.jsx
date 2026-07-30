@@ -5,6 +5,7 @@ import { Archive } from '@openedx/paragon/icons';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import cardImageCapFallbackSrc from '@edx/brand/paragon/images/card-imagecap-fallback.png';
 
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { useHighlightedContentCardData } from './data';
 import { COURSE_RUN_AVAILABILITY } from '../../course/data/constants';
 import { useEnterpriseCustomer } from '../../app/data';
@@ -75,7 +76,12 @@ const HighlightedContentCard = ({
       <Card.Footer textElement={contentType}>
         {archivedCourse && (
           <span className="d-flex x-small text-gray-400">
-            <Icon className="mr-1" src={Archive} />Archived
+            <Icon className="mr-1" src={Archive} />
+            <FormattedMessage
+              id="enterprise.search.highlighted.content.card.archived"
+              defaultMessage="Archived"
+              description="Badge label indicating that a highlighted course is archived."
+            />
           </span>
         )}
       </Card.Footer>

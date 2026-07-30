@@ -48,7 +48,11 @@ const SkillsQuizV2 = ({ isStyleAutoSuggest }) => {
       <Helmet title={TITLE} />
       <ModalDialog
         className="modal-small"
-        title="Close Dialog"
+        title={intl.formatMessage({
+          id: 'enterprise.skills.quiz.v2.closeDialog.title',
+          defaultMessage: 'Close Dialog',
+          description: 'Accessible title of the small confirmation dialog shown when closing the skills quiz.',
+        })}
         isOpen={isOpen}
         onClose={close}
         size="sm"
@@ -92,7 +96,11 @@ const SkillsQuizV2 = ({ isStyleAutoSuggest }) => {
       </ModalDialog>
 
       <ModalDialog
-        title="Skills Quiz"
+        title={intl.formatMessage({
+          id: 'enterprise.skills.quiz.v2.modal.title',
+          defaultMessage: 'Skills Quiz',
+          description: 'Accessible title of the skills quiz modal dialog.',
+        })}
         size="fullscreen"
         className="bg-light-200 skills-quiz-modal skills-quiz-v2"
         onClose={open}

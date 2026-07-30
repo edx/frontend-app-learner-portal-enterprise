@@ -134,7 +134,7 @@ const CareerSelectionPage = ({
           <h1 className="h2 mb-0">{intl.formatMessage(messages.heading)}</h1>
           <Badge
             variant="info"
-            className="ml-2 text-uppercase font-weight-bold"
+            className="ml-2 font-weight-bold"
           >
             {intl.formatMessage(messages.beta)}
           </Badge>

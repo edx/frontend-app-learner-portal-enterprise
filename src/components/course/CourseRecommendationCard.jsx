@@ -5,6 +5,7 @@ import { Card, Truncate } from '@openedx/paragon';
 import cardFallbackImg from '@edx/brand/paragon/images/card-imagecap-fallback.png';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { getPrimaryPartnerLogo, isDefinedAndNotNull } from '../../utils/common';
 import { getLinkToCourse } from './data/utils';
 import { useEnterpriseCustomer } from '../app/data';
@@ -68,7 +69,16 @@ const CourseRecommendationCard = ({ course, isPartnerRecommendation }) => {
       />
       {/* Intentionally empty section so the footer is correctly spaced at the bottom of the card */}
       <Card.Section />
-      <Card.Footer textElement={<span className="text-muted">Course</span>} />
+      <Card.Footer textElement={(
+        <span className="text-muted">
+          <FormattedMessage
+            id="enterprise.course.recommendation.card.contentType.course"
+            defaultMessage="Course"
+            description="Content type label shown in the footer of a recommended course card."
+          />
+        </span>
+      )}
+      />
     </Card>
   );
 };

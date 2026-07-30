@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { FormattedMessage } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import {
   Button, Container, Form, ModalDialog, Stepper,
 } from '@openedx/paragon';
@@ -40,6 +40,7 @@ import SkillsQuizContentCards from './SkillsQuizContentCards';
 import TopSkillsOverview from './TopSkillsOverview';
 
 const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
+  const intl = useIntl();
   const config = getConfig();
   const {
     searchIndex: jobIndex,
@@ -172,7 +173,11 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
   return (
     <Stepper activeKey={currentStep}>
       <ModalDialog
-        title="Skills Quiz"
+        title={intl.formatMessage({
+          id: 'enterprise.skills.quiz.v1.modal.title',
+          defaultMessage: 'Skills Quiz',
+          description: 'Accessible title of the skills quiz modal dialog.',
+        })}
         size="fullscreen"
         className="bg-light-200 skills-quiz-modal"
         isOverflowVisible={false}
@@ -192,7 +197,14 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
               searchClient={jobSearchClient}
             >
               <Configure filters={new AlgoliaFilterBuilder().filterByMetadataLanguage(getSupportedLocale()).build()} />
-              <Stepper.Step eventKey="skills-search" title="Skills Search">
+              <Stepper.Step
+                eventKey="skills-search"
+                title={intl.formatMessage({
+                  id: 'enterprise.skills.quiz.v1.step.skillsSearch.title',
+                  defaultMessage: 'Skills Search',
+                  description: 'Title of the skills search step in the skills quiz.',
+                })}
+              >
                 <div className="skills-quiz-dropdown my-4">
                   <p>
                     <FormattedMessage
@@ -287,7 +299,11 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
             </InstantSearch>
             <Stepper.Step
               eventKey="courses-with-jobs"
-              title="Recommended Courses With Jobs"
+              title={intl.formatMessage({
+                id: 'enterprise.skills.quiz.v1.step.coursesWithJobs.title',
+                defaultMessage: 'Recommended Courses With Jobs',
+                description: 'Title of the step listing courses recommended based on the jobs the learner selected.',
+              })}
             >
               <div>
                 <div className="row mb-4 pl-2 mt-4">
@@ -325,7 +341,11 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
             </Stepper.Step>
             <Stepper.Step
               eventKey="courses-with-skills"
-              title="Recommended Courses With Skills"
+              title={intl.formatMessage({
+                id: 'enterprise.skills.quiz.v1.step.coursesWithSkills.title',
+                defaultMessage: 'Recommended Courses With Skills',
+                description: 'Title of the step listing courses recommended based on the skills the learner selected.',
+              })}
             >
               <SkillsCourses />
             </Stepper.Step>
@@ -357,7 +377,11 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
               variant="outline-primary"
               onClick={() => setCurrentStep(STEP1)}
             >
-              Go back
+              <FormattedMessage
+                id="enterprise.skills.quiz.v1.goBack.button.label"
+                defaultMessage="Go back"
+                description="Label for the button that returns the learner to the previous step of the skills quiz."
+              />
             </Button>
             <Stepper.ActionRow.Spacer />
             <Button data-testid="skills-continue-button" onClick={() => setCurrentStep(STEP3)}>
@@ -373,7 +397,11 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
               variant="outline-primary"
               onClick={() => setCurrentStep(STEP2)}
             >
-              Go back
+              <FormattedMessage
+                id="enterprise.skills.quiz.v1.goBack.button.label"
+                defaultMessage="Go back"
+                description="Label for the button that returns the learner to the previous step of the skills quiz."
+              />
             </Button>
             <Stepper.ActionRow.Spacer />
             <Button onClick={() => closeSkillsQuiz()}>

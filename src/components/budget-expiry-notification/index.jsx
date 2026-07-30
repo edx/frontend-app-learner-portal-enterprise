@@ -8,6 +8,7 @@ import {
 
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import dayjs from 'dayjs';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import useExpiry from './data/hooks/useExpiry';
 import { useEnterpriseCustomer, useHasAvailableSubsidiesOrRequests } from '../app/data';
 import { EVENT_NAMES } from './data/constants';
@@ -60,7 +61,11 @@ const BudgetExpiryNotification = () => {
         className="flex-shrink-0"
         data-testid="contact-administrator"
       >
-        Contact administrator
+        <FormattedMessage
+          id="enterprise.budget.expiry.notification.contactAdministrator"
+          defaultMessage="Contact administrator"
+          description="Label for the button that opens an email to the learner's enterprise administrator."
+        />
       </Button>,
     ];
 

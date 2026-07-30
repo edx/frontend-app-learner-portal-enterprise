@@ -3,6 +3,7 @@ import { Container } from '@openedx/paragon';
 import { ExpandCircleDown } from '@openedx/paragon/icons';
 import classNames from 'classnames';
 import { Link } from 'react-scroll';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import ProgramDataBarDetails from './ProgramDataBarDetails';
 import { useProgramDetails } from '../app/data';
 
@@ -41,7 +42,11 @@ const ProgramDataBar = () => {
                   duration={750}
                   offset={-600}
                 >
-                  I&apos;m interested
+                  <FormattedMessage
+                    id="enterprise.program.about.page.interested.link"
+                    defaultMessage="I'm interested"
+                    description="Label for the link that scrolls the learner down to the program enrollment details."
+                  />
                   <ExpandCircleDown className="icon ml-2 align-self-center" />
                 </Link>
               </div>
