@@ -3,8 +3,10 @@ import classNames from 'classnames';
 import { Button, Col, Row } from '@openedx/paragon';
 import { sendEnterpriseTrackEventWithDelay } from '@2uinc/frontend-enterprise-utils';
 import { ArrowBack } from '@openedx/paragon/icons';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 
 import { ErrorPage } from '../../error-page';
+import messages from './messages';
 import ExecutiveEducation2UErrorIllustration from
   '../../../assets/images/executive-education-2u/error-illustration.svg';
 import ContactAdminMailto from '../../contact-admin-mailto';
@@ -43,10 +45,10 @@ const ErrorPageContent = ({
           />
           <div className="executive-education-2u-error-heading mb-4">
             <span className="executive-education-2u-error-heading-red mr-2">
-              We&apos;re sorry.
+              <FormattedMessage {...messages.errorHeadingApology} />
             </span>
             <span className="executive-education-2u-error-heading-black">
-              Something went wrong.
+              <FormattedMessage {...messages.errorHeadingSomethingWentWrong} />
             </span>
           </div>
           <p
@@ -69,13 +71,13 @@ const ErrorPageContent = ({
                 global.location.href = httpReferrer;
               }}
             >
-              Return to dashboard
+              <FormattedMessage {...messages.returnToDashboard} />
             </Button>
           )}
           {shouldShowHelpfulLink && (
             <div>
               <span className="executive-education-2u-error-link-description pr-2">
-                Helpful link:
+                <FormattedMessage {...messages.helpfulLink} />
               </span>
               <span className="executive-education-2u-error-link-box">
                 <ContactAdminMailto />

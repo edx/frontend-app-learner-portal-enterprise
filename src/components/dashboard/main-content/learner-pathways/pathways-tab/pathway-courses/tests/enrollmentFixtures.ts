@@ -31,7 +31,7 @@ export const completedWithCertificateMatch: NormalizedEnrollment = {
   isRevoked: false,
   created: '2026-02-01T00:00:00Z',
   linkToCourse: 'https://learning.edx.org/course/course-v1:edX+FA+2024/home',
-  linkToCertificate: 'https://courses.edx.org/certificates/abc123',
+  linkToCertificate: '/certificates/abc123',
 };
 
 export const completedWithoutCertificateMatch: NormalizedEnrollment = {

@@ -93,7 +93,11 @@ const VideoFeedbackCard = ({
                   onClick={() => handleThumbClick(true)}
                   variant="dark"
                   className="border rounded-circle border-1 border-light-400 p-3 mr-2"
-                  alt="thumbs up"
+                  alt={intl.formatMessage({
+                    id: 'microlearning.videoFeedbackCard.thumbsUp.altText',
+                    defaultMessage: 'thumbs up',
+                    description: 'Accessible label for the button giving positive feedback on a video.',
+                  })}
                 />
                 <IconButton
                   key="feedback-thumbs-down"
@@ -102,7 +106,11 @@ const VideoFeedbackCard = ({
                   onClick={() => handleThumbClick(false)}
                   variant="dark"
                   className="border rounded-circle border-1 border-light-400 p-3 mr-2"
-                  alt="thumbs down"
+                  alt={intl.formatMessage({
+                    id: 'microlearning.videoFeedbackCard.thumbsDown.altText',
+                    defaultMessage: 'thumbs down',
+                    description: 'Accessible label for the button giving negative feedback on a video.',
+                  })}
                 />
                 <div className="border-left border-1 border-light-400" style={{ height: 52, marginTop: -8 }} />
                 <IconButton
@@ -111,7 +119,11 @@ const VideoFeedbackCard = ({
                   src={Close}
                   iconAs={Icon}
                   onClick={() => setShowFeedbackCard(false)}
-                  alt="Close feedback card"
+                  alt={intl.formatMessage({
+                    id: 'microlearning.videoFeedbackCard.close.altText',
+                    defaultMessage: 'Close feedback card',
+                    description: 'Accessible label for the button that dismisses the video feedback card.',
+                  })}
                 />
               </ActionRow>
             )}
@@ -203,7 +215,11 @@ const VideoFeedbackCard = ({
                   onClick={() => {
                     setShowFeedbackSubmittedCard(false);
                   }}
-                  alt="Close feedback card"
+                  alt={intl.formatMessage({
+                    id: 'microlearning.videoFeedbackCard.close.altText',
+                    defaultMessage: 'Close feedback card',
+                    description: 'Accessible label for the button that dismisses the video feedback card.',
+                  })}
                 />
               </ActionRow>
             )}

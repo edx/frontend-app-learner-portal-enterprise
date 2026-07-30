@@ -352,14 +352,14 @@ describe('useDashboardTabs', () => {
     });
   });
 
-  describe('removed AI Pathways query value normalization', () => {
-    it('normalizes a request for the removed ai-pathways tab back to courses', () => {
+  describe('unrecognized tab query value normalization', () => {
+    it('normalizes a request for an unrecognized tab back to courses', () => {
       const { result } = renderHook(() => useDashboardTabs(), {
-        wrapper: createWrapper(['/?tab=ai-pathways']),
+        wrapper: createWrapper(['/?tab=unknown-tab']),
       });
       expect(result.current.activeTab).toBe(DASHBOARD_COURSES_TAB);
       const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
-      expect(tabKeys).not.toContain('ai-pathways');
+      expect(tabKeys).not.toContain('unknown-tab');
     });
   });
 });

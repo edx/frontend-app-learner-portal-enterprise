@@ -343,7 +343,7 @@ describe('<Dashboard />', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
-    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
+    expect(within(screen.getByRole('tablist')).getByText('Pathways')).toBeInTheDocument();
     await user.click(screen.getByText('Pathways'));
     expect(screen.getByTestId('pathway-listing-page')).toBeInTheDocument();
   });
@@ -381,10 +381,9 @@ describe('<Dashboard />', () => {
     expect(screen.queryByTestId('learner-pathways-alert')).not.toBeInTheDocument();
   });
 
-  it('normalizes a request for the removed ai-pathways tab back to Courses', () => {
-    renderWithRouter(<DashboardWithContext />, { route: '/?tab=ai-pathways' });
+  it('normalizes a request for an unrecognized tab back to Courses', () => {
+    renderWithRouter(<DashboardWithContext />, { route: '/?tab=unknown-tab' });
     expect(screen.getByText('Courses')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.queryByText('AI Pathways')).not.toBeInTheDocument();
     expect(sendPageEvent).toHaveBeenCalledWith(
       'enterprise_learner_portal',
       expect.stringContaining('courses_tab'),
@@ -444,6 +443,8 @@ describe('<Dashboard />', () => {
 
   it('renders the generic My Courses empty state with a search link when search is enabled for the customer', () => {
     features.FEATURE_ENABLE_TOP_DOWN_ASSIGNMENT.mockImplementation(() => true);
+
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByText('No courses registered yet')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'exploring courses' }))

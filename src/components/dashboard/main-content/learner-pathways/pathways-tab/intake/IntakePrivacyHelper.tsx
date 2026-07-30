@@ -13,15 +13,12 @@ const IntakePrivacyHelper = () => {
   const intl = useIntl();
 
   return (
-    <div className="flex-shrink-0 ml-2">
+    <div className="flex-shrink-0">
       <OverlayTrigger
         trigger={['hover', 'focus']}
         placement="right"
         overlay={(
           <Tooltip id="intake-privacy-helper-tooltip">
-            <p className="mb-2 text-left">
-              {intl.formatMessage(messages.privacyTooltipFirstLine)}
-            </p>
             <p className="mb-0 text-left">
               {intl.formatMessage(messages.privacyTooltipSecondLine)}
             </p>

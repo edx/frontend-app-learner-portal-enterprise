@@ -1,3 +1,4 @@
+import { getConfig } from '@edx/frontend-platform/config';
 import { resolvePathwayCourses } from '../resolvePathwayCourses';
 import type { PathwayCourse } from '../../state';
 import type { NormalizedEnrollment } from '../resolvePathwayCourses';
@@ -23,6 +24,12 @@ import {
   upcomingMatch,
 } from './enrollmentFixtures';
 
+jest.mock('@edx/frontend-platform/config', () => ({
+  ...jest.requireActual('@edx/frontend-platform/config'),
+  getConfig: jest.fn(),
+}));
+
+const LMS_BASE_URL = 'https://courses.edx.org';
 const ENTERPRISE_SLUG = 'test-enterprise';
 
 const buildCourse = (overrides: Partial<PathwayCourse> = {}): PathwayCourse => ({
@@ -45,6 +52,10 @@ const resolveOne = (
 };
 
 describe('resolvePathwayCourses', () => {
+  beforeEach(() => {
+    (getConfig as jest.Mock).mockReturnValue({ LMS_BASE_URL });
+  });
+
   it('A1: derives not_started + view_course when no enrollment matches the courseKey', () => {
     const row = resolveOne([]);
     expect(row.status).toBe('not_started');
@@ -67,13 +78,13 @@ describe('resolvePathwayCourses', () => {
     expect(row.action.isExternal).toBe(false);
   });
 
-  it('A5: derives completed + view_certificate for a completed match with a certificate', () => {
+  it('A5: derives completed + view_certificate for a completed match with a certificate, joined against LMS_BASE_URL', () => {
     const course = buildCourse({ courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation' });
     const row = resolveOne([completedWithCertificateMatch], course);
     expect(row.status).toBe('completed');
     expect(row.action).toEqual({
       kind: 'view_certificate',
-      destination: completedWithCertificateMatch.linkToCertificate,
+      destination: `${LMS_BASE_URL}${completedWithCertificateMatch.linkToCertificate}`,
       isExternal: true,
     });
   });
@@ -139,7 +150,7 @@ describe('resolvePathwayCourses', () => {
   it('A15: does not discard a certificate-bearing completed record during multi-match selection', () => {
     const course = buildCourse({ courseKey: 'financial-analysis-evaluation', title: 'Financial Analysis & Evaluation' });
     const row = resolveOne([olderInProgressForFinance, newerCompletedForFinance], course);
-    expect(row.action.destination).toBe(newerCompletedForFinance.linkToCertificate);
+    expect(row.action.destination).toBe(`${LMS_BASE_URL}${newerCompletedForFinance.linkToCertificate}`);
   });
 
   it('A16: does not mutate the source enrollments array or its elements', () => {
@@ -201,7 +212,7 @@ describe('resolvePathwayCourses', () => {
     expect(row.status).toBe('completed');
     expect(row.action).toEqual({
       kind: 'view_certificate',
-      destination: olderCompletedWithCertificateForFinance.linkToCertificate,
+      destination: `${LMS_BASE_URL}${olderCompletedWithCertificateForFinance.linkToCertificate}`,
       isExternal: true,
     });
   });

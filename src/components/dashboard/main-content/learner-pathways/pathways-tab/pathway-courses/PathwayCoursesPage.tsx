@@ -26,11 +26,11 @@ const PathwayCoursesPage = ({ courses, progress }: PathwayCoursesPageProps) => {
 
   return (
     <section data-testid="pathway-container" className="pb-5">
-      <Stack gap={4}>
+      <Stack gap={4.5} direction="column">
         <header className="text-center">
           <div className="d-flex align-items-center justify-content-center mb-2">
             <h1 className="h2 mb-0">{intl.formatMessage(messages.title)}</h1>
-            <Badge variant="info" className="ml-2 text-uppercase font-weight-bold">
+            <Badge variant="info" className="ml-2 font-weight-bold">
               {intl.formatMessage(messages.betaLabel)}
             </Badge>
           </div>

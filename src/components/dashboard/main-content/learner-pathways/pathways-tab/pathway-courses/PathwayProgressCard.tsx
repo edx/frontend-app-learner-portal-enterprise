@@ -4,6 +4,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import type { PathwayProgress } from '../state';
 import messages from './messages';
+import './styles/index.scss';
 
 export interface PathwayProgressCardProps {
   progress: PathwayProgress;
@@ -20,24 +21,21 @@ const PathwayProgressCard = ({ progress }: PathwayProgressCardProps) => {
   ];
 
   return (
-    <Card className="shadow-sm mb-4">
-      <Card.Section>
-        <Row>
-          {metrics.map((metric) => (
-            <Col
-              key={metric.key}
-              xs={6}
-              md={3}
-              className="text-center"
-              data-testid={`pathway-progress-${metric.key}`}
-            >
-              <div className="h1 mb-1 font-weight-bold">{metric.value}</div>
-              <div className="small text-uppercase font-weight-bold text-muted">{metric.label}</div>
-            </Col>
-          ))}
-        </Row>
-      </Card.Section>
-    </Card>
+    <Row>
+      {metrics.map((metric) => (
+        <Col key={metric.key} xs={6} md={3}>
+          <Card
+            className={`pathway-progress-card pathway-progress-card--${metric.key} shadow-sm text-center`}
+            data-testid={`pathway-progress-${metric.key}`}
+          >
+            <Card.Section>
+              <div className="h1 mb-1 font-weight-bold" style={{ justifySelf: 'center' }}>{metric.value}</div>
+              <div className="small text-uppercase font-weight-bold" style={{ justifySelf: 'center' }}>{metric.label}</div>
+            </Card.Section>
+          </Card>
+        </Col>
+      ))}
+    </Row>
   );
 };
 

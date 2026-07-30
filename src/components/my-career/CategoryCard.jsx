@@ -112,7 +112,14 @@ const CategoryCard = ({ topCategory }) => {
       {subCategorySkills && showSkills && (
         <Card.Section className="mt-n3">
           <div>
-            <h5>{subCategoryName} Skills</h5>
+            <h5>
+              <FormattedMessage
+                id="enterprise.dashboard.my.career.tab.subcategory.skills.heading"
+                defaultMessage="{subCategoryName} Skills"
+                description="Heading listing the skills within a skill subcategory. {subCategoryName} is the untranslated subcategory name."
+                values={{ subCategoryName }}
+              />
+            </h5>
           </div>
           <div>
             {renderSkillsWithLevelsChunk(subCategorySkills)}

@@ -1,5 +1,6 @@
 import renderer from 'react-test-renderer';
 import { AppContext } from '@edx/frontend-platform/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import '@testing-library/jest-dom/extend-expect';
 
 import ErrorPage from './ErrorPage';
@@ -10,21 +11,23 @@ jest.mock('@edx/frontend-component-footer', () => ({
 
 const ErrorPageWrapper = (component) => renderer
   .create((
-    <AppContext.Provider value={{
-      authenticatedUser: {
-        id: 1,
-        profileImage: {
-          imageUrlMedium: 'htts://img.url',
+    <IntlProvider locale="en">
+      <AppContext.Provider value={{
+        authenticatedUser: {
+          id: 1,
+          profileImage: {
+            imageUrlMedium: 'htts://img.url',
+          },
         },
-      },
-      config: {
-        LEARNER_SUPPORT_URL: 'https://support.url',
-        LOGOUT_URL: 'https://logout.url',
-      },
-    }}
-    >
-      {component}
-    </AppContext.Provider>
+        config: {
+          LEARNER_SUPPORT_URL: 'https://support.url',
+          LOGOUT_URL: 'https://logout.url',
+        },
+      }}
+      >
+        {component}
+      </AppContext.Provider>
+    </IntlProvider>
   ));
 
 describe('ErrorPage', () => {

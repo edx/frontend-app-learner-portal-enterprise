@@ -13,9 +13,9 @@ const renderHeader = (onBeginEditing = jest.fn()) => render(
 );
 
 describe('GoalSummaryReadOnlyHeader', () => {
-  it('renders the Goal Summary title', () => {
+  it('renders the Goal summary title', () => {
     renderHeader();
-    expect(screen.getByRole('heading', { name: 'Goal Summary' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Goal summary' })).toBeInTheDocument();
   });
 
   it('renders the edit button with the correct test id', () => {

@@ -5,7 +5,7 @@ import {
 import { CourseEnrollments } from './course-enrollments';
 import SupportInformation from '../sidebar/SupportInformation';
 import SubsidiesSummary from '../sidebar/SubsidiesSummary';
-import CourseEnrollmentsEmptyState from './course-enrollments/CourseEnrollmentsEmptyState';
+import CourseEnrollmentsEmptyStateContainer from './course-enrollments/CourseEnrollmentsEmptyStateContainer';
 
 const DashboardMainContent = () => (
   <Stack gap={5}>
@@ -17,7 +17,7 @@ const DashboardMainContent = () => (
     <div>
       <CourseEnrollments>
         {/* The children below will only be rendered if there are no course enrollments. */}
-        <CourseEnrollmentsEmptyState />
+        <CourseEnrollmentsEmptyStateContainer />
       </CourseEnrollments>
     </div>
     <MediaQuery maxWidth={breakpoints.medium.maxWidth}>

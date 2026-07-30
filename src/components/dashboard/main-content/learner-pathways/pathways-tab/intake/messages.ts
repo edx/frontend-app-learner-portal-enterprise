@@ -53,7 +53,7 @@ const messages = defineMessages({
   },
   helperText: {
     id: 'learner.pathways.intake.helper.text',
-    defaultMessage: 'Your responses help our Xpert AI build an editable learner profile and personalized course pathway.',
+    defaultMessage: 'Your responses help our Xpert AI build an editable career profile and personalized course pathway.',
     description: 'Helper text below intake onboarding explanation.',
   },
   privacyTriggerLabel: {

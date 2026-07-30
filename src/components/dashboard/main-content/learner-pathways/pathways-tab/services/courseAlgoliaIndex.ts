@@ -3,10 +3,8 @@ import algoliasearch from 'algoliasearch';
 import { getConfig } from '@edx/frontend-platform/config';
 
 /**
- * `?debug=true` opt-in gate for the stage "override catalog" (`ai-pathways`'s
- * `useCatalogAlgoliaSearch` prefers it automatically whenever the override keys happen
- * to be configured, with no user-facing control). Here it's explicit per-request, not an
- * ambient environment behavior.
+ * `?debug=true` opt-in gate for the stage "override catalog" — explicit per-request,
+ * not an ambient environment behavior.
  */
 const isDebugCatalogOverrideEnabled = (): boolean => (
   typeof window !== 'undefined'

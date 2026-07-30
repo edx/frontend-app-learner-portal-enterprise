@@ -45,11 +45,18 @@ describe('LearnerPathwaysAlert', () => {
     expect(screen.queryByText(/courses in progress|completed/)).not.toBeInTheDocument();
   });
 
-  it('renders the "in progress" progress-line template before any course is completed', () => {
+  it('renders the "ready" progress-line template for a freshly generated pathway with no course started', () => {
     renderAlert(baseViewModel('pathway_ready', {
       progress: { completed: 0, inProgress: 0, totalCourses: 5 },
     }));
-    expect(screen.getByText('Data Scientist: 0/5 courses in progress')).toBeInTheDocument();
+    expect(screen.getByText('Data Scientist: 5 courses ready to start')).toBeInTheDocument();
+  });
+
+  it('renders the "in progress" progress-line template once the learner has registered for a course', () => {
+    renderAlert(baseViewModel('course_registered', {
+      progress: { completed: 0, inProgress: 1, totalCourses: 5 },
+    }));
+    expect(screen.getByText('Data Scientist: 1/5 courses in progress')).toBeInTheDocument();
   });
 
   it('renders the "partial" progress-line template once at least one course is completed and one is in progress', () => {

@@ -51,7 +51,7 @@ const SkillsToDevelopCard = ({
             </Button>
           )}
         </div>
-        <p className="text-muted small mb-4">
+        <p className="text-muted mb-4">
           {intl.formatMessage(messages.skillsHelp)}
         </p>
         {visibleSkills.length > 0 && (

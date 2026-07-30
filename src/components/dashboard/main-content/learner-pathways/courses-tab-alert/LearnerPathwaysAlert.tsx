@@ -12,6 +12,7 @@ import './styles/index.scss';
 export type LearnerPathwaysAlertProps = LearnerPathwaysAlertViewModel;
 
 const PROGRESS_MESSAGE_BY_VARIANT = {
+  ready: messages.progressReadyTemplate,
   in_progress: messages.progressInProgressTemplate,
   partial: messages.progressPartialTemplate,
   completed: messages.progressCompletedTemplate,
@@ -41,7 +42,7 @@ const LearnerPathwaysAlert = ({
     actions={[
       <Button
         key="cta"
-        variant="inverse-outline-primary"
+        variant="inverse-primary"
         iconAfter={ArrowForward}
         onClick={onCtaClick}
         disabled={ctaDisabled}

@@ -88,7 +88,7 @@ const submitGoalSummaryEdit = async (
   careerGoal: string,
 ) => {
   await user.click(screen.getByTestId('goal-summary-edit-button'));
-  const careerGoalField = screen.getByLabelText('Career Goal');
+  const careerGoalField = screen.getByLabelText('Career goal');
   await user.clear(careerGoalField);
   await user.type(careerGoalField, careerGoal);
   await user.click(screen.getByTestId('goal-summary-submit-button'));
@@ -470,7 +470,7 @@ describe('CareerSelectionContainer', () => {
       await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
 
       expect(screen.queryByText('We could not build a pathway for this career match')).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Career Goal')).toBeInTheDocument();
+      expect(screen.getByLabelText('Career goal')).toBeInTheDocument();
     });
 
     it('a later successful retry still commits and navigates', async () => {
@@ -831,7 +831,7 @@ describe('CareerSelectionContainer', () => {
   describe('Retake quiz', () => {
     // The retake-quiz confirmation modal, store reset, and banner-dismissal clearing are
     // now owned by LearnerPathwaysTab (so the same shared modal is reachable from the
-    // breadcrumb's "Onboarding Quiz" link, not just this container) — covered there.
+    // breadcrumb's "Onboarding quiz" link, not just this container) — covered there.
     // This container's only remaining responsibility is wiring its action-row button
     // directly to the passed-in trigger.
     it('clicking Retake quiz calls the onRetakeQuiz prop directly', async () => {

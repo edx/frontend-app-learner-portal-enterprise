@@ -4,6 +4,7 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { getConfig } from '@edx/frontend-platform/config';
 
 import { Hyperlink } from '@openedx/paragon';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import classNames from 'classnames';
 import BaseCourseCard from './BaseCourseCard';
 import ContinueLearningButton from './ContinueLearningButton';
@@ -13,6 +14,7 @@ import CertificateImg from './images/edx-verified-mini-cert.png';
 import { EXECUTIVE_EDUCATION_COURSE_MODES } from '../../../../app/data';
 
 const CompletedCourseCard = (props) => {
+  const intl = useIntl();
   const { authenticatedUser: { username } } = useContext(AppContext);
   const {
     title,
@@ -46,33 +48,64 @@ const CompletedCourseCard = (props) => {
     props.linkToCertificate ? (
       <div className="d-flex">
         <div className="mr-3">
-          <img src={CertificateImg} alt="verified certificate preview" />
+          <img
+            src={CertificateImg}
+            alt={intl.formatMessage({
+              id: 'enterprise.dashboard.enrollments.completed.certificate.image.altText',
+              defaultMessage: 'verified certificate preview',
+              description: 'Alternative text for the thumbnail image of a verified certificate.',
+            })}
+          />
         </div>
         <div className="d-flex align-items-center">
           <div className="mb-0 small">
-            View your certificate on{' '}
-            <Hyperlink
-              destination={`${config.ACCOUNT_PROFILE_URL}/u/${username}`}
-              target="_blank"
-              className={classNames('text-underline', {
-                'text-light-200': isExecutiveEducation2UCourse,
-              })}
-            >
-              your profile →
-            </Hyperlink>
+            <FormattedMessage
+              id="enterprise.dashboard.enrollments.completed.viewCertificate"
+              defaultMessage="View your certificate on {profileLink}"
+              description="Tells the learner where to find their earned certificate. {profileLink} is a link labelled 'your profile'."
+              values={{
+                profileLink: (
+                  <Hyperlink
+                    destination={`${config.ACCOUNT_PROFILE_URL}/u/${username}`}
+                    target="_blank"
+                    className={classNames('text-underline', {
+                      'text-light-200': isExecutiveEducation2UCourse,
+                    })}
+                  >
+                    <FormattedMessage
+                      id="enterprise.dashboard.enrollments.completed.viewCertificate.linkText"
+                      defaultMessage="your profile →"
+                      description="Label for the link to the learner's edX profile, where their certificates are listed."
+                    />
+                  </Hyperlink>
+                ),
+              }}
+            />
           </div>
         </div>
       </div>
     ) : (
       !isExecutiveEducation2UCourse && (
         <div className="small">
-          To earn a certificate,{' '}
-          <Hyperlink
-            destination={props.linkToCourse}
-            className="text-underline"
-          >
-            retake this course →
-          </Hyperlink>
+          <FormattedMessage
+            id="enterprise.dashboard.enrollments.completed.earnCertificate"
+            defaultMessage="To earn a certificate, {retakeLink}"
+            description="Tells the learner how to earn a certificate for a course they completed without one. {retakeLink} is a link labelled 'retake this course'."
+            values={{
+              retakeLink: (
+                <Hyperlink
+                  destination={props.linkToCourse}
+                  className="text-underline"
+                >
+                  <FormattedMessage
+                    id="enterprise.dashboard.enrollments.completed.earnCertificate.linkText"
+                    defaultMessage="retake this course →"
+                    description="Label for the link that takes the learner back to the course so they can retake it."
+                  />
+                </Hyperlink>
+              ),
+            }}
+          />
         </div>
       )
     )

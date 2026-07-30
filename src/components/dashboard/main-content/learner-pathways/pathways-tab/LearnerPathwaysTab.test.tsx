@@ -92,12 +92,12 @@ describe('LearnerPathwaysTab', () => {
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
     // breadcrumb: click Profile link to go back
-    await user.click(screen.getByRole('link', { name: 'Profile' }));
+    await user.click(screen.getByRole('link', { name: 'Career profile' }));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
     // breadcrumb: click Onboarding link — opens the same retake-quiz confirmation modal
     // as the dedicated action-row button, rather than navigating immediately.
-    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
     expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
     expect(screen.queryByTestId('intake-questions-container')).not.toBeInTheDocument();
 
@@ -116,7 +116,7 @@ describe('LearnerPathwaysTab', () => {
     await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
     expect(screen.getByTestId('profile-container')).toBeInTheDocument();
 
-    const breadcrumbLink = screen.getByRole('link', { name: 'Onboarding Quiz' });
+    const breadcrumbLink = screen.getByRole('link', { name: 'Onboarding quiz' });
     await user.click(breadcrumbLink);
     expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
 
@@ -141,7 +141,7 @@ describe('LearnerPathwaysTab', () => {
 
     // PathwayCoursesContainer registers no retake-quiz action-row button of its own —
     // the breadcrumb is the only path back to onboarding from this page.
-    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
     expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
@@ -166,7 +166,7 @@ describe('LearnerPathwaysTab', () => {
     const priorCourses = usePathwaysStore.getState().pathwayCourses;
     const priorFingerprint = usePathwaysStore.getState().pathwayInputFingerprint;
 
-    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('LearnerPathwaysTab', () => {
     renderComponent();
     const breadcrumbs = screen.getByTestId('pathway-breadcrumbs');
     expect(breadcrumbs).toBeInTheDocument();
-    expect(within(breadcrumbs).getByText('Onboarding Quiz')).toBeInTheDocument();
+    expect(within(breadcrumbs).getByText('Onboarding quiz')).toBeInTheDocument();
   });
 
   it('navigates back from the pathway view using its own back control', async () => {

@@ -99,10 +99,15 @@ const learnerPathwaysMessages = defineMessages({
     defaultMessage: 'Retake onboarding quiz',
     description: 'Button label to retake the onboarding quiz and build a new learning pathway.',
   },
+  progressReadyTemplate: {
+    id: 'enterprise.dashboard.learner.pathways.alert.progress.ready',
+    defaultMessage: '{careerGoal}: {totalCourses} courses ready to start',
+    description: 'Career-goal and progress line for a freshly generated pathway with no course started yet.',
+  },
   progressInProgressTemplate: {
     id: 'enterprise.dashboard.learner.pathways.alert.progress.in.progress',
     defaultMessage: '{careerGoal}: {inProgress}/{totalCourses} courses in progress',
-    description: 'Career-goal and progress line when a pathway exists but no course has been completed yet.',
+    description: 'Career-goal and progress line when the learner has registered for at least one course but not completed any.',
   },
   progressPartialTemplate: {
     id: 'enterprise.dashboard.learner.pathways.alert.progress.partial',

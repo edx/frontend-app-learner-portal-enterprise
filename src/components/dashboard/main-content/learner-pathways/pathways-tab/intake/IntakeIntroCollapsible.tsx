@@ -14,28 +14,34 @@ const IntakeIntroCollapsible = () => {
             <p className="font-weight-bold mb-1">
               {intl.formatMessage(messages.introStepOneTitle)}
             </p>
-            <p className="mb-0">
-              {intl.formatMessage(messages.introStepOneBody)}
-            </p>
+            <ul className="mb-0" style={{ listStyleType: 'disc' }}>
+              <li className="bold">
+                {intl.formatMessage(messages.introStepOneBody)}
+              </li>
+            </ul>
           </li>
           <li className="mb-3">
             <p className="font-weight-bold mb-1">
               {intl.formatMessage(messages.introStepTwoTitle)}
             </p>
-            <p className="mb-0">
-              {intl.formatMessage(messages.introStepTwoBody)}
-            </p>
+            <ul className="mb-0" style={{ listStyleType: 'disc' }}>
+              <li className="mb-0">
+                {intl.formatMessage(messages.introStepTwoBody)}
+              </li>
+            </ul>
           </li>
           <li>
             <p className="font-weight-bold mb-1">
               {intl.formatMessage(messages.introStepThreeTitle)}
             </p>
-            <p className="mb-1">
-              {intl.formatMessage(messages.introStepThreeBodyLineOne)}
-            </p>
-            <p className="mb-0">
-              {intl.formatMessage(messages.introStepThreeBodyLineTwo)}
-            </p>
+            <ul className="mb-0" style={{ listStyleType: 'disc' }}>
+              <li className="mb-1">
+                {intl.formatMessage(messages.introStepThreeBodyLineOne)}
+              </li>
+              <li className="mb-0">
+                {intl.formatMessage(messages.introStepThreeBodyLineTwo)}
+              </li>
+            </ul>
           </li>
         </ol>
       </Collapsible>

@@ -5,7 +5,7 @@ import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import {
   AccessTime, Equalizer, Institution, Person, School, Speed, Tag, VideoFile,
 } from '@openedx/paragon/icons';
-import { useIntl } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import CourseSidebarListItem from './CourseSidebarListItem';
 import CourseAssociatedPrograms from './CourseAssociatedPrograms';
 import CourseSidebarPrice from './CourseSidebarPrice';
@@ -179,7 +179,13 @@ const CourseSidebar = () => {
       )}
       {courseMetadata.prerequisitesRaw && (
         <div className="prerequisites mb-5">
-          <h3>Prerequisites</h3>
+          <h3>
+            <FormattedMessage
+              id="enterprise.course.about.page.sidebar.prerequisites.heading"
+              defaultMessage="Prerequisites"
+              description="Heading of the prerequisites section in the course about page sidebar."
+            />
+          </h3>
           {/* eslint-disable-next-line react/no-danger */}
           <div dangerouslySetInnerHTML={{ __html: courseMetadata.prerequisitesRaw }} />
         </div>

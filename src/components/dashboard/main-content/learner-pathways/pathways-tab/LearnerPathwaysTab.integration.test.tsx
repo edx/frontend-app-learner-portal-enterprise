@@ -122,8 +122,8 @@ const buildViaStateA = async (user: ReturnType<typeof userEvent.setup>) => {
 const buildViaGoalSummary = async (user: ReturnType<typeof userEvent.setup>) => {
   await fillIntake(user);
   await user.click(screen.getByTestId('goal-summary-edit-button'));
-  await user.clear(screen.getByLabelText('Career Goal'));
-  await user.type(screen.getByLabelText('Career Goal'), 'Director of Analytics');
+  await user.clear(screen.getByLabelText('Career goal'));
+  await user.type(screen.getByLabelText('Career goal'), 'Director of Analytics');
   await user.click(screen.getByTestId('goal-summary-submit-button'));
   await waitFor(() => expect(usePathwaysStore.getState().learnerProfile).not.toBeNull());
   await user.click(screen.getByTestId('career-build-pathway-button'));
@@ -150,8 +150,8 @@ const editCareerGoalFromPathwayPage = async (user: ReturnType<typeof userEvent.s
   await user.click(screen.getByTestId('pathway-rebuild-button'));
   await waitFor(() => expect(screen.getByTestId('profile-container')).toBeInTheDocument());
   await user.click(screen.getByTestId('goal-summary-edit-button'));
-  await user.clear(screen.getByLabelText('Career Goal'));
-  await user.type(screen.getByLabelText('Career Goal'), 'Director of Analytics');
+  await user.clear(screen.getByLabelText('Career goal'));
+  await user.type(screen.getByLabelText('Career goal'), 'Director of Analytics');
   await user.click(screen.getByTestId('goal-summary-submit-button'));
   await waitFor(() => expect(screen.getByTestId('career-rebuild-pathway-button')).toBeInTheDocument());
 };

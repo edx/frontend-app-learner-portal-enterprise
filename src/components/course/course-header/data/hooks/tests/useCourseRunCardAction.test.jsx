@@ -49,7 +49,11 @@ const renderUseCourseRunCardActionHook = (args) => {
     () => useCourseRunCardAction(args),
     { wrapper },
   );
-  const { getByTestId } = render(result.current);
+  const { getByTestId } = render(
+    <IntlProvider locale="en">
+      {result.current}
+    </IntlProvider>,
+  );
   return {
     result,
     getByTestId,

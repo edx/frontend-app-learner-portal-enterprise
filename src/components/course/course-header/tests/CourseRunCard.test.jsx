@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { AppContext } from '@edx/frontend-platform/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import CourseRunCard from '../CourseRunCard';
 import { useCourseRunCardData } from '../data';
@@ -81,12 +82,14 @@ const mockCourseRun = {
 const mockUserCanRequestSubsidy = false;
 const mockAuthenticatedUser = authenticatedUserFactory();
 const CourseRunCardWrapper = (props) => (
-  <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
-    <CourseRunCard
-      courseRun={mockCourseRun}
-      {...props}
-    />
-  </AppContext.Provider>
+  <IntlProvider locale="en">
+    <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
+      <CourseRunCard
+        courseRun={mockCourseRun}
+        {...props}
+      />
+    </AppContext.Provider>
+  </IntlProvider>
 );
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
