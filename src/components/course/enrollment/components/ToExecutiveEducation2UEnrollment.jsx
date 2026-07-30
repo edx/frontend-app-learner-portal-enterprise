@@ -2,8 +2,10 @@ import PropTypes from 'prop-types';
 import { Button } from '@openedx/paragon';
 import { Link } from 'react-router-dom';
 
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { useTrackSearchConversionClickHandler } from '../../data/hooks';
 import { EVENT_NAMES } from '../../data/constants';
+import messages from '../../messages';
 
 const ButtonAsLink = ({ children, ...props }) => (
   <Button as={Link} {...props}>
@@ -33,7 +35,7 @@ const ToExecutiveEducation2UEnrollment = ({
       onClick={handleSearchConversionStart}
       block
     >
-      Enroll
+      <FormattedMessage {...messages.enroll} />
     </Button>
   );
 };

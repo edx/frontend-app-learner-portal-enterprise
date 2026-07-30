@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { Card } from '@openedx/paragon';
 import { Lock } from '@openedx/paragon/icons';
+import { useIntl } from '@edx/frontend-platform/i18n';
 
 import { DISABLED_ENROLL_REASON_TYPES } from '../data/constants';
 import { useSubscriptions } from '../../app/data';
@@ -30,9 +31,16 @@ const CourseRunCardStatus = ({
   userHasLearnerCreditRequest,
   userHasSubsidyRequestForCourse,
 }) => {
+  const intl = useIntl();
   const { data: { customerAgreement } } = useSubscriptions();
   const missingUserSubsidyReasonType = missingUserSubsidyReason?.reason;
-  const missingUserSubsidyReasonUserMessage = missingUserSubsidyReason?.userMessage;
+  // `userMessage` is either a translatable message descriptor sourced from
+  // `DISABLED_ENROLL_USER_MESSAGES`, or a plain string supplied by the
+  // subsidy-access-policy API, which cannot be translated client side.
+  const rawUserMessage = missingUserSubsidyReason?.userMessage;
+  const missingUserSubsidyReasonUserMessage = (rawUserMessage && typeof rawUserMessage !== 'string')
+    ? intl.formatMessage(rawUserMessage)
+    : rawUserMessage;
   const missingUserSubsidyReasonActions = missingUserSubsidyReason?.actions;
   const hasValidReason = !!(missingUserSubsidyReasonType && missingUserSubsidyReasonUserMessage);
   if (isUserEnrolled
@@ -69,7 +77,15 @@ CourseRunCardStatus.propTypes = {
   isUserEnrolled: PropTypes.bool,
   missingUserSubsidyReason: PropTypes.shape({
     reason: PropTypes.oneOf(Object.values(DISABLED_ENROLL_REASON_TYPES)),
-    userMessage: PropTypes.string,
+    // Either an API-supplied string or a react-intl message descriptor.
+    userMessage: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        defaultMessage: PropTypes.string.isRequired,
+        description: PropTypes.string,
+      }),
+    ]),
     actions: PropTypes.node,
   }),
   userCanRequestSubsidyForCourse: PropTypes.bool,

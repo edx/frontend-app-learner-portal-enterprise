@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { AppContext } from '@edx/frontend-platform/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import userEvent from '@testing-library/user-event';
 
 import {
@@ -79,11 +80,13 @@ const renderEnrollAction = ({ enrollAction }) => {
   renderWithRouterProvider({
     path: '/:enterpriseSlug/course/:courseKey',
     element: (
-      <AppContext.Provider value={INITIAL_APP_STATE}>
-        <CourseContext.Provider value={mockCourseContextValue}>
-          {enrollAction}
-        </CourseContext.Provider>
-      </AppContext.Provider>
+      <IntlProvider locale="en">
+        <AppContext.Provider value={INITIAL_APP_STATE}>
+          <CourseContext.Provider value={mockCourseContextValue}>
+            {enrollAction}
+          </CourseContext.Provider>
+        </AppContext.Provider>
+      </IntlProvider>
     ),
   }, {
     initialEntries: [`/${mockEnterpriseCustomer.slug}/course/edX+DemoX`],

@@ -3,6 +3,7 @@ import { hasFeatureFlagEnabled } from '@2uinc/frontend-enterprise-utils';
 import { Button, Hyperlink, MailtoLink } from '@openedx/paragon';
 import { isNil } from 'lodash-es';
 import { logError } from '@edx/frontend-platform/logging';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import dayjs from '../../../utils/dayjs';
 
 import {
@@ -13,6 +14,7 @@ import {
   ENROLLMENT_FAILED_QUERY_PARAM,
   ZERO_PRICE,
 } from './constants';
+import messages from './messages';
 import MicroMastersSvgIcon from '../../../assets/icons/micromasters.svg';
 import ProfessionalSvgIcon from '../../../assets/icons/professional.svg';
 import VerifiedSvgIcon from '../../../assets/icons/verified.svg';
@@ -631,7 +633,7 @@ export const getMissingSubsidyReasonActions = ({
         size="sm"
         block
       >
-        Learn about limits
+        <FormattedMessage {...messages.missingSubsidyReasonLearnAboutLimits} />
       </Button>
     );
   }
@@ -647,7 +649,7 @@ export const getMissingSubsidyReasonActions = ({
         size="sm"
         block
       >
-        Learn about deactivation
+        <FormattedMessage {...messages.missingSubsidyReasonLearnAboutDeactivation} />
       </Button>
     );
   }
@@ -673,8 +675,10 @@ export const getMissingSubsidyReasonActions = ({
         size="sm"
         block
       >
-        Contact administrator
-        <span className="sr-only">for help</span>
+        <FormattedMessage {...messages.missingSubsidyReasonContactAdministrator} />
+        <span className="sr-only">
+          <FormattedMessage {...messages.missingSubsidyReasonContactAdministratorScreenReaderSuffix} />
+        </span>
       </Button>
     );
   }

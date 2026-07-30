@@ -72,11 +72,28 @@ const initialAppState = {
   authenticatedUser: mockAuthenticatedUser,
 };
 
+const searchContextWithQuery = {
+  refinements: { ...searchContext.refinements, q: 'refined query' },
+  dispatch: () => null,
+};
+
 const SearchResultsWithContext = (props) => (
   <QueryClientProvider client={queryClient()}>
     <IntlProvider locale="en">
       <AppContext.Provider value={initialAppState}>
         <SearchContext.Provider value={searchContext}>
+          <SearchResults {...props} />
+        </SearchContext.Provider>
+      </AppContext.Provider>
+    </IntlProvider>
+  </QueryClientProvider>
+);
+
+const SearchResultsWithQueryRefinement = (props) => (
+  <QueryClientProvider client={queryClient()}>
+    <IntlProvider locale="en">
+      <AppContext.Provider value={initialAppState}>
+        <SearchContext.Provider value={searchContextWithQuery}>
           <SearchResults {...props} />
         </SearchContext.Provider>
       </AppContext.Provider>
@@ -439,6 +456,31 @@ describe('<SearchResults />', () => {
     await waitFor(() => {
       expect(noSearchResultsMock).toHaveBeenCalled();
     });
+  });
+
+  test('renders the search query in the results heading when the query comes from search state', () => {
+    const propsWithQuery = {
+      ...propsForCourseResults,
+      searchState: { ...propsForCourseResults.searchState, query: 'python' },
+    };
+    renderWithRouter(
+      <SearchResultsWithContext {...propsWithQuery} />,
+    );
+    expect(screen.getByText('for "python"', { exact: false })).toBeInTheDocument();
+  });
+
+  test('renders the search query in the results heading when the query comes from refinements', () => {
+    renderWithRouter(
+      <SearchResultsWithQueryRefinement {...propsForCourseResults} />,
+    );
+    expect(screen.getByText('for "refined query"', { exact: false })).toBeInTheDocument();
+  });
+
+  test('does not render the query suffix in the results heading when there is no query', () => {
+    renderWithRouter(
+      <SearchResultsWithContext {...propsForCourseResults} />,
+    );
+    expect(screen.queryByText(/for "/)).toBeNull();
   });
 
   test('calls searchResults handler when results are found', async () => {

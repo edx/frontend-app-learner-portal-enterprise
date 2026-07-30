@@ -10,7 +10,7 @@ import {
 import { Program } from '@openedx/paragon/icons';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
-import { useIntl } from '@edx/frontend-platform/i18n';
+import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { getPrimaryPartnerLogo, isDefinedAndNotNull } from '../../utils/common';
 import { useEnterpriseCustomer } from '../app/data';
 
@@ -20,13 +20,37 @@ export const ProgramType = ({ type }) => {
   switch (type) {
     case 'MicroBachelors':
     case 'MicroMasters':
-      programTypeToDisplay = <>{type}<sup className="superscript">®</sup> Program</>;
+      programTypeToDisplay = (
+        <FormattedMessage
+          id="enterprise.search.program.card.programType.trademarked"
+          defaultMessage="{type}<sup>®</sup> Program"
+          description="Program type label for trademarked program types such as MicroBachelors and MicroMasters. {type} is the untranslated program type name."
+          values={{
+            type,
+            // eslint-disable-next-line react/no-unstable-nested-components
+            sup: (chunks) => <sup className="superscript">{chunks}</sup>,
+          }}
+        />
+      );
       break;
     case 'XSeries':
-      programTypeToDisplay = <>{type} Program</>;
+      programTypeToDisplay = (
+        <FormattedMessage
+          id="enterprise.search.program.card.programType.generic"
+          defaultMessage="{type} Program"
+          description="Program type label. {type} is the untranslated program type name, such as XSeries."
+          values={{ type }}
+        />
+      );
       break;
     case 'Masters':
-      programTypeToDisplay = <>Master&apos;s Degree Program</>;
+      programTypeToDisplay = (
+        <FormattedMessage
+          id="enterprise.search.program.card.programType.mastersDegree"
+          defaultMessage="Master's Degree Program"
+          description="Program type label for a master's degree program."
+        />
+      );
       break;
     case 'Professional Certificate':
       programTypeToDisplay = type;
