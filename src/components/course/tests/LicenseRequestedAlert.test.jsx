@@ -98,8 +98,8 @@ describe('<LicenseRequestedAlert />', () => {
     });
     const { getByText } = renderWithRouterProvider(<LicenseRequestedAlertWrapper />);
 
-    expect(getByText(LICENSE_REQUESTED_ALERT_HEADING));
-    expect(getByText(LICENSE_REQUESTED_ALERT_TEXT));
+    expect(getByText(LICENSE_REQUESTED_ALERT_HEADING.defaultMessage));
+    expect(getByText(LICENSE_REQUESTED_ALERT_TEXT.defaultMessage));
   });
 
   it('does not render if it was previously dismissed', () => {
@@ -152,7 +152,7 @@ describe('<LicenseRequestedAlert />', () => {
     );
 
     await waitFor(() => {
-      expect(queryByText(LICENSE_REQUESTED_ALERT_HEADING)).toBeNull();
+      expect(queryByText(LICENSE_REQUESTED_ALERT_HEADING.defaultMessage)).toBeNull();
     });
   });
 });

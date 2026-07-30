@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Cookies from 'universal-cookie';
 import { Container, Alert } from '@openedx/paragon';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 
 import {
   LICENSE_REQUESTED_ALERT_DISMISSED_COOKIE_NAME,
@@ -46,9 +47,9 @@ const LicenseRequestedAlert = () => {
   return (
     <Container size="lg" className="pt-3">
       <Alert variant="info" dismissible onClose={handleClose}>
-        <Alert.Heading>{LICENSE_REQUESTED_ALERT_HEADING}</Alert.Heading>
+        <Alert.Heading><FormattedMessage {...LICENSE_REQUESTED_ALERT_HEADING} /></Alert.Heading>
         <p>
-          {LICENSE_REQUESTED_ALERT_TEXT}
+          <FormattedMessage {...LICENSE_REQUESTED_ALERT_TEXT} />
         </p>
       </Alert>
     </Container>

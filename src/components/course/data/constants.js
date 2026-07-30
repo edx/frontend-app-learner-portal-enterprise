@@ -1,4 +1,5 @@
 import GetSmarterLogo from '../../../assets/icons/getsmarter-header-icon.svg';
+import messages from './messages';
 
 // The SELF and INSTRUCTOR values are keys/value pairs used specifically for pacing sourced from the
 // enterprise_course_enrollments API.
@@ -33,9 +34,9 @@ export const ENROLLMENT_FAILURE_REASON_QUERY_PARAM = 'failure_reason';
 export const ENROLLMENT_COURSE_RUN_KEY_QUERY_PARAM = 'course_run_key';
 
 export const LICENSE_REQUESTED_ALERT_DISMISSED_COOKIE_NAME = 'license-requested-alert-dismissed';
-export const LICENSE_REQUESTED_ALERT_HEADING = 'Course requested';
-/* eslint-disable-next-line max-len */
-export const LICENSE_REQUESTED_ALERT_TEXT = 'Your organization\'s subscription covers all of the courses in this catalog. You have already requested access to all courses.';
+// Message descriptors; format with `intl.formatMessage` at the point of use.
+export const LICENSE_REQUESTED_ALERT_HEADING = messages.licenseRequestedAlertHeading;
+export const LICENSE_REQUESTED_ALERT_TEXT = messages.licenseRequestedAlertText;
 export const UNPAID_EXECUTIVE_EDUCATION = 'unpaid-executive-education';
 export const PAID_EXECUTIVE_EDUCATION = 'paid-executive-education';
 
@@ -59,24 +60,29 @@ export const COURSE_TYPE_PARTNER_LOGOS = {
   'executive-education-2u': GetSmarterLogo,
 };
 
+/**
+ * Maps each disabled-enrollment reason to a translatable message *descriptor*, not a
+ * string. Consumers must format these with `intl.formatMessage`; see
+ * `CourseRunCardStatus`, which does so at the render boundary.
+ */
 export const REASON_USER_MESSAGES = {
-  ORGANIZATION_NO_FUNDS: "You can't enroll right now because your organization doesn't have enough funds.",
-  ORGANIZATION_NO_FUNDS_NO_ADMINS: "You can't enroll right now because your organization doesn't have enough funds. Contact your administrator about funds.",
-  LEARNER_LIMITS_REACHED: "You can't enroll right now because of limits set by your organization.",
-  CONTENT_NOT_IN_CATALOG: "You can't enroll right now because this course is no longer available in your organization's catalog.",
-  ENTERPRISE_OFFER_EXPIRED: "You can't enroll right now because your offer expired.",
-  SUBSCRIPTION_EXPIRED: "You can't enroll right now because your subscription expired.",
-  SUBSCRIPTION_EXPIRED_NO_ADMINS: "You can't enroll right now because your subscription expired. Contact your administrator for help.",
-  SUBSCRIPTION_DEACTIVATED: "You can't enroll right now because your subscription has been deactivated.",
-  SUBSCRIPTION_DEACTIVATED_NO_ADMINS: "You can't enroll right now because your subscription has been deactivated. Contact your administrator for help.",
-  SUBSCRIPTION_SEATS_EXHAUSTED: "You can't enroll right now because your organization doesn't have enough licenses.",
-  SUBSCRIPTION_SEATS_EXHAUSTED_NO_ADMINS: "You can't enroll right now because your organization doesn't have enough licenses. Contact your administrator for help.",
-  SUBSCRIPTION_LICENSE_NOT_ASSIGNED: "You can't enroll right now because you don't have a subscription license.",
-  SUBSCRIPTION_LICENSE_NOT_ASSIGNED_NO_ADMINS: "You can't enroll right now because you don't have a subscription license. Contact your administrator for help.",
-  COUPON_CODE_NOT_ASSIGNED: "You can't enroll right now because you don't have a code.",
-  COUPON_CODE_NOT_ASSIGNED_NO_ADMINS: "You can't enroll right now because you don't have a code. Contact your administrator for help.",
-  COUPON_CODES_EXPIRED: "You can't enroll right now because your code(s) expired.",
-  COUPON_CODES_EXPIRED_NO_ADMINS: "You can't enroll right now because your code(s) expired. Contact your administrator for help.",
+  ORGANIZATION_NO_FUNDS: messages.disabledEnrollOrganizationNoFunds,
+  ORGANIZATION_NO_FUNDS_NO_ADMINS: messages.disabledEnrollOrganizationNoFundsNoAdmins,
+  LEARNER_LIMITS_REACHED: messages.disabledEnrollLearnerLimitsReached,
+  CONTENT_NOT_IN_CATALOG: messages.disabledEnrollContentNotInCatalog,
+  ENTERPRISE_OFFER_EXPIRED: messages.disabledEnrollEnterpriseOfferExpired,
+  SUBSCRIPTION_EXPIRED: messages.disabledEnrollSubscriptionExpired,
+  SUBSCRIPTION_EXPIRED_NO_ADMINS: messages.disabledEnrollSubscriptionExpiredNoAdmins,
+  SUBSCRIPTION_DEACTIVATED: messages.disabledEnrollSubscriptionDeactivated,
+  SUBSCRIPTION_DEACTIVATED_NO_ADMINS: messages.disabledEnrollSubscriptionDeactivatedNoAdmins,
+  SUBSCRIPTION_SEATS_EXHAUSTED: messages.disabledEnrollSubscriptionSeatsExhausted,
+  SUBSCRIPTION_SEATS_EXHAUSTED_NO_ADMINS: messages.disabledEnrollSubscriptionSeatsExhaustedNoAdmins,
+  SUBSCRIPTION_LICENSE_NOT_ASSIGNED: messages.disabledEnrollSubscriptionLicenseNotAssigned,
+  SUBSCRIPTION_LICENSE_NOT_ASSIGNED_NO_ADMINS: messages.disabledEnrollSubscriptionLicenseNotAssignedNoAdmins,
+  COUPON_CODE_NOT_ASSIGNED: messages.disabledEnrollCouponCodeNotAssigned,
+  COUPON_CODE_NOT_ASSIGNED_NO_ADMINS: messages.disabledEnrollCouponCodeNotAssignedNoAdmins,
+  COUPON_CODES_EXPIRED: messages.disabledEnrollCouponCodesExpired,
+  COUPON_CODES_EXPIRED_NO_ADMINS: messages.disabledEnrollCouponCodesExpiredNoAdmins,
 };
 
 export const DISABLED_ENROLL_REASON_TYPES = {

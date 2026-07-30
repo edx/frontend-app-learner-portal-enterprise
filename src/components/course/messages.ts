@@ -36,6 +36,11 @@ const messages = defineMessages({
     defaultMessage: 'You were not able to access your selected course. Please {contactHelpText} for further information.',
     description: 'Alert shown when course access failed for an unspecified reason. {contactHelpText} is a link prompting the learner to contact their administrator.',
   },
+  enroll: {
+    id: 'course.enroll.buttonLabel',
+    defaultMessage: 'Enroll',
+    description: 'Label for the button that enrolls the learner in the course run.',
+  },
 });
 
 export default messages;

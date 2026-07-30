@@ -34,9 +34,20 @@ const NewGroupAssignmentAlert = ({
         description: 'Dismiss button label for the group assignment alert',
       })}
     >
-      <Alert.Heading>You have new courses to browse</Alert.Heading>
-      <p>You can now browse new courses and enroll
-        using the Learner Credit provided by {enterpriseCustomer.name}.
+      <Alert.Heading>
+        <FormattedMessage
+          id="enterprise.dashboard.group.assignment.alert.heading"
+          defaultMessage="You have new courses to browse"
+          description="Heading of the alert telling the learner that new courses are available to them"
+        />
+      </Alert.Heading>
+      <p>
+        <FormattedMessage
+          id="enterprise.dashboard.group.assignment.alert.body"
+          defaultMessage="You can now browse new courses and enroll using the Learner Credit provided by {enterpriseName}."
+          description="Body of the alert telling the learner that new courses are available. {enterpriseName} is the name of their organization."
+          values={{ enterpriseName: enterpriseCustomer.name }}
+        />
       </p>
     </Alert>
   );

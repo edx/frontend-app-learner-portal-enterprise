@@ -1,8 +1,10 @@
 import { screen, render } from '@testing-library/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 import '@testing-library/jest-dom/extend-expect';
 
 import CourseRunCardStatus from '../CourseRunCardStatus';
 
+import { DISABLED_ENROLL_REASON_TYPES, DISABLED_ENROLL_USER_MESSAGES } from '../../data/constants';
 import {
   useSubscriptions,
 } from '../../../app/data';
@@ -16,6 +18,12 @@ const baseProps = {
   missingUserSubsidyReason: undefined,
   isUserEnrolled: false,
 };
+
+const renderCourseRunCardStatus = (props) => render(
+  <IntlProvider locale="en">
+    <CourseRunCardStatus {...props} />
+  </IntlProvider>,
+);
 
 const mockActionTestId = 'fake-action-button';
 const mockMissingUserSubsidyReason = {
@@ -38,7 +46,7 @@ describe('<CourseRunCardStatus />', () => {
     });
   });
   test('does not render if there is no missing subsidy reason', () => {
-    const { container } = render(<CourseRunCardStatus />);
+    const { container } = renderCourseRunCardStatus();
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -48,7 +56,7 @@ describe('<CourseRunCardStatus />', () => {
       missingUserSubsidyReason: mockMissingUserSubsidyReason,
       isUserEnrolled: true,
     };
-    const { container } = render(<CourseRunCardStatus {...props} />);
+    const { container } = renderCourseRunCardStatus(props);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -57,8 +65,24 @@ describe('<CourseRunCardStatus />', () => {
       ...baseProps,
       missingUserSubsidyReason: mockMissingUserSubsidyReason,
     };
-    render(<CourseRunCardStatus {...props} />);
+    renderCourseRunCardStatus(props);
     expect(screen.getByText(mockMissingUserSubsidyReason.userMessage)).toBeInTheDocument();
+    expect(screen.getByTestId(mockActionTestId)).toBeInTheDocument();
+  });
+
+  test('formats the message when the user message is a message descriptor', () => {
+    const messageDescriptor = DISABLED_ENROLL_USER_MESSAGES[
+      DISABLED_ENROLL_REASON_TYPES.LEARNER_MAX_SPEND_REACHED
+    ];
+    const props = {
+      ...baseProps,
+      missingUserSubsidyReason: {
+        ...mockMissingUserSubsidyReason,
+        userMessage: messageDescriptor,
+      },
+    };
+    renderCourseRunCardStatus(props);
+    expect(screen.getByText(messageDescriptor.defaultMessage)).toBeInTheDocument();
     expect(screen.getByTestId(mockActionTestId)).toBeInTheDocument();
   });
 
@@ -68,7 +92,7 @@ describe('<CourseRunCardStatus />', () => {
       missingUserSubsidyReason: mockMissingUserSubsidyReason,
       userCanRequestSubsidyForCourse: true,
     };
-    render(<CourseRunCardStatus {...props} />);
+    renderCourseRunCardStatus(props);
     expect(screen.queryByText(mockMissingUserSubsidyReason.userMessage)).not.toBeInTheDocument();
     expect(screen.queryByTestId(mockActionTestId)).not.toBeInTheDocument();
   });
@@ -85,7 +109,7 @@ describe('<CourseRunCardStatus />', () => {
         },
       },
     });
-    render(<CourseRunCardStatus {...props} />);
+    renderCourseRunCardStatus(props);
     expect(screen.getByTestId('custom-license-expiration-message-id')).toBeInTheDocument();
   });
 });

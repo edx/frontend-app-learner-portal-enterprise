@@ -1,6 +1,7 @@
 import { Stack, Button } from '@openedx/paragon';
 
 import { useContext } from 'react';
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import StatefulEnroll from '../../../../stateful-enroll';
 import ToExecutiveEducation2UEnrollment from '../../../enrollment/components/ToExecutiveEducation2UEnrollment';
 import { NavigateToCourseware } from '../../course-run-actions';
@@ -14,6 +15,7 @@ import {
   useUserHasLearnerCreditRequestForCourse,
   useUserHasSubsidyRequestForCourse,
 } from '../../../data';
+import messages from '../../../messages';
 
 /**
  * Checks whether the user's existing enrollment should be upgraded based on its mode and whether
@@ -106,7 +108,11 @@ const useCourseRunCardAction = ({
   }
 
   if (!userSubsidyApplicableToCourse) {
-    return <Button data-testid="disabled-enroll-missing-subsidy-access-policy" disabled block>Enroll</Button>;
+    return (
+      <Button data-testid="disabled-enroll-missing-subsidy-access-policy" disabled block>
+        <FormattedMessage {...messages.enroll} />
+      </Button>
+    );
   }
 
   if (externalCourseEnrollmentUrl) {

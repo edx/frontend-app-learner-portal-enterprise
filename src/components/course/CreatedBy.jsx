@@ -1,6 +1,7 @@
 import { getConfig } from '@edx/frontend-platform';
 import { Hyperlink, Image } from '@openedx/paragon';
 
+import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { useCoursePartners } from './data/hooks';
 import { useCourseMetadata } from '../app/data';
 
@@ -17,7 +18,13 @@ const CreatedBy = () => {
 
   return (
     <div className="mb-5">
-      <h3>Meet your instructors</h3>
+      <h3>
+        <FormattedMessage
+          id="enterprise.course.about.page.createdBy.heading"
+          defaultMessage="Meet your instructors"
+          description="Heading of the section listing the course's partner institutions and instructors."
+        />
+      </h3>
       {partners.length > 0 && (
         <div className="row no-gutters mt-3">
           {partners.map(partner => (
