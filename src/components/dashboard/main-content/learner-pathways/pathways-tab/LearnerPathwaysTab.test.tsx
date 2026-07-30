@@ -584,7 +584,7 @@ describe('LearnerPathwaysTab', () => {
       await user.click(screen.getByTestId('career-build-pathway-button'));
       expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
 
-      await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+      await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
       await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
 
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
@@ -623,7 +623,7 @@ describe('LearnerPathwaysTab', () => {
       await fillIntake(user);
       await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
       await user.click(screen.getByTestId('career-build-pathway-button'));
-      await user.click(screen.getByRole('link', { name: 'Profile' }));
+      await user.click(screen.getByRole('link', { name: 'Career profile' }));
 
       expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
         mockEnterpriseCustomer.uuid,

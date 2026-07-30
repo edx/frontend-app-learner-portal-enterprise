@@ -156,7 +156,7 @@ describe('Learner Pathways analytics — schema and privacy', () => {
     await user.click(screen.getByRole('link', { name: /View Course/ }));
 
     // Retake, to also capture QUIZ_RETAKEN and the reset control-interaction pair.
-    await user.click(screen.getByRole('link', { name: 'Onboarding Quiz' }));
+    await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
     await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
 
     const { calls } = (sendEnterpriseTrackEvent as jest.Mock).mock;
