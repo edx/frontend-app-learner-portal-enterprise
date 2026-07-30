@@ -1,13 +1,9 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { courseRetrievalService } from './courseRetrieval';
+import * as catalogSkillTranslation from './catalogSkillTranslation';
 import type { CourseSearchOptions } from '../types';
 
-const catalogScope = {
-  searchCatalogs: ['cat1'],
-  catalogUuidsToCatalogQueryUuids: { cat1: 'q1' },
-};
-
-const BASE_SCOPE_FILTERS = 'content_type:course AND (enterprise_catalog_query_uuids:q1)';
+const BASE_SCOPE_FACET_FILTERS = ['content_type:course'];
 
 const facetResponse = (skillNames: string[] = ['SQL', 'Excel']) => ({
   facets: {
@@ -23,7 +19,6 @@ const buildOptions = (overrides: Partial<CourseSearchOptions> = {}): CourseSearc
     skillsRequired: ['SQL'],
     skillsPreferred: [],
   },
-  catalogScope,
   ...overrides,
 });
 
@@ -54,12 +49,12 @@ describe('courseRetrievalService.searchCourses', () => {
       expect(step1Args[0]).toBe('sql');
       expect(step1Args[1]).toEqual({
         hitsPerPage: 10,
-        filters: `${BASE_SCOPE_FILTERS} AND (skill_names:"SQL")`,
-        optionalFilters: ['skill_names:"Excel"'],
+        facetFilters: [...BASE_SCOPE_FACET_FILTERS, ['skill_names:SQL']],
+        optionalFilters: ['skill_names:Excel'],
       });
     });
 
-    it('escapes an embedded quote in a strict skill name before building the OR-group filter', async () => {
+    it('does not quote or escape a multi-word/special-character strict skill name in the facetFilters group', async () => {
       const index = buildIndex([
         facetResponse(['Data "Wrangling"']),
         searchResponse([course('c1'), course('c2'), course('c3')]),
@@ -73,11 +68,14 @@ describe('courseRetrievalService.searchCourses', () => {
 
       const [, step1Args] = (index.search as jest.Mock).mock.calls;
       expect(step1Args[1]).toEqual(expect.objectContaining({
-        filters: `${BASE_SCOPE_FILTERS} AND (skill_names:"Data \\"Wrangling\\"")`,
+        facetFilters: [...BASE_SCOPE_FACET_FILTERS, ['skill_names:Data "Wrangling"']],
       }));
     });
 
-    it('is skipped entirely (no request) when neither strict nor boost skills ground to anything', async () => {
+    it('still runs using the career-title query and base scope alone when no skills ground to anything', async () => {
+      // No strict/boost signals ground at all, but `translation.query` falls back to the
+      // (non-empty) career title — so Step 1 legitimately runs on the query alone, with
+      // no strict facet group and no optionalFilters.
       const index = buildIndex([
         facetResponse([]),
         searchResponse([course('c1'), course('c2'), course('c3')]),
@@ -92,9 +90,43 @@ describe('courseRetrievalService.searchCourses', () => {
       expect(result.map((c) => c.courseKey)).toEqual(['c1', 'c2', 'c3']);
       expect(index.search).toHaveBeenCalledTimes(2);
 
+      const [, step1Args] = (index.search as jest.Mock).mock.calls;
+      expect(step1Args[0]).toBe('Data Analyst');
+      expect(step1Args[1]).toEqual({ hitsPerPage: 10, facetFilters: BASE_SCOPE_FACET_FILTERS });
+    });
+
+    it('skips Step 1 entirely when the query is empty and only boost (optional) skills exist, advancing to Step 2', async () => {
+      // The real classification pipeline's fallback-promotion always moves at least one
+      // boost skill to strict whenever zero strict skills survive grounding, so this exact
+      // "boost-only, no strict, empty query" state can't be produced through a realistic
+      // CourseSearchOptions/facet-snapshot combination — it's stubbed directly here to
+      // exercise the guard itself, per the required regression coverage for this case.
+      const translateSpy = jest.spyOn(catalogSkillTranslation, 'translateSkillsToCatalog').mockReturnValue({
+        query: '',
+        queryAlternates: ['Data Analyst'],
+        strictSkillFilters: [],
+        boostSkillFilters: [{ catalogSkill: 'Excel', catalogField: 'skill_names' }],
+      });
+
+      const index = buildIndex([
+        facetResponse(),
+        searchResponse([course('c1'), course('c2'), course('c3')]),
+      ]);
+
+      const result = await courseRetrievalService.searchCourses(index, buildOptions());
+
+      expect(result.map((c) => c.courseKey)).toEqual(['c1', 'c2', 'c3']);
+      expect(index.search).toHaveBeenCalledTimes(2);
+
       const [, step2Args] = (index.search as jest.Mock).mock.calls;
-      expect(step2Args[0]).toBe('Data Analyst');
-      expect(step2Args[1]).toEqual({ hitsPerPage: 10, filters: BASE_SCOPE_FILTERS });
+      expect(step2Args[0]).toBe('');
+      expect(step2Args[1]).toEqual({
+        hitsPerPage: 10,
+        facetFilters: BASE_SCOPE_FACET_FILTERS,
+        optionalFilters: ['skill_names:Excel'],
+      });
+
+      translateSpy.mockRestore();
     });
   });
 
@@ -115,8 +147,8 @@ describe('courseRetrievalService.searchCourses', () => {
       expect(step2Args[0]).toBe('sql');
       expect(step2Args[1]).toEqual({
         hitsPerPage: 10,
-        filters: BASE_SCOPE_FILTERS,
-        optionalFilters: ['skill_names:"Excel"'],
+        facetFilters: BASE_SCOPE_FACET_FILTERS,
+        optionalFilters: ['skill_names:Excel'],
       });
     });
   });
@@ -138,9 +170,9 @@ describe('courseRetrievalService.searchCourses', () => {
 
       const { calls } = (index.search as jest.Mock).mock;
       expect(calls[3][0]).toBe('sql');
-      expect(calls[3][1]).toEqual({ hitsPerPage: 10, filters: BASE_SCOPE_FILTERS });
+      expect(calls[3][1]).toEqual({ hitsPerPage: 10, facetFilters: BASE_SCOPE_FACET_FILTERS });
       expect(calls[4][0]).toBe('Data Analyst');
-      expect(calls[4][1]).toEqual({ hitsPerPage: 10, filters: BASE_SCOPE_FILTERS });
+      expect(calls[4][1]).toEqual({ hitsPerPage: 10, facetFilters: BASE_SCOPE_FACET_FILTERS });
     });
 
     it('returns [] when the ladder is exhausted, issuing no further request beyond query + alternates', async () => {

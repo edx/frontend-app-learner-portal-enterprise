@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
+import type { SearchIndex } from 'algoliasearch/lite';
 
+import { useAlgoliaSearch } from '../../../../../app/data/hooks';
 import { usePathwaysStore } from '../state';
+import { getDebugCourseAlgoliaIndexOverride } from '../services';
 import {
   generatePathwayWorkflow,
   generateProfileWorkflow,
@@ -12,9 +15,14 @@ jest.mock('../workflows', () => ({
   generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
 
+const mockSentinelIndex = { search: jest.fn() };
+
 jest.mock('../../../../../app/data/hooks', () => ({
-  useSearchCatalogs: jest.fn(() => ['cat-1']),
-  useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
+  useAlgoliaSearch: jest.fn(() => ({ searchIndex: mockSentinelIndex })),
+}));
+
+jest.mock('../services', () => ({
+  getDebugCourseAlgoliaIndexOverride: jest.fn(() => null),
 }));
 
 const stubLearnerIntent = {
@@ -60,7 +68,7 @@ describe('usePathwaysController', () => {
     expect(generateProfileWorkflow).toHaveBeenCalledWith(stubLearnerIntent);
   });
 
-  it('delegates pathway generation to the workflow with the explicit request, selected career, and resolved catalog scope', async () => {
+  it('delegates pathway generation to the workflow with the explicit request, selected career, and secured course index', async () => {
     const { result } = renderHook(() => usePathwaysController());
 
     await act(async () => {
@@ -71,11 +79,34 @@ describe('usePathwaysController', () => {
     expect(generatePathwayWorkflow).toHaveBeenCalledWith({
       request: stubRequest,
       selectedCareer: stubSelectedCareer,
-      catalogScope: {
-        searchCatalogs: ['cat-1'],
-        catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
-      },
+      index: mockSentinelIndex,
     });
+  });
+
+  it('prefers the debug stage-override index over the secured index when it is active', async () => {
+    const mockDebugIndex = { search: jest.fn() } as unknown as SearchIndex;
+    jest.mocked(getDebugCourseAlgoliaIndexOverride).mockReturnValueOnce(mockDebugIndex);
+    const { result } = renderHook(() => usePathwaysController());
+
+    await act(async () => {
+      await result.current.generatePathway(stubRequest, stubSelectedCareer);
+    });
+
+    expect(generatePathwayWorkflow).toHaveBeenCalledWith({
+      request: stubRequest,
+      selectedCareer: stubSelectedCareer,
+      index: mockDebugIndex,
+    });
+  });
+
+  it('throws without calling the workflow when the secured Algolia course index is unavailable', async () => {
+    jest.mocked(useAlgoliaSearch).mockReturnValueOnce({ searchIndex: null } as ReturnType<typeof useAlgoliaSearch>);
+    const { result } = renderHook(() => usePathwaysController());
+
+    expect(() => result.current.generatePathway(stubRequest, stubSelectedCareer)).toThrow(
+      'Course Algolia search index is unavailable; cannot generate a pathway.',
+    );
+    expect(generatePathwayWorkflow).not.toHaveBeenCalled();
   });
 
   it('is a pure delegate for pathway generation: a workflow rejection propagates untouched with no store side effect', async () => {

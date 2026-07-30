@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useAlgoliaSearch, useSearchCatalogs } from '../../../../../app/data/hooks';
+import { useAlgoliaSearch } from '../../../../../app/data/hooks';
 import { usePathwaysStore } from '../state';
 import type { CareerMatch, LearnerIntent, PathwayGenerationRequest } from '../state';
+import { getDebugCourseAlgoliaIndexOverride } from '../services';
 import {
   generatePathwayWorkflow,
   generateProfileWorkflow,
@@ -20,9 +20,14 @@ import type { GenerateProfileWorkflowResult, GeneratePathwayWorkflowResult } fro
  * - Services (future) integrate with external systems.
  *
  * This is the one place infrastructure dependencies that require React hooks
- * (`useSearchCatalogs`, `useAlgoliaSearch`) are resolved for pathway generation — the
- * workflow itself stays hook-free, so any future second caller of `generatePathway`
- * gets the same catalog-scope resolution without duplicating these hook calls itself.
+ * (`useAlgoliaSearch`) are resolved for pathway generation — the workflow itself stays
+ * hook-free, so any future second caller of `generatePathway` gets the same index
+ * resolution without duplicating this hook call itself. Catalog scoping is enforced
+ * server-side by the secured Algolia API key `useAlgoliaSearch` resolves, so there's no
+ * separate catalog-scope value to resolve or pass through here anymore — except for the
+ * explicit `?debug=true` stage-override escape hatch (`getDebugCourseAlgoliaIndexOverride`),
+ * which `generatePathway` checks fresh on every call and prefers over the hook-resolved
+ * index whenever it's active.
  */
 export const usePathwaysController = () => {
   const {
@@ -33,12 +38,7 @@ export const usePathwaysController = () => {
     resetPathwaysState: state.resetPathwaysState,
   })));
 
-  const searchCatalogs = useSearchCatalogs();
-  const { catalogUuidsToCatalogQueryUuids } = useAlgoliaSearch();
-  const catalogScope = useMemo(() => ({
-    searchCatalogs,
-    catalogUuidsToCatalogQueryUuids,
-  }), [searchCatalogs, catalogUuidsToCatalogQueryUuids]);
+  const { searchIndex } = useAlgoliaSearch();
 
   const startOnboarding = () => {
     // Minimal state transition only; workflow orchestration is intentionally deferred.
@@ -52,7 +52,13 @@ export const usePathwaysController = () => {
   const generatePathway = (
     request: PathwayGenerationRequest,
     selectedCareer: CareerMatch,
-  ): Promise<GeneratePathwayWorkflowResult> => generatePathwayWorkflow({ request, selectedCareer, catalogScope });
+  ): Promise<GeneratePathwayWorkflowResult> => {
+    const index = getDebugCourseAlgoliaIndexOverride() ?? searchIndex;
+    if (!index) {
+      throw new Error('Course Algolia search index is unavailable; cannot generate a pathway.');
+    }
+    return generatePathwayWorkflow({ request, selectedCareer, index });
+  };
 
   const resetPathway = () => {
     resetPathwaysState();

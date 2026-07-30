@@ -1,4 +1,4 @@
-import { isMalformedCompound, normalizeString, quoteFacetValue } from './algoliaStrings';
+import { isMalformedCompound, normalizeString } from './algoliaStrings';
 
 describe('normalizeString', () => {
   it('trims whitespace', () => {
@@ -26,15 +26,5 @@ describe('isMalformedCompound', () => {
 
   it('does not flag a plain skill name', () => {
     expect(isMalformedCompound('SQL')).toBe(false);
-  });
-});
-
-describe('quoteFacetValue', () => {
-  it('wraps the value in double quotes', () => {
-    expect(quoteFacetValue('SQL')).toBe('"SQL"');
-  });
-
-  it('escapes embedded double quotes', () => {
-    expect(quoteFacetValue('12" Monitor')).toBe('"12\\" Monitor"');
   });
 });

@@ -2,10 +2,10 @@ export type {
   CareerSearchIntent,
   CareerSearchLearnerLevel,
   CareerSearchTimeCommitment,
+  CareerFacetSnapshot,
 } from './careerRetrieval';
 
 export type {
-  CourseRetrievalCatalogScope,
   CourseSearchSelectedCareer,
   CourseSearchIntentSignal,
   CourseSearchOptions,

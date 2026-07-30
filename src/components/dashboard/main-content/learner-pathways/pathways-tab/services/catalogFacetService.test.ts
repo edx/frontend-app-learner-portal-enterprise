@@ -1,40 +1,23 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { catalogFacetService } from './catalogFacetService';
-import type { CourseRetrievalCatalogScope } from '../types';
 
 const buildIndex = (searchResponse: unknown): SearchIndex => ({
   search: jest.fn().mockResolvedValue(searchResponse),
 } as unknown as SearchIndex);
 
-const catalogScope: CourseRetrievalCatalogScope = {
-  searchCatalogs: ['cat-1', 'cat-2'],
-  catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1', 'cat-2': 'query-2' },
-};
-
 describe('catalogFacetService.getFacetSnapshot', () => {
-  it('issues a zero-hit query with the exact facet-snapshot params, scoped to courses and the catalog', async () => {
+  it('issues a zero-hit query with the exact facet-snapshot params, scoped to course content only', async () => {
     const index = buildIndex({ facets: {} });
 
-    await catalogFacetService.getFacetSnapshot(index, catalogScope);
+    await catalogFacetService.getFacetSnapshot(index);
 
     expect(index.search).toHaveBeenCalledTimes(1);
     expect(index.search).toHaveBeenCalledWith('', {
       facets: ['*'],
       hitsPerPage: 0,
       maxValuesPerFacet: 1000,
-      filters: 'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2)',
-    });
-  });
-
-  it('omits the catalog clause when no search catalogs are resolvable, keeping only the content-type scope', async () => {
-    const index = buildIndex({ facets: {} });
-    const emptyScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
-
-    await catalogFacetService.getFacetSnapshot(index, emptyScope);
-
-    expect(index.search).toHaveBeenCalledWith('', expect.objectContaining({
       filters: 'content_type:course',
-    }));
+    });
   });
 
   it('reads out all three facet groups from a fully-populated response', async () => {
@@ -46,7 +29,7 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       },
     });
 
-    const snapshot = await catalogFacetService.getFacetSnapshot(index, catalogScope);
+    const snapshot = await catalogFacetService.getFacetSnapshot(index);
 
     expect(snapshot).toEqual({
       skill_names: ['SQL', 'Python'],
@@ -58,7 +41,7 @@ describe('catalogFacetService.getFacetSnapshot', () => {
   it('normalizes every group to an empty array when facets is entirely absent from the response', async () => {
     const index = buildIndex({});
 
-    const snapshot = await catalogFacetService.getFacetSnapshot(index, catalogScope);
+    const snapshot = await catalogFacetService.getFacetSnapshot(index);
 
     expect(snapshot).toEqual({
       skill_names: [],
@@ -74,7 +57,7 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       },
     });
 
-    const snapshot = await catalogFacetService.getFacetSnapshot(index, catalogScope);
+    const snapshot = await catalogFacetService.getFacetSnapshot(index);
 
     expect(snapshot).toEqual({
       skill_names: ['SQL'],
@@ -87,6 +70,6 @@ describe('catalogFacetService.getFacetSnapshot', () => {
     const searchError = new Error('Algolia service unavailable');
     const index: SearchIndex = { search: jest.fn().mockRejectedValue(searchError) } as unknown as SearchIndex;
 
-    await expect(catalogFacetService.getFacetSnapshot(index, catalogScope)).rejects.toThrow(searchError);
+    await expect(catalogFacetService.getFacetSnapshot(index)).rejects.toThrow(searchError);
   });
 });

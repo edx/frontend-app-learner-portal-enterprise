@@ -3,8 +3,7 @@ import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
 import { catalogFacetService } from './catalogFacetService';
 import { translateSkillsToCatalog } from './catalogSkillTranslation';
 import type { CatalogSkillMatch } from './catalogSkillTranslation';
-import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
-import { normalizeString, quoteFacetValue } from './algoliaStrings';
+import { normalizeString } from './algoliaStrings';
 import type { PathwayCourse } from '../state';
 import type { CareerSearchLearnerLevel, CourseSearchOptions } from '../types';
 
@@ -14,6 +13,14 @@ const COURSE_RETRIEVAL_LIMIT = 10;
 const MIN_VALID_COURSE_RESULTS = 3;
 /** Maximum number of courses returned after reranking. */
 const MAX_COURSE_RECOMMENDATIONS = 5;
+
+/**
+ * Fixed scope constraint for every ladder search: course content only. Catalog/tenant
+ * scoping is no longer built here — it's enforced server-side by the secured Algolia API
+ * key the injected `index` is resolved with (see `usePathwaysController`), so this never
+ * varies per call and needs no per-call construction.
+ */
+const BASE_SCOPE_FACET_FILTERS = [AlgoliaFilterBuilder.facetEntry('content_type', 'course')];
 
 /** Learner-level rank used for the rerank level-compatibility bonus. */
 const LEVEL_RANK: Record<string, number> = {
@@ -36,23 +43,23 @@ interface CourseHit {
 }
 
 /**
- * Builds the strict skills OR-group manually: a matched group can span two different
- * catalog fields (`skill_names`/`skills.name`), which `AlgoliaFilterBuilder.or()` alone
- * can't mix in one call since it's scoped to a single attribute.
+ * Builds the strict skills OR-group as a `facetFilters` nested group: a matched group
+ * can span two different catalog fields (`skill_names`/`skills.name`), which is why
+ * this maps each match independently rather than using a single-attribute helper.
  */
-const buildStrictOrGroup = (strictSkillFilters: CatalogSkillMatch[]): string | undefined => {
-  if (!strictSkillFilters.length) {
-    return undefined;
-  }
-  const clause = strictSkillFilters
-    .map(({ catalogField, catalogSkill }) => `${catalogField}:${quoteFacetValue(catalogSkill)}`)
-    .join(' OR ');
-  return `(${clause})`;
-};
+const buildStrictFacetGroup = (strictSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
+  strictSkillFilters.length
+    ? strictSkillFilters.map(
+      ({ catalogField, catalogSkill }) => AlgoliaFilterBuilder.facetEntry(catalogField, catalogSkill),
+    )
+    : undefined
+);
 
 const buildBoostOptionalFilters = (boostSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
   boostSkillFilters.length
-    ? boostSkillFilters.map(({ catalogField, catalogSkill }) => `${catalogField}:${quoteFacetValue(catalogSkill)}`)
+    ? boostSkillFilters.map(
+      ({ catalogField, catalogSkill }) => AlgoliaFilterBuilder.facetEntry(catalogField, catalogSkill),
+    )
     : undefined
 );
 
@@ -180,36 +187,45 @@ export const courseRetrievalService = {
    * Executes the retrieval ladder and returns the winning, reranked course set.
    *
    * Ladder:
-   * 1. **Hybrid Broad** — skipped entirely (no request) when neither strict nor boost
-   *    skill filters exist. Otherwise: query, base scope AND'd with a strict-skills
-   *    OR-group, boost `optionalFilters`.
+   * 1. **Hybrid Broad** — skipped when there's no real query *and* no strict skill
+   *    group (boost skills alone are never enough to run this step — see below).
+   *    Otherwise: query, base scope `facetFilters` plus a nested strict-skills OR-group,
+   *    boost `optionalFilters`.
    * 2. **Boosted Text** — only if Step 1 didn't reach `MIN_VALID_COURSE_RESULTS`. Query,
-   *    base scope only (no strict clause), boost `optionalFilters` only.
+   *    base scope `facetFilters` only (no strict group), boost `optionalFilters` only.
    * 3. **Career Text** — only if Step 2 didn't reach the threshold. Iterates
-   *    `[query, ...queryAlternates]` sequentially, base scope only, no skill filters,
-   *    stopping at the first sufficient result.
+   *    `[query, ...queryAlternates]` sequentially, base scope `facetFilters` only, no
+   *    skill filters, stopping at the first sufficient result.
+   *
+   * Step 1 requires a real query *or* a real strict skill group before it runs — an
+   * empty query with only boost (optional) skills is never enough on its own, since
+   * every in-scope course would be eligible with nothing actually filtering it out.
+   * When Step 1 is skipped or insufficient, execution falls through to Step 2 exactly
+   * as it already does for any other insufficient step.
    *
    * "Sufficient" is evaluated on the valid, mapped, deduplicated course count for that
    * step — not the raw hit count. Errors propagate uncaught.
    *
-   * @param index The configured Algolia `SearchIndex` for the course catalog.
-   * @param options Selected career, normalized search intent, and resolved catalog scope.
+   * @param index The configured, secured (catalog-scoped) Algolia `SearchIndex` for the
+   * course catalog.
+   * @param options Selected career and normalized search intent.
    * @returns The winning step's reranked `PathwayCourse[]`, or `[]` if the ladder is exhausted.
    */
   async searchCourses(index: SearchIndex, options: CourseSearchOptions): Promise<PathwayCourse[]> {
-    const facetSnapshot = await catalogFacetService.getFacetSnapshot(index, options.catalogScope);
+    const facetSnapshot = await catalogFacetService.getFacetSnapshot(index);
     const translation = translateSkillsToCatalog(options, facetSnapshot);
-    const baseScopeFilters = buildCourseCatalogScopeFilters(options.catalogScope);
     const { learnerLevel } = options.intent;
 
-    if (translation.strictSkillFilters.length || translation.boostSkillFilters.length) {
-      const strictOrGroup = buildStrictOrGroup(translation.strictSkillFilters);
-      const filters = strictOrGroup
-        ? new AlgoliaFilterBuilder().andRaw(baseScopeFilters).andRaw(strictOrGroup).build()
-        : baseScopeFilters;
+    const strictFacetGroup = buildStrictFacetGroup(translation.strictSkillFilters);
+    const shouldAttemptHybridBroad = Boolean(translation.query) || Boolean(strictFacetGroup);
+
+    if (shouldAttemptHybridBroad) {
+      const facetFilters = strictFacetGroup
+        ? [...BASE_SCOPE_FACET_FILTERS, strictFacetGroup]
+        : BASE_SCOPE_FACET_FILTERS;
       const optionalFilters = buildBoostOptionalFilters(translation.boostSkillFilters);
 
-      const searchParams: Record<string, unknown> = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, filters };
+      const searchParams: Record<string, unknown> = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, facetFilters };
       if (optionalFilters) {
         searchParams.optionalFilters = optionalFilters;
       }
@@ -223,7 +239,10 @@ export const courseRetrievalService = {
 
     {
       const optionalFilters = buildBoostOptionalFilters(translation.boostSkillFilters);
-      const searchParams: Record<string, unknown> = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, filters: baseScopeFilters };
+      const searchParams: Record<string, unknown> = {
+        hitsPerPage: COURSE_RETRIEVAL_LIMIT,
+        facetFilters: BASE_SCOPE_FACET_FILTERS,
+      };
       if (optionalFilters) {
         searchParams.optionalFilters = optionalFilters;
       }
@@ -238,7 +257,7 @@ export const courseRetrievalService = {
     const queries = [translation.query, ...translation.queryAlternates].filter(Boolean);
     for (let i = 0; i < queries.length; i += 1) {
       const query = queries[i];
-      const searchParams = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, filters: baseScopeFilters };
+      const searchParams = { hitsPerPage: COURSE_RETRIEVAL_LIMIT, facetFilters: BASE_SCOPE_FACET_FILTERS };
       // eslint-disable-next-line no-await-in-loop
       const response = await index.search<CourseHit>(query, searchParams);
       const mappedHits = mapAndDedupeHits(response.hits);

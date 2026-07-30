@@ -46,6 +46,12 @@ const mockEnrollments = (enterpriseCourseEnrollments: unknown[]) => {
   });
 };
 
+const mockEnrollments = (enterpriseCourseEnrollments: unknown[]) => {
+  (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
+    data: { enterpriseCourseEnrollments, allEnrollmentsByStatus: {} },
+  });
+};
+
 const renderComponent = (props = {}) => render(
   <QueryClientProvider client={queryClient()}>
     <MemoryRouter>

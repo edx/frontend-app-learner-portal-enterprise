@@ -1,5 +1,5 @@
 import { fetchRecommendationFeedback } from '../../../../../app/data/services/xpert';
-import { courseRetrievalService, getCourseAlgoliaIndex } from '../services';
+import { courseRetrievalService } from '../services';
 import { normalizeSkillsList } from '../state';
 import type { CareerMatch, PathwayCourse, PathwayGenerationRequest } from '../state';
 import type { CourseSearchIntentSignal, CourseSearchSelectedCareer } from '../types';
@@ -46,20 +46,16 @@ const buildCourseSearchIntent = (request: PathwayGenerationRequest): CourseSearc
  * before Recommendation Feedback is ever called, and a Recommendation Feedback rejection
  * propagates rather than falling back to unenriched courses.
  *
- * `catalogScope` is supplied by the composition layer (`usePathwaysController`, which
- * resolves it via React hooks) since this workflow must stay hook-free; the course
- * catalog index itself is resolved directly here via the non-hook `getCourseAlgoliaIndex`,
- * exactly like `generateProfileWorkflow` resolves the career/taxonomy index.
+ * `index` — the secured, catalog-scoped Algolia course index — is supplied by the
+ * composition layer (`usePathwaysController`, which resolves it via `useAlgoliaSearch`)
+ * since this workflow must stay hook-free.
  */
 export const generatePathwayWorkflow = async (
-  { request, selectedCareer, catalogScope }: GeneratePathwayWorkflowInput,
+  { request, selectedCareer, index }: GeneratePathwayWorkflowInput,
 ): Promise<GeneratePathwayWorkflowResult> => {
-  const index = getCourseAlgoliaIndex();
-
   const courses = await courseRetrievalService.searchCourses(index, {
     selectedCareer: buildCourseSearchCareer(selectedCareer, request),
     intent: buildCourseSearchIntent(request),
-    catalogScope,
   });
 
   if (courses.length === 0) {

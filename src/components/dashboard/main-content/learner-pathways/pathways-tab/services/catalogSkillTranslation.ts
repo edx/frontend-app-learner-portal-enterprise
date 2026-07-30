@@ -12,11 +12,9 @@ const FALLBACK_PROMOTION_LIMIT = 2;
 /** Maximum number of query terms drawn from required skills / strict catalog skills. */
 const MAX_QUERY_TERMS = 3;
 
-type CatalogSkillField = 'skill_names' | 'skills.name';
-
 export interface CatalogSkillMatch {
   catalogSkill: string;
-  catalogField: CatalogSkillField;
+  catalogField: string;
 }
 
 export interface CatalogTranslation {
@@ -26,16 +24,38 @@ export interface CatalogTranslation {
   boostSkillFilters: CatalogSkillMatch[];
 }
 
-type SkillTier = 'strict' | 'boost';
+export type SkillTier = 'strict' | 'boost';
 
-interface SkillSignal {
+export interface SkillSignal {
   name: string;
   tier: SkillTier;
-  /** Dedup priority: required(0) > preferred(1) > career(2) — lower wins. */
+  /** Dedup priority: lower wins on a collision (e.g. required(0) > preferred(1) > career(2)). */
   priority: number;
 }
 
-const normalizeCatalogTerm = (value: string): string => value.trim().toLowerCase();
+export const normalizeCatalogTerm = (value: string): string => value.trim().toLowerCase();
+
+/**
+ * Dedupes a candidate skill signal list by normalized name, keeping the highest-priority
+ * (lowest `priority` number) source on a collision, and dropping blank/malformed-compound
+ * names. Shared by every caller that builds its own signal list (course's three sources,
+ * career's two) so the dedup rule stays identical across both.
+ */
+export const dedupeSkillSignals = (candidates: SkillSignal[]): SkillSignal[] => {
+  const deduped = new Map<string, SkillSignal>();
+  candidates.forEach((signal) => {
+    if (!signal.name || isMalformedCompound(signal.name)) {
+      return;
+    }
+    const key = normalizeCatalogTerm(signal.name);
+    const existing = deduped.get(key);
+    if (!existing || signal.priority < existing.priority) {
+      deduped.set(key, signal);
+    }
+  });
+
+  return Array.from(deduped.values());
+};
 
 /**
  * Builds the deduplicated skill signal list from all three sources — required skills
@@ -52,43 +72,31 @@ const buildSkillSignals = (options: CourseSearchOptions): SkillSignal[] => {
     ...(selectedCareer.skillsToDevelop ?? []).map((name) => ({ name: normalizeString(name), tier: 'boost' as const, priority: 2 })),
   ];
 
-  const deduped = new Map<string, SkillSignal>();
-  candidates.forEach((signal) => {
-    if (!signal.name || isMalformedCompound(signal.name)) {
-      return;
-    }
-    const key = normalizeCatalogTerm(signal.name);
-    const existing = deduped.get(key);
-    if (!existing || signal.priority < existing.priority) {
-      deduped.set(key, signal);
-    }
-  });
-
-  return Array.from(deduped.values());
+  return dedupeSkillSignals(candidates);
 };
 
-interface CatalogLookupEntry {
+export interface CatalogLookupEntry {
   value: string;
-  field: CatalogSkillField;
+  field: string;
 }
 
 /**
- * Builds a normalized-term -> catalog-value lookup from the facet snapshot.
- * `skill_names` takes priority over `skills.name` on a collision; `subjects` is
- * intentionally excluded — subjects are never valid filter candidates here.
+ * Builds a normalized-term -> catalog-value lookup from one or more `{field, values}`
+ * facet groups. Earlier groups take priority over later ones on a collision — e.g. course
+ * retrieval passes `skill_names` before `skills.name` to preserve that field's priority.
  */
-const buildCatalogLookup = (facetSnapshot: CatalogFacetSnapshot): Map<string, CatalogLookupEntry> => {
+export const buildLookupFromFacetGroups = (
+  facetGroups: Array<{ field: string; values: string[] }>,
+): Map<string, CatalogLookupEntry> => {
   const lookup = new Map<string, CatalogLookupEntry>();
 
-  facetSnapshot.skill_names.forEach((value) => {
-    lookup.set(normalizeCatalogTerm(value), { value, field: 'skill_names' });
-  });
-
-  facetSnapshot['skills.name'].forEach((value) => {
-    const key = normalizeCatalogTerm(value);
-    if (!lookup.has(key)) {
-      lookup.set(key, { value, field: 'skills.name' });
-    }
+  facetGroups.forEach(({ field, values }) => {
+    values.forEach((value) => {
+      const key = normalizeCatalogTerm(value);
+      if (!lookup.has(key)) {
+        lookup.set(key, { value, field });
+      }
+    });
   });
 
   return lookup;
@@ -111,6 +119,58 @@ const groundSignal = (signal: SkillSignal, lookup: Map<string, CatalogLookupEntr
   return null;
 };
 
+export interface SkillClassificationCaps {
+  maxStrict: number;
+  maxBoost: number;
+  fallbackPromotionLimit: number;
+}
+
+export interface SkillClassification {
+  strictSkillFilters: CatalogSkillMatch[];
+  boostSkillFilters: CatalogSkillMatch[];
+}
+
+/**
+ * Grounds a signal list against a catalog lookup and tiers the survivors into strict/boost
+ * groups, applying `caps` and the fallback-promotion safety net: when zero strict signals
+ * survive grounding, up to `caps.fallbackPromotionLimit` boost signals are promoted to
+ * strict instead, so a learner with only preferred/boost skills still gets a real hard
+ * constraint rather than none at all. Catalog-agnostic and caller-parameterized so both
+ * course retrieval (`translateSkillsToCatalog`) and career retrieval
+ * (`translateCareerSkillsToCatalog`) share this exact mechanism with their own caps.
+ */
+export const classifySkillSignals = (
+  signals: SkillSignal[],
+  lookup: Map<string, CatalogLookupEntry>,
+  caps: SkillClassificationCaps,
+): SkillClassification => {
+  const groundedStrict: CatalogSkillMatch[] = [];
+  const groundedBoost: CatalogSkillMatch[] = [];
+
+  signals.forEach((signal) => {
+    const match = groundSignal(signal, lookup);
+    if (!match) {
+      return;
+    }
+    (signal.tier === 'strict' ? groundedStrict : groundedBoost).push(match);
+  });
+
+  let strictSkillFilters = groundedStrict.slice(0, caps.maxStrict);
+  let boostSkillFilters: CatalogSkillMatch[];
+
+  if (strictSkillFilters.length) {
+    boostSkillFilters = groundedBoost.slice(0, caps.maxBoost);
+  } else if (groundedBoost.length) {
+    const promoted = groundedBoost.slice(0, caps.fallbackPromotionLimit);
+    strictSkillFilters = promoted;
+    boostSkillFilters = groundedBoost.slice(promoted.length, promoted.length + caps.maxBoost);
+  } else {
+    boostSkillFilters = [];
+  }
+
+  return { strictSkillFilters, boostSkillFilters };
+};
+
 /**
  * Translates a course search's skill signals (required/preferred intent skills plus the
  * selected career's development skills) into a grounded `CatalogTranslation` ready for
@@ -130,33 +190,17 @@ export const translateSkillsToCatalog = (
   const { intent, selectedCareer } = options;
 
   const signals = buildSkillSignals(options);
-  const lookup = buildCatalogLookup(facetSnapshot);
-
-  const groundedStrict: CatalogSkillMatch[] = [];
-  const groundedBoost: CatalogSkillMatch[] = [];
-
-  signals.forEach((signal) => {
-    const match = groundSignal(signal, lookup);
-    if (!match) {
-      return;
-    }
-    (signal.tier === 'strict' ? groundedStrict : groundedBoost).push(match);
-  });
+  const lookup = buildLookupFromFacetGroups([
+    { field: 'skill_names', values: facetSnapshot.skill_names },
+    { field: 'skills.name', values: facetSnapshot['skills.name'] },
+  ]);
 
   const maxStrict = intent.learnerLevel === 'introductory' ? BEGINNER_MAX_STRICT_SKILLS : MAX_STRICT_SKILLS;
-
-  let strictSkillFilters = groundedStrict.slice(0, maxStrict);
-  let boostSkillFilters: CatalogSkillMatch[];
-
-  if (strictSkillFilters.length) {
-    boostSkillFilters = groundedBoost.slice(0, MAX_BOOST_SKILLS);
-  } else if (groundedBoost.length) {
-    const promoted = groundedBoost.slice(0, FALLBACK_PROMOTION_LIMIT);
-    strictSkillFilters = promoted;
-    boostSkillFilters = groundedBoost.slice(promoted.length, promoted.length + MAX_BOOST_SKILLS);
-  } else {
-    boostSkillFilters = [];
-  }
+  const { strictSkillFilters, boostSkillFilters } = classifySkillSignals(signals, lookup, {
+    maxStrict,
+    maxBoost: MAX_BOOST_SKILLS,
+    fallbackPromotionLimit: FALLBACK_PROMOTION_LIMIT,
+  });
 
   const careerTitle = normalizeString(selectedCareer.title);
   const requiredSkills = intent.skillsRequired.map(normalizeString).filter(Boolean);

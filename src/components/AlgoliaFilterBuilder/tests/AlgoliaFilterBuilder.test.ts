@@ -111,4 +111,27 @@ describe('AlgoliaFilterBuilder', () => {
       .build();
     expect(result).toBe('');
   });
+
+  describe('facetEntry', () => {
+    it('builds a bare, unquoted attribute:value entry', () => {
+      expect(AlgoliaFilterBuilder.facetEntry('skills.name', 'SQL')).toBe('skills.name:SQL');
+    });
+
+    it('passes a multi-word value through without quoting or escaping', () => {
+      expect(AlgoliaFilterBuilder.facetEntry('skills.name', 'Performance Art')).toBe('skills.name:Performance Art');
+    });
+
+    it('escapes a value that itself starts with a leading minus', () => {
+      expect(AlgoliaFilterBuilder.facetEntry('skills.name', '-Special-Skill')).toBe('skills.name:\\-Special-Skill');
+    });
+
+    it('prefixes the whole entry with a minus for negation', () => {
+      expect(AlgoliaFilterBuilder.facetEntry('skills.name', 'PHP', { negate: true })).toBe('-skills.name:PHP');
+    });
+
+    it('escapes a leading-minus value even when negated', () => {
+      expect(AlgoliaFilterBuilder.facetEntry('skills.name', '-Special-Skill', { negate: true }))
+        .toBe('-skills.name:\\-Special-Skill');
+    });
+  });
 });

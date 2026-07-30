@@ -14,6 +14,3 @@ export const normalizeString = (value?: string | null): string => (value || '').
  * and course paths.
  */
 export const isMalformedCompound = (name: string): boolean => name.includes(' & ') || name.includes(' + ');
-
-/** Quotes and escapes a value for safe interpolation into an Algolia filter expression. */
-export const quoteFacetValue = (value: string): string => `"${value.replace(/"/g, '\\"')}"`;
