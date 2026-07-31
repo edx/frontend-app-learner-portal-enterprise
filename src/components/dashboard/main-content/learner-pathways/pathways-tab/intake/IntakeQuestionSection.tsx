@@ -14,7 +14,7 @@ const IntakeQuestionSection = ({
 }:IntakeQuestionSectionProps) => (
   <Card as="section" className="rounded">
     <Card.Section>
-      <h2 className="mb-3">{title}</h2>
+      <h3 className="h2 mb-3">{title}</h3>
       {children ?? (
         <div
           data-testid={emptyPlaceholderTestId}

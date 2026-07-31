@@ -131,6 +131,51 @@ describe('AutoExpandingTextareaField', () => {
     expect(screen.getByTestId('test-textarea')).toHaveAttribute('aria-invalid', 'true');
   });
 
+  type DescribedByCase = [string, Partial<WrapperProps>, 'none' | 'submit' | 'type', string[] | undefined];
+
+  const describedByCases: DescribedByCase[] = [
+    ['neither feedback nor counter render', {}, 'none', undefined],
+    ['only the counter renders', { maxCharacters: 300 }, 'none', ['test-field-counter']],
+    ['only feedback renders', { required: true }, 'submit', ['test-field-feedback']],
+    ['both feedback and counter render', { maxCharacters: 5 }, 'type', ['test-field-counter', 'test-field-feedback']],
+  ];
+
+  it.each(describedByCases)('sets aria-describedby to existing ids only when %s', async (_case, wrapperProps, action, expectedIds) => {
+    const user = userEvent.setup();
+    render(<Wrapper {...wrapperProps} />);
+
+    if (action === 'submit') {
+      await user.click(screen.getByRole('button', { name: 'Submit' }));
+    }
+    if (action === 'type') {
+      await user.type(screen.getByLabelText('Test label'), 'toolong');
+    }
+
+    const textarea = screen.getByTestId('test-textarea');
+    if (!expectedIds) {
+      expect(textarea).not.toHaveAttribute('aria-describedby');
+      return;
+    }
+    expect(textarea).toHaveAttribute('aria-describedby', expectedIds.join(' '));
+    expectedIds.forEach((id) => {
+      expect(document.getElementById(id)).not.toBeNull();
+    });
+  });
+
+  it('updates aria-describedby from counter-only to feedback+counter as an error appears while typing', async () => {
+    const user = userEvent.setup();
+    render(<Wrapper maxCharacters={5} />);
+    const textarea = screen.getByTestId('test-textarea');
+
+    expect(textarea).toHaveAttribute('aria-describedby', 'test-field-counter');
+
+    await user.type(textarea, 'toolong');
+
+    expect(textarea).toHaveAttribute('aria-describedby', 'test-field-counter test-field-feedback');
+    expect(document.getElementById('test-field-feedback')).not.toBeNull();
+    expect(document.getElementById('test-field-counter')).not.toBeNull();
+  });
+
   it('disables the textarea when disabled is true', () => {
     render(<Wrapper disabled />);
     expect(screen.getByLabelText('Test label')).toBeDisabled();
