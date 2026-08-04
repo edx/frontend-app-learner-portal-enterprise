@@ -1,7 +1,13 @@
 import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CourseRetrievalCatalogScope } from '../types';
+import { getSupportedLocale } from '../../../../../app/data';
 
 const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
+
+jest.mock('../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../app/data'),
+  getSupportedLocale: jest.fn(),
+}));
 
 describe('buildCourseCatalogScopeFilters', () => {
   it('always includes content_type:course', () => {
@@ -29,6 +35,14 @@ describe('buildCourseCatalogScopeFilters', () => {
 
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
       `content_type:course AND (enterprise_catalog_query_uuids:query-1) AND ${BASE_LANGUAGE_FILTER}`,
+    );
+  });
+
+  it('builds Spanish filters when getSupportedLocale returns es', () => {
+    (getSupportedLocale as jest.Mock).mockReturnValue('es');
+    const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
+    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
+      'content_type:course AND metadata_language:es AND language:Spanish',
     );
   });
 });

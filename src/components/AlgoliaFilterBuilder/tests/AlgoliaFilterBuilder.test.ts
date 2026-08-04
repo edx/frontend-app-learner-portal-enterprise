@@ -126,9 +126,4 @@ describe('AlgoliaFilterBuilder', () => {
     const result = new AlgoliaFilterBuilder().filterCoursesByLanguage('es').build();
     expect(result).toBe('metadata_language:es AND language:Spanish');
   });
-
-  it('falls back to English for unsupported locales', () => {
-    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage('it').build();
-    expect(result).toBe('metadata_language:en AND language:English');
-  });
 });

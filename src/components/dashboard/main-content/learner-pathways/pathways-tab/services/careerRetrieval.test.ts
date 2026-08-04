@@ -1,6 +1,7 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { careerRetrievalService } from './careerRetrieval';
 import type { CareerSearchIntent } from '../types';
+import { getSupportedLocale } from '../../../../../app/data';
 
 const DEFAULT_INTENT: CareerSearchIntent = {
   condensedAlgoliaQuery: '',
@@ -13,6 +14,11 @@ const DEFAULT_INTENT: CareerSearchIntent = {
   timeCommitment: 'medium',
   excludeTags: [],
 };
+
+jest.mock('../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../app/data'),
+  getSupportedLocale: jest.fn(),
+}));
 
 describe('careerRetrievalService.searchCareers', () => {
   const mockIndex = {
@@ -116,7 +122,18 @@ describe('careerRetrievalService.searchCareers', () => {
       expect(params.filters).toBe(`NOT skills.name:"PHP" AND NOT skills.name:"tag\\"2" AND ${BASE_LANGUAGE_FILTER}`);
     });
 
+    it('filters on Spanish resolved locale and language', async () => {
+      (getSupportedLocale as jest.Mock).mockReturnValue('es');
+      mockSearchResolvedValue([]);
+
+      await careerRetrievalService.searchCareers(mockIndex, DEFAULT_INTENT);
+
+      const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
+      expect(params.filters).toBe('metadata_language:es');
+    });
+
     it('omits filters except base language filter when no hard filter applies', async () => {
+      (getSupportedLocale as jest.Mock).mockReturnValue('en');
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, DEFAULT_INTENT);
@@ -291,6 +308,7 @@ describe('careerRetrievalService.searchCareers', () => {
     });
 
     it('omits all filters except language when industries/jobSources/excludeTags are all omitted', async () => {
+      (getSupportedLocale as jest.Mock).mockReturnValue('en');
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
