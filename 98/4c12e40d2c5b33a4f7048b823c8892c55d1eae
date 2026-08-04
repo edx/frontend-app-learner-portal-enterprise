@@ -1,0 +1,16 @@
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/careerRetrieval.test.ts
+  h_42fcc3ed5b24c4 4,18-22,125-134,136,311
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseCatalogScopeFilters.test.ts
+  h_42fcc3ed5b24c4 3,7-11,40-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "984c12e40d2c5b33a4f7048b823c8892c55d1eae",
+  "prompts": {},
+  "humans": {
+    "h_42fcc3ed5b24c4": {
+      "author": "GitHub <noreply@github.com>"
+    }
+  }
+}
