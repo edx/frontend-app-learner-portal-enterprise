@@ -1,0 +1,29 @@
+src/components/my-career/CategoryCard.jsx
+  s_defe3b712dc525::t_3afa36876971a1 1,9-11
+  s_defe3b712dc525::t_7e223c566682bb 26
+src/components/my-career/tests/CategoryCard.test.jsx
+  s_defe3b712dc525::t_8e9b6271ffd5b6 9
+  s_defe3b712dc525::t_a53fe087d793e2 81-82
+src/components/ai-pathways/hooks/useCatalogAlgoliaSearch.ts
+  s_defe3b712dc525::t_eea36123d2cfcf 27,41
+src/components/ai-pathways/services/catalogFacetService.ts
+  s_defe3b712dc525::t_201b0ed097e46a 69
+src/components/ai-pathways/hooks/usePathways.ts
+  s_defe3b712dc525::t_758b5289d31499 133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "85d4ab42e2be688fa1feb2612b80f066d2cd2273",
+  "prompts": {},
+  "sessions": {
+    "s_defe3b712dc525": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcf05fa3-f510-4071-b9c7-eb86a5a28140",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}

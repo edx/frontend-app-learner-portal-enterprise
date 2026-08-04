@@ -1,0 +1,20 @@
+src/components/search/popular-results/PopularResultsIndex.jsx
+  s_defe3b712dc525::t_b3c3a8ee237a3c 23
+  s_defe3b712dc525::t_2b82d385c28728 6-8,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "60838f4329a9bab97eb91db19e15874e6bd049e3",
+  "prompts": {},
+  "sessions": {
+    "s_defe3b712dc525": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcf05fa3-f510-4071-b9c7-eb86a5a28140",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}

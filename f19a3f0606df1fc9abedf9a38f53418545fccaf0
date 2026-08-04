@@ -1,0 +1,26 @@
+src/components/dashboard/main-content/course-enrollments/course-cards/tests/BaseCourseCard.test.jsx
+  s_defe3b712dc525::t_36ea0088667162 240
+src/components/skills-quiz/__mocks__/react-instantsearch-dom.jsx
+  s_defe3b712dc525::t_17247003e7e901 90,92-95,107-111,119-120
+src/components/search/tests/Search.test.jsx
+  s_defe3b712dc525::t_740b030d30b758 139-151
+  s_defe3b712dc525::t_a1736f753af45e 95
+  s_defe3b712dc525::t_d3ce8aa1666afd 117-138
+  s_defe3b712dc525::t_8b6def7cbbaed1 5-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "f19a3f0606df1fc9abedf9a38f53418545fccaf0",
+  "prompts": {},
+  "sessions": {
+    "s_defe3b712dc525": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcf05fa3-f510-4071-b9c7-eb86a5a28140",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": null
+    }
+  }
+}
