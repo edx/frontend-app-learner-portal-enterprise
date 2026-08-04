@@ -1,11 +1,13 @@
 import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CourseRetrievalCatalogScope } from '../types';
 
+const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
+
 describe('buildCourseCatalogScopeFilters', () => {
   it('always includes content_type:course', () => {
     const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
 
-    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe('content_type:course');
+    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(`content_type:course AND ${BASE_LANGUAGE_FILTER}`);
   });
 
   it('ANDs the resolved catalog query UUID OR-group when catalogs resolve', () => {
@@ -15,7 +17,7 @@ describe('buildCourseCatalogScopeFilters', () => {
     };
 
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
-      'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2)',
+      `content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2) AND ${BASE_LANGUAGE_FILTER}`,
     );
   });
 
@@ -26,7 +28,7 @@ describe('buildCourseCatalogScopeFilters', () => {
     };
 
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
-      'content_type:course AND (enterprise_catalog_query_uuids:query-1)',
+      `content_type:course AND (enterprise_catalog_query_uuids:query-1) AND ${BASE_LANGUAGE_FILTER}`,
     );
   });
 });

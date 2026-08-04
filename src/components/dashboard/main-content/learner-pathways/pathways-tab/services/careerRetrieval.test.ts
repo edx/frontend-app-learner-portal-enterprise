@@ -27,6 +27,8 @@ describe('careerRetrievalService.searchCareers', () => {
     (mockIndex.search as jest.Mock).mockResolvedValueOnce({ hits });
   };
 
+  const BASE_LANGUAGE_FILTER = 'metadata_language:en';
+
   describe('query construction and the one-call invariant', () => {
     it('uses the trimmed condensedAlgoliaQuery and calls search exactly once with the retrieval limit', async () => {
       mockSearchResolvedValue([]);
@@ -87,7 +89,7 @@ describe('careerRetrievalService.searchCareers', () => {
       });
 
       const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
-      expect(params.filters).toBe('(industry_names:"Tech" OR industry_names:"Healthcare")');
+      expect(params.filters).toBe(`(industry_names:"Tech" OR industry_names:"Healthcare") AND ${BASE_LANGUAGE_FILTER}`);
     });
 
     it('builds a job_sources OR clause from jobSources', async () => {
@@ -99,7 +101,7 @@ describe('careerRetrievalService.searchCareers', () => {
       });
 
       const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
-      expect(params.filters).toBe('(job_sources:"LinkedIn")');
+      expect(params.filters).toBe(`(job_sources:"LinkedIn") AND ${BASE_LANGUAGE_FILTER}`);
     });
 
     it('builds escaped NOT skills.name clauses from excludeTags', async () => {
@@ -111,16 +113,16 @@ describe('careerRetrievalService.searchCareers', () => {
       });
 
       const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
-      expect(params.filters).toBe('NOT skills.name:"PHP" AND NOT skills.name:"tag\\"2"');
+      expect(params.filters).toBe(`NOT skills.name:"PHP" AND NOT skills.name:"tag\\"2" AND ${BASE_LANGUAGE_FILTER}`);
     });
 
-    it('omits filters entirely when no hard filter applies', async () => {
+    it('omits filters except base language filter when no hard filter applies', async () => {
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, DEFAULT_INTENT);
 
       const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
-      expect(params.filters).toBeUndefined();
+      expect(params.filters).toBe(`${BASE_LANGUAGE_FILTER}`);
     });
   });
 
@@ -288,13 +290,13 @@ describe('careerRetrievalService.searchCareers', () => {
       expect(mockIndex.search).toHaveBeenCalledWith('JavaScript', expect.anything());
     });
 
-    it('omits filters entirely when industries/jobSources/excludeTags are all omitted', async () => {
+    it('omits all filters except language when industries/jobSources/excludeTags are all omitted', async () => {
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
 
       const [, params] = (mockIndex.search as jest.Mock).mock.calls[0];
-      expect(params.filters).toBeUndefined();
+      expect(params.filters).toBe(`${BASE_LANGUAGE_FILTER}`);
     });
 
     it('still includes preferred skills (not suppressed) when learnerLevel is omitted', async () => {

@@ -111,4 +111,24 @@ describe('AlgoliaFilterBuilder', () => {
       .build();
     expect(result).toBe('');
   });
+
+  it('filters for spanish locale', () => {
+    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage('es').build();
+    expect(result).toBe('metadata_language:es');
+  });
+
+  it('filter falls back to english with unsupported locale', () => {
+    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage('sk').build();
+    expect(result).toBe('metadata_language:en');
+  });
+
+  it('filters courses by both metadata_language and language facet', () => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage('es').build();
+    expect(result).toBe('metadata_language:es AND language:Spanish');
+  });
+
+  it('falls back to English for unsupported locales', () => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage('it').build();
+    expect(result).toBe('metadata_language:en AND language:English');
+  });
 });

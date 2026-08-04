@@ -7,7 +7,7 @@ const catalogScope = {
   catalogUuidsToCatalogQueryUuids: { cat1: 'q1' },
 };
 
-const BASE_SCOPE_FILTERS = 'content_type:course AND (enterprise_catalog_query_uuids:q1)';
+const BASE_SCOPE_FILTERS = 'content_type:course AND (enterprise_catalog_query_uuids:q1) AND metadata_language:en AND language:English';
 
 const facetResponse = (skillNames: string[] = ['SQL', 'Excel']) => ({
   facets: {

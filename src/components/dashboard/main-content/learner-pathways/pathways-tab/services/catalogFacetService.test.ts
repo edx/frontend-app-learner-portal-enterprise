@@ -22,18 +22,18 @@ describe('catalogFacetService.getFacetSnapshot', () => {
       facets: ['*'],
       hitsPerPage: 0,
       maxValuesPerFacet: 1000,
-      filters: 'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2)',
+      filters: 'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2) AND metadata_language:en AND language:English',
     });
   });
 
-  it('omits the catalog clause when no search catalogs are resolvable, keeping only the content-type scope', async () => {
+  it('omits the catalog clause when no search catalogs are resolvable, keeping only the content-type and language scope', async () => {
     const index = buildIndex({ facets: {} });
     const emptyScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
 
     await catalogFacetService.getFacetSnapshot(index, emptyScope);
 
     expect(index.search).toHaveBeenCalledWith('', expect.objectContaining({
-      filters: 'content_type:course',
+      filters: 'content_type:course AND metadata_language:en AND language:English',
     }));
   });
 

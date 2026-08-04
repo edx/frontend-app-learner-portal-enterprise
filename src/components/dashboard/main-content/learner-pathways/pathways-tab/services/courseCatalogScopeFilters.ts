@@ -1,5 +1,6 @@
 import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
 import type { CourseRetrievalCatalogScope } from '../types';
+import { getSupportedLocale } from '../../../../../app/data';
 
 /**
  * Builds the shared "course content, scoped to this enterprise's catalog" hard-filter
@@ -12,5 +13,6 @@ export const buildCourseCatalogScopeFilters = (catalogScope: CourseRetrievalCata
   new AlgoliaFilterBuilder()
     .and('content_type', 'course')
     .filterByCatalogQueryUuids(catalogScope.searchCatalogs, catalogScope.catalogUuidsToCatalogQueryUuids)
+    .filterCoursesByLanguage(getSupportedLocale())
     .build()
 );
