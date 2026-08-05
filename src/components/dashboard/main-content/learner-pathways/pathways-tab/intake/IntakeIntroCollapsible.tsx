@@ -1,14 +1,20 @@
 import React from 'react';
 import { Collapsible } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { usePathwaysAnalytics } from '../hooks';
 import messages from './messages';
 
 const IntakeIntroCollapsible = () => {
   const intl = useIntl();
+  const { trackControlInteracted } = usePathwaysAnalytics();
 
   return (
     <section data-testid="intake-collapsible-info">
-      <Collapsible title={intl.formatMessage(messages.introCollapsibleTitle)}>
+      <Collapsible
+        title={intl.formatMessage(messages.introCollapsibleTitle)}
+        onOpen={() => trackControlInteracted({ sourceComponent: 'intake_intro_collapsible', interactionAction: 'opened' })}
+        onClose={() => trackControlInteracted({ sourceComponent: 'intake_intro_collapsible', interactionAction: 'dismissed' })}
+      >
         <ol className="mb-0 pl-4 py-1">
           <li className="mb-3">
             <p className="font-weight-bold mb-1">

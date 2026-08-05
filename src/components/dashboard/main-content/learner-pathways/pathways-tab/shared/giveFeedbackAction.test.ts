@@ -16,4 +16,16 @@ describe('buildGiveFeedbackAction', () => {
     });
     expect(action?.label).toBeDefined();
   });
+
+  it('omits onClick when the caller does not supply one', () => {
+    const action = buildGiveFeedbackAction('https://example.com/form');
+    expect(action?.onClick).toBeUndefined();
+  });
+
+  it('threads the caller-supplied onClick through unchanged', () => {
+    const onClick = jest.fn();
+    const action = buildGiveFeedbackAction('https://example.com/form', onClick);
+    action?.onClick?.();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });

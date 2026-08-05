@@ -9,6 +9,7 @@ import {
   useSelectedCareerMatch,
 } from '../../pathways-tab/state';
 import { resolvePathwayCourses } from '../../pathways-tab/pathway-courses';
+import { usePathwaysAnalytics } from '../../pathways-tab/hooks';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../../app/data';
 import { DASHBOARD_PATHWAYS_TAB } from '../../../../data/constants';
 import { resolveLearnerPathwaysAlertDescriptor } from './utils';
@@ -35,6 +36,7 @@ export function useLearnerPathwaysAlertViewModel({
   const pathwayCourses = usePathwaysCourses();
   const setSection = usePathwaysStore((state) => state.setSection);
   const careerGoal = useSelectedCareerMatch()?.title ?? '';
+  const { trackControlInteracted } = usePathwaysAnalytics();
 
   const { data: enterpriseCustomer } = useEnterpriseCustomer<EnterpriseCustomer>();
   const { data: { enterpriseCourseEnrollments } } = useEnterpriseCourseEnrollments();
@@ -58,9 +60,10 @@ export function useLearnerPathwaysAlertViewModel({
   const [, forceRerender] = useReducer((count) => count + 1, 0);
   const show = !isDismissed(status);
   const onDismiss = useCallback(() => {
+    trackControlInteracted({ sourceComponent: 'courses_tab_alert', interactionAction: 'dismissed' });
     recordDismissal(status);
     forceRerender();
-  }, [status]);
+  }, [status, trackControlInteracted]);
 
   const targetTab = hasPathwaysTab ? DASHBOARD_PATHWAYS_TAB : null;
   const ctaDisabled = !targetTab;
@@ -68,9 +71,10 @@ export function useLearnerPathwaysAlertViewModel({
     if (!targetTab) {
       return;
     }
+    trackControlInteracted({ sourceComponent: 'courses_tab_alert', interactionAction: 'clicked' });
     setSection(descriptor.targetSection);
     onSelectTab(targetTab);
-  }, [targetTab, setSection, descriptor.targetSection, onSelectTab]);
+  }, [targetTab, setSection, descriptor.targetSection, onSelectTab, trackControlInteracted]);
 
   return {
     status,

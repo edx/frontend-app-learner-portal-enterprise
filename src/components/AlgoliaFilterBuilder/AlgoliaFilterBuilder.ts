@@ -189,23 +189,23 @@ export default class AlgoliaFilterBuilder {
     return this.or('enterprise_catalog_uuids', uuids);
   }
 
-/**
- * Locale codes supported in Pathways MVP, and their human-readable Algolia `language` facet
- * display names (e.g. "English", "Spanish"), are sourced from edx-internal via the
- * `PATHWAYS_SUPPORTED_LANGUAGES` MFE config override.
- * - metadata_language: which language this record's title/description text is
- *   in. Every course/program/pathway is indexed once in English by default
- *   (`metadata_language: 'en'`). If a Spanish translation has been pre-computed
- *   for that item, a second, separate record is indexed alongside it with the
- *   translated text and `metadata_language: 'es'`. So a single course can show
- *   up as two Algolia records — one per language its metadata has been
- *   translated into.
- * - language: the actual instructional language of the course content,
- *   stored as an English display name (e.g. "Italian"), and is only populated
- *   for courses, not pathways or programs
- * A course's metadata_language can be 'en' while its language is "Italian" —
- * these are independent and both must be filtered for courses.
- */
+  /**
+   * Locale codes supported in Pathways MVP, and their human-readable Algolia `language` facet
+   * display names (e.g. "English", "Spanish"), are sourced from edx-internal via the
+   * `SUPPORTED_ALGOLIA_LANGUAGE_FILTERS` MFE config override.
+   * - metadata_language: which language this record's title/description text is
+   *   in. Every course/program/pathway is indexed once in English by default
+   *   (`metadata_language: 'en'`). If a Spanish translation has been pre-computed
+   *   for that item, a second, separate record is indexed alongside it with the
+   *   translated text and `metadata_language: 'es'`. So a single course can show
+   *   up as two Algolia records — one per language its metadata has been
+   *   translated into.
+   * - language: the actual instructional language of the course content,
+   *   stored as an English display name (e.g. "Italian"), and is only populated
+   *   for courses, not pathways or programs
+   * A course's metadata_language can be 'en' while its language is "Italian" —
+   * these are independent and both must be filtered for courses.
+   */
 
   /**
    * Adds a filter for the metadata language. Expects the locale to already be

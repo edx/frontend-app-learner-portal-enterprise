@@ -5,11 +5,26 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import type { CareerMatch, LearnerIntent } from '../../state';
 import CareerSelectionPage, {
   CareerSelectionPageProps,
 } from '../CareerSelectionPage';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+import { PATHWAYS_EVENTS } from '../../../../../../../eventTracking';
+
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
+
+const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
 
 const learnerIntent: LearnerIntent = {
   careerGoal: 'Senior Data Analyst',
@@ -63,7 +78,10 @@ const renderPage = (props: Partial<CareerSelectionPageProps> = {}) => render(
 );
 
 describe('CareerSelectionPage', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: mockEnterpriseCustomer });
+  });
 
   it('renders the goal summary and sorted matches above 25%', () => {
     renderPage();
@@ -190,6 +208,28 @@ describe('CareerSelectionPage', () => {
     renderPage({ isNoCoursesOpen: true, onCloseNoCourses });
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(onCloseNoCourses).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires control.interacted with interactionAction "back" when Back is clicked in the no-courses modal', async () => {
+    const user = userEvent.setup();
+    renderPage({ isNoCoursesOpen: true });
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.CONTROL_INTERACTED,
+      expect.objectContaining({ sourceComponent: 'no_pathway_courses_modal', interactionAction: 'back' }),
+    );
+  });
+
+  it('fires control.interacted with interactionAction "choose_different_match" when that button is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage({ isNoCoursesOpen: true });
+    await user.click(screen.getByRole('button', { name: 'Choose a different match' }));
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.CONTROL_INTERACTED,
+      expect.objectContaining({ sourceComponent: 'no_pathway_courses_modal', interactionAction: 'choose_different_match' }),
+    );
   });
 
   it('closes the no-courses modal and opens Goal Summary editing when Choose a different match is clicked', async () => {
