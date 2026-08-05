@@ -73,6 +73,7 @@ CourseRunCard.propTypes = {
     key: PropTypes.string,
     availability: PropTypes.string,
     start: PropTypes.string,
+    end: PropTypes.string,
     pacingType: PropTypes.string,
     enrollmentCount: PropTypes.number,
   }).isRequired,
