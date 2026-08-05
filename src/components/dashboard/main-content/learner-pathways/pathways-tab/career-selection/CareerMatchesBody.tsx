@@ -49,9 +49,9 @@ const CareerMatchesBody = ({
         className="border rounded text-center p-4"
         data-testid="career-matches-empty-state"
       >
-        <h3 className="h5">
+        <h4 className="h5">
           {intl.formatMessage(messages.noMatches)}
-        </h3>
+        </h4>
         <p className="text-muted small">
           {intl.formatMessage(messages.noMatchesHelp)}
         </p>

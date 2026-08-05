@@ -132,6 +132,11 @@ const AutoExpandingTextareaField = <
   const showFeedback = Boolean(displayedErrorMessage);
   const showCounter = maxCharacters !== undefined;
 
+  // Form.Control.Feedback registers its own id with Form.Group's context and Paragon
+  // merges it into aria-describedby automatically, so only the counter (a plain span
+  // Paragon has no knowledge of) needs to be referenced manually here.
+  const describedBy = showCounter ? counterId : undefined;
+
   return (
     <Form.Group controlId={controlId} isInvalid={isInvalid} className={className}>
       <Form.Label>
@@ -146,7 +151,7 @@ const AutoExpandingTextareaField = <
         disabled={disabled}
         isInvalid={isInvalid}
         aria-invalid={isInvalid}
-        aria-describedby={`${feedbackId} ${counterId}`}
+        aria-describedby={describedBy}
         controlClassName="pathways-textarea__control"
         {...field}
         ref={(element: HTMLTextAreaElement | null) => {
