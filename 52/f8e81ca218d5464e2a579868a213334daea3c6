@@ -1,0 +1,48 @@
+src/components/AlgoliaFilterBuilder/tests/AlgoliaFilterBuilder.test.ts
+  s_b71d36bfab10e2::t_1f831c37d0ddaf 119
+  s_b71d36bfab10e2::t_0f0ce6323c267f 118
+  s_b71d36bfab10e2::t_ce357e0b552360 124-127,130-133
+  s_b71d36bfab10e2::t_bde4af50b06685 134
+src/components/AlgoliaFilterBuilder/AlgoliaFilterBuilder.ts
+  s_b71d36bfab10e2::t_1f831c37d0ddaf 218
+  s_b71d36bfab10e2::t_23e0bc12f33026 226-227,231,234-235
+  s_b71d36bfab10e2::t_2cac4bc36ecf75 37-38
+  s_b71d36bfab10e2::t_fd87bf4f898272 228-229
+  s_b71d36bfab10e2::t_f769b7e1e907ca 39
+  s_b71d36bfab10e2::t_a1d4be85942f68 211-213,215
+src/components/app/data/utils.js
+  s_b71d36bfab10e2::t_51c941629beea5 46-54,68-71,73-74,77
+  s_b71d36bfab10e2::t_dafbecfa973aab 55-67,72,75-76,78-80
+  s_b71d36bfab10e2::t_8cf73b43b2d1e4 3
+  s_b71d36bfab10e2::t_543fdb204df220 81
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseCatalogScopeFilters.test.ts
+  s_b71d36bfab10e2::t_915e770968cbee 3,7-8,14-15,50-51
+  s_b71d36bfab10e2::t_60dd4401c04a4b 16-17
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseCatalogScopeFilters.ts
+  s_b71d36bfab10e2::t_f6a59dc181f41f 12,14,17,19-20
+  s_b71d36bfab10e2::t_ce379aa60f84f1 3,13,18
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/careerRetrieval.ts
+  s_b71d36bfab10e2::t_1c8f2ad2d7cdd8 6
+  s_b71d36bfab10e2::t_4b05240e1de023 81
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/catalogFacetService.test.ts
+  s_b71d36bfab10e2::t_915e770968cbee 4,8-9,24-25,34
+  s_b71d36bfab10e2::t_31fff1e80e09ec 26-27
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/careerRetrieval.test.ts
+  s_b71d36bfab10e2::t_bda5239f91d9d3 4,20,126,136,311
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "52f8e81ca218d5464e2a579868a213334daea3c6",
+  "prompts": {},
+  "sessions": {
+    "s_b71d36bfab10e2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d570f63-0109-484e-8f87-56a5ad9bad0e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "GitHub <noreply@github.com>"
+    }
+  }
+}
