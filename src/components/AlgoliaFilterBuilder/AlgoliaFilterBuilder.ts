@@ -32,6 +32,7 @@ import { features } from '../../config';
  * - `.excludeVideoContentIfFeatureDisabled()`
  * - `.build()`
  */
+
 export default class AlgoliaFilterBuilder {
   private filters: string[] = [];
 
@@ -189,16 +190,49 @@ export default class AlgoliaFilterBuilder {
   }
 
   /**
-   * Adds a filter for the metadata language.
+   * Locale codes supported in Pathways MVP, and their human-readable Algolia `language` facet
+   * display names (e.g. "English", "Spanish"), are sourced from edx-internal via the
+   * `SUPPORTED_ALGOLIA_LANGUAGE_FILTERS` MFE config override.
+   * - metadata_language: which language this record's title/description text is
+   *   in. Every course/program/pathway is indexed once in English by default
+   *   (`metadata_language: 'en'`). If a Spanish translation has been pre-computed
+   *   for that item, a second, separate record is indexed alongside it with the
+   *   translated text and `metadata_language: 'es'`. So a single course can show
+   *   up as two Algolia records — one per language its metadata has been
+   *   translated into.
+   * - language: the actual instructional language of the course content,
+   *   stored as an English display name (e.g. "Italian"), and is only populated
+   *   for courses, not pathways or programs
+   * A course's metadata_language can be 'en' while its language is "Italian" —
+   * these are independent and both must be filtered for courses.
+   */
+
+  /**
+   * Adds a filter for the metadata language. Expects the locale to already be
+   * a supported locale code (e.g. 'en', 'es'). Use getSupportedLocale() before
+   * calling this method to ensure the locale is resolved to a supported value.
    *
-   * @param locale - The locale code to filter by (e.g. 'en', 'es').
+   * @param locale - A supported locale code (e.g. 'en', 'es').
    * @returns The current AlgoliaFilterBuilder instance for chaining.
    */
-  filterByMetadataLanguage(locale: string) {
+  filterByMetadataLanguage(locale?: string) {
     if (locale) {
       this.and('metadata_language', locale);
     }
     return this;
+  }
+
+  /**
+   * Adds a filter restricting courses to the instructional content language. Expects an
+   * already-resolved Algolia `language` facet display name (e.g. 'English', 'Spanish').
+   * Use getPathwaysSupportedLocaleLanguageName() before calling this method to resolve a
+   * locale to its display name.
+   *
+   * @param languageDisplayName - A resolved Algolia `language` facet display name.
+   * @returns The current AlgoliaFilterBuilder instance for chaining.
+   */
+  filterCoursesByLanguage(languageDisplayName?: string) {
+    return this.and('language', languageDisplayName || 'English');
   }
 
   /**

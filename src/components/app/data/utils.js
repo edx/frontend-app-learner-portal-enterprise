@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { logError } from '@edx/frontend-platform/logging';
+import { getConfig } from '@edx/frontend-platform/config';
 import { getLocale } from '@edx/frontend-platform/i18n';
 import { POLICY_TYPES } from '../../enterprise-user-subsidy/enterprise-offers/data/constants';
 import { LICENSE_STATUS } from '../../enterprise-user-subsidy/data/constants';
@@ -40,6 +41,42 @@ export function getSupportedLocale() {
   }
   const baseLocale = currentLocale.split('-')[0].toLowerCase();
   return SUPPORTED_LANGUAGES.includes(baseLocale) ? baseLocale : 'en';
+}
+
+/**
+ * Get the current locale, constrained to the locales supported by Pathways, falling back to
+ * English if unsupported. Supported locales come from the `SUPPORTED_ALGOLIA_LANGUAGE_FILTERS` MFE
+ * config override (e.g. `{ en: 'English', es: 'Spanish' }`), set in edx-internal. If that
+ * config is absent, 'en' is the default supported locale.
+ *
+ * @returns {string} A Pathways-supported language code (e.g. 'en' or 'es').
+ */
+export function getPathwaysSupportedLocale() {
+  const pathwaysSupportedLanguages = getConfig()?.SUPPORTED_ALGOLIA_LANGUAGE_FILTERS || {};
+  let currentLocale = 'en';
+  try {
+    currentLocale = getLocale() || 'en';
+  } catch {
+    const browserLocale = globalThis?.navigator?.language || 'en';
+    currentLocale = browserLocale;
+  }
+  const baseLocale = currentLocale.split('-')[0].toLowerCase();
+  return Object.keys(pathwaysSupportedLanguages).includes(baseLocale) ? baseLocale : 'en';
+}
+
+/**
+ * Get the Algolia `language` facet display name (e.g. 'English', 'Spanish') for a
+ * Pathways-supported locale, sourced from the `SUPPORTED_ALGOLIA_LANGUAGE_FILTERS` MFE config
+ * override. Falls back to 'English' if the locale isn't in that config, or the config itself
+ * is absent.
+ *
+ * @param {string} locale - A Pathways-supported locale code, typically from
+ * `getPathwaysSupportedLocale()`.
+ * @returns {string} The Algolia `language` facet display name for the locale.
+ */
+export function getPathwaysSupportedLocaleLanguageName(locale) {
+  const supportedLanguages = getConfig()?.SUPPORTED_ALGOLIA_LANGUAGE_FILTERS || {};
+  return supportedLanguages[locale] || 'English';
 }
 
 /**

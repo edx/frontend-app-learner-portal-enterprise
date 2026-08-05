@@ -111,4 +111,25 @@ describe('AlgoliaFilterBuilder', () => {
       .build();
     expect(result).toBe('');
   });
+
+  it.each([
+    ['es', 'metadata_language:es'],
+    ['en', 'metadata_language:en'],
+  ] as [string, string][])('filters by metadata language %s', (locale, expected) => {
+    const result = new AlgoliaFilterBuilder().filterByMetadataLanguage(locale).build();
+    expect(result).toBe(expected);
+  });
+
+  it.each([
+    ['Spanish', 'language:Spanish'],
+    ['English', 'language:English'],
+  ])('filters courses by language display name %s', (languageDisplayName, expected) => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage(languageDisplayName).build();
+    expect(result).toBe(expected);
+  });
+
+  it('filterCoursesByLanguage falls back to English when no display name is given', () => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage().build();
+    expect(result).toBe('language:English');
+  });
 });

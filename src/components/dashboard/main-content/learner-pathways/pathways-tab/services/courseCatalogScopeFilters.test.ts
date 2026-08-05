@@ -1,11 +1,28 @@
 import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CourseRetrievalCatalogScope } from '../types';
+import { getPathwaysSupportedLocaleLanguageName, getPathwaysSupportedLocale } from '../../../../../app/data';
+
+jest.mock('../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../app/data'),
+  getPathwaysSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocaleLanguageName: jest.fn(),
+}));
 
 describe('buildCourseCatalogScopeFilters', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocaleLanguageName as jest.Mock).mockImplementation(
+      (locale: string) => (locale === 'es' ? 'Spanish' : 'English'),
+    );
+  });
+
+  const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
+
   it('always includes content_type:course', () => {
     const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
 
-    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe('content_type:course');
+    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(`content_type:course AND ${BASE_LANGUAGE_FILTER}`);
   });
 
   it('ANDs the resolved catalog query UUID OR-group when catalogs resolve', () => {
@@ -15,7 +32,7 @@ describe('buildCourseCatalogScopeFilters', () => {
     };
 
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
-      'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2)',
+      `content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2) AND ${BASE_LANGUAGE_FILTER}`,
     );
   });
 
@@ -26,7 +43,15 @@ describe('buildCourseCatalogScopeFilters', () => {
     };
 
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
-      'content_type:course AND (enterprise_catalog_query_uuids:query-1)',
+      `content_type:course AND (enterprise_catalog_query_uuids:query-1) AND ${BASE_LANGUAGE_FILTER}`,
+    );
+  });
+
+  it('builds Spanish filters when getPathwaysSupportedLocale returns es', () => {
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('es');
+    const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
+    expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
+      'content_type:course AND metadata_language:es AND language:Spanish',
     );
   });
 });

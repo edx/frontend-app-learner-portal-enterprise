@@ -1,6 +1,13 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { catalogFacetService } from './catalogFacetService';
 import type { CourseRetrievalCatalogScope } from '../types';
+import { getPathwaysSupportedLocaleLanguageName, getPathwaysSupportedLocale } from '../../../../../app/data';
+
+jest.mock('../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../app/data'),
+  getPathwaysSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocaleLanguageName: jest.fn(),
+}));
 
 const buildIndex = (searchResponse: unknown): SearchIndex => ({
   search: jest.fn().mockResolvedValue(searchResponse),
@@ -12,29 +19,45 @@ const catalogScope: CourseRetrievalCatalogScope = {
 };
 
 describe('catalogFacetService.getFacetSnapshot', () => {
-  it('issues a zero-hit query with the exact facet-snapshot params, scoped to courses and the catalog', async () => {
-    const index = buildIndex({ facets: {} });
-
-    await catalogFacetService.getFacetSnapshot(index, catalogScope);
-
-    expect(index.search).toHaveBeenCalledTimes(1);
-    expect(index.search).toHaveBeenCalledWith('', {
-      facets: ['*'],
-      hitsPerPage: 0,
-      maxValuesPerFacet: 1000,
-      filters: 'content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2)',
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocaleLanguageName as jest.Mock).mockImplementation(
+      (locale: string) => (locale === 'es' ? 'Spanish' : 'English'),
+    );
   });
+  describe.each([
+    ['en', 'metadata_language:en AND language:English'],
+    ['es', 'metadata_language:es AND language:Spanish'],
+  ])('when the supported locale is %s', (locale, languageFilter) => {
+    beforeEach(() => {
+      (getPathwaysSupportedLocale as jest.Mock).mockReturnValue(locale);
+    });
 
-  it('omits the catalog clause when no search catalogs are resolvable, keeping only the content-type scope', async () => {
-    const index = buildIndex({ facets: {} });
-    const emptyScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
+    it('issues a zero-hit query with the exact facet-snapshot params, scoped to courses and the catalog', async () => {
+      const index = buildIndex({ facets: {} });
 
-    await catalogFacetService.getFacetSnapshot(index, emptyScope);
+      await catalogFacetService.getFacetSnapshot(index, catalogScope);
 
-    expect(index.search).toHaveBeenCalledWith('', expect.objectContaining({
-      filters: 'content_type:course',
-    }));
+      expect(index.search).toHaveBeenCalledTimes(1);
+      expect(index.search).toHaveBeenCalledWith('', {
+        facets: ['*'],
+        hitsPerPage: 0,
+        maxValuesPerFacet: 1000,
+        filters: `content_type:course AND (enterprise_catalog_query_uuids:query-1 OR enterprise_catalog_query_uuids:query-2) AND ${languageFilter}`,
+      });
+    });
+
+    it('omits the catalog clause when no search catalogs are resolvable, keeping only the content-type and language scope', async () => {
+      const index = buildIndex({ facets: {} });
+      const emptyScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
+
+      await catalogFacetService.getFacetSnapshot(index, emptyScope);
+
+      expect(index.search).toHaveBeenCalledWith('', expect.objectContaining({
+        filters: `content_type:course AND ${languageFilter}`,
+      }));
+    });
   });
 
   it('reads out all three facet groups from a fully-populated response', async () => {
