@@ -3,7 +3,7 @@ import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
 import { isMalformedCompound, normalizeString, quoteFacetValue } from './algoliaStrings';
 import type { CareerMatch } from '../state';
 import type { CareerSearchIntent } from '../types';
-import { getSupportedLocale } from '../../../../../app/data';
+import { getPathwaysSupportedLocale } from '../../../../../app/data';
 
 /** Maximum number of career taxonomy hits requested per search. */
 const CAREER_RETRIEVAL_LIMIT = 10;
@@ -78,7 +78,7 @@ const buildFilters = (intent: CareerSearchIntent): string | undefined => {
     builder.andRaw(`NOT ${FACET_FIELDS.SKILLS_DOT_NAME}:${quoteFacetValue(tag)}`);
   });
 
-  builder.filterPathwaysByMetadataLanguage(getSupportedLocale());
+  builder.filterByMetadataLanguage(getPathwaysSupportedLocale());
 
   const builtFilters = builder.build();
   return isNonEmptyString(builtFilters) ? builtFilters : undefined;

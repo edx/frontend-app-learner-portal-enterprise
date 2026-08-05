@@ -1,16 +1,20 @@
 import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CourseRetrievalCatalogScope } from '../types';
-import { getSupportedLocale } from '../../../../../app/data';
+import { getPathwaysSupportedLocaleLanguageName, getPathwaysSupportedLocale } from '../../../../../app/data';
 
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
-  getSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocaleLanguageName: jest.fn(),
 }));
 
 describe('buildCourseCatalogScopeFilters', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocaleLanguageName as jest.Mock).mockImplementation(
+      (locale: string) => (locale === 'es' ? 'Spanish' : 'English'),
+    );
   });
 
   const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
@@ -43,8 +47,8 @@ describe('buildCourseCatalogScopeFilters', () => {
     );
   });
 
-  it('builds Spanish filters when getSupportedLocale returns es', () => {
-    (getSupportedLocale as jest.Mock).mockReturnValue('es');
+  it('builds Spanish filters when getPathwaysSupportedLocale returns es', () => {
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('es');
     const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
     expect(buildCourseCatalogScopeFilters(catalogScope)).toBe(
       'content_type:course AND metadata_language:es AND language:Spanish',

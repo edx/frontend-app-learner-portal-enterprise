@@ -1,11 +1,12 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { catalogFacetService } from './catalogFacetService';
 import type { CourseRetrievalCatalogScope } from '../types';
-import { getSupportedLocale } from '../../../../../app/data';
+import { getPathwaysSupportedLocaleLanguageName, getPathwaysSupportedLocale } from '../../../../../app/data';
 
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
-  getSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocale: jest.fn(),
+  getPathwaysSupportedLocaleLanguageName: jest.fn(),
 }));
 
 const buildIndex = (searchResponse: unknown): SearchIndex => ({
@@ -20,14 +21,17 @@ const catalogScope: CourseRetrievalCatalogScope = {
 describe('catalogFacetService.getFacetSnapshot', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
+    (getPathwaysSupportedLocaleLanguageName as jest.Mock).mockImplementation(
+      (locale: string) => (locale === 'es' ? 'Spanish' : 'English'),
+    );
   });
   describe.each([
     ['en', 'metadata_language:en AND language:English'],
     ['es', 'metadata_language:es AND language:Spanish'],
   ])('when the supported locale is %s', (locale, languageFilter) => {
     beforeEach(() => {
-      (getSupportedLocale as jest.Mock).mockReturnValue(locale);
+      (getPathwaysSupportedLocale as jest.Mock).mockReturnValue(locale);
     });
 
     it('issues a zero-hit query with the exact facet-snapshot params, scoped to courses and the catalog', async () => {

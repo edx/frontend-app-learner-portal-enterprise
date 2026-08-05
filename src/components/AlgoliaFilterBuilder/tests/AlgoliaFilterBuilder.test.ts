@@ -114,23 +114,22 @@ describe('AlgoliaFilterBuilder', () => {
 
   it.each([
     ['es', 'metadata_language:es'],
-    ['es-ES', 'metadata_language:es'],
-    ['ES-419', 'metadata_language:es'],
     ['en', 'metadata_language:en'],
-    ['en-US', 'metadata_language:en'],
-    ['sk', 'metadata_language:en'],
-    [undefined, 'metadata_language:en'],
-    ['', 'metadata_language:en'],
-  ] as [string | undefined, string][])('resolves locale %s to filter %s', (locale, expected) => {
-    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage(locale).build();
+  ] as [string, string][])('filters by metadata language %s', (locale, expected) => {
+    const result = new AlgoliaFilterBuilder().filterByMetadataLanguage(locale).build();
     expect(result).toBe(expected);
   });
 
   it.each([
-    ['es-419', 'metadata_language:es AND language:Spanish'],
-    ['en-GB', 'metadata_language:en AND language:English'],
-  ])('filterCoursesByLanguage resolves BCP47 locale %s to %s', (locale, expected) => {
-    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage(locale).build();
+    ['Spanish', 'language:Spanish'],
+    ['English', 'language:English'],
+  ])('filters courses by language display name %s', (languageDisplayName, expected) => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage(languageDisplayName).build();
     expect(result).toBe(expected);
+  });
+
+  it('filterCoursesByLanguage falls back to English when no display name is given', () => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage().build();
+    expect(result).toBe('language:English');
   });
 });

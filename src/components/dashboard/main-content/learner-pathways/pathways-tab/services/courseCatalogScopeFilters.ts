@@ -1,6 +1,6 @@
 import { AlgoliaFilterBuilder } from '../../../../../AlgoliaFilterBuilder';
 import type { CourseRetrievalCatalogScope } from '../types';
-import { getSupportedLocale } from '../../../../../app/data';
+import { getPathwaysSupportedLocale, getPathwaysSupportedLocaleLanguageName } from '../../../../../app/data';
 
 /**
  * Builds the shared "course content, scoped to this enterprise's catalog" hard-filter
@@ -9,10 +9,12 @@ import { getSupportedLocale } from '../../../../../app/data';
  * or the facet vocabulary grounding skill matches could drift from what the ladder
  * actually searches against.
  */
-export const buildCourseCatalogScopeFilters = (catalogScope: CourseRetrievalCatalogScope): string => (
-  new AlgoliaFilterBuilder()
+export const buildCourseCatalogScopeFilters = (catalogScope: CourseRetrievalCatalogScope): string => {
+  const supportedLocale = getPathwaysSupportedLocale();
+  return new AlgoliaFilterBuilder()
     .and('content_type', 'course')
     .filterByCatalogQueryUuids(catalogScope.searchCatalogs, catalogScope.catalogUuidsToCatalogQueryUuids)
-    .filterCoursesByLanguage(getSupportedLocale())
-    .build()
-);
+    .filterByMetadataLanguage(supportedLocale)
+    .filterCoursesByLanguage(getPathwaysSupportedLocaleLanguageName(supportedLocale))
+    .build();
+};

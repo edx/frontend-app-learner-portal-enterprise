@@ -1,7 +1,7 @@
 import type { SearchIndex } from 'algoliasearch/lite';
 import { careerRetrievalService } from './careerRetrieval';
 import type { CareerSearchIntent } from '../types';
-import { getSupportedLocale } from '../../../../../app/data';
+import { getPathwaysSupportedLocale } from '../../../../../app/data';
 
 const DEFAULT_INTENT: CareerSearchIntent = {
   condensedAlgoliaQuery: '',
@@ -17,7 +17,7 @@ const DEFAULT_INTENT: CareerSearchIntent = {
 
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
-  getSupportedLocale: jest.fn().mockReturnValue('en'),
+  getPathwaysSupportedLocale: jest.fn().mockReturnValue('en'),
 }));
 
 describe('careerRetrievalService.searchCareers', () => {
@@ -123,7 +123,7 @@ describe('careerRetrievalService.searchCareers', () => {
     });
 
     it('filters on Spanish resolved locale and language', async () => {
-      (getSupportedLocale as jest.Mock).mockReturnValue('es');
+      (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('es');
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, DEFAULT_INTENT);
@@ -133,7 +133,7 @@ describe('careerRetrievalService.searchCareers', () => {
     });
 
     it('omits filters except base language filter when no hard filter applies', async () => {
-      (getSupportedLocale as jest.Mock).mockReturnValue('en');
+      (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, DEFAULT_INTENT);
@@ -308,7 +308,7 @@ describe('careerRetrievalService.searchCareers', () => {
     });
 
     it('omits all filters except language when industries/jobSources/excludeTags are all omitted', async () => {
-      (getSupportedLocale as jest.Mock).mockReturnValue('en');
+      (getPathwaysSupportedLocale as jest.Mock).mockReturnValue('en');
       mockSearchResolvedValue([]);
 
       await careerRetrievalService.searchCareers(mockIndex, minimalIntent);
