@@ -1,0 +1,28 @@
+src/components/AlgoliaFilterBuilder/AlgoliaFilterBuilder.ts
+  h_42fcc3ed5b24c4 35-56,226-250
+src/components/AlgoliaFilterBuilder/tests/AlgoliaFilterBuilder.test.ts
+  h_42fcc3ed5b24c4 114-133
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/careerRetrieval.test.ts
+  h_42fcc3ed5b24c4 30-31,92,104,116,119,125,293,299
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/careerRetrieval.ts
+  h_42fcc3ed5b24c4 6,81-82
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/catalogFacetService.test.ts
+  h_42fcc3ed5b24c4 25,29,36
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseCatalogScopeFilters.test.ts
+  h_42fcc3ed5b24c4 4-5,10,20,31
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseCatalogScopeFilters.ts
+  h_42fcc3ed5b24c4 3,16
+src/components/dashboard/main-content/learner-pathways/pathways-tab/services/courseRetrieval.test.ts
+  h_42fcc3ed5b24c4 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b66baf73bd2fbb7a1b39bb7b53ae7d69d8976560",
+  "prompts": {},
+  "humans": {
+    "h_42fcc3ed5b24c4": {
+      "author": "GitHub <noreply@github.com>"
+    }
+  }
+}
