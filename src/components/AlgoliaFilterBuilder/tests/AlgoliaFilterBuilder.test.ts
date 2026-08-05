@@ -112,18 +112,25 @@ describe('AlgoliaFilterBuilder', () => {
     expect(result).toBe('');
   });
 
-  it('filters for spanish locale', () => {
-    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage('es').build();
-    expect(result).toBe('metadata_language:es');
+  it.each([
+    ['es', 'metadata_language:es'],
+    ['es-ES', 'metadata_language:es'],
+    ['ES-419', 'metadata_language:es'],
+    ['en', 'metadata_language:en'],
+    ['en-US', 'metadata_language:en'],
+    ['sk', 'metadata_language:en'],
+    [undefined, 'metadata_language:en'],
+    ['', 'metadata_language:en'],
+  ] as [string | undefined, string][])('resolves locale %s to filter %s', (locale, expected) => {
+    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage(locale).build();
+    expect(result).toBe(expected);
   });
 
-  it('filter falls back to english with unsupported locale', () => {
-    const result = new AlgoliaFilterBuilder().filterPathwaysByMetadataLanguage('sk').build();
-    expect(result).toBe('metadata_language:en');
-  });
-
-  it('filters courses by both metadata_language and language facet', () => {
-    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage('es').build();
-    expect(result).toBe('metadata_language:es AND language:Spanish');
+  it.each([
+    ['es-419', 'metadata_language:es AND language:Spanish'],
+    ['en-GB', 'metadata_language:en AND language:English'],
+  ])('filterCoursesByLanguage resolves BCP47 locale %s to %s', (locale, expected) => {
+    const result = new AlgoliaFilterBuilder().filterCoursesByLanguage(locale).build();
+    expect(result).toBe(expected);
   });
 });

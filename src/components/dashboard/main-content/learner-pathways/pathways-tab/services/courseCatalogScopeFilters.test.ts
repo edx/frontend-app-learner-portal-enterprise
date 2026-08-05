@@ -2,14 +2,19 @@ import { buildCourseCatalogScopeFilters } from './courseCatalogScopeFilters';
 import type { CourseRetrievalCatalogScope } from '../types';
 import { getSupportedLocale } from '../../../../../app/data';
 
-const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
-
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
   getSupportedLocale: jest.fn(),
 }));
 
 describe('buildCourseCatalogScopeFilters', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getSupportedLocale as jest.Mock).mockReturnValue('en');
+  });
+
+  const BASE_LANGUAGE_FILTER = 'metadata_language:en AND language:English';
+
   it('always includes content_type:course', () => {
     const catalogScope: CourseRetrievalCatalogScope = { searchCatalogs: [], catalogUuidsToCatalogQueryUuids: {} };
 

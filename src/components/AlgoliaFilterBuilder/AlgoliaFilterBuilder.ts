@@ -1,3 +1,4 @@
+import { getPrimaryLanguageSubtag } from '@edx/frontend-platform/i18n';
 import { features } from '../../config';
 
 /**
@@ -52,7 +53,9 @@ import { features } from '../../config';
  */
 
 const LOCALE_TO_LANGUAGE_FACET_NAME: Record<'en' | 'es', string> = { en: 'English', es: 'Spanish' };
-const resolveSupportedLocale = (locale: string): 'en' | 'es' => (locale === 'es' ? 'es' : 'en');
+const resolveSupportedLocale = (locale?: string): 'en' | 'es' => (
+  getPrimaryLanguageSubtag(locale ?? '')?.toLowerCase() === 'es' ? 'es' : 'en'
+);
 
 export default class AlgoliaFilterBuilder {
   private filters: string[] = [];
@@ -213,7 +216,7 @@ export default class AlgoliaFilterBuilder {
   /**
    * Adds a filter for the metadata language.
    *
-   * @param locale - The locale code to filter by (e.g. 'en', 'es').
+   * @param locale - The locale code to filter by (e.g. 'en', 'jp').
    * @returns The current AlgoliaFilterBuilder instance for chaining.
    */
   filterByMetadataLanguage(locale: string) {
@@ -230,7 +233,7 @@ export default class AlgoliaFilterBuilder {
    * @param locale - The locale code to filter by.
    * @returns The current AlgoliaFilterBuilder instance for chaining.
    */
-  filterPathwaysByMetadataLanguage(locale: string) {
+  filterPathwaysByMetadataLanguage(locale?: string) {
     return this.and('metadata_language', resolveSupportedLocale(locale));
   }
 
@@ -241,7 +244,7 @@ export default class AlgoliaFilterBuilder {
   * @param locale - The locale code to filter by (e.g. 'en', 'es').
   * @returns The current AlgoliaFilterBuilder instance for chaining.
   */
-  filterCoursesByLanguage(locale: string) {
+  filterCoursesByLanguage(locale?: string) {
     const supportedLocale = resolveSupportedLocale(locale);
     return this
       .and('metadata_language', supportedLocale)

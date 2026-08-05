@@ -17,7 +17,7 @@ const DEFAULT_INTENT: CareerSearchIntent = {
 
 jest.mock('../../../../../app/data', () => ({
   ...jest.requireActual('../../../../../app/data'),
-  getSupportedLocale: jest.fn(),
+  getSupportedLocale: jest.fn().mockReturnValue('en'),
 }));
 
 describe('careerRetrievalService.searchCareers', () => {
