@@ -207,4 +207,22 @@ describe('Layout', () => {
     expect(mockSetCustomAttribute).toHaveBeenCalledWith('enterprise_customer_uuid', mockEnterpriseCustomer.uuid);
     expect(mockSetCustomAttribute).toHaveBeenCalledWith('is_bff_enabled', isBFFEnabled);
   });
+
+  it.each([
+    { showNonProductionBanner: true },
+    { showNonProductionBanner: false },
+  ])('renders the non-production banner only for non-production customers (%s)', ({ showNonProductionBanner }) => {
+    useEnterpriseCustomer.mockReturnValue({
+      data: enterpriseCustomerFactory({ show_non_production_banner: showNonProductionBanner }),
+    });
+
+    renderWithRouterProvider(<LayoutWrapper />);
+
+    const banner = screen.queryByText('Non-Production Environment');
+    if (showNonProductionBanner) {
+      expect(banner).toBeInTheDocument();
+    } else {
+      expect(banner).not.toBeInTheDocument();
+    }
+  });
 });

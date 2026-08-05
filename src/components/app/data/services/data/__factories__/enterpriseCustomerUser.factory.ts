@@ -32,6 +32,7 @@ Factory.define('enterpriseCustomer')
   .attr('admin_users', [{ email: faker.internet.email() }])
   .attr('disable_search', false)
   .attr('enable_one_academy', false)
+  .attr('show_non_production_banner', false)
   .attr('branding_configuration', {
     logo: faker.image.urlPlaceholder(),
     primary_color: faker.internet.color(),
