@@ -4,6 +4,13 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakeHeader from '../IntakeHeader';
 import messages from '../messages';
+import { useEnterpriseCustomer } from '../../../../../../app/data';
+import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
+
+jest.mock('../../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
 
 const MockIntakeHeader = () => (
   <IntlProvider locale="en">
@@ -12,6 +19,12 @@ const MockIntakeHeader = () => (
 );
 
 describe('IntakeHeader', () => {
+  beforeEach(() => {
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({
+      data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+    });
+  });
+
   it('renders translated heading, helper text, and privacy trigger', () => {
     render(<MockIntakeHeader />);
 

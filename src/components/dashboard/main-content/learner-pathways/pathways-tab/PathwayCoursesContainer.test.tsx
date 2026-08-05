@@ -9,6 +9,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { PathwaysActionBarProvider } from './action-bar';
@@ -16,6 +17,7 @@ import { usePathwaysStore } from './state';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 import { queryClient } from '../../../../../utils/tests';
+import { PATHWAYS_EVENTS } from '../../../../../eventTracking';
 import {
   completedWithCertificateMatch,
   inProgressMatch,
@@ -27,6 +29,10 @@ jest.mock('../../../../app/data', () => ({
   ...jest.requireActual('../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
+}));
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory({
@@ -157,6 +163,19 @@ describe('PathwayCoursesContainer', () => {
     expect(onBackToProfile).not.toHaveBeenCalled();
   });
 
+  it('fires feedback_link.clicked with feedbackSurface "pathway_courses" when the footer link is clicked', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await user.click(screen.getByTestId('pathway-feedback-button'));
+
+    expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+      mockEnterpriseCustomer.uuid,
+      PATHWAYS_EVENTS.FEEDBACK_LINK_CLICKED,
+      expect.objectContaining({ feedbackSurface: 'pathway_courses' }),
+    );
+  });
+
   it('hides the Give feedback link entirely when PATHWAYS_FEEDBACK_FORM_URL is not configured', () => {
     mergeConfig({ PATHWAYS_FEEDBACK_FORM_URL: null });
     renderComponent();
@@ -193,9 +212,41 @@ describe('PathwayCoursesContainer', () => {
       act(() => { jest.advanceTimersByTime(30000); });
       expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
 
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'feedback_modal', interactionAction: 'opened' }),
+      );
+
       await user.click(screen.getByRole('button', { name: 'Maybe later' }));
       expect(screen.queryByText('Help us improve learning pathways!')).not.toBeInTheDocument();
       expect(screen.getByTestId('pathway-feedback-button')).toBeInTheDocument();
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'feedback_modal', interactionAction: 'dismissed' }),
+      );
+    });
+
+    it('fires feedback_link.clicked with feedbackSurface "feedback_modal" when Give feedback is clicked inside the modal', async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      usePathwaysStore.setState({
+        pathwayCourses: [
+          { courseKey: 'custom-course', title: 'Custom Store Course', status: 'not_started' },
+        ],
+      });
+      renderComponent();
+
+      act(() => { jest.advanceTimersByTime(30000); });
+      expect(screen.getByText('Help us improve learning pathways!')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('link', { name: /Give feedback/ }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.FEEDBACK_LINK_CLICKED,
+        expect.objectContaining({ feedbackSurface: 'feedback_modal' }),
+      );
     });
 
     it('never starts the timer or opens the modal when generation returns no canonical courses (fixture-only render)', () => {

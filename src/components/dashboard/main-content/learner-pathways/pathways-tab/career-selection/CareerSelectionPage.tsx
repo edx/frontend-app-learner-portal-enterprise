@@ -15,6 +15,7 @@ import NoPathwayCoursesModal from './NoPathwayCoursesModal';
 import { deriveSelectedCareer } from './selectors';
 import messages from './messages';
 import { RequestErrorAlert } from '../shared';
+import { usePathwaysAnalytics } from '../hooks';
 
 export interface CareerSelectionPageProps {
   learnerIntent: LearnerIntent;
@@ -72,6 +73,7 @@ const CareerSelectionPage = ({
   onEditingChange,
 }: CareerSelectionPageProps) => {
   const intl = useIntl();
+  const { trackControlInteracted } = usePathwaysAnalytics();
   const [isEditing, setIsEditing] = useState(false);
   const goalSummaryCardRef = useRef<GoalSummaryCardHandle>(null);
   // Set when the no-courses modal's primary action opens edit mode, so the focus
@@ -95,7 +97,13 @@ const CareerSelectionPage = ({
     return undefined;
   }, [isEditing, pendingGoalSummaryFocus]);
 
+  const handleCloseNoCoursesModal = () => {
+    trackControlInteracted({ sourceComponent: 'no_pathway_courses_modal', interactionAction: 'back' });
+    onCloseNoCourses();
+  };
+
   const handleEditGoalSummaryFromNoCourses = () => {
+    trackControlInteracted({ sourceComponent: 'no_pathway_courses_modal', interactionAction: 'choose_different_match' });
     onCloseNoCourses();
     setIsEditing(true);
     setPendingGoalSummaryFocus(true);
@@ -179,7 +187,7 @@ const CareerSelectionPage = ({
 
       <NoPathwayCoursesModal
         isOpen={isNoCoursesOpen}
-        onClose={onCloseNoCourses}
+        onClose={handleCloseNoCoursesModal}
         onEditGoalSummary={handleEditGoalSummaryFromNoCourses}
       />
     </section>

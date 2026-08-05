@@ -14,6 +14,13 @@ export type GenerateProfileWorkflowInput = LearnerIntent;
 export interface GenerateProfileWorkflowResult {
   learnerProfile: LearnerProfile;
   careerMatches: CareerMatch[];
+  /**
+   * Counts only (never the raw skill names) from the Learning Intent response, exposed
+   * purely so analytics can report them without re-deriving or persisting the intent
+   * itself — `learnerProfile.skills` is already the deduplicated union of both lists.
+   */
+  skillsRequiredCount: number;
+  skillsPreferredCount: number;
 }
 
 /**

@@ -1,12 +1,13 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  render, screen, waitFor, within,
+  act, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { MemoryRouter } from 'react-router-dom';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
 import intakeMessages from './intake/messages';
@@ -17,6 +18,12 @@ import { generateProfileWorkflow } from './workflows';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 import { queryClient } from '../../../../../utils/tests';
+import { PATHWAYS_EVENTS } from '../../../../../eventTracking';
+
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
 
 // PathwayCoursesContainer's one-time feedback prompt calls getAuthenticatedUser() to
 // scope its localStorage marker, so every path that reaches a populated Pathway page
@@ -33,6 +40,8 @@ jest.mock('./workflows', () => {
     generateProfileWorkflow: jest.fn(() => Promise.resolve({
       learnerProfile: profile,
       careerMatches: matches,
+      skillsRequiredCount: 3,
+      skillsPreferredCount: 2,
     })),
     generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses }),
   };
@@ -48,6 +57,7 @@ jest.mock('../../../../app/data', () => ({
 }));
 
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
+const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
 
 const renderComponent = () => render(
   <QueryClientProvider client={queryClient()}>
@@ -63,8 +73,9 @@ describe('LearnerPathwaysTab', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     mockGenerateProfileWorkflow.mockClear();
+    (sendEnterpriseTrackEvent as jest.Mock).mockClear();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
-      data: enterpriseCustomerFactory({ slug: 'test-enterprise' }),
+      data: mockEnterpriseCustomer,
     });
     (useEnterpriseCourseEnrollments as jest.Mock).mockReturnValue({
       data: { enterpriseCourseEnrollments: [], allEnrollmentsByStatus: {} },
@@ -414,6 +425,211 @@ describe('LearnerPathwaysTab', () => {
         motivation: 'Motivation', careerGoal: 'Goal', background: 'Background', targetIndustry: 'Industry',
       });
       expect(screen.queryByText('Learning Intent service unavailable')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pathways analytics events', () => {
+    const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+      await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+      await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+      await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    };
+
+    it('fires step.viewed exactly once for the initial onboarding render, with isResumedSession false', () => {
+      renderComponent();
+
+      const stepViewedCalls = (sendEnterpriseTrackEvent as jest.Mock).mock.calls
+        .filter(([, eventName]) => eventName === PATHWAYS_EVENTS.STEP_VIEWED);
+      expect(stepViewedCalls).toEqual([
+        [mockEnterpriseCustomer.uuid, PATHWAYS_EVENTS.STEP_VIEWED, expect.objectContaining({
+          pathwayStep: 'onboarding', isResumedSession: false, navigationSource: 'initial_render',
+        })],
+      ]);
+    });
+
+    it('fires step.viewed once per step as a fresh session progresses through onboarding -> profile -> pathway, never re-firing for the same step', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+      expect(screen.getByTestId('profile-container')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+      const stepViewedCalls = (sendEnterpriseTrackEvent as jest.Mock).mock.calls
+        .filter(([, eventName]) => eventName === PATHWAYS_EVENTS.STEP_VIEWED);
+      expect(stepViewedCalls).toEqual([
+        [mockEnterpriseCustomer.uuid, PATHWAYS_EVENTS.STEP_VIEWED, expect.objectContaining({
+          pathwayStep: 'onboarding', isResumedSession: false, navigationSource: 'initial_render',
+        })],
+        [mockEnterpriseCustomer.uuid, PATHWAYS_EVENTS.STEP_VIEWED, expect.objectContaining({
+          pathwayStep: 'profile', isResumedSession: false, navigationSource: 'workflow_completion',
+        })],
+        [mockEnterpriseCustomer.uuid, PATHWAYS_EVENTS.STEP_VIEWED, expect.objectContaining({
+          pathwayStep: 'pathway', isResumedSession: false, navigationSource: 'workflow_completion',
+        })],
+      ]);
+    });
+
+    it('fires a single step.viewed with isResumedSession true when the store is hydrated mid-journey on mount', () => {
+      act(() => {
+        usePathwaysStore.setState({ section: 'profile', learnerProfile: CAREER_SELECTION_STUB_PROFILE, careerMatches: CAREER_SELECTION_STUB_MATCHES });
+      });
+
+      renderComponent();
+
+      const stepViewedCalls = (sendEnterpriseTrackEvent as jest.Mock).mock.calls
+        .filter(([, eventName]) => eventName === PATHWAYS_EVENTS.STEP_VIEWED);
+      expect(stepViewedCalls).toEqual([
+        [mockEnterpriseCustomer.uuid, PATHWAYS_EVENTS.STEP_VIEWED, expect.objectContaining({
+          pathwayStep: 'profile', isResumedSession: true,
+        })],
+      ]);
+    });
+
+    it('fires intake.submitted with the count of completed fields and a length category per field', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.INTAKE_SUBMITTED,
+        expect.objectContaining({
+          fieldsCompletedCount: 4,
+          motivationLengthCategory: 'short',
+          careerGoalLengthCategory: 'short',
+          backgroundLengthCategory: 'short',
+          targetIndustryLengthCategory: 'short',
+        }),
+      );
+    });
+
+    it('fires profile.generation_completed with outcome "succeeded" and career-match details on a successful submission', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
+        expect.objectContaining({
+          source: 'intake',
+          outcome: 'succeeded',
+          careerMatchCount: CAREER_SELECTION_STUB_MATCHES.length,
+          displayableCareerMatchCount: expect.any(Number),
+          careerMatchIds: CAREER_SELECTION_STUB_MATCHES.slice(0, 10).map((match) => match.id),
+          intentSkillsCount: CAREER_SELECTION_STUB_PROFILE.skills.length,
+          skillsRequiredCount: 3,
+          skillsPreferredCount: 2,
+        }),
+      ));
+    });
+
+    it('fires profile.generation_completed with outcome "no_matches" when career matches are empty', async () => {
+      const user = userEvent.setup();
+      const generatedProfile: LearnerProfile = {
+        summary: 'No career matches were found for your current goal.', learningStyle: '', weeklyTimeCommitment: '', certificatePreference: '', skills: [],
+      };
+      mockGenerateProfileWorkflow.mockResolvedValueOnce({
+        learnerProfile: generatedProfile, careerMatches: [], skillsRequiredCount: 0, skillsPreferredCount: 0,
+      });
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
+        expect.objectContaining({
+          source: 'intake',
+          outcome: 'no_matches',
+          careerMatchCount: 0,
+          displayableCareerMatchCount: 0,
+          careerMatchIds: [],
+          intentSkillsCount: 0,
+        }),
+      ));
+    });
+
+    it('fires profile.generation_completed with outcome "failed" when generateProfileWorkflow rejects', async () => {
+      const user = userEvent.setup();
+      mockGenerateProfileWorkflow.mockRejectedValueOnce(new Error('Learning Intent service unavailable'));
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.PROFILE_GENERATION_COMPLETED,
+        expect.objectContaining({ source: 'intake', outcome: 'failed' }),
+      ));
+    });
+
+    it('fires quiz.retaken with the pathwayStep the learner retook from', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));
+      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.QUIZ_RETAKEN,
+        expect.objectContaining({ pathwayStep: 'pathway' }),
+      );
+    });
+
+    it('fires control.interacted for the retake-quiz modal on open and cancel', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await user.click(screen.getByTestId('career-retake-quiz-button'));
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'retake_quiz_modal', interactionAction: 'opened' }),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.CONTROL_INTERACTED,
+        expect.objectContaining({ sourceComponent: 'retake_quiz_modal', interactionAction: 'cancelled' }),
+      );
+    });
+
+    it('tags a breadcrumb-driven step transition with navigationSource "breadcrumb"', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+      await user.click(screen.getByTestId('career-build-pathway-button'));
+      await user.click(screen.getByRole('link', { name: 'Career profile' }));
+
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        mockEnterpriseCustomer.uuid,
+        PATHWAYS_EVENTS.STEP_VIEWED,
+        expect.objectContaining({ pathwayStep: 'profile', navigationSource: 'breadcrumb' }),
+      );
     });
   });
 });

@@ -6,6 +6,7 @@ import { getConfig } from '@edx/frontend-platform/config';
 
 import { useEnterpriseCustomer } from '../../../../../app/data';
 import { getContactEmail } from '../../../../../../utils/common';
+import { usePathwaysAnalytics } from '../hooks';
 import messages from './messages';
 
 /**
@@ -17,9 +18,14 @@ import messages from './messages';
 const NeedHelpCard = () => {
   const intl = useIntl();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  const { trackControlInteracted } = usePathwaysAnalytics();
   const courseSearchUrl = `/${enterpriseCustomer?.slug}/search`;
   const contactEmail = getContactEmail(enterpriseCustomer);
   const helpCenterUrl = getConfig().LEARNER_SUPPORT_URL;
+
+  const trackNeedHelpClick = (linkType: 'course_search' | 'contact_admin' | 'help_center') => (
+    () => trackControlInteracted({ sourceComponent: 'need_help_card', interactionAction: 'clicked', linkType })
+  );
 
   return (
     <Card className="mt-3" data-testid="pathway-need-help">
@@ -37,14 +43,22 @@ const NeedHelpCard = () => {
              */
             /* eslint-disable react/no-unstable-nested-components */
             values={{
-              searchLink: (chunks: ReactNode) => <Link to={courseSearchUrl}>{chunks}</Link>,
+              searchLink: (chunks: ReactNode) => (
+                <Link to={courseSearchUrl} onClick={trackNeedHelpClick('course_search')}>{chunks}</Link>
+              ),
               adminLink: (chunks: ReactNode) => (
                 contactEmail
-                  ? <MailtoLink to={contactEmail} target="_blank">{chunks}</MailtoLink>
+                  ? (
+                    <MailtoLink to={contactEmail} target="_blank" onClick={trackNeedHelpClick('contact_admin')}>
+                      {chunks}
+                    </MailtoLink>
+                  )
                   : chunks
               ),
               helpLink: (chunks: ReactNode) => (
-                <Hyperlink destination={helpCenterUrl} target="_blank">{chunks}</Hyperlink>
+                <Hyperlink destination={helpCenterUrl} target="_blank" onClick={trackNeedHelpClick('help_center')}>
+                  {chunks}
+                </Hyperlink>
               ),
             }}
             /* eslint-enable react/no-unstable-nested-components */
