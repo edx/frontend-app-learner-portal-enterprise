@@ -1,0 +1,24 @@
+src/components/dashboard/main-content/LearningGoalForm.jsx
+  s_ceec66738c4f65::t_c3b2d7b8bab043 2-43,46-47,49-64,68-81,85-90,94,96-115,119-125
+  s_ceec66738c4f65::t_c541f4e9d6c39d 126
+src/components/dashboard/main-content/LearningGoalForm.test.jsx
+  s_ceec66738c4f65::t_24baf72b896480 1-93
+src/components/dashboard/main-content/data/learningGoalService.js
+  s_ceec66738c4f65::t_1b1fbdd90cd9fd 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e1b423a47bc21f805bd7d951554e3721301c34a4",
+  "prompts": {},
+  "sessions": {
+    "s_ceec66738c4f65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1bd6944-0f86-4de2-9698-26c73f472672",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Hamzah Ullah <hamzahullah@yahoo.com>"
+    }
+  }
+}
