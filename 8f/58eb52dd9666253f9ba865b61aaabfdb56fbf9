@@ -1,0 +1,48 @@
+src/components/non-production-banner/tests/NonProductionBanner.test.tsx
+  s_7c8ac222b468e1::t_3a3c8d09b7a619 1,3-12,20-90,120
+  s_7c8ac222b468e1::t_15d37bcdb3b81d 13-15
+  s_7c8ac222b468e1::t_272bc13bd8fe46 2
+  s_7c8ac222b468e1::t_cda5b5e3382697 16
+  s_7c8ac222b468e1::t_4373bd0734a5e0 91-119
+  s_7c8ac222b468e1::t_bd908be670403b 17-19
+src/components/non-production-banner/NonProductionBanner.tsx
+  s_7c8ac222b468e1::t_4d3857ffb0f92a 1,3-28
+  s_331539f826cf3d::t_e5da5f21796d66 2
+  s_7c8ac222b468e1::t_8558d84e82f73f 43
+  s_7c8ac222b468e1::t_1d0d5a973b1f27 44-46
+  s_7c8ac222b468e1::t_9aa47179a39ac8 47-49
+  s_7c8ac222b468e1::t_2d982b0ec84ef6 41-42
+  s_7c8ac222b468e1::t_ea3d0a4431b9ba 29-40
+  s_7c8ac222b468e1::t_37eebbf3270ce0 50
+src/components/app/Layout.test.jsx
+  s_7c8ac222b468e1::t_71634269d0aaa2 221
+  s_7c8ac222b468e1::t_7814db2a0a8228 210-214
+  s_7c8ac222b468e1::t_edf8135bab6593 218-220
+  s_7c8ac222b468e1::t_086d60eedce3c0 215-217
+  s_7c8ac222b468e1::t_dda2767362d963 222-224
+  s_7c8ac222b468e1::t_aab1136d92f751 225-227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8f58eb52dd9666253f9ba865b61aaabfdb56fbf9",
+  "prompts": {},
+  "sessions": {
+    "s_331539f826cf3d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9da9f1e6-5ba9-4dd6-a8af-4f192a72dd41",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": null
+    },
+    "s_7c8ac222b468e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ff6e5d37-e7be-4aa2-89be-666167a4db79",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": null
+    }
+  }
+}
