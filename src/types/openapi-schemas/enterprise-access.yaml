@@ -3674,6 +3674,9 @@ components:
           type: boolean
         enable_learner_credit_message_box:
           type: boolean
+        show_non_production_banner:
+          type: boolean
+          default: false
       required:
         - active
         - branding_configuration

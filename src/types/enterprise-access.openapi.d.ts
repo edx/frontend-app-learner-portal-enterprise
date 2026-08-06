@@ -1088,6 +1088,8 @@ export interface components {
       disable_search: boolean;
       show_integration_warning: boolean;
       enable_learner_credit_message_box: boolean;
+      /** @default false */
+      show_non_production_banner?: boolean;
     };
     /** @description Serializer for enterprise customer integration. */
     EnterpriseCustomerActiveIntegration: {

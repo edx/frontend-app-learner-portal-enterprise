@@ -9,6 +9,7 @@ import { useBrandStylesInjection } from '../layout/data';
 import NotFoundPage from '../NotFoundPage';
 import { SiteHeader } from '../site-header';
 import { EnterpriseBanner } from '../enterprise-banner';
+import { NonProductionBanner } from '../non-production-banner';
 import { SystemWideWarningBanner } from '../system-wide-banner';
 import { EnterprisePage } from '../enterprise-page';
 import AppErrorBoundary from './AppErrorBoundary';
@@ -50,6 +51,7 @@ const Layout = () => {
           {config.MAINTENANCE_ALERT_MESSAGE}
         </SystemWideWarningBanner>
       )}
+      <NonProductionBanner />
       <SiteHeader />
       <EnterpriseBanner />
       <ErrorBoundary fallbackRender={fallbackRender}>
