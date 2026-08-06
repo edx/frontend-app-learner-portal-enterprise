@@ -965,8 +965,9 @@ export const getCourseStartDate = ({ courseRun }) => courseRun?.start;
 
 /**
  * Determines the end date for the course run, only returning it when it represents a real,
- * known end (i.e., it is after the run's start date). Some course runs (e.g., self-paced) may
- * carry a placeholder end date far in the future; callers should not display such a value.
+ * known end (i.e., both a start and an end date exist, and the end date is after the start
+ * date). This filters out data where the end date is missing or otherwise not meaningfully
+ * after the run's start.
  *
  * @param {Object} args
  * @param {Object} args.courseRun
@@ -975,7 +976,7 @@ export const getCourseStartDate = ({ courseRun }) => courseRun?.start;
  */
 export const getCourseEndDate = ({ courseRun }) => {
   const { start, end } = courseRun ?? {};
-  if (!end || !dayjs(end).isAfter(dayjs(start))) {
+  if (!start || !end || !dayjs(end).isAfter(dayjs(start))) {
     return undefined;
   }
   return end;

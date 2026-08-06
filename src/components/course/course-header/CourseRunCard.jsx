@@ -47,7 +47,7 @@ const CourseRunCard = ({ courseRun }) => {
   return (
     <Card>
       <Card.Section className="text-center">
-        <div className="h4 mb-0">{heading}</div>
+        <div className="h4 mb-0" style={{ whiteSpace: 'pre-line' }}>{heading}</div>
         <p
           className={classNames('small', {
             'mb-0': userCanRequestSubsidyForCourse,

@@ -75,17 +75,19 @@ const generateCourseRun = ({
   enrollmentCount = 0,
   isEnrollable = true,
   start = COURSE_RUN_START,
+  end = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(),
+  weeksToComplete = COURSE_WEEKS_TO_COMPLETE,
 }) => ({
   availability,
   pacingType,
   enrollmentCount,
   isEnrollable,
   start,
-  end: dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(),
+  end,
   key: COURSE_ID,
   seats: [{ sku: 'sku', type: COURSE_MODES_MAP.VERIFIED }],
   courseUuid: COURSE_UUID,
-  weeksToComplete: COURSE_WEEKS_TO_COMPLETE,
+  weeksToComplete,
 });
 
 const renderCard = ({
@@ -206,8 +208,8 @@ describe('<DeprecatedCourseRunCard />', () => {
     const courseRun = generateCourseRun({});
     renderCard({ courseRun });
     const startDate = dayjs(COURSE_RUN_START).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('Be the first to enroll!')).toBeInTheDocument();
     expect(screen.queryByText('Enroll')).toBeInTheDocument();
   });
@@ -222,8 +224,8 @@ describe('<DeprecatedCourseRunCard />', () => {
     });
     renderCard({ courseRun });
     const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('1,000 recently enrolled!')).toBeInTheDocument();
     expect(screen.queryByText('Enroll')).toBeInTheDocument();
   });
@@ -243,8 +245,8 @@ describe('<DeprecatedCourseRunCard />', () => {
     const courseRun = generateCourseRun({});
     renderCard({ courseRun });
     const startDate = dayjs(COURSE_RUN_START).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('Be the first to enroll!')).toBeInTheDocument();
     expect(screen.getByText(enrollButtonTypes.HIDE_BUTTON)).toBeInTheDocument();
   });
@@ -256,8 +258,8 @@ describe('<DeprecatedCourseRunCard />', () => {
     useCanUserRequestSubsidyForCourse.mockReturnValue(true);
     renderCard({ courseRun });
     const startDate = dayjs(COURSE_RUN_START).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('Be the first to enroll!')).toBeInTheDocument();
     expect(screen.getByText(enrollButtonTypes.HIDE_BUTTON)).toBeInTheDocument();
   });
@@ -269,8 +271,8 @@ describe('<DeprecatedCourseRunCard />', () => {
     const courseRun = generateCourseRun({});
     renderCard({ courseRun });
     const startDate = dayjs(COURSE_RUN_START).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('Be the first to enroll!')).toBeInTheDocument();
     expect(screen.getByText(enrollButtonTypes.ENROLL_DISABLED)).toBeInTheDocument();
   });
@@ -281,7 +283,7 @@ describe('<DeprecatedCourseRunCard />', () => {
       start: courseRunStart,
     });
     const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
-    const endDate = dayjs().add(COURSE_WEEKS_TO_COMPLETE + 1, 'weeks').format(DATE_FORMAT);
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
     renderCard({
       courseRun,
       userEnrollments: [{
@@ -291,9 +293,117 @@ describe('<DeprecatedCourseRunCard />', () => {
         mode: COURSE_MODES_MAP.VERIFIED,
       }],
     });
-    expect(screen.getByText(`Starts ${startDate} · Ends ${endDate}`)).toBeInTheDocument();
+    expect(screen.getByText(`Starts ${startDate} Ends ${endDate}`)).toBeInTheDocument();
     expect(screen.getByText('You are enrolled')).toBeInTheDocument();
     expect(screen.getByText('View course')).toBeInTheDocument();
+  });
+
+  test('User is enrolled, course not started, and no known end date', () => {
+    const courseRunStart = dayjs(COURSE_RUN_START).add(1, 'd').toISOString();
+    const courseRun = generateCourseRun({ start: courseRunStart });
+    delete courseRun.end;
+    const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
+    renderCard({
+      courseRun,
+      userEnrollments: [{
+        courseRunId: COURSE_ID,
+        isEnrollmentActive: true,
+        isRevoked: false,
+        mode: COURSE_MODES_MAP.VERIFIED,
+      }],
+    });
+    expect(screen.getByText(`Starts ${startDate}`)).toBeInTheDocument();
+    expect(screen.getByText('You are enrolled')).toBeInTheDocument();
+  });
+
+  test('User is enrolled, and course has already started, with a known end date', () => {
+    const courseRunStart = dayjs().subtract(2, 'week').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      pacingType: COURSE_PACING_MAP.INSTRUCTOR_PACED,
+    });
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    renderCard({
+      courseRun,
+      userEnrollments: [{
+        courseRunId: COURSE_ID,
+        isEnrollmentActive: true,
+        isRevoked: false,
+        mode: COURSE_MODES_MAP.VERIFIED,
+      }],
+    });
+    expect(screen.getByText(`Course started Ends ${endDate}`)).toBeInTheDocument();
+    expect(screen.getByText('You are enrolled')).toBeInTheDocument();
+  });
+
+  test('User is enrolled, course has already started, and has no known end date', () => {
+    const courseRunStart = dayjs().subtract(2, 'week').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      pacingType: COURSE_PACING_MAP.INSTRUCTOR_PACED,
+    });
+    delete courseRun.end;
+    renderCard({
+      courseRun,
+      userEnrollments: [{
+        courseRunId: COURSE_ID,
+        isEnrollmentActive: true,
+        isRevoked: false,
+        mode: COURSE_MODES_MAP.VERIFIED,
+      }],
+    });
+    expect(screen.getByText('Course started')).toBeInTheDocument();
+    expect(screen.getByText('You are enrolled')).toBeInTheDocument();
+  });
+
+  test('Course is instructor-led and has already started, with a known end date', () => {
+    const courseRunStart = dayjs().subtract(2, 'week').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      pacingType: COURSE_PACING_MAP.INSTRUCTOR_PACED,
+    });
+    renderCard({ courseRun });
+    const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Started ${startDate} Ends ${endDate}`)).toBeInTheDocument();
+  });
+
+  test('Course is instructor-led, has already started, and has no known end date', () => {
+    const courseRunStart = dayjs().subtract(2, 'week').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      pacingType: COURSE_PACING_MAP.INSTRUCTOR_PACED,
+    });
+    delete courseRun.end;
+    renderCard({ courseRun });
+    const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
+    expect(screen.getByText(`Started ${startDate}`)).toBeInTheDocument();
+  });
+
+  test('Course is self-paced, has already started, does not have time to complete, with a known end date', () => {
+    const courseRunStart = dayjs().subtract(5, 'day').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      // A short remaining window relative to weeksToComplete makes hasTimeToComplete() false,
+      // which keeps getNormalizedStartDate() from substituting in "today" as the start date.
+      weeksToComplete: 10,
+      end: dayjs().add(1, 'day').format(),
+    });
+    renderCard({ courseRun });
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    expect(screen.getByText(`Course started Ends ${endDate}`)).toBeInTheDocument();
+  });
+
+  test('Course is self-paced, has already started, does not have time to complete, and has no known end date', () => {
+    const courseRunStart = dayjs().subtract(5, 'day').toISOString();
+    const courseRun = generateCourseRun({
+      start: courseRunStart,
+      weeksToComplete: 10,
+      end: dayjs().add(1, 'day').format(),
+    });
+    delete courseRun.end;
+    renderCard({ courseRun });
+    expect(screen.getByText('Course started')).toBeInTheDocument();
   });
 
   test('Course run with no known end date shows only the start date', () => {
@@ -312,5 +422,15 @@ describe('<DeprecatedCourseRunCard />', () => {
     renderCard({ courseRun });
     const startDate = dayjs(courseRunStart).format(DATE_FORMAT);
     expect(screen.getByText(`Starts ${startDate}`)).toBeInTheDocument();
+  });
+
+  test('renders the end date on its own line below the start date', () => {
+    const courseRun = generateCourseRun({});
+    renderCard({ courseRun });
+    const startDate = dayjs(COURSE_RUN_START).format(DATE_FORMAT);
+    const endDate = dayjs(courseRun.end).format(DATE_FORMAT);
+    const heading = screen.getByText(`Starts ${startDate} Ends ${endDate}`);
+    expect(heading.textContent).toEqual(`Starts ${startDate}\nEnds ${endDate}`);
+    expect(heading).toHaveStyle({ whiteSpace: 'pre-line' });
   });
 });

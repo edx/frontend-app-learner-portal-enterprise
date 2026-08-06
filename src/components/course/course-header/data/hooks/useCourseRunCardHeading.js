@@ -18,8 +18,8 @@ const messages = defineMessages({
   },
   courseStartDateWithEndDate: {
     id: 'useCourseRunCardHeading.startsOnDateWithEndDate',
-    defaultMessage: 'Starts {startDate} · Ends {endDate}',
-    description: 'Heading for course run card when the course run is upcoming or self-paced, and its end date is known.',
+    defaultMessage: 'Starts {startDate}\nEnds {endDate}',
+    description: 'Heading for course run card when the course run is upcoming or self-paced, and its end date is known. The end date is shown on its own line below the start date.',
   },
   courseStarted: {
     id: 'useCourseRunCardHeading.courseStarted',
@@ -28,8 +28,8 @@ const messages = defineMessages({
   },
   courseStartedWithEndDate: {
     id: 'useCourseRunCardHeading.courseStartedWithEndDate',
-    defaultMessage: 'Course started · Ends {endDate}',
-    description: 'Heading for course run card when course run is shown as already started, with its end date shown.',
+    defaultMessage: 'Course started\nEnds {endDate}',
+    description: 'Heading for course run card when course run is shown as already started, with its end date shown on its own line.',
   },
   courseStartedDate: {
     id: 'useCourseRunCardHeading.startedOnDate',
@@ -38,8 +38,8 @@ const messages = defineMessages({
   },
   courseStartedDateWithEndDate: {
     id: 'useCourseRunCardHeading.startedOnDateWithEndDate',
-    defaultMessage: 'Started {startDate} · Ends {endDate}',
-    description: 'Heading for course run card when course run is shown as already started, with its start and end dates shown.',
+    defaultMessage: 'Started {startDate}\nEnds {endDate}',
+    description: 'Heading for course run card when course run is shown as already started, with its start and end dates shown, the end date on its own line.',
   },
 });
 

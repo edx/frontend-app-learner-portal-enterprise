@@ -157,7 +157,7 @@ describe('useCourseRunCardHeading', () => {
       }),
       { wrapper },
     );
-    expect(result.current).toEqual('Starts Apr 20 · Ends Jun 15');
+    expect(result.current).toEqual('Starts Apr 20\nEnds Jun 15');
   });
 
   it('does not show an end date that is before the start date', () => {
@@ -189,7 +189,7 @@ describe('useCourseRunCardHeading', () => {
       }),
       { wrapper },
     );
-    expect(result.current).toEqual('Course started · Ends Jun 15');
+    expect(result.current).toEqual('Course started\nEnds Jun 15');
   });
 
   it('handles current, instructor-led, unenrolled course run with a known end date', () => {
@@ -205,6 +205,6 @@ describe('useCourseRunCardHeading', () => {
       }),
       { wrapper },
     );
-    expect(result.current).toEqual('Started Apr 20 · Ends Jun 15');
+    expect(result.current).toEqual('Started Apr 20\nEnds Jun 15');
   });
 });
