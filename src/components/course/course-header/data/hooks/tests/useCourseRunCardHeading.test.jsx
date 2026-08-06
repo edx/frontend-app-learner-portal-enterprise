@@ -143,4 +143,68 @@ describe('useCourseRunCardHeading', () => {
     // assert shown start date matches the above mocked current date
     expect(result.current).toEqual('Started Apr 20');
   });
+
+  it('handles non-current course run with a known end date', () => {
+    const { result } = renderHook(
+      () => useCourseRunCardHeading({
+        isCourseRunCurrent: false,
+        isUserEnrolled: false,
+        courseRun: {
+          pacingType: 'self_paced',
+          start: MOCK_COURSE_RUN_START,
+          end: dayjs(MOCK_COURSE_RUN_START).add(8, 'weeks').toISOString(),
+        },
+      }),
+      { wrapper },
+    );
+    expect(result.current).toEqual('Starts Apr 20\nEnds Jun 15');
+  });
+
+  it('does not show an end date that is before the start date', () => {
+    const { result } = renderHook(
+      () => useCourseRunCardHeading({
+        isCourseRunCurrent: false,
+        isUserEnrolled: false,
+        courseRun: {
+          pacingType: 'self_paced',
+          start: MOCK_COURSE_RUN_START,
+          end: dayjs(MOCK_COURSE_RUN_START).subtract(1, 'day').toISOString(),
+        },
+      }),
+      { wrapper },
+    );
+    expect(result.current).toEqual('Starts Apr 20');
+  });
+
+  it('handles current, self-paced, enrolled course run with a known end date', () => {
+    const { result } = renderHook(
+      () => useCourseRunCardHeading({
+        isCourseRunCurrent: true,
+        isUserEnrolled: true,
+        courseRun: {
+          pacingType: 'self_paced',
+          start: MOCK_COURSE_RUN_START,
+          end: dayjs(MOCK_COURSE_RUN_START).add(8, 'weeks').toISOString(),
+        },
+      }),
+      { wrapper },
+    );
+    expect(result.current).toEqual('Course started\nEnds Jun 15');
+  });
+
+  it('handles current, instructor-led, unenrolled course run with a known end date', () => {
+    const { result } = renderHook(
+      () => useCourseRunCardHeading({
+        isCourseRunCurrent: true,
+        isUserEnrolled: false,
+        courseRun: {
+          pacingType: 'instructor_led',
+          start: MOCK_COURSE_RUN_START,
+          end: dayjs(MOCK_COURSE_RUN_START).add(8, 'weeks').toISOString(),
+        },
+      }),
+      { wrapper },
+    );
+    expect(result.current).toEqual('Started Apr 20\nEnds Jun 15');
+  });
 });

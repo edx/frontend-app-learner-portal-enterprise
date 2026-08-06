@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { defineMessages, useIntl } from '@edx/frontend-platform/i18n';
 
 import {
+  getCourseEndDate,
   getCourseStartDate,
   hasTimeToComplete,
   isCourseSelfPaced,
@@ -15,15 +16,30 @@ const messages = defineMessages({
     defaultMessage: 'Starts {startDate}',
     description: 'Heading for course run card when the course run is upcoming or the course run is self-paced.',
   },
+  courseStartDateWithEndDate: {
+    id: 'useCourseRunCardHeading.startsOnDateWithEndDate',
+    defaultMessage: 'Starts {startDate}\nEnds {endDate}',
+    description: 'Heading for course run card when the course run is upcoming or self-paced, and its end date is known. The end date is shown on its own line below the start date.',
+  },
   courseStarted: {
     id: 'useCourseRunCardHeading.courseStarted',
     defaultMessage: 'Course started',
     description: 'Heading for course run card when course run is shown as already started, with no date shown.',
   },
+  courseStartedWithEndDate: {
+    id: 'useCourseRunCardHeading.courseStartedWithEndDate',
+    defaultMessage: 'Course started\nEnds {endDate}',
+    description: 'Heading for course run card when course run is shown as already started, with its end date shown on its own line.',
+  },
   courseStartedDate: {
     id: 'useCourseRunCardHeading.startedOnDate',
     defaultMessage: 'Started {startDate}',
     description: 'Heading for course run card when course run is shown as already started, with its start date shown.',
+  },
+  courseStartedDateWithEndDate: {
+    id: 'useCourseRunCardHeading.startedOnDateWithEndDate',
+    defaultMessage: 'Started {startDate}\nEnds {endDate}',
+    description: 'Heading for course run card when course run is shown as already started, with its start and end dates shown, the end date on its own line.',
   },
 });
 
@@ -43,6 +59,14 @@ const useCourseRunCardHeading = ({
   const intl = useIntl();
 
   const courseStartDate = getCourseStartDate({ courseRun });
+  const courseEndDate = getCourseEndDate({ courseRun });
+  const endDate = courseEndDate ? dayjs(courseEndDate).format(DATE_FORMAT) : null;
+
+  const formatHeading = (withEndDateMessage, plainMessage, values = {}) => (
+    endDate
+      ? intl.formatMessage(withEndDateMessage, { ...values, endDate })
+      : intl.formatMessage(plainMessage, values)
+  );
 
   // check whether the course run is current based on its `availability` or whether
   // the start date is indeed in the past. As of this implementation, the `availability`
@@ -50,26 +74,34 @@ const useCourseRunCardHeading = ({
   // date is upcoming.
   if (isCourseRunCurrent && dayjs(courseStartDate).isBefore(dayjs())) {
     if (isUserEnrolled) {
-      return intl.formatMessage(messages.courseStarted);
+      return formatHeading(messages.courseStartedWithEndDate, messages.courseStarted);
     }
     if (isCourseSelfPaced(courseRun.pacingType)) {
       if (hasTimeToComplete(courseRun) || isWithinMinimumStartDateThreshold(courseRun)) {
         // always today's date (incentives enrollment)
-        return intl.formatMessage(messages.courseStartDate, {
-          startDate: dayjs().format(DATE_FORMAT),
-        });
+        return formatHeading(
+          messages.courseStartDateWithEndDate,
+          messages.courseStartDate,
+          { startDate: dayjs().format(DATE_FORMAT) },
+        );
       }
-      return intl.formatMessage(messages.courseStartedDate, {
-        startDate: dayjs(courseStartDate).format(DATE_FORMAT),
-      });
+      return formatHeading(
+        messages.courseStartedDateWithEndDate,
+        messages.courseStartedDate,
+        { startDate: dayjs(courseStartDate).format(DATE_FORMAT) },
+      );
     }
-    return intl.formatMessage(messages.courseStartedDate, {
-      startDate: dayjs(courseStartDate).format(DATE_FORMAT),
-    });
+    return formatHeading(
+      messages.courseStartedDateWithEndDate,
+      messages.courseStartedDate,
+      { startDate: dayjs(courseStartDate).format(DATE_FORMAT) },
+    );
   }
-  return intl.formatMessage(messages.courseStartDate, {
-    startDate: dayjs(courseStartDate).format(DATE_FORMAT),
-  });
+  return formatHeading(
+    messages.courseStartDateWithEndDate,
+    messages.courseStartDate,
+    { startDate: dayjs(courseStartDate).format(DATE_FORMAT) },
+  );
 };
 
 export default useCourseRunCardHeading;
