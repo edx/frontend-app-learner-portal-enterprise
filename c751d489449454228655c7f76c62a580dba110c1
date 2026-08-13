@@ -1,0 +1,44 @@
+docs/how-search-works.md
+  s_62aff05602dbf0::t_6a27902082207d 26
+  s_62aff05602dbf0::t_52b4b752d59721 58
+  s_62aff05602dbf0::t_a6c55efc199cf9 70
+  s_62aff05602dbf0::t_5ee85af7ad197d 34
+  s_62aff05602dbf0::t_a1c0dc8d1a6443 3-13,17-24,28-32,36-44,48-56,60-68,72,76-80,84-114,121-123,126-146
+  s_62aff05602dbf0::t_8417167b442ab3 46
+  s_62aff05602dbf0::t_2969af40ff9470 82
+  s_62aff05602dbf0::t_8cc5d4e3fe0f1d 115-120
+  s_62aff05602dbf0::t_9700660650e120 124-125
+  s_62aff05602dbf0::t_189304304d0f5c 15
+  s_62aff05602dbf0::t_ad5562d13252ad 1-2
+  s_62aff05602dbf0::t_284b97ec4dccd2 14
+  s_62aff05602dbf0::t_5a9dbfcef791c7 16
+  s_62aff05602dbf0::t_4691fff2cb1ba0 25
+  s_62aff05602dbf0::t_1524ea2ac36144 27
+  s_62aff05602dbf0::t_9015bfa8a5d3da 33
+  s_62aff05602dbf0::t_1b4d34575b22dc 35
+  s_62aff05602dbf0::t_b52775eb9edabc 45
+  s_62aff05602dbf0::t_0415fbbf27f028 47
+  s_62aff05602dbf0::t_716c5cab0ab30f 57
+  s_62aff05602dbf0::t_d333672f23ae78 59
+  s_62aff05602dbf0::t_3accf2b4fea2b0 69
+  s_62aff05602dbf0::t_66944c13a2c288 71
+  s_62aff05602dbf0::t_2d2ad9c72fe5c3 73-75
+  s_62aff05602dbf0::t_bd2ef6acd61c0e 81
+  s_62aff05602dbf0::t_8b470a633dfcfe 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c751d489449454228655c7f76c62a580dba110c1",
+  "prompts": {},
+  "sessions": {
+    "s_62aff05602dbf0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74ca1c35-976a-471b-bf2e-313429c89ec9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Alexander Dusenbery <adusenbery@2u.com>"
+    }
+  }
+}

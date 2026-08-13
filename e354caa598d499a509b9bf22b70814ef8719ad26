@@ -1,0 +1,21 @@
+src/components/dashboard/main-content/LearningGoalForm.jsx
+  s_ceec66738c4f65::t_cb6a77471c2d4e 1-43
+src/components/dashboard/main-content/DashboardMainContent.jsx
+  s_ceec66738c4f65::t_51f593507b7495 9,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e354caa598d499a509b9bf22b70814ef8719ad26",
+  "prompts": {},
+  "sessions": {
+    "s_ceec66738c4f65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1bd6944-0f86-4de2-9698-26c73f472672",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Hamzah Ullah <hamzahullah@yahoo.com>"
+    }
+  }
+}
