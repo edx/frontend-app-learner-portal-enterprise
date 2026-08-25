@@ -9,7 +9,9 @@ import { getConfig } from '@edx/frontend-platform/config';
 import SiteHeader from '../SiteHeader';
 
 import { renderWithRouter, renderWithRouterProvider } from '../../../utils/tests';
-import { useAcademies, useEnterpriseCustomer, useEnterpriseLearner } from '../../app/data';
+import {
+  useAcademies, useCanViewAcademies, useEnterpriseCustomer, useEnterpriseLearner,
+} from '../../app/data';
 import {
   academiesFactory,
   authenticatedUserFactory,
@@ -20,6 +22,7 @@ jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useEnterpriseLearner: jest.fn(),
   useAcademies: jest.fn(),
+  useCanViewAcademies: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useIsAssignmentsOnlyLearner: jest.fn(),
 }));
@@ -93,6 +96,7 @@ describe('<SiteHeader />', () => {
       },
     });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
+    useCanViewAcademies.mockReturnValue(false);
   });
 
   test('renders link with logo to dashboard', () => {

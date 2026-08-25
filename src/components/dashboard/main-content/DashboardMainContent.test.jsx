@@ -10,6 +10,7 @@ import {
   useEnterpriseCourseEnrollments,
   useEnterpriseCustomer,
   useAcademies,
+  useCanViewAcademies,
   useEnterpriseFeatures,
   useRedeemablePolicies,
   useCanOnlyViewHighlights,
@@ -23,6 +24,7 @@ import {
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useAcademies: jest.fn(),
+  useCanViewAcademies: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseFeatures: jest.fn(),
@@ -48,6 +50,7 @@ describe('DashboardMainContent', () => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
+    useCanViewAcademies.mockReturnValue(false);
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useRedeemablePolicies.mockReturnValue({ data: { redeemablePolicies: [] } });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });

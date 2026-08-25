@@ -6,6 +6,7 @@ import { ensureAuthenticatedUser } from '../../app/routes/data/utils';
 import {
   extractEnterpriseCustomer,
   queryAcademiesList,
+  resolveCanViewAcademies,
   safeEnsureQueryDataAcademiesList,
   safeEnsureQueryDataContentHighlightSets,
 } from '../../app/data';
@@ -42,12 +43,25 @@ const makeSearchLoader: MakeRouteLoaderFunctionWithQueryClient = function makeSe
       return null;
     }
 
-    const searchData = [
-      safeEnsureQueryDataAcademiesList({
-        queryClient,
-        enterpriseCustomer,
-      }),
-    ];
+    // Only ineligible customers/learners skip the academies list fetch entirely; eligibility must
+    // be resolved first since it gates both the prefetch and the single-academy redirect below.
+    const canViewAcademies = await resolveCanViewAcademies({
+      requestUrl,
+      queryClient,
+      authenticatedUser,
+      enterpriseSlug,
+      enterpriseCustomer,
+    });
+
+    const searchData: Promise<unknown>[] = [];
+    if (canViewAcademies) {
+      searchData.push(
+        safeEnsureQueryDataAcademiesList({
+          queryClient,
+          enterpriseCustomer,
+        }),
+      );
+    }
     if (getConfig().FEATURE_CONTENT_HIGHLIGHTS) {
       searchData.push(
         safeEnsureQueryDataContentHighlightSets({
@@ -59,14 +73,16 @@ const makeSearchLoader: MakeRouteLoaderFunctionWithQueryClient = function makeSe
 
     await Promise.all(searchData);
 
-    const academiesListQuery = queryAcademiesList(enterpriseCustomer.uuid);
-    const academies = queryClient.getQueryData<Academy[]>(academiesListQuery.queryKey);
-    if (enterpriseCustomer.enableOneAcademy && academies?.length === 1) {
-      const redirectPath = generatePath('/:enterpriseSlug/academies/:academyUUID', {
-        enterpriseSlug,
-        academyUUID: academies[0].uuid,
-      });
-      return redirect(redirectPath);
+    if (canViewAcademies && enterpriseCustomer.enableOneAcademy) {
+      const academiesListQuery = queryAcademiesList(enterpriseCustomer.uuid);
+      const academies = queryClient.getQueryData<Academy[]>(academiesListQuery.queryKey);
+      if (academies?.length === 1) {
+        const redirectPath = generatePath('/:enterpriseSlug/academies/:academyUUID', {
+          enterpriseSlug,
+          academyUUID: academies[0].uuid,
+        });
+        return redirect(redirectPath);
+      }
     }
 
     return null;

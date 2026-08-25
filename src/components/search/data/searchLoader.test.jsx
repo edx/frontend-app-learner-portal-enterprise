@@ -9,6 +9,7 @@ import {
   extractEnterpriseCustomer,
   queryAcademiesList,
   queryContentHighlightSets,
+  resolveCanViewAcademies,
 } from '../../app/data';
 import { ensureAuthenticatedUser } from '../../app/routes/data/utils';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
@@ -20,6 +21,7 @@ jest.mock('../../app/routes/data/utils', () => ({
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   extractEnterpriseCustomer: jest.fn(),
+  resolveCanViewAcademies: jest.fn(),
 }));
 
 jest.mock('@edx/frontend-platform/config', () => ({
@@ -27,7 +29,6 @@ jest.mock('@edx/frontend-platform/config', () => ({
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
-extractEnterpriseCustomer.mockResolvedValue(mockEnterpriseCustomer);
 
 const mockAcademies = [
   {
@@ -44,6 +45,8 @@ describe('searchLoader', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     ensureAuthenticatedUser.mockResolvedValue({ userId: 3 });
+    extractEnterpriseCustomer.mockResolvedValue(mockEnterpriseCustomer);
+    resolveCanViewAcademies.mockResolvedValue(true);
     getConfig.mockReturnValue({
       FEATURE_CONTENT_HIGHLIGHTS: false,
     });
@@ -184,5 +187,65 @@ describe('searchLoader', () => {
     await waitFor(() => {
       expect(screen.getByTestId('search-page')).toBeInTheDocument();
     });
+  });
+
+  it('does not fetch the academies list for academy-ineligible customers', async () => {
+    resolveCanViewAcademies.mockResolvedValue(false);
+    getConfig.mockReturnValue({
+      FEATURE_CONTENT_HIGHLIGHTS: true,
+    });
+
+    renderWithRouterProvider({
+      path: '/:enterpriseSlug/search',
+      element: <div>hello world</div>,
+      loader: makeSearchLoader(mockQueryClient),
+    }, [
+      {
+        initialEntries: ['/test-enterprise-slug/search'],
+      },
+    ]);
+
+    expect(await screen.findByText('hello world')).toBeInTheDocument();
+
+    expect(mockQueryClient.ensureQueryData).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: queryAcademiesList(mockEnterpriseCustomer.uuid).queryKey,
+      }),
+    );
+    // Content highlights are unaffected by academy eligibility.
+    expect(mockQueryClient.ensureQueryData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: queryContentHighlightSets(mockEnterpriseCustomer.uuid).queryKey,
+        queryFn: expect.any(Function),
+      }),
+    );
+  });
+
+  it('does not redirect academy-ineligible learners whose enterprise has enabled one academy', async () => {
+    resolveCanViewAcademies.mockResolvedValue(false);
+    extractEnterpriseCustomer.mockResolvedValue(enterpriseCustomerFactory({
+      enable_academies: true,
+      enable_one_academy: true,
+    }));
+    ensureAuthenticatedUser.mockResolvedValue({ userId: 3, username: 'test-user' });
+
+    renderWithRouterProvider({
+      path: '/:enterpriseSlug/search',
+      element: <div data-testid="search-page" />,
+      loader: makeSearchLoader(mockQueryClient),
+    }, {
+      routes: [
+        {
+          path: '/:enterpriseCustomer/academies/:academyUUID',
+          element: <div data-testid="academy-details-page" />,
+        },
+      ],
+      initialEntries: [`/${mockEnterpriseCustomer.slug}/search`],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('academy-details-page')).not.toBeInTheDocument();
   });
 });

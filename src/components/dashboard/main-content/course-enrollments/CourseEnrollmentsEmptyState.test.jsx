@@ -8,6 +8,7 @@ import CourseEnrollmentsEmptyStateContainer from './CourseEnrollmentsEmptyStateC
 import {
   useAcademies,
   useCanOnlyViewHighlights,
+  useCanViewAcademies,
   useEnterpriseCustomer,
   useEnterpriseFeatures,
 } from '../../../app/data';
@@ -18,6 +19,7 @@ import { renderWithRouter } from '../../../../utils/tests';
 jest.mock('../../../app/data', () => ({
   ...jest.requireActual('../../../app/data'),
   useAcademies: jest.fn(),
+  useCanViewAcademies: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseFeatures: jest.fn(),
   useCanOnlyViewHighlights: jest.fn(),
@@ -49,6 +51,7 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useAcademies.mockReturnValue({ data: [] });
+    useCanViewAcademies.mockReturnValue(false);
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });
@@ -66,16 +69,45 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
     expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
   });
 
-  it('renders GoToAcademy when the customer has exactly one academy', () => {
+  it('renders GoToAcademy when an academy-eligible customer has exactly one academy', () => {
     mockGroupAssociationsAlert({
       enterpriseCustomer: { ...mockEnterpriseCustomer, enableOneAcademy: true },
     });
+    useCanViewAcademies.mockReturnValue(true);
     useAcademies.mockReturnValue({ data: academiesFactory(1) });
 
     renderComponent();
 
     expect(screen.getByText('Go to Academy')).toBeInTheDocument();
     expect(screen.queryByText('No courses registered yet')).not.toBeInTheDocument();
+  });
+
+  it('renders the default empty state for academy-ineligible learners at a one-academy customer', () => {
+    mockGroupAssociationsAlert({
+      enterpriseCustomer: { ...mockEnterpriseCustomer, enableOneAcademy: true },
+    });
+    useCanViewAcademies.mockReturnValue(false);
+    useAcademies.mockReturnValue({ data: academiesFactory(1) });
+
+    renderComponent();
+
+    expect(screen.queryByText('Go to Academy')).not.toBeInTheDocument();
+    expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
+    // The academies list is never fetched for ineligible learners.
+    expect(useAcademies).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the default empty state when an eligible one-academy customer has multiple academies', () => {
+    mockGroupAssociationsAlert({
+      enterpriseCustomer: { ...mockEnterpriseCustomer, enableOneAcademy: true },
+    });
+    useCanViewAcademies.mockReturnValue(true);
+    useAcademies.mockReturnValue({ data: academiesFactory(3) });
+
+    renderComponent();
+
+    expect(screen.queryByText('Go to Academy')).not.toBeInTheDocument();
+    expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
   });
 
   it('renders the new group assignment alert alongside the legacy generic message when enterpriseGroupsV1 is enabled', () => {
