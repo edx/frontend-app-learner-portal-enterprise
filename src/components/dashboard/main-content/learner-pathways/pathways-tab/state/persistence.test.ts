@@ -14,6 +14,7 @@ const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore 
   restoreSelectedSkills: noop,
   commitProfileSuccess: noop,
   commitPathwayBuild: noop,
+  commitDirectPathwaySuccess: noop,
   commitStubProfile: noop,
   resetPathwaysState: noop,
   ...stateOverrides,
@@ -30,6 +31,7 @@ describe('partializePathwaysState', () => {
       'learnerIntent',
       'learnerProfile',
       'pathwayCourses',
+      'pathwayGenerationMode',
       'pathwayInputFingerprint',
       'section',
       'selectedCareerId',
@@ -60,6 +62,14 @@ describe('partializePathwaysState', () => {
     const persisted = partializePathwaysState(store);
 
     expect(persisted.careerMatches.map((match) => match.id)).toEqual(['rendered']);
+  });
+
+  it('carries pathwayGenerationMode through verbatim', () => {
+    const store = buildStore({ pathwayGenerationMode: 'direct' });
+
+    const persisted = partializePathwaysState(store);
+
+    expect(persisted.pathwayGenerationMode).toBe('direct');
   });
 });
 
@@ -92,6 +102,7 @@ describe('mergePathwaysState', () => {
 
     expect(merged.learnerIntent).toEqual(currentState.learnerIntent);
     expect(merged.pathwayInputFingerprint).toBeNull();
+    expect(merged.pathwayGenerationMode).toBeNull();
     // The old `onboarding` key rides along on the merged object (mergePathwaysState
     // spreads whatever the persisted blob contains) but is never read by any current
     // code — inert, not migrated. See pathwaysStorePersistence.test.ts for the fuller
@@ -118,11 +129,13 @@ describe('mergePathwaysState', () => {
       careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
       pathwayCourses: [],
       pathwayInputFingerprint: 'stale-fingerprint',
+      pathwayGenerationMode: 'direct',
     };
 
     const merged = mergePathwaysState(persistedState, currentState);
 
     expect(merged.section).toBe('profile');
     expect(merged.pathwayInputFingerprint).toBeNull();
+    expect(merged.pathwayGenerationMode).toBeNull();
   });
 });

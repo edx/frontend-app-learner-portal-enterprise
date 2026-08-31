@@ -28,6 +28,7 @@ export const getInitialPathwaysState = (): PathwaysState => ({
   selectedSkills: null,
   pathwayCourses: [],
   pathwayInputFingerprint: null,
+  pathwayGenerationMode: null,
 });
 
 /**
@@ -79,6 +80,16 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
   commitPathwayBuild: ({ courses, fingerprint }) => set({
     pathwayCourses: courses,
     pathwayInputFingerprint: fingerprint,
+    pathwayGenerationMode: 'career',
+  }),
+  commitDirectPathwaySuccess: ({ courses }) => set({
+    pathwayCourses: courses,
+    pathwayGenerationMode: 'direct',
+    pathwayInputFingerprint: null,
+    learnerProfile: null,
+    careerMatches: [],
+    selectedCareerId: null,
+    selectedSkills: null,
   }),
   commitStubProfile: ({ learnerProfile, careerMatches }) => set({ learnerProfile, careerMatches }),
   resetPathwaysState: () => set(getInitialPathwaysState()),
@@ -104,6 +115,7 @@ export const selectors = {
   selectedSkills: (state: PathwaysStore) => state.selectedSkills,
   pathwayCourses: (state: PathwaysStore) => state.pathwayCourses,
   pathwayInputFingerprint: (state: PathwaysStore) => state.pathwayInputFingerprint,
+  pathwayGenerationMode: (state: PathwaysStore) => state.pathwayGenerationMode,
 };
 
 /**
@@ -118,3 +130,4 @@ export const useSelectedCareerMatch = () => usePathwaysStore(selectors.selectedC
 export const usePathwaysSelectedSkills = () => usePathwaysStore(selectors.selectedSkills);
 export const usePathwaysCourses = () => usePathwaysStore(selectors.pathwayCourses);
 export const usePathwayInputFingerprint = () => usePathwaysStore(selectors.pathwayInputFingerprint);
+export const usePathwayGenerationMode = () => usePathwaysStore(selectors.pathwayGenerationMode);

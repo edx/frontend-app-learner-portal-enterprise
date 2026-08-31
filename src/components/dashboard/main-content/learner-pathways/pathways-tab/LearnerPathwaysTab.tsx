@@ -1,13 +1,17 @@
 import React, {
-  useCallback, useEffect, useRef, useState,
+  useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Container } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 import PathwayBreadcrumbs from './breadcrumb/PathwayBreadcrumbs';
 import { IntakePage } from './intake';
+import intakeMessages from './intake/messages';
 import CareerSelectionContainer from './CareerSelectionContainer';
 import RetakeQuizModal from './career-selection/RetakeQuizModal';
 import PathwayCoursesContainer from './PathwayCoursesContainer';
 import { VIEWS } from './constants';
+import { hasPathwaysFlowConflict, parsePathwaysFlowVariant } from './flowVariant';
 import { usePathwaysController, usePathwaysRequestState, usePathwaysAnalytics } from './hooks';
 import {
   usePathwaysStore, selectors, orderDisplayableCareerMatches,
@@ -32,16 +36,19 @@ const lengthCategory = (value: string): 'short' | 'medium' | 'long' => {
 
 const LearnerPathwaysTab = () => {
   const section = usePathwaysStore(selectors.section);
+  const pathwayGenerationMode = usePathwaysStore(selectors.pathwayGenerationMode);
   const setSection = usePathwaysStore((state) => state.setSection);
   const commitProfileSuccess = usePathwaysStore((state) => state.commitProfileSuccess);
+  const commitDirectPathwaySuccess = usePathwaysStore((state) => state.commitDirectPathwaySuccess);
   const resetPathwaysState = usePathwaysStore((state) => state.resetPathwaysState);
+  const intl = useIntl();
 
   const {
     setNavigationSource, trackStepViewed, trackIntakeSubmitted,
     trackProfileGenerationCompleted, trackQuizRetaken, trackControlInteracted,
   } = usePathwaysAnalytics();
 
-  const { generateProfile } = usePathwaysController();
+  const { generateProfile, generateDirectPathway } = usePathwaysController();
   const {
     profile: intakeProfileRequestState,
     beginProfile: beginIntakeProfile,
@@ -51,10 +58,29 @@ const LearnerPathwaysTab = () => {
   const isIntakeProfileSubmitting = intakeProfileRequestState.status === 'pending';
   const intakeProfileError = intakeProfileRequestState.error;
 
+  // Experiment selection only (ADR 0020: not step/navigation state) — read once at
+  // Intake submission time, never written back to the URL.
+  const [searchParams] = useSearchParams();
+  const flowVariant = useMemo(() => parsePathwaysFlowVariant(searchParams), [searchParams]);
+
+  // A pure render-time override, never a `setSection` call: the variant is a live one-shot
+  // URL input (ADR 0020), so flipping it must not durably rewrite committed state. The
+  // persisted pathway stays intact and reappears the moment the matching variant is used
+  // again — whereas demoting `section` in the store would be irreversible, since
+  // `normalizePathwaysState` only ever demotes sections, never promotes them.
+  const resolvedSection: PathwaysSection = hasPathwaysFlowConflict({
+    section, pathwayGenerationMode, flowVariant,
+  })
+    ? VIEWS.ONBOARDING
+    : section;
+
   // ADR 0020: pathway step changes must be tracked explicitly since `section` isn't
   // reflected in the URL. Dedup and isResumedSession are handled inside trackStepViewed
   // itself (the coordinator owns those refs); navigationSource is set by each setSection
-  // call site below immediately before the section actually changes.
+  // call site below immediately before the section actually changes. Intentionally keyed
+  // on the store's actual `section`, not `resolvedSection`: during a flow-variant
+  // conflict, no store mutation happens, so there is nothing new to report — the
+  // rendered Intake reflects a pure display override, not a real step transition.
   useEffect(() => {
     trackStepViewed();
   }, [section, trackStepViewed]);
@@ -110,6 +136,29 @@ const LearnerPathwaysTab = () => {
       motivationLengthCategory: lengthCategory(values.motivation),
     });
     beginIntakeProfile();
+
+    if (flowVariant === 'direct') {
+      try {
+        const { courses } = await generateDirectPathway(values);
+        if (courses.length === 0) {
+          // A valid request that matched nothing catalog-eligible is not a failure: stay
+          // on Intake with explanatory copy so the learner can broaden their answers and
+          // resubmit. Deliberately not rethrown — nothing failed.
+          failIntakeProfile(intl.formatMessage(intakeMessages.noEligibleDirectCourses));
+          return;
+        }
+        commitDirectPathwaySuccess({ courses });
+        resolveIntakeProfile();
+        setNavigationSource('workflow_completion');
+        // Straight to 'pathway': direct mode has no Career Profile step.
+        setSection(VIEWS.PATHWAY);
+      } catch (error) {
+        failIntakeProfile(errorMessage(error, 'Unable to generate your recommendations.'));
+        throw error;
+      }
+      return;
+    }
+
     try {
       const result = await generateProfile(values);
       commitProfileSuccess({
@@ -137,22 +186,27 @@ const LearnerPathwaysTab = () => {
     }
   }, [
     isIntakeProfileSubmitting,
+    flowVariant,
     beginIntakeProfile,
     generateProfile,
+    generateDirectPathway,
     commitProfileSuccess,
+    commitDirectPathwaySuccess,
     resolveIntakeProfile,
     setSection,
     setNavigationSource,
     failIntakeProfile,
     trackIntakeSubmitted,
     trackProfileGenerationCompleted,
+    intl,
   ]);
 
   return (
     <PathwaysActionBarProvider>
       <div data-testid="learner-pathways-tab-scaffold">
         <PathwayBreadcrumbs
-          view={section}
+          view={resolvedSection}
+          flowVariant={flowVariant}
           onNavigate={(v: PathwaysSection) => {
             if (v === VIEWS.ONBOARDING) {
               openRetakeQuiz();
@@ -163,18 +217,23 @@ const LearnerPathwaysTab = () => {
           }}
         />
         <Container size="md" fluid className="mt-4.5">
-          {section === VIEWS.ONBOARDING && (
+          {resolvedSection === VIEWS.ONBOARDING && (
             <IntakePage
               onSubmit={handleIntakeSubmit}
+              flowVariant={flowVariant}
               isProfileSubmitting={isIntakeProfileSubmitting}
               profileError={intakeProfileError}
             />
           )}
-          {section === VIEWS.PROFILE && (
+          {resolvedSection === VIEWS.PROFILE && (
             <CareerSelectionContainer onNext={handleNext} onRetakeQuiz={openRetakeQuiz} />
           )}
-          {section === VIEWS.PATHWAY && (
-            <PathwayCoursesContainer onBackToProfile={handleBackToProfile} />
+          {resolvedSection === VIEWS.PATHWAY && (
+            <PathwayCoursesContainer
+              flowVariant={flowVariant}
+              onBackToProfile={handleBackToProfile}
+              onOpenRetakeQuiz={openRetakeQuiz}
+            />
           )}
         </Container>
       </div>

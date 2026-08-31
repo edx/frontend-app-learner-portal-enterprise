@@ -54,6 +54,17 @@ jest.mock('./services', () => ({
     ]),
   },
   getCourseAlgoliaIndex: jest.fn(),
+  // Direct-flow dependency seam for generateDirectPathwayWorkflow — mocked the same way
+  // as the career-flow services above, so the real workflow runs end to end.
+  directCourseKeyRetrievalService: {
+    retrieveCourseKeys: jest.fn().mockResolvedValue({
+      retrievalStrategy: 'discovery_course_keys', courseKeys: ['direct-course-1'], fallback: null,
+    }),
+  },
+  filterCourseKeysByEnterpriseCatalog: jest.fn().mockResolvedValue(['direct-course-1']),
+  fetchCourseMetadataByKeys: jest.fn().mockResolvedValue([
+    { courseKey: 'direct-course-1', title: 'Direct Course One', status: 'not_started' },
+  ]),
 }));
 jest.mock('../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
@@ -87,6 +98,16 @@ jest.mock('../../../../app/data', () => ({
 const renderComponent = () => render(
   <QueryClientProvider client={queryClient()}>
     <MemoryRouter>
+      <IntlProvider locale="en">
+        <LearnerPathwaysTab />
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
+);
+
+const renderWithSearch = (search: string) => render(
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter initialEntries={[`/${search}`]}>
       <IntlProvider locale="en">
         <LearnerPathwaysTab />
       </IntlProvider>
@@ -827,6 +848,33 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       expect(fetchRecommendationFeedback).not.toHaveBeenCalled();
       expect(careerRetrievalService.searchCareers).not.toHaveBeenCalled();
       expect(usePathwaysStore.getState().pathwayCourses).toBe(coursesRef);
+    });
+  });
+
+  describe('direct flow (real generateDirectPathwayWorkflow, end to end)', () => {
+    it('completes Intake -> Pathway with real call-argument and persistence assertions, rendering the hydrated course and no fixture', async () => {
+      const user = userEvent.setup();
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+      await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+      await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+      await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(screen.getByText('Direct Course One')).toBeInTheDocument();
+      expect(screen.queryByText('Introduction to Corporate Finance')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('profile-container')).not.toBeInTheDocument();
+
+      const state = usePathwaysStore.getState();
+      expect(state.pathwayGenerationMode).toBe('direct');
+      expect(state.pathwayCourses).toEqual([
+        { courseKey: 'direct-course-1', title: 'Direct Course One', status: 'not_started' },
+      ]);
+
+      const stored = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) as string);
+      expect(stored.state.pathwayGenerationMode).toBe('direct');
     });
   });
 });

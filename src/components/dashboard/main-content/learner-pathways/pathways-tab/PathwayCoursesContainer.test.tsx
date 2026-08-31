@@ -112,6 +112,48 @@ describe('PathwayCoursesContainer', () => {
     expect(onBackToProfile).toHaveBeenCalledTimes(1);
   });
 
+  describe('direct flow', () => {
+    it('never renders fixture courses when the store is empty, and progress reads 0', () => {
+      renderComponent({ flowVariant: 'direct' });
+
+      expect(screen.queryByText('Introduction to Corporate Finance')).not.toBeInTheDocument();
+      expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('0');
+    });
+
+    it('renders store courses normally when populated', () => {
+      usePathwaysStore.setState({
+        pathwayCourses: [
+          { courseKey: 'custom-course', title: 'Custom Store Course', status: 'not_started' },
+        ],
+      });
+
+      renderComponent({ flowVariant: 'direct' });
+
+      expect(screen.getByText('Custom Store Course')).toBeInTheDocument();
+    });
+
+    it('registers a "Retake quiz" leading action instead of "Rebuild pathway"', () => {
+      renderComponent({ flowVariant: 'direct' });
+
+      expect(screen.getByTestId('pathway-retake-quiz-button')).toBeInTheDocument();
+      expect(screen.getAllByText('Retake quiz')).toHaveLength(1);
+      expect(screen.queryByTestId('pathway-rebuild-button')).not.toBeInTheDocument();
+      expect(screen.queryByText('Rebuild pathway')).not.toBeInTheDocument();
+    });
+
+    it('calls onOpenRetakeQuiz when the leading action is clicked, never onBackToProfile', async () => {
+      const user = userEvent.setup();
+      const onOpenRetakeQuiz = jest.fn();
+      const onBackToProfile = jest.fn();
+      renderComponent({ flowVariant: 'direct', onOpenRetakeQuiz, onBackToProfile });
+
+      await user.click(screen.getByTestId('pathway-retake-quiz-button'));
+
+      expect(onOpenRetakeQuiz).toHaveBeenCalledTimes(1);
+      expect(onBackToProfile).not.toHaveBeenCalled();
+    });
+  });
+
   it('resolves the course search link from the active enterprise slug', () => {
     renderComponent();
 

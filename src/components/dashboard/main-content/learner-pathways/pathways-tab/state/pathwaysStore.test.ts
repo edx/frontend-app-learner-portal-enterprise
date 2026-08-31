@@ -22,6 +22,7 @@ describe('pathwaysStore', () => {
     expect(state.selectedSkills).toBeNull();
     expect(state.pathwayCourses).toEqual([]);
     expect(state.pathwayInputFingerprint).toBeNull();
+    expect(state.pathwayGenerationMode).toBeNull();
   });
 
   it('updates workflow-level values through basic setters', () => {
@@ -69,6 +70,7 @@ describe('pathwaysStore', () => {
     expect(selectors.selectedSkills(state)).toBeNull();
     expect(selectors.pathwayCourses(state)).toEqual([]);
     expect(selectors.pathwayInputFingerprint(state)).toBeNull();
+    expect(selectors.pathwayGenerationMode(state)).toBeNull();
   });
 
   it('operates via getState without mounting UI', () => {
@@ -207,12 +209,13 @@ describe('pathwaysStore', () => {
       { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' as const },
     ];
 
-    it('replaces the course set and records the fingerprint in one commit', () => {
+    it('replaces the course set, records the fingerprint, and marks career mode in one commit', () => {
       usePathwaysStore.getState().commitPathwayBuild({ courses, fingerprint: 'fingerprint-1' });
 
       const state = usePathwaysStore.getState();
       expect(state.pathwayCourses).toEqual(courses);
       expect(state.pathwayInputFingerprint).toBe('fingerprint-1');
+      expect(state.pathwayGenerationMode).toBe('career');
     });
 
     it('replaces stale courses from a previous build entirely, not merges them', () => {
@@ -223,6 +226,90 @@ describe('pathwaysStore', () => {
       usePathwaysStore.getState().commitPathwayBuild({ courses, fingerprint: 'fingerprint-1' });
 
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(courses);
+    });
+
+    it('leaves career-only fields untouched', () => {
+      const learnerProfile = {
+        summary: 's', learningStyle: 'Hands-on', weeklyTimeCommitment: '5 hours', certificatePreference: 'Preferred', skills: ['SQL'],
+      };
+      usePathwaysStore.setState({
+        learnerProfile,
+        careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
+        selectedCareerId: 'career-1',
+        selectedSkills: ['SQL'],
+      });
+
+      usePathwaysStore.getState().commitPathwayBuild({ courses, fingerprint: 'fingerprint-1' });
+
+      const state = usePathwaysStore.getState();
+      expect(state.learnerProfile).toEqual(learnerProfile);
+      expect(state.selectedCareerId).toBe('career-1');
+      expect(state.selectedSkills).toEqual(['SQL']);
+    });
+  });
+
+  describe('commitDirectPathwaySuccess', () => {
+    const courses = [
+      { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' as const },
+    ];
+
+    it('commits the courses and marks direct mode, clearing the fingerprint', () => {
+      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+
+      const state = usePathwaysStore.getState();
+      expect(state.pathwayCourses).toEqual(courses);
+      expect(state.pathwayGenerationMode).toBe('direct');
+      expect(state.pathwayInputFingerprint).toBeNull();
+    });
+
+    it('clears every career-only field in the same commit', () => {
+      usePathwaysStore.setState({
+        learnerProfile: {
+          summary: 's', learningStyle: 'Hands-on', weeklyTimeCommitment: '5 hours', certificatePreference: 'Preferred', skills: ['SQL'],
+        },
+        careerMatches: [{ id: 'career-1', title: 'Data Analyst', skillsToDevelop: ['SQL'] }],
+        selectedCareerId: 'career-1',
+        selectedSkills: ['SQL'],
+      });
+
+      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+
+      const state = usePathwaysStore.getState();
+      expect(state.learnerProfile).toBeNull();
+      expect(state.careerMatches).toEqual([]);
+      expect(state.selectedCareerId).toBeNull();
+      expect(state.selectedSkills).toBeNull();
+    });
+
+    it('replaces stale courses from a previous build entirely, not merges them', () => {
+      usePathwaysStore.setState({
+        pathwayCourses: [{ courseKey: 'stale-course', title: 'Old Course', status: 'completed' }],
+      });
+
+      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(courses);
+    });
+
+    it('leaves section and learnerIntent untouched', () => {
+      const learnerIntent = {
+        careerGoal: 'Director of Analytics', targetIndustry: 'Tech', background: 'Ops', motivation: 'Growth',
+      };
+      usePathwaysStore.setState({ section: 'onboarding', learnerIntent });
+
+      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+
+      const state = usePathwaysStore.getState();
+      expect(state.section).toBe('onboarding');
+      expect(state.learnerIntent).toEqual(learnerIntent);
+    });
+
+    it('resets pathwayGenerationMode back to null on resetPathwaysState', () => {
+      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+
+      usePathwaysStore.getState().resetPathwaysState();
+
+      expect(usePathwaysStore.getState().pathwayGenerationMode).toBeNull();
     });
   });
 });

@@ -8,6 +8,7 @@ import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import IntakeQuestionsContainer from '../IntakeQuestionsContainer';
 import { DEFAULT_MAX_CHARACTERS_PER_INTAKE_QUESTION } from '../constants';
 import messages from '../messages';
+import type { PathwaysFlowVariant } from '../../flowVariant';
 import { usePathwaysStore } from '../../state';
 import { PathwaysActionBarProvider } from '../../action-bar';
 import { useEnterpriseCustomer } from '../../../../../../app/data';
@@ -26,6 +27,7 @@ jest.mock('@2uinc/frontend-enterprise-utils', () => ({
 interface MockIntakeQuestionsContainerProps {
   onSubmit?: jest.Mock;
   onSkip?: () => void;
+  flowVariant?: PathwaysFlowVariant;
   isProfileSubmitting?: boolean;
   profileError?: string | null;
 }
@@ -33,6 +35,7 @@ interface MockIntakeQuestionsContainerProps {
 const MockIntakeQuestionsContainer = ({
   onSubmit = jest.fn(),
   onSkip,
+  flowVariant,
   isProfileSubmitting,
   profileError,
 }: MockIntakeQuestionsContainerProps) => (
@@ -41,6 +44,7 @@ const MockIntakeQuestionsContainer = ({
       <IntakeQuestionsContainer
         onSubmit={onSubmit}
         onSkip={onSkip}
+        flowVariant={flowVariant}
         isProfileSubmitting={isProfileSubmitting}
         profileError={profileError}
       />
@@ -375,6 +379,37 @@ describe('IntakeQuestionsContainer', () => {
         background: 'Background answer',
         targetIndustry: 'Healthcare',
       });
+    });
+  });
+
+  describe('direct flow copy', () => {
+    it('shows "Generate recommendations" instead of "Submit and review profile"', () => {
+      render(<MockIntakeQuestionsContainer flowVariant="direct" />);
+
+      expect(screen.getByRole('button', { name: messages.generateRecommendations.defaultMessage })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: messages.submitAndReviewProfile.defaultMessage })).not.toBeInTheDocument();
+    });
+
+    it('shows "Finding courses..." instead of "Generating your profile..." while pending', () => {
+      render(<MockIntakeQuestionsContainer flowVariant="direct" isProfileSubmitting />);
+
+      const submitButton = screen.getByTestId('intake-submit-button');
+      expect(submitButton).toHaveTextContent(messages.findingCourses.defaultMessage);
+      expect(submitButton).not.toHaveTextContent(messages.submittingProfile.defaultMessage);
+    });
+
+    it('still fires onSubmit with the trimmed values — the label swap changes nothing functionally', async () => {
+      const user = userEvent.setup();
+      const onSubmit = jest.fn();
+      render(<MockIntakeQuestionsContainer flowVariant="direct" onSubmit={onSubmit} />);
+
+      await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'Motivation answer');
+      await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), 'Goal answer');
+      await user.type(screen.getByLabelText(messages.backgroundQuestionLabel.defaultMessage), 'Background answer');
+      await user.type(screen.getByLabelText(messages.industryQuestionLabel.defaultMessage), 'Healthcare');
+      await user.click(screen.getByRole('button', { name: messages.generateRecommendations.defaultMessage }));
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
     });
   });
 });

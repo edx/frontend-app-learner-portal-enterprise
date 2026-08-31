@@ -10,6 +10,7 @@ export {
   usePathwaysSelectedSkills,
   usePathwaysStore,
   usePathwayInputFingerprint,
+  usePathwayGenerationMode,
   useSelectedCareerMatch,
 } from './pathwaysStore';
 
@@ -27,12 +28,14 @@ export { computePathwayInputFingerprint } from './pathwayGenerationRequest';
 
 export type {
   CareerMatch,
+  CommitDirectPathwaySuccessInput,
   CommitPathwayBuildInput,
   CommitProfileSuccessInput,
   LearnerIntent,
   LearnerProfile,
   PathwayCourse,
   PathwayCourseStatus,
+  PathwayGenerationMode,
   PathwayProgress,
   PathwaysActions,
   PathwaysExperienceStatus,

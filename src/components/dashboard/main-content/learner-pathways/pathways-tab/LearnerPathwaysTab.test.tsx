@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useSearchParams } from 'react-router-dom';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import LearnerPathwaysTab from './LearnerPathwaysTab';
@@ -14,7 +14,7 @@ import intakeMessages from './intake/messages';
 import { usePathwaysStore } from './state';
 import type { LearnerProfile, CareerMatch } from './state';
 import { CAREER_SELECTION_STUB_MATCHES, CAREER_SELECTION_STUB_PROFILE } from './career-selection/fixtures';
-import { generateProfileWorkflow } from './workflows';
+import { generateDirectPathwayWorkflow, generateProfileWorkflow } from './workflows';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../app/data/services/data/__factories__';
 import { queryClient } from '../../../../../utils/tests';
@@ -44,6 +44,7 @@ jest.mock('./workflows', () => {
       skillsPreferredCount: 2,
     })),
     generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses }),
+    generateDirectPathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
   };
 });
 
@@ -57,6 +58,7 @@ jest.mock('../../../../app/data', () => ({
 }));
 
 const mockGenerateProfileWorkflow = generateProfileWorkflow as jest.Mock;
+const mockGenerateDirectPathwayWorkflow = generateDirectPathwayWorkflow as jest.Mock;
 const mockEnterpriseCustomer = enterpriseCustomerFactory({ slug: 'test-enterprise' });
 
 const renderComponent = () => render(
@@ -69,10 +71,28 @@ const renderComponent = () => render(
   </QueryClientProvider>,
 );
 
+const LocationSearchProbe = () => {
+  const [searchParams] = useSearchParams();
+  return <div data-testid="location-search-probe">{searchParams.toString()}</div>;
+};
+
+const renderWithSearch = (search: string) => render(
+  <QueryClientProvider client={queryClient()}>
+    <MemoryRouter initialEntries={[`/${search}`]}>
+      <IntlProvider locale="en">
+        <LearnerPathwaysTab />
+        <LocationSearchProbe />
+      </IntlProvider>
+    </MemoryRouter>
+  </QueryClientProvider>,
+);
+
 describe('LearnerPathwaysTab', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     mockGenerateProfileWorkflow.mockClear();
+    mockGenerateDirectPathwayWorkflow.mockClear();
+    mockGenerateDirectPathwayWorkflow.mockResolvedValue({ courses: [] });
     (sendEnterpriseTrackEvent as jest.Mock).mockClear();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({
       data: mockEnterpriseCustomer,
@@ -425,6 +445,249 @@ describe('LearnerPathwaysTab', () => {
         motivation: 'Motivation', careerGoal: 'Goal', background: 'Background', targetIndustry: 'Industry',
       });
       expect(screen.queryByText('Learning Intent service unavailable')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('direct flow (?pathwaysFlow=direct)', () => {
+    const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
+      await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
+      await user.type(screen.getByLabelText(intakeMessages.backgroundQuestionLabel.defaultMessage), 'Background');
+      await user.type(screen.getByLabelText(intakeMessages.industryQuestionLabel.defaultMessage), 'Industry');
+    };
+
+    const directCourses = [
+      { courseKey: 'direct-course-1', title: 'Direct Course One', status: 'not_started' as const },
+    ];
+
+    it('calls generateDirectPathwayWorkflow exactly once with the exact learnerIntent, enterpriseCustomerUuid, and catalogScope, and never calls generateProfileWorkflow', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: directCourses });
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(mockGenerateDirectPathwayWorkflow).toHaveBeenCalledTimes(1);
+      expect(mockGenerateDirectPathwayWorkflow).toHaveBeenCalledWith({
+        learnerIntent: {
+          motivation: 'Motivation', careerGoal: 'Goal', background: 'Background', targetIndustry: 'Industry',
+        },
+        enterpriseCustomerUuid: mockEnterpriseCustomer.uuid,
+        catalogScope: {
+          searchCatalogs: ['cat-1'],
+          catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
+        },
+      });
+      expect(mockGenerateProfileWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('a successful non-empty result commits the store atomically and lands directly on Pathway, never rendering Career Profile', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: directCourses });
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(screen.queryByTestId('profile-container')).not.toBeInTheDocument();
+      expect(screen.getByText('Direct Course One')).toBeInTheDocument();
+
+      const state = usePathwaysStore.getState();
+      expect(state.section).toBe('pathway');
+      expect(state.pathwayCourses).toEqual(directCourses);
+      expect(state.pathwayGenerationMode).toBe('direct');
+      expect(state.learnerProfile).toBeNull();
+      expect(state.careerMatches).toEqual([]);
+      expect(state.pathwayInputFingerprint).toBeNull();
+    });
+
+    it('renders a two-step breadcrumb trail on the direct Pathway page with no Career Profile label', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: directCourses });
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(screen.getByText('Pathway')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Onboarding quiz' })).toBeInTheDocument();
+      expect(screen.queryByText('Career profile')).not.toBeInTheDocument();
+    });
+
+    it('the direct Pathway leading action opens the existing retake-quiz modal rather than navigating to Profile', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: directCourses });
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+
+      await user.click(screen.getByTestId('pathway-retake-quiz-button'));
+      expect(screen.getByText('Retake your onboarding quiz?')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual(directCourses);
+
+      await user.click(screen.getByTestId('pathway-retake-quiz-button'));
+      await user.click(screen.getByRole('button', { name: 'Retake quiz' }));
+      expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayGenerationMode).toBeNull();
+    });
+
+    it('an empty result stays on Intake with the no-eligible-courses message, preserves values, and re-enables submit', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: [] });
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => {
+        expect(screen.getByText(intakeMessages.noEligibleDirectCourses.defaultMessage)).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+      expect(screen.queryByTestId('pathway-container')).not.toBeInTheDocument();
+      expect(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage)).toHaveValue('Motivation');
+      expect(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage)).toHaveValue('Goal');
+      expect(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage })).toBeEnabled();
+
+      const state = usePathwaysStore.getState();
+      expect(state.section).toBe('onboarding');
+      expect(state.pathwayCourses).toEqual([]);
+      expect(state.pathwayGenerationMode).toBeNull();
+    });
+
+    it('a genuine workflow rejection displays its message and commits nothing', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockRejectedValueOnce(new Error('Xpert service unavailable'));
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByText('Xpert service unavailable')).toBeInTheDocument());
+      expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+      expect(usePathwaysStore.getState().pathwayCourses).toEqual([]);
+      expect(usePathwaysStore.getState().pathwayGenerationMode).toBeNull();
+    });
+
+    it('shows direct-mode submit/loading copy instead of the career labels', async () => {
+      const user = userEvent.setup();
+      let resolveWorkflow: (value: { courses: typeof directCourses }) => void = () => {};
+      mockGenerateDirectPathwayWorkflow.mockReturnValueOnce(new Promise((resolve) => {
+        resolveWorkflow = resolve;
+      }));
+      renderWithSearch('?pathwaysFlow=direct');
+
+      await fillIntake(user);
+      expect(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      const pendingButton = screen.getByTestId('intake-submit-button');
+      expect(pendingButton).toHaveTextContent(intakeMessages.findingCourses.defaultMessage);
+
+      resolveWorkflow({ courses: directCourses });
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+    });
+
+    it('with ?pathwaysFlow=career, still uses the existing career flow', async () => {
+      const user = userEvent.setup();
+      renderWithSearch('?pathwaysFlow=career');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('profile-container')).toBeInTheDocument());
+      expect(mockGenerateProfileWorkflow).toHaveBeenCalledTimes(1);
+      expect(mockGenerateDirectPathwayWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('with an unrecognized ?pathwaysFlow value, falls back to the existing career flow', async () => {
+      const user = userEvent.setup();
+      renderWithSearch('?pathwaysFlow=bogus');
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.submitAndReviewProfile.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('profile-container')).toBeInTheDocument());
+      expect(mockGenerateProfileWorkflow).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not mutate or remove unrelated query params after a successful direct submit', async () => {
+      const user = userEvent.setup();
+      mockGenerateDirectPathwayWorkflow.mockResolvedValueOnce({ courses: directCourses });
+      renderWithSearch('?utm_source=foo&pathwaysFlow=direct');
+      const before = screen.getByTestId('location-search-probe').textContent;
+
+      await fillIntake(user);
+      await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
+
+      await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
+      expect(screen.getByTestId('location-search-probe')).toHaveTextContent(before as string);
+    });
+
+    describe('flow-variant conflicts', () => {
+      it('a career-mode pathway is not shown under ?pathwaysFlow=direct — Intake renders and the store is untouched', () => {
+        act(() => {
+          usePathwaysStore.setState({
+            section: 'pathway', pathwayCourses: directCourses, pathwayGenerationMode: 'career',
+          });
+        });
+
+        renderWithSearch('?pathwaysFlow=direct');
+
+        expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+        expect(screen.queryByTestId('pathway-container')).not.toBeInTheDocument();
+        expect(usePathwaysStore.getState().section).toBe('pathway');
+        expect(usePathwaysStore.getState().pathwayCourses).toEqual(directCourses);
+      });
+
+      it('a direct-mode pathway is not shown under the default (career) variant — Intake renders and the store is untouched', () => {
+        act(() => {
+          usePathwaysStore.setState({
+            section: 'pathway', pathwayCourses: directCourses, pathwayGenerationMode: 'direct',
+          });
+        });
+
+        renderComponent();
+
+        expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+        expect(screen.queryByTestId('pathway-container')).not.toBeInTheDocument();
+        expect(usePathwaysStore.getState().section).toBe('pathway');
+      });
+
+      it('a matching persisted mode and active variant renders the Pathway page normally', () => {
+        act(() => {
+          usePathwaysStore.setState({
+            section: 'pathway', pathwayCourses: directCourses, pathwayGenerationMode: 'direct',
+          });
+        });
+
+        renderWithSearch('?pathwaysFlow=direct');
+
+        expect(screen.getByTestId('pathway-container')).toBeInTheDocument();
+      });
+
+      it('a persisted "profile" section is not shown under ?pathwaysFlow=direct — Intake renders and the store is untouched', () => {
+        act(() => {
+          usePathwaysStore.setState({
+            section: 'profile', learnerProfile: CAREER_SELECTION_STUB_PROFILE, careerMatches: CAREER_SELECTION_STUB_MATCHES,
+          });
+        });
+
+        renderWithSearch('?pathwaysFlow=direct');
+
+        expect(screen.getByTestId('intake-questions-container')).toBeInTheDocument();
+        expect(screen.queryByTestId('profile-container')).not.toBeInTheDocument();
+        expect(usePathwaysStore.getState().section).toBe('profile');
+      });
     });
   });
 

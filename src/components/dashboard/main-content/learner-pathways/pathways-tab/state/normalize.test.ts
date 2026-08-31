@@ -281,4 +281,31 @@ describe('normalizePathwaysState', () => {
     };
     expect(normalizePathwaysState(state).pathwayInputFingerprint).toBe('fingerprint-1');
   });
+
+  it('clears a stale pathwayGenerationMode when there is no persisted pathway', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      pathwayCourses: [],
+      pathwayGenerationMode: 'direct',
+    };
+    expect(normalizePathwaysState(state).pathwayGenerationMode).toBeNull();
+  });
+
+  it('keeps pathwayGenerationMode "direct" when a pathway is present', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+      pathwayGenerationMode: 'direct',
+    };
+    expect(normalizePathwaysState(state).pathwayGenerationMode).toBe('direct');
+  });
+
+  it('keeps pathwayGenerationMode "career" when a pathway is present', () => {
+    const state: PathwaysState = {
+      ...baseState(),
+      pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+      pathwayGenerationMode: 'career',
+    };
+    expect(normalizePathwaysState(state).pathwayGenerationMode).toBe('career');
+  });
 });

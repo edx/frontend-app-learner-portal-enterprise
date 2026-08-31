@@ -6,6 +6,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { debounce } from 'lodash-es';
 import { EMPTY_LEARNER_INTENT, usePathwaysStore } from '../state';
 import type { LearnerIntent } from '../state';
+import type { PathwaysFlowVariant } from '../flowVariant';
 import { usePathwaysActionBar } from '../action-bar';
 import { usePathwaysAnalytics } from '../hooks';
 import { RequestErrorAlert, buildGiveFeedbackAction } from '../shared';
@@ -25,6 +26,12 @@ export type IntakeFormValues = LearnerIntent;
 export interface IntakeQuestionsContainerProps {
   onSubmit: (values: IntakeFormValues) => void | Promise<void>;
   onSkip?: () => void;
+  /**
+   * Which flow this submission starts. Direct mode generates course recommendations
+   * without an intermediate Career Profile page, so the submit/loading copy must not
+   * promise a profile. Defaults to the career flow.
+   */
+  flowVariant?: PathwaysFlowVariant;
   /** Whether profile generation triggered by this submission is currently in flight. */
   isProfileSubmitting?: boolean;
   /** Displayable error from the most recent failed profile-generation attempt, if any. */
@@ -36,9 +43,11 @@ const FORM_ID = 'pathways-intake-form';
 const IntakeQuestionsContainer = ({
   onSubmit,
   onSkip,
+  flowVariant = 'career',
   isProfileSubmitting,
   profileError,
 }: IntakeQuestionsContainerProps) => {
+  const isDirectFlow = flowVariant === 'direct';
   const learnerIntent = usePathwaysStore((state) => state.learnerIntent);
   const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
   const intl = useIntl();
@@ -120,8 +129,8 @@ const IntakeQuestionsContainer = ({
     registerActions({
       primary: {
         id: 'intake-submit',
-        label: messages.submitAndReviewProfile,
-        loadingLabel: messages.submittingProfile,
+        label: isDirectFlow ? messages.generateRecommendations : messages.submitAndReviewProfile,
+        loadingLabel: isDirectFlow ? messages.findingCourses : messages.submittingProfile,
         variant: 'primary',
         type: 'submit',
         form: FORM_ID,
@@ -146,7 +155,7 @@ const IntakeQuestionsContainer = ({
       alignment: 'end',
     });
     return () => clearActions();
-  }, [onSkip, isProfileSubmitting, registerActions, clearActions, intl, giveFeedbackAction]);
+  }, [onSkip, isDirectFlow, isProfileSubmitting, registerActions, clearActions, intl, giveFeedbackAction]);
 
   return (
     <section data-testid="intake-questions-container">
