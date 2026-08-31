@@ -28,6 +28,7 @@ import {
   emptyRedeemableLearnerCreditPolicies,
   SESSION_STORAGE_KEY_LICENSE_ACTIVATION_MESSAGE,
   useAcademies,
+  useCanViewAcademies,
   useBrowseAndRequest,
   useCanOnlyViewHighlights,
   useCouponCodes,
@@ -102,6 +103,7 @@ const mockEnterpriseCustomer = enterpriseCustomerFactory({
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   useAcademies: jest.fn(),
+  useCanViewAcademies: jest.fn(),
   useBrowseAndRequest: jest.fn(),
   useCanOnlyViewHighlights: jest.fn(),
   useCouponCodes: jest.fn(),
@@ -234,6 +236,7 @@ describe('<Dashboard />', () => {
     mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
+    useCanViewAcademies.mockReturnValue(false);
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useSubscriptions.mockReturnValue({
       data: {

@@ -147,12 +147,20 @@ export async function ensureEnterpriseAppData({
       queryClient,
       enterpriseCustomer,
     }),
-    // Academies List
-    safeEnsureQueryDataAcademiesList({
-      queryClient,
-      enterpriseCustomer,
-    }),
   ]);
+
+  // Academies List. Only customers with the Academies entitlement enabled have any Academies
+  // entry points, so ineligible customers skip this request entirely. Learner-level eligibility
+  // is resolved separately, closer to each entry point, since it depends on subsidy data that is
+  // still being fetched here.
+  if (enterpriseCustomer.enableAcademies) {
+    enterpriseAppDataQueries.push(
+      safeEnsureQueryDataAcademiesList({
+        queryClient,
+        enterpriseCustomer,
+      }),
+    );
+  }
 
   // Ensure all enterprise app data queries are resolved.
   await Promise.all(enterpriseAppDataQueries);

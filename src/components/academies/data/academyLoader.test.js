@@ -1,10 +1,10 @@
 /* eslint-disable react/jsx-filename-extension */
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 
 import { renderWithRouterProvider } from '../../../utils/tests';
 import { ensureAuthenticatedUser } from '../../app/routes/data';
-import { extractEnterpriseCustomer, queryAcademiesDetail } from '../../app/data';
+import { extractEnterpriseCustomer, queryAcademiesDetail, resolveCanViewAcademies } from '../../app/data';
 import makeAcademiesLoader from './academyLoader';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 
@@ -16,6 +16,7 @@ jest.mock('../../app/routes/data', () => ({
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
   extractEnterpriseCustomer: jest.fn(),
+  resolveCanViewAcademies: jest.fn(),
   updateUserActiveEnterprise: jest.fn(),
 }));
 
@@ -35,6 +36,7 @@ describe('academiesLoader', () => {
     jest.clearAllMocks();
     ensureAuthenticatedUser.mockResolvedValue(mockAuthenticatedUser);
     extractEnterpriseCustomer.mockResolvedValue(mockEnterpriseCustomer);
+    resolveCanViewAcademies.mockResolvedValue(true);
   });
 
   it('does nothing with unauthenticated users', async () => {
@@ -76,5 +78,32 @@ describe('academiesLoader', () => {
         queryFn: expect.any(Function),
       }),
     );
+  });
+
+  it('redirects academy-ineligible users to the search page without fetching academy detail', async () => {
+    resolveCanViewAcademies.mockResolvedValue(false);
+
+    renderWithRouterProvider(
+      {
+        path: '/:enterpriseSlug/academies/:academyUUID/',
+        element: <div data-testid="academy-details-page" />,
+        loader: makeAcademiesLoader(mockQueryClient),
+      },
+      {
+        routes: [
+          {
+            path: '/:enterpriseSlug/search',
+            element: <div data-testid="search-page" />,
+          },
+        ],
+        initialEntries: [mockAcademiesURL],
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('academy-details-page')).not.toBeInTheDocument();
+    expect(mockQueryClient.ensureQueryData).not.toHaveBeenCalled();
   });
 });

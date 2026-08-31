@@ -26,6 +26,7 @@ import AssignmentsOnlyEmptyState from './AssignmentsOnlyEmptyState';
 import {
   useAlgoliaSearch,
   useCanOnlyViewHighlights,
+  useCanViewAcademies,
   useContentTypeFilter,
   useDefaultSearchFilters,
   useEnterpriseCustomer,
@@ -141,6 +142,7 @@ const Search = () => {
   // Flag to toggle highlights visibility
   const { data: canOnlyViewHighlightSets } = useCanOnlyViewHighlights();
   const canViewCatalog = canOnlyViewHighlightSets === false;
+  const canViewAcademies = useCanViewAcademies();
   const isAssignmentOnlyLearner = useIsAssignmentsOnlyLearner();
   const {
     data: {
@@ -283,9 +285,7 @@ const Search = () => {
           ? (
             <Stack className="my-5" gap={5}>
               {!hasRefinements && <ContentHighlights />}
-              {canOnlyViewHighlightSets === false
-                  && enterpriseCustomer.enableAcademies
-                  && <SearchAcademy />}
+              {canViewCatalog && canViewAcademies && <SearchAcademy />}
               {features.ENABLE_PATHWAYS
                   && (canOnlyViewHighlightSets === false)
                   && <SearchPathway filter={pathwayFilter} indexName={searchIndex.indexName} />}

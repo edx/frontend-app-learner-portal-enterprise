@@ -51,6 +51,7 @@ const mockLocationAssign = jest.fn();
 const mockAuthenticatedUser = authenticatedUserFactory();
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
 const mockEnterpriseCustomerTwo = enterpriseCustomerFactory();
+const mockEnterpriseCustomerWithAcademies = enterpriseCustomerFactory({ enable_academies: true });
 
 const mockQueryClient = {
   ensureQueryData: jest.fn().mockResolvedValue(),
@@ -164,6 +165,19 @@ describe('rootLoader', () => {
   });
 
   it.each([
+    // BFF enabled, non-staff user is linked to a customer with the Academies
+    // entitlement enabled, so the academies list is prefetched.
+    {
+      enterpriseSlug: mockEnterpriseCustomerWithAcademies.slug,
+      enterpriseCustomer: mockEnterpriseCustomerWithAcademies,
+      activeEnterpriseCustomer: mockEnterpriseCustomerWithAcademies,
+      allLinkedEnterpriseCustomerUsers: [
+        { enterpriseCustomer: mockEnterpriseCustomerWithAcademies },
+      ],
+      isStaffUser: false,
+      shouldActivateSubscriptionLicense: false,
+      isMatchedBFFRoute: true,
+    },
     // BFF disabled, non-staff user is linked to requested customer, resolves
     // requested customer, does not need to update active enterprise, does not
     // need to activate subscription license
@@ -379,12 +393,18 @@ describe('rootLoader', () => {
     await waitFor(() => {
       // Assert that the expected number of queries were made.
       let expectedQueryCount = 11;
+      let resolvesEnterpriseAppData = true;
       if (enterpriseSlug !== activeEnterpriseCustomer.slug) {
         if (!(isLinked || isStaffUser)) {
           expectedQueryCount = 2;
+          resolvesEnterpriseAppData = false;
         }
       } else if (isMatchedBFFRoute) {
         expectedQueryCount = 9;
+      }
+      // The academies list is only prefetched for customers with the Academies entitlement enabled.
+      if (resolvesEnterpriseAppData && !enterpriseCustomer.enableAcademies) {
+        expectedQueryCount -= 1;
       }
       expect(mockQueryClient.ensureQueryData).toHaveBeenCalledTimes(expectedQueryCount);
     });
@@ -523,13 +543,21 @@ describe('rootLoader', () => {
       }),
     );
 
-    // Academies list query
+    // Academies list query, only for customers with the Academies entitlement enabled.
     const academiesListQuery = queryAcademiesList(enterpriseCustomer.uuid);
-    expect(mockQueryClient.ensureQueryData).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryKey: academiesListQuery.queryKey,
-        queryFn: expect.any(Function),
-      }),
-    );
+    if (enterpriseCustomer.enableAcademies) {
+      expect(mockQueryClient.ensureQueryData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: academiesListQuery.queryKey,
+          queryFn: expect.any(Function),
+        }),
+      );
+    } else {
+      expect(mockQueryClient.ensureQueryData).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: academiesListQuery.queryKey,
+        }),
+      );
+    }
   });
 });

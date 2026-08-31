@@ -5,6 +5,7 @@ import { LICENSE_STATUS } from '../../enterprise-user-subsidy/data/constants';
 import { POLICY_TYPES } from '../../enterprise-user-subsidy/enterprise-offers/data/constants';
 import {
   buildCatalogIndex,
+  canViewAcademies,
   determineAssignmentState,
   determineLearnerHasContentAssignmentsOnly,
   determineSubscriptionLicenseApplicable,
@@ -14,6 +15,8 @@ import {
   getApplicableSubscriptionLicenses,
   getAvailableCourseRuns,
   getSubsidyToApplyForCourse,
+  hasValidLicenseOrSubscriptionRequestsEnabled,
+  isLinkedEnterpriseCustomer,
   normalizeCatalogUuid,
   resolveApplicableSubscriptionLicense,
   selectBestLicense,
@@ -30,6 +33,7 @@ import {
   LEARNER_CREDIT_SUBSIDY_TYPE,
   LICENSE_SUBSIDY_TYPE,
 } from './constants';
+import { SUBSIDY_TYPE } from '../../../constants';
 import { resolveBFFQuery } from './queries';
 import { enterpriseCustomerFactory } from './services/data/__factories__';
 import { DATE_FORMAT } from '../../course/data';
@@ -1726,5 +1730,136 @@ describe('determineSubscriptionLicenseApplicable', () => {
       ['cat-a'],
       { 'cat-a': [license] },
     )).toBe(true);
+  });
+});
+
+describe('hasValidLicenseOrSubscriptionRequestsEnabled', () => {
+  const activatedCurrentLicense = {
+    status: LICENSE_STATUS.ACTIVATED,
+    subscriptionPlan: { isCurrent: true },
+  };
+
+  it.each([
+    {
+      description: 'activated, current license',
+      args: { subscriptionLicense: activatedCurrentLicense },
+      expected: true,
+    },
+    {
+      description: 'browse & request enabled for subscriptions',
+      args: {
+        subscriptionLicense: null,
+        browseAndRequestConfiguration: { subsidyRequestsEnabled: true, subsidyType: SUBSIDY_TYPE.LICENSE },
+      },
+      expected: true,
+    },
+    {
+      description: 'activated license on a non-current plan',
+      args: {
+        subscriptionLicense: { status: LICENSE_STATUS.ACTIVATED, subscriptionPlan: { isCurrent: false } },
+      },
+      expected: false,
+    },
+    {
+      description: 'assigned (not yet activated) license',
+      args: {
+        subscriptionLicense: { status: LICENSE_STATUS.ASSIGNED, subscriptionPlan: { isCurrent: true } },
+      },
+      expected: false,
+    },
+    {
+      description: 'revoked license',
+      args: {
+        subscriptionLicense: { status: LICENSE_STATUS.REVOKED, subscriptionPlan: { isCurrent: true } },
+      },
+      expected: false,
+    },
+    {
+      description: 'browse & request enabled for coupons',
+      args: {
+        subscriptionLicense: null,
+        browseAndRequestConfiguration: { subsidyRequestsEnabled: true, subsidyType: SUBSIDY_TYPE.COUPON },
+      },
+      expected: false,
+    },
+    {
+      description: 'no license and no browse & request configuration',
+      args: {},
+      expected: false,
+    },
+  ])('returns $expected for $description', ({ args, expected }) => {
+    expect(hasValidLicenseOrSubscriptionRequestsEnabled(args)).toBe(expected);
+  });
+});
+
+describe('isLinkedEnterpriseCustomer', () => {
+  const mockLinkedEnterpriseCustomer = enterpriseCustomerFactory();
+
+  it('returns true when the customer appears in the linked enterprise customer users', () => {
+    expect(isLinkedEnterpriseCustomer({
+      enterpriseCustomer: mockLinkedEnterpriseCustomer,
+      allLinkedEnterpriseCustomerUsers: [
+        { enterpriseCustomer: enterpriseCustomerFactory() },
+        { enterpriseCustomer: mockLinkedEnterpriseCustomer },
+      ],
+    })).toBe(true);
+  });
+
+  it('returns false when the customer is not linked (e.g. resolved via staff-only metadata)', () => {
+    expect(isLinkedEnterpriseCustomer({
+      enterpriseCustomer: mockLinkedEnterpriseCustomer,
+      allLinkedEnterpriseCustomerUsers: [{ enterpriseCustomer: enterpriseCustomerFactory() }],
+    })).toBe(false);
+  });
+
+  it('returns false when there are no linked enterprise customer users', () => {
+    expect(isLinkedEnterpriseCustomer({ enterpriseCustomer: mockLinkedEnterpriseCustomer })).toBe(false);
+  });
+
+  it('returns false when there is no enterprise customer', () => {
+    expect(isLinkedEnterpriseCustomer({
+      enterpriseCustomer: null,
+      allLinkedEnterpriseCustomerUsers: [{ enterpriseCustomer: mockLinkedEnterpriseCustomer }],
+    })).toBe(false);
+  });
+});
+
+describe('canViewAcademies', () => {
+  const activatedCurrentLicense = {
+    status: LICENSE_STATUS.ACTIVATED,
+    subscriptionPlan: { isCurrent: true },
+  };
+
+  const buildArgs = ({
+    enableAcademies = true,
+    isLinked = true,
+    subscriptionLicense = activatedCurrentLicense,
+  } = {}) => {
+    const enterpriseCustomer = enterpriseCustomerFactory({ enable_academies: enableAcademies });
+    return {
+      enterpriseCustomer,
+      allLinkedEnterpriseCustomerUsers: isLinked ? [{ enterpriseCustomer }] : [],
+      subscriptionLicense,
+    };
+  };
+
+  it('returns true for an entitled customer with a linked user holding active learner access', () => {
+    expect(canViewAcademies(buildArgs())).toBe(true);
+  });
+
+  it('returns false when the customer lacks the Academies entitlement', () => {
+    expect(canViewAcademies(buildArgs({ enableAcademies: false }))).toBe(false);
+  });
+
+  it('returns false when the user is not linked to the customer', () => {
+    expect(canViewAcademies(buildArgs({ isLinked: false }))).toBe(false);
+  });
+
+  it('returns false when the linked user has no active learner access', () => {
+    expect(canViewAcademies(buildArgs({ subscriptionLicense: null }))).toBe(false);
+  });
+
+  it('returns false when there is no enterprise customer', () => {
+    expect(canViewAcademies({ enterpriseCustomer: null })).toBe(false);
   });
 });
