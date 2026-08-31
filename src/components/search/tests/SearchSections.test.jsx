@@ -32,6 +32,7 @@ jest.mock('../../app/data', () => ({
   useEnterpriseFeatures: jest.fn().mockReturnValue({ data: undefined }),
   useDefaultSearchFilters: jest.fn(),
   useHasValidLicenseOrSubscriptionRequestsEnabled: jest.fn(),
+  useCanViewAcademies: jest.fn(() => false),
   useAlgoliaSearch: jest.fn(),
 }));
 

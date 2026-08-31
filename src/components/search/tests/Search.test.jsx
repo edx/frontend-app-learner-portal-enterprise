@@ -15,8 +15,10 @@ import { generateTestPermutations, renderWithRouter } from '../../../utils/tests
 import '@testing-library/jest-dom';
 import Search from '../Search';
 import {
+  useAcademies,
   useAlgoliaSearch,
   useCanOnlyViewHighlights,
+  useCanViewAcademies,
   useDefaultSearchFilters,
   useEnterpriseCustomer,
   useHasValidLicenseOrSubscriptionRequestsEnabled,
@@ -49,6 +51,8 @@ jest.mock('../../app/data', () => ({
   useIsAssignmentsOnlyLearner: jest.fn().mockReturnValue(false),
   useDefaultSearchFilters: jest.fn(),
   useHasValidLicenseOrSubscriptionRequestsEnabled: jest.fn(),
+  useCanViewAcademies: jest.fn(),
+  useAcademies: jest.fn(),
 }));
 
 jest.mock('../../../utils/optimizely', () => ({
@@ -83,6 +87,12 @@ const SearchWrapper = ({
   </IntlProvider>
 );
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
+const mockAcademy = {
+  uuid: 'test-academy-uuid',
+  title: 'My Awesome Academy',
+  shortDescription: 'I am a short academy description.',
+  image: 'example.com/academies/images/awesome-academy.png',
+};
 const mockFilter = `enterprise_customer_uuids: ${mockEnterpriseCustomer.uuid}`;
 const mockSearchClient = { search: jest.fn(), appId: 'test-app-id' };
 const mockSearchIndex = { indexName: 'mock-index-name' };
@@ -93,6 +103,8 @@ describe('<Search />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useDefaultSearchFilters.mockReturnValue(mockFilter);
     useHasValidLicenseOrSubscriptionRequestsEnabled.mockReturnValue(true);
+    useCanViewAcademies.mockReturnValue(false);
+    useAcademies.mockReturnValue({ data: [mockAcademy], isError: false });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });
     useAlgoliaSearch.mockReturnValue({
       searchClient: mockSearchClient,
@@ -376,5 +388,64 @@ describe('<Search />', () => {
       expect(screen.queryByText(messages.alertTextOptionNetwork.defaultMessage)).not.toBeInTheDocument();
       expect(screen.queryByText(messages.alertTextOptionSupport.defaultMessage)).not.toBeInTheDocument();
     }
+  });
+
+  describe('Academies section', () => {
+    const academySectionHeading = 'edX Academies: designed to meet your most critical business needs';
+    it('renders the Academies section for academy-eligible learners', () => {
+      useCanViewAcademies.mockReturnValue(true);
+
+      renderWithRouter(
+        <SearchWrapper>
+          <Search />
+        </SearchWrapper>,
+      );
+
+      expect(screen.getByText(academySectionHeading)).toBeInTheDocument();
+      expect(screen.getByText(mockAcademy.title)).toBeInTheDocument();
+    });
+
+    it('does not render the Academies section for academy-ineligible learners', () => {
+      useCanViewAcademies.mockReturnValue(false);
+
+      renderWithRouter(
+        <SearchWrapper>
+          <Search />
+        </SearchWrapper>,
+      );
+
+      expect(screen.queryByText(academySectionHeading)).not.toBeInTheDocument();
+      expect(screen.queryByText(mockAcademy.title)).not.toBeInTheDocument();
+    });
+
+    it('does not render the Academies section when the learner can only view highlight sets', () => {
+      useCanViewAcademies.mockReturnValue(true);
+      useCanOnlyViewHighlights.mockReturnValue({ data: true });
+
+      renderWithRouter(
+        <SearchWrapper>
+          <Search />
+        </SearchWrapper>,
+      );
+
+      expect(screen.queryByText(academySectionHeading)).not.toBeInTheDocument();
+    });
+
+    it('does not render the Academies section when a content type refinement is applied', () => {
+      useCanViewAcademies.mockReturnValue(true);
+
+      renderWithRouter(
+        <SearchWrapper
+          searchContext={{
+            refinements: { content_type: [CONTENT_TYPE_COURSE] },
+            dispatch: jest.fn(),
+          }}
+        >
+          <Search />
+        </SearchWrapper>,
+      );
+
+      expect(screen.queryByText(academySectionHeading)).not.toBeInTheDocument();
+    });
   });
 });

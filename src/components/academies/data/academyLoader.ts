@@ -1,7 +1,9 @@
-import { LoaderFunctionArgs, Params } from 'react-router-dom';
+import {
+  generatePath, LoaderFunctionArgs, Params, redirect,
+} from 'react-router-dom';
 
 import { ensureAuthenticatedUser } from '../../app/routes/data';
-import { extractEnterpriseCustomer, queryAcademiesDetail } from '../../app/data';
+import { extractEnterpriseCustomer, queryAcademiesDetail, resolveCanViewAcademies } from '../../app/data';
 
 type AcademyRouteParams<Key extends string = string> = Params<Key> & {
   readonly academyUUID: string;
@@ -29,6 +31,20 @@ const makeAcademiesLoader: MakeRouteLoaderFunctionWithQueryClient = function mak
     });
     if (!enterpriseCustomer) {
       return null;
+    }
+
+    // Ineligible customers and learners have no Academies entry points, so deep links to the
+    // academy detail route are redirected back to search. This is the same predicate the search
+    // loader uses to decide whether to redirect *into* a single academy, so the two cannot loop.
+    const canViewAcademies = await resolveCanViewAcademies({
+      requestUrl,
+      queryClient,
+      authenticatedUser,
+      enterpriseSlug,
+      enterpriseCustomer,
+    });
+    if (!canViewAcademies) {
+      return redirect(generatePath('/:enterpriseSlug/search', { enterpriseSlug }));
     }
 
     await queryClient.ensureQueryData(queryAcademiesDetail(academyUUID, enterpriseCustomer.uuid));

@@ -30,6 +30,10 @@ import {
   queryUserEntitlements,
 } from './queries';
 import { getBaseSubscriptionsData } from '../constants';
+import {
+  hasValidLicenseOrSubscriptionRequestsEnabled,
+  isLinkedEnterpriseCustomer,
+} from '../utils';
 import { getErrorResponseStatusCode } from '../../../../utils/common';
 
 /**
@@ -512,5 +516,85 @@ export async function safeEnsureQueryDataContentHighlightSets({
     queryClient,
     query: queryContentHighlightSets(enterpriseCustomer.uuid),
     fallbackData: [],
+  });
+}
+
+interface ResolveCanViewAcademiesArgs {
+  requestUrl: URL;
+  queryClient: QueryClient;
+  authenticatedUser: AuthenticatedUser;
+  enterpriseSlug: string;
+  enterpriseCustomer: EnterpriseCustomer;
+}
+
+/**
+ * Route loader equivalent of the `useCanViewAcademies` hook. Determines whether Academies entry
+ * points should be available for the resolved enterprise customer and authenticated user.
+ *
+ * Short-circuits on the customer-level Academies entitlement so that ineligible customers never
+ * incur the subscriptions/browse & request lookups.
+ *
+ * @returns Whether Academies entry points should be available.
+ */
+export async function resolveCanViewAcademies({
+  requestUrl,
+  queryClient,
+  authenticatedUser,
+  enterpriseSlug,
+  enterpriseCustomer,
+}: ResolveCanViewAcademiesArgs): Promise<boolean> {
+  if (!enterpriseCustomer?.enableAcademies) {
+    return false;
+  }
+
+  // Staff users may resolve an enterprise customer via the staff-only customer metadata without
+  // being linked to it; such users are not learners of that customer and get no Academies access.
+  const { data: enterpriseLearnerData } = await getEnterpriseLearnerQueryData({
+    requestUrl,
+    queryClient,
+    authenticatedUser,
+    enterpriseSlug,
+  });
+  if (!isLinkedEnterpriseCustomer({
+    enterpriseCustomer,
+    allLinkedEnterpriseCustomerUsers: enterpriseLearnerData.allLinkedEnterpriseCustomerUsers,
+  })) {
+    return false;
+  }
+
+  // On BFF-enabled routes, the learner's subscriptions arrive on the route's own BFF response,
+  // which the root loader has already ensured; reading it back here costs no extra request.
+  // `safeEnsureQueryDataSubscriptions` is not usable for that: it resolves subscriptions from the
+  // *dashboard* BFF specifically, which would issue a second BFF request on other routes.
+  const matchedBFFQuery = resolveBFFQuery(requestUrl.pathname);
+  const resolveSubscriptionLicense = async () => {
+    if (matchedBFFQuery) {
+      const bffResponse = await safeEnsureQueryData<BFFResponse | null>({
+        queryClient,
+        query: matchedBFFQuery({ enterpriseSlug }),
+        shouldLogError: false,
+        fallbackData: null,
+      });
+      return bffResponse?.enterpriseCustomerUserSubsidies?.subscriptions?.subscriptionLicense;
+    }
+    const subscriptionsData = await safeEnsureQueryDataSubscriptions({
+      queryClient,
+      enterpriseCustomer,
+      enterpriseSlug,
+    });
+    return subscriptionsData?.subscriptionLicense;
+  };
+
+  const [subscriptionLicense, browseAndRequestConfiguration] = await Promise.all([
+    resolveSubscriptionLicense(),
+    safeEnsureQueryDataBrowseAndRequestConfiguration({
+      queryClient,
+      enterpriseCustomer,
+    }),
+  ]);
+
+  return hasValidLicenseOrSubscriptionRequestsEnabled({
+    subscriptionLicense,
+    browseAndRequestConfiguration,
   });
 }

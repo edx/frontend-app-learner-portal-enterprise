@@ -1302,3 +1302,80 @@ export function getCoursePrice(courseMetadata) {
   // 4. Return default normalized price in cents
   return 0;
 }
+
+/**
+ * Determines whether a learner has subscription-based access, i.e. either an activated and
+ * current subscription license, or the ability to request one via browse & request.
+ *
+ * @param {object} args
+ * @param {object} [args.subscriptionLicense] - The learner's subscription license, if any.
+ * @param {object} [args.browseAndRequestConfiguration] - The customer's browse & request configuration.
+ * @returns {boolean} Whether the learner has subscription-based access.
+ */
+export function hasValidLicenseOrSubscriptionRequestsEnabled({
+  subscriptionLicense,
+  browseAndRequestConfiguration,
+}) {
+  const hasActivatedAndCurrentLicense = subscriptionLicense?.status === LICENSE_STATUS.ACTIVATED
+    && !!subscriptionLicense?.subscriptionPlan?.isCurrent;
+  const hasRequestsEnabledForSubscriptions = !!browseAndRequestConfiguration?.subsidyRequestsEnabled
+    && browseAndRequestConfiguration.subsidyType === SUBSIDY_TYPE.LICENSE;
+  return hasActivatedAndCurrentLicense || hasRequestsEnabledForSubscriptions;
+}
+
+/**
+ * Determines whether the authenticated user is linked to the given enterprise customer. Staff
+ * users may resolve an enterprise customer via the staff-only customer metadata without being
+ * linked to it; such users should not be treated as learners of that customer.
+ *
+ * @param {object} args
+ * @param {object} [args.enterpriseCustomer] - The resolved enterprise customer.
+ * @param {Array} [args.allLinkedEnterpriseCustomerUsers] - The user's linked enterprise customer users.
+ * @returns {boolean} Whether the user is linked to the enterprise customer.
+ */
+export function isLinkedEnterpriseCustomer({
+  enterpriseCustomer,
+  allLinkedEnterpriseCustomerUsers = [],
+}) {
+  if (!enterpriseCustomer) {
+    return false;
+  }
+  return allLinkedEnterpriseCustomerUsers.some(
+    (enterpriseCustomerUser) => enterpriseCustomerUser.enterpriseCustomer?.uuid === enterpriseCustomer.uuid,
+  );
+}
+
+/**
+ * Determines whether Academies entry points (e.g. the search page Academies section, the
+ * "Go to Academy" links, and the academy detail route) should be available.
+ *
+ * Academies require all of the following:
+ *   1. The enterprise customer has the Academies entitlement enabled (`enableAcademies`).
+ *   2. The authenticated user is linked to that enterprise customer.
+ *   3. The learner has subscription-based access (activated and current license, or the
+ *      ability to request one via browse & request).
+ *
+ * @param {object} args
+ * @param {object} [args.enterpriseCustomer] - The resolved enterprise customer.
+ * @param {Array} [args.allLinkedEnterpriseCustomerUsers] - The user's linked enterprise customer users.
+ * @param {object} [args.subscriptionLicense] - The learner's subscription license, if any.
+ * @param {object} [args.browseAndRequestConfiguration] - The customer's browse & request configuration.
+ * @returns {boolean} Whether Academies entry points should be available.
+ */
+export function canViewAcademies({
+  enterpriseCustomer,
+  allLinkedEnterpriseCustomerUsers = [],
+  subscriptionLicense,
+  browseAndRequestConfiguration,
+}) {
+  if (!enterpriseCustomer?.enableAcademies) {
+    return false;
+  }
+  if (!isLinkedEnterpriseCustomer({ enterpriseCustomer, allLinkedEnterpriseCustomerUsers })) {
+    return false;
+  }
+  return hasValidLicenseOrSubscriptionRequestsEnabled({
+    subscriptionLicense,
+    browseAndRequestConfiguration,
+  });
+}
