@@ -26,7 +26,7 @@ const LEVEL_RANK: Record<string, number> = {
  * Raw course record fields consumed from the course catalog Algolia index. Kept private
  * to this service — never exported or returned to callers.
  */
-interface CourseHit {
+export interface CourseHit {
   key?: string;
   title?: string;
   partners?: Array<{ name?: string }>;
@@ -50,7 +50,7 @@ const buildStrictOrGroup = (strictSkillFilters: CatalogSkillMatch[]): string | u
   return `(${clause})`;
 };
 
-const buildBoostOptionalFilters = (boostSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
+export const buildBoostOptionalFilters = (boostSkillFilters: CatalogSkillMatch[]): string[] | undefined => (
   boostSkillFilters.length
     ? boostSkillFilters.map(({ catalogField, catalogSkill }) => `${catalogField}:${quoteFacetValue(catalogSkill)}`)
     : undefined
@@ -93,7 +93,7 @@ interface MappedCourseHit {
  * of survivors is preserved, which doubles as the original-Algolia-rank tiebreak input
  * for `rerank`.
  */
-const mapAndDedupeHits = (hits: CourseHit[]): MappedCourseHit[] => {
+export const mapAndDedupeHits = (hits: CourseHit[]): MappedCourseHit[] => {
   const seenCourseKeys = new Set<string>();
   const mapped: MappedCourseHit[] = [];
 
@@ -116,7 +116,7 @@ const mapAndDedupeHits = (hits: CourseHit[]): MappedCourseHit[] => {
  * contributes 3 points, an exact learner-level match adds 2 points, an adjacent level
  * adds 1 point. Ties break on original Algolia order (survivor order in `mappedHits`).
  */
-const rerank = (
+export const rerank = (
   mappedHits: MappedCourseHit[],
   strictSkillFilters: CatalogSkillMatch[],
   boostSkillFilters: CatalogSkillMatch[],

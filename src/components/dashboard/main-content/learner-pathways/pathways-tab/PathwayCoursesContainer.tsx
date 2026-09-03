@@ -16,25 +16,38 @@ import {
   useOneTimeFeedbackPrompt,
 } from './pathway-courses';
 import messages from './pathway-courses/messages';
+import careerMessages from './career-selection/messages';
+import type { PathwaysFlowVariant } from './flowVariant';
 import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../../app/data';
 
 export interface PathwayCoursesContainerProps {
+  /**
+   * Navigate back to the Career Profile page. Career flow only — skills mode has no such
+   * page, and uses `onOpenRetakeQuiz` as its leading action instead.
+   */
   onBackToProfile?: () => void;
+  /** Opens the shared retake-quiz confirmation modal, owned by LearnerPathwaysTab. */
+  onOpenRetakeQuiz?: () => void;
+  /** Which flow produced the courses being shown. Defaults to the career flow. */
+  flowVariant?: PathwaysFlowVariant;
 }
 
 const PathwayCoursesContainer = ({
   onBackToProfile,
+  onOpenRetakeQuiz,
+  flowVariant = 'career',
 }: PathwayCoursesContainerProps) => {
   const intl = useIntl();
   const { registerActions, clearActions } = usePathwaysActionBar();
   const { trackControlInteracted, trackFeedbackLinkClicked } = usePathwaysAnalytics();
   const storeCourses = usePathwaysCourses();
   const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
+  const isSkillsFlow = flowVariant === 'skills';
 
   const { data: enterpriseCustomer } = useEnterpriseCustomer<EnterpriseCustomer>();
   const { data: { enterpriseCourseEnrollments } } = useEnterpriseCourseEnrollments();
 
-  const pathwayCourses = getDisplayedPathwayCourses(storeCourses);
+  const pathwayCourses = getDisplayedPathwayCourses(storeCourses, flowVariant);
   // Enrollment-derived status/action are computed here, at render time, from the
   // same courses shown in the table — never written back to the Zustand store — so
   // the summary card and table can never disagree with each other or with the
@@ -48,6 +61,9 @@ const PathwayCoursesContainer = ({
   const handleBackToProfile = useCallback(() => {
     onBackToProfile?.();
   }, [onBackToProfile]);
+  const handleOpenRetakeQuiz = useCallback(() => {
+    onOpenRetakeQuiz?.();
+  }, [onOpenRetakeQuiz]);
 
   const giveFeedbackAction = buildGiveFeedbackAction(
     feedbackFormUrl,
@@ -82,20 +98,36 @@ const PathwayCoursesContainer = ({
 
   useEffect(() => {
     registerActions({
-      primary: {
-        id: 'pathway-rebuild',
-        label: messages.rebuildPathway,
-        variant: 'tertiary',
-        type: 'button',
-        iconBefore: ArrowBack,
-        onClick: handleBackToProfile,
-        testId: 'pathway-rebuild-button',
-      },
+      // Skills mode has no Career Profile page to rebuild from, so its only backward
+      // move is retaking the quiz — routed through the same shared confirmation modal
+      // the breadcrumb already uses, since it discards the built pathway. ArrowBack is
+      // kept: both actions move the learner back a step.
+      primary: isSkillsFlow
+        ? {
+          id: 'pathway-retake-quiz',
+          label: careerMessages.retakeQuiz,
+          variant: 'tertiary',
+          type: 'button',
+          iconBefore: ArrowBack,
+          onClick: handleOpenRetakeQuiz,
+          testId: 'pathway-retake-quiz-button',
+        }
+        : {
+          id: 'pathway-rebuild',
+          label: messages.rebuildPathway,
+          variant: 'tertiary',
+          type: 'button',
+          iconBefore: ArrowBack,
+          onClick: handleBackToProfile,
+          testId: 'pathway-rebuild-button',
+        },
       secondary: giveFeedbackAction ? [giveFeedbackAction] : [],
       alignment: 'split',
     });
     return () => clearActions();
-  }, [handleBackToProfile, registerActions, clearActions, intl, giveFeedbackAction]);
+  }, [
+    isSkillsFlow, handleBackToProfile, handleOpenRetakeQuiz, registerActions, clearActions, intl, giveFeedbackAction,
+  ]);
 
   return (
     <>

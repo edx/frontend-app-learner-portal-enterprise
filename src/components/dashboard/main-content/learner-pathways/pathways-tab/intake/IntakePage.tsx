@@ -6,6 +6,7 @@ import IntakeQuestionsContainer, { IntakeQuestionsContainerProps } from './Intak
 const IntakePage = ({
   onSubmit,
   onSkip,
+  flowVariant,
   isProfileSubmitting,
   profileError,
 }: IntakeQuestionsContainerProps) => (
@@ -15,6 +16,7 @@ const IntakePage = ({
       <IntakeQuestionsContainer
         onSubmit={onSubmit}
         onSkip={onSkip}
+        flowVariant={flowVariant}
         isProfileSubmitting={isProfileSubmitting}
         profileError={profileError}
       />
