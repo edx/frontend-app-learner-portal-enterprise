@@ -17,7 +17,7 @@ interface Props {
   view: View;
   onNavigate: (view: View) => void;
   /**
-   * Which flow's step list to render. The direct flow is two steps — it has no Career
+   * Which flow's step list to render. The skills flow is two steps — it has no Career
    * Profile page — so its trail must not offer a link to a page it never visits.
    * Defaults to the three-step career trail.
    */
@@ -30,13 +30,13 @@ const careerBreadcrumbSteps: BreadcrumbStep[] = [
   { label: 'pathway', view: 'pathway' },
 ];
 
-const directBreadcrumbSteps: BreadcrumbStep[] = [
+const skillsBreadcrumbSteps: BreadcrumbStep[] = [
   { label: 'onboardingQuiz', view: 'onboarding' },
   { label: 'pathway', view: 'pathway' },
 ];
 
 const getBreadcrumbSteps = (flowVariant: PathwaysFlowVariant): BreadcrumbStep[] => (
-  flowVariant === 'direct' ? directBreadcrumbSteps : careerBreadcrumbSteps
+  flowVariant === 'skills' ? skillsBreadcrumbSteps : careerBreadcrumbSteps
 );
 
 const PathwayBreadcrumbs = ({ view, onNavigate, flowVariant = 'career' }: Props) => {

@@ -82,9 +82,9 @@ export const usePathwaysStore = create<PathwaysStore>()(persist((set) => ({
     pathwayInputFingerprint: fingerprint,
     pathwayGenerationMode: 'career',
   }),
-  commitDirectPathwaySuccess: ({ courses }) => set({
+  commitSkillsPathwaySuccess: ({ courses }) => set({
     pathwayCourses: courses,
-    pathwayGenerationMode: 'direct',
+    pathwayGenerationMode: 'skills',
     pathwayInputFingerprint: null,
     learnerProfile: null,
     careerMatches: [],

@@ -2,30 +2,22 @@ import { act, renderHook } from '@testing-library/react';
 
 import { usePathwaysStore } from '../state';
 import {
-  generateDirectPathwayWorkflow,
+  generateSkillsPathwayWorkflow,
   generatePathwayWorkflow,
   generateProfileWorkflow,
 } from '../workflows';
 import { usePathwaysController } from './usePathwaysController';
-import { DIRECT_PATHWAY_CONTEXT_UNAVAILABLE_MESSAGE } from './directPathwayContext';
-import { useEnterpriseCustomer } from '../../../../../app/data';
 
 jest.mock('../workflows', () => ({
   generateProfileWorkflow: jest.fn().mockResolvedValue({ learnerProfile: null, careerMatches: [] }),
   generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
-  generateDirectPathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
+  generateSkillsPathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
 
 jest.mock('../../../../../app/data/hooks', () => ({
   useSearchCatalogs: jest.fn(() => ['cat-1']),
   useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
 }));
-
-jest.mock('../../../../../app/data', () => ({
-  useEnterpriseCustomer: jest.fn(),
-}));
-
-const mockUseEnterpriseCustomer = useEnterpriseCustomer as jest.Mock;
 
 const stubLearnerIntent = {
   careerGoal: 'Data Analyst', targetIndustry: 'Tech', background: 'Ops', motivation: 'Growth',
@@ -46,7 +38,6 @@ describe('usePathwaysController', () => {
   beforeEach(() => {
     usePathwaysStore.getState().resetPathwaysState();
     jest.clearAllMocks();
-    mockUseEnterpriseCustomer.mockReturnValue({ data: { uuid: 'ent-uuid-1' } });
   });
 
   it('transitions onboarding state when startOnboarding is called', () => {
@@ -71,18 +62,17 @@ describe('usePathwaysController', () => {
     expect(generateProfileWorkflow).toHaveBeenCalledWith(stubLearnerIntent);
   });
 
-  describe('generateDirectPathway', () => {
-    it('delegates to generateDirectPathwayWorkflow with the resolved enterprise UUID and catalog scope', async () => {
+  describe('generateSkillsPathway', () => {
+    it('delegates to generateSkillsPathwayWorkflow with the learner intent and resolved catalog scope, no enterprise UUID', async () => {
       const { result } = renderHook(() => usePathwaysController());
 
       await act(async () => {
-        await result.current.generateDirectPathway(stubLearnerIntent);
+        await result.current.generateSkillsPathway(stubLearnerIntent);
       });
 
-      expect(generateDirectPathwayWorkflow).toHaveBeenCalledTimes(1);
-      expect(generateDirectPathwayWorkflow).toHaveBeenCalledWith({
+      expect(generateSkillsPathwayWorkflow).toHaveBeenCalledTimes(1);
+      expect(generateSkillsPathwayWorkflow).toHaveBeenCalledWith({
         learnerIntent: stubLearnerIntent,
-        enterpriseCustomerUuid: 'ent-uuid-1',
         catalogScope: {
           searchCatalogs: ['cat-1'],
           catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
@@ -93,60 +83,20 @@ describe('usePathwaysController', () => {
     it('resolves an empty result cleanly without touching the store', async () => {
       const { result } = renderHook(() => usePathwaysController());
 
-      const outcome = await act(async () => result.current.generateDirectPathway(stubLearnerIntent));
+      const outcome = await act(async () => result.current.generateSkillsPathway(stubLearnerIntent));
 
       expect(outcome).toEqual({ courses: [] });
       expect(usePathwaysStore.getState().pathwayGenerationMode).toBeNull();
     });
 
-    it('rejects with DirectPathwayContextUnavailableError before calling the workflow when the enterprise UUID is missing', async () => {
-      mockUseEnterpriseCustomer.mockReturnValue({ data: undefined });
-      const { result } = renderHook(() => usePathwaysController());
-
-      await expect(
-        act(async () => {
-          await result.current.generateDirectPathway(stubLearnerIntent);
-        }),
-      ).rejects.toThrow(DIRECT_PATHWAY_CONTEXT_UNAVAILABLE_MESSAGE);
-
-      expect(generateDirectPathwayWorkflow).not.toHaveBeenCalled();
-    });
-
-    it('rejects with DirectPathwayContextUnavailableError before calling the workflow when the enterprise UUID is blank', async () => {
-      mockUseEnterpriseCustomer.mockReturnValue({ data: { uuid: '' } });
-      const { result } = renderHook(() => usePathwaysController());
-
-      await expect(
-        act(async () => {
-          await result.current.generateDirectPathway(stubLearnerIntent);
-        }),
-      ).rejects.toThrow(DIRECT_PATHWAY_CONTEXT_UNAVAILABLE_MESSAGE);
-
-      expect(generateDirectPathwayWorkflow).not.toHaveBeenCalled();
-    });
-
-    it('rejects with DirectPathwayContextUnavailableError before calling the workflow when searchCatalogs is empty', async () => {
-      const useAppDataHooks = jest.requireMock('../../../../../app/data/hooks');
-      useAppDataHooks.useSearchCatalogs.mockReturnValueOnce([]);
-      const { result } = renderHook(() => usePathwaysController());
-
-      await expect(
-        act(async () => {
-          await result.current.generateDirectPathway(stubLearnerIntent);
-        }),
-      ).rejects.toThrow(DIRECT_PATHWAY_CONTEXT_UNAVAILABLE_MESSAGE);
-
-      expect(generateDirectPathwayWorkflow).not.toHaveBeenCalled();
-    });
-
     it('propagates a workflow rejection untouched with no store side effect', async () => {
-      const workflowError = new Error('Xpert unavailable');
-      jest.mocked(generateDirectPathwayWorkflow).mockRejectedValueOnce(workflowError);
+      const workflowError = new Error('Learning Intent unavailable');
+      jest.mocked(generateSkillsPathwayWorkflow).mockRejectedValueOnce(workflowError);
       const { result } = renderHook(() => usePathwaysController());
 
       await expect(
         act(async () => {
-          await result.current.generateDirectPathway(stubLearnerIntent);
+          await result.current.generateSkillsPathway(stubLearnerIntent);
         }),
       ).rejects.toThrow(workflowError);
 
@@ -160,7 +110,7 @@ describe('usePathwaysController', () => {
       const { result } = renderHook(() => usePathwaysController());
 
       await act(async () => {
-        await result.current.generateDirectPathway(stubLearnerIntent);
+        await result.current.generateSkillsPathway(stubLearnerIntent);
       });
 
       expect(generateProfileWorkflow).not.toHaveBeenCalled();

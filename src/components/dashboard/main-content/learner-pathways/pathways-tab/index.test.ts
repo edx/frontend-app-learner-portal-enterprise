@@ -6,7 +6,7 @@ describe('pathways-tab public exports', () => {
     expect(PathwaysTab.usePathwaysController).toBeDefined();
     expect(PathwaysTab.generateProfileWorkflow).toBeDefined();
     expect(PathwaysTab.generatePathwayWorkflow).toBeDefined();
-    expect(PathwaysTab.generateDirectPathwayWorkflow).toBeDefined();
+    expect(PathwaysTab.generateSkillsPathwayWorkflow).toBeDefined();
     expect(PathwaysTab.usePathwaysStore).toBeDefined();
     expect(PathwaysTab.selectors).toBeDefined();
   });

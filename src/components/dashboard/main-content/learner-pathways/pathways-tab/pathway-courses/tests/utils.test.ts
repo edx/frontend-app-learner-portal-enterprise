@@ -18,16 +18,16 @@ describe('getDisplayedPathwayCourses', () => {
     expect(result).not.toEqual(PATHWAY_COURSES_STUB);
   });
 
-  describe('direct flow', () => {
+  describe('skills flow', () => {
     it('returns an empty array (never the fixture) when store courses are empty', () => {
-      const result = getDisplayedPathwayCourses([], 'direct');
+      const result = getDisplayedPathwayCourses([], 'skills');
 
       expect(result).toEqual([]);
       expect(result).not.toBe(PATHWAY_COURSES_STUB);
     });
 
     it('returns a stable empty reference across calls', () => {
-      expect(getDisplayedPathwayCourses([], 'direct')).toBe(getDisplayedPathwayCourses([], 'direct'));
+      expect(getDisplayedPathwayCourses([], 'skills')).toBe(getDisplayedPathwayCourses([], 'skills'));
     });
 
     it('returns store courses verbatim when populated', () => {
@@ -35,7 +35,7 @@ describe('getDisplayedPathwayCourses', () => {
         { courseKey: 'custom', title: 'Custom Store Course', status: 'not_started' },
       ];
 
-      expect(getDisplayedPathwayCourses(storeCourses, 'direct')).toBe(storeCourses);
+      expect(getDisplayedPathwayCourses(storeCourses, 'skills')).toBe(storeCourses);
     });
   });
 });

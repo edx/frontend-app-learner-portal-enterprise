@@ -112,9 +112,9 @@ describe('PathwayCoursesContainer', () => {
     expect(onBackToProfile).toHaveBeenCalledTimes(1);
   });
 
-  describe('direct flow', () => {
+  describe('skills flow', () => {
     it('never renders fixture courses when the store is empty, and progress reads 0', () => {
-      renderComponent({ flowVariant: 'direct' });
+      renderComponent({ flowVariant: 'skills' });
 
       expect(screen.queryByText('Introduction to Corporate Finance')).not.toBeInTheDocument();
       expect(screen.getByTestId('pathway-progress-upcoming')).toHaveTextContent('0');
@@ -127,13 +127,13 @@ describe('PathwayCoursesContainer', () => {
         ],
       });
 
-      renderComponent({ flowVariant: 'direct' });
+      renderComponent({ flowVariant: 'skills' });
 
       expect(screen.getByText('Custom Store Course')).toBeInTheDocument();
     });
 
     it('registers a "Retake quiz" leading action instead of "Rebuild pathway"', () => {
-      renderComponent({ flowVariant: 'direct' });
+      renderComponent({ flowVariant: 'skills' });
 
       expect(screen.getByTestId('pathway-retake-quiz-button')).toBeInTheDocument();
       expect(screen.getAllByText('Retake quiz')).toHaveLength(1);
@@ -145,7 +145,7 @@ describe('PathwayCoursesContainer', () => {
       const user = userEvent.setup();
       const onOpenRetakeQuiz = jest.fn();
       const onBackToProfile = jest.fn();
-      renderComponent({ flowVariant: 'direct', onOpenRetakeQuiz, onBackToProfile });
+      renderComponent({ flowVariant: 'skills', onOpenRetakeQuiz, onBackToProfile });
 
       await user.click(screen.getByTestId('pathway-retake-quiz-button'));
 

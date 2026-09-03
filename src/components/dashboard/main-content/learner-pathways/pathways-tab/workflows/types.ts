@@ -43,28 +43,3 @@ export interface GeneratePathwayWorkflowInput {
 export interface GeneratePathwayWorkflowResult {
   courses: PathwayCourse[];
 }
-
-/**
- * Direct-mode generation input. Deliberately carries no `request`/`selectedCareer`:
- * direct mode never produces a `LearnerProfile` or a `CareerMatch`, and there is no
- * `PathwayGenerationRequest` to fingerprint. `enterpriseCustomerUuid` and `catalogScope`
- * are both resolved from React hooks by the composition layer (`usePathwaysController`),
- * since this workflow — like `generatePathwayWorkflow` — must stay hook-free.
- * `catalogScope.searchCatalogs` doubles as the Enterprise Catalog inclusion check's
- * `catalogUuids` (see `enterpriseCatalogInclusion.ts`'s input doc: it must be the
- * `searchCatalogs` UUID space, not the catalog-query-UUID space).
- */
-export interface GenerateDirectPathwayWorkflowInput {
-  learnerIntent: LearnerIntent;
-  enterpriseCustomerUuid: string;
-  catalogScope: CourseRetrievalCatalogScope;
-}
-
-/**
- * Result the composition layer commits atomically via `commitDirectPathwaySuccess`. Same
- * shape as `GeneratePathwayWorkflowResult` on purpose — the Pathway page consumes one
- * course model regardless of which flow produced it.
- */
-export interface GenerateDirectPathwayWorkflowResult {
-  courses: PathwayCourse[];
-}

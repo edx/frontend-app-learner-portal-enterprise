@@ -43,8 +43,8 @@ describe('IntakePage', () => {
     expect(screen.getByText(messages.beta.defaultMessage)).toBeInTheDocument();
   });
 
-  it('forwards flowVariant so direct-mode copy surfaces on the submit action', () => {
-    render(<MockIntakePage flowVariant="direct" />);
+  it('forwards flowVariant so skills-mode copy surfaces on the submit action', () => {
+    render(<MockIntakePage flowVariant="skills" />);
 
     expect(screen.getByRole('button', { name: messages.generateRecommendations.defaultMessage })).toBeInTheDocument();
   });

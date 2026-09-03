@@ -286,18 +286,18 @@ describe('normalizePathwaysState', () => {
     const state: PathwaysState = {
       ...baseState(),
       pathwayCourses: [],
-      pathwayGenerationMode: 'direct',
+      pathwayGenerationMode: 'skills',
     };
     expect(normalizePathwaysState(state).pathwayGenerationMode).toBeNull();
   });
 
-  it('keeps pathwayGenerationMode "direct" when a pathway is present', () => {
+  it('keeps pathwayGenerationMode "skills" when a pathway is present', () => {
     const state: PathwaysState = {
       ...baseState(),
       pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
-      pathwayGenerationMode: 'direct',
+      pathwayGenerationMode: 'skills',
     };
-    expect(normalizePathwaysState(state).pathwayGenerationMode).toBe('direct');
+    expect(normalizePathwaysState(state).pathwayGenerationMode).toBe('skills');
   });
 
   it('keeps pathwayGenerationMode "career" when a pathway is present', () => {

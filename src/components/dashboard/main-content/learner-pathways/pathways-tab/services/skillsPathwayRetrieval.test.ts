@@ -1,12 +1,11 @@
 import type { SearchIndex } from 'algoliasearch/lite';
-import { searchCoursesBySkillFallback } from './courseSkillFallbackRetrieval';
-import type { LearnerSkillFallback } from './directCourseKeyRetrieval';
+import { searchCoursesForSkillsPathway } from './skillsPathwayRetrieval';
+import type { LearningIntentResponse } from '../../../../../app/data/services/xpert';
 import type { CourseRetrievalCatalogScope } from '../types';
 
-// Reflects courseCatalogScopeFilters.ts's current, real behavior (its
-// enterprise_catalog_query_uuids clause is presently commented out there — this test
-// mirrors actual production output, not a hoped-for one).
-const BASE_SCOPE_FILTERS = 'content_type:course AND metadata_language:en AND language:English';
+// Reflects courseCatalogScopeFilters.ts's current, real behavior — the
+// enterprise_catalog_query_uuids clause is applied (fixed as part of this change).
+const BASE_SCOPE_FILTERS = 'content_type:course AND (enterprise_catalog_query_uuids:query-1) AND metadata_language:en AND language:English';
 
 const catalogScope: CourseRetrievalCatalogScope = {
   searchCatalogs: ['cat-1'],
@@ -31,27 +30,23 @@ const buildIndex = (responses: unknown[]): SearchIndex => {
   return { search } as unknown as SearchIndex;
 };
 
-const buildFallback = (overrides: Partial<LearnerSkillFallback> = {}): LearnerSkillFallback => ({
+const buildLearningIntent = (
+  overrides: Partial<LearningIntentResponse> = {},
+): LearningIntentResponse => ({
   skillsRequired: ['Python'],
   skillsPreferred: ['SQL'],
   condensedAlgoliaQuery: 'python data analysis',
-  roles: [],
-  industries: [],
-  jobSources: [],
-  learnerLevel: 'introductory',
-  timeCommitment: 'medium',
-  excludeTags: [],
   ...overrides,
 });
 
-describe('searchCoursesBySkillFallback', () => {
+describe('searchCoursesForSkillsPathway', () => {
   it('issues the facet snapshot search, then a single course search with the capped query, base scope filters, and boost optionalFilters', async () => {
     const index = buildIndex([
       facetResponse(),
       searchResponse([course('c1'), course('c2')]),
     ]);
 
-    const result = await searchCoursesBySkillFallback({ index, fallback: buildFallback(), catalogScope });
+    const result = await searchCoursesForSkillsPathway({ index, learningIntent: buildLearningIntent(), catalogScope });
 
     expect(result.map((c) => c.courseKey)).toEqual(['c1', 'c2']);
     expect(index.search).toHaveBeenCalledTimes(2);
@@ -67,9 +62,9 @@ describe('searchCoursesBySkillFallback', () => {
 
   it('caps the query text to its first 3 whitespace-separated terms', async () => {
     const index = buildIndex([facetResponse(), searchResponse([])]);
-    const fallback = buildFallback({ condensedAlgoliaQuery: 'python data analysis fundamentals extra' });
+    const learningIntent = buildLearningIntent({ condensedAlgoliaQuery: 'python data analysis fundamentals extra' });
 
-    await searchCoursesBySkillFallback({ index, fallback, catalogScope });
+    await searchCoursesForSkillsPathway({ index, learningIntent, catalogScope });
 
     const [, courseSearchArgs] = (index.search as jest.Mock).mock.calls;
     expect(courseSearchArgs[0]).toBe('python data analysis');
@@ -78,12 +73,12 @@ describe('searchCoursesBySkillFallback', () => {
   it('grounds required-before-preferred and caps combined boost skills at 8', async () => {
     const catalogSkills = Array.from({ length: 10 }, (_, i) => `Skill${i}`);
     const index = buildIndex([facetResponse(catalogSkills), searchResponse([])]);
-    const fallback = buildFallback({
+    const learningIntent = buildLearningIntent({
       skillsRequired: ['Skill0', 'Skill1', 'Skill2'],
       skillsPreferred: ['Skill3', 'Skill4', 'Skill5', 'Skill6', 'Skill7', 'Skill8', 'Skill9'],
     });
 
-    await searchCoursesBySkillFallback({ index, fallback, catalogScope });
+    await searchCoursesForSkillsPathway({ index, learningIntent, catalogScope });
 
     const [, courseSearchArgs] = (index.search as jest.Mock).mock.calls;
     expect(courseSearchArgs[1].optionalFilters).toEqual([
@@ -95,26 +90,26 @@ describe('searchCoursesBySkillFallback', () => {
 
   it('drops a skill name that does not exist in the catalog facet vocabulary', async () => {
     const index = buildIndex([facetResponse(['Python']), searchResponse([])]);
-    const fallback = buildFallback({ skillsRequired: ['Python'], skillsPreferred: ['Nonexistent Skill'] });
+    const learningIntent = buildLearningIntent({ skillsRequired: ['Python'], skillsPreferred: ['Nonexistent Skill'] });
 
-    await searchCoursesBySkillFallback({ index, fallback, catalogScope });
+    await searchCoursesForSkillsPathway({ index, learningIntent, catalogScope });
 
     const [, courseSearchArgs] = (index.search as jest.Mock).mock.calls;
     expect(courseSearchArgs[1].optionalFilters).toEqual(['skill_names:"Python"']);
   });
 
-  it('omits optionalFilters entirely when both skill arrays are empty (degenerate fallback)', async () => {
+  it('omits optionalFilters entirely when both skill arrays are empty (degenerate learning intent)', async () => {
     const index = buildIndex([facetResponse([]), searchResponse([course('c1')])]);
-    const fallback = buildFallback({ skillsRequired: [], skillsPreferred: [] });
+    const learningIntent = buildLearningIntent({ skillsRequired: [], skillsPreferred: [] });
 
-    const result = await searchCoursesBySkillFallback({ index, fallback, catalogScope });
+    const result = await searchCoursesForSkillsPathway({ index, learningIntent, catalogScope });
 
     const [, courseSearchArgs] = (index.search as jest.Mock).mock.calls;
     expect(courseSearchArgs[1]).toEqual({ hitsPerPage: 10, filters: BASE_SCOPE_FILTERS });
     expect(result.map((c) => c.courseKey)).toEqual(['c1']);
   });
 
-  it('passes learnerLevel through to reranking unchanged', async () => {
+  it('never scores a level-compatibility bonus, since Learning Intent carries no learner-level signal', async () => {
     const index = buildIndex([
       facetResponse(['Python']),
       searchResponse([
@@ -122,20 +117,18 @@ describe('searchCoursesBySkillFallback', () => {
         course('c2', { level_type: 'Introductory', skill_names: ['Python'] }),
       ]),
     ]);
-    const fallback = buildFallback({ learnerLevel: 'introductory' });
 
-    const result = await searchCoursesBySkillFallback({ index, fallback, catalogScope });
+    const result = await searchCoursesForSkillsPathway({ index, learningIntent: buildLearningIntent(), catalogScope });
 
-    // Both hits have equal skill overlap; the introductory-level hit should rank first
-    // due to the level-compatibility bonus for a learnerLevel of "introductory".
-    expect(result[0].courseKey).toBe('c2');
+    // Equal skill overlap and no level signal at all — original Algolia order wins the tie.
+    expect(result.map((c) => c.courseKey)).toEqual(['c1', 'c2']);
   });
 
   it('deduplicates and caps hits at 5 via the shared rerank helper', async () => {
     const hits = Array.from({ length: 8 }, (_, i) => course(`c${i}`));
     const index = buildIndex([facetResponse(), searchResponse(hits)]);
 
-    const result = await searchCoursesBySkillFallback({ index, fallback: buildFallback(), catalogScope });
+    const result = await searchCoursesForSkillsPathway({ index, learningIntent: buildLearningIntent(), catalogScope });
 
     expect(result).toHaveLength(5);
   });
@@ -143,7 +136,7 @@ describe('searchCoursesBySkillFallback', () => {
   it('returns an empty array, without throwing, when the search yields zero hits', async () => {
     const index = buildIndex([facetResponse(), searchResponse([])]);
 
-    const result = await searchCoursesBySkillFallback({ index, fallback: buildFallback(), catalogScope });
+    const result = await searchCoursesForSkillsPathway({ index, learningIntent: buildLearningIntent(), catalogScope });
 
     expect(result).toEqual([]);
   });

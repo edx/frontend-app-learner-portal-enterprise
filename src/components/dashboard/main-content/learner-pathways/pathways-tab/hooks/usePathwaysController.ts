@@ -1,21 +1,19 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useEnterpriseCustomer } from '../../../../../app/data';
 import { useAlgoliaSearch, useSearchCatalogs } from '../../../../../app/data/hooks';
 import { usePathwaysStore } from '../state';
 import type { CareerMatch, LearnerIntent, PathwayGenerationRequest } from '../state';
 import {
-  generateDirectPathwayWorkflow,
+  generateSkillsPathwayWorkflow,
   generatePathwayWorkflow,
   generateProfileWorkflow,
 } from '../workflows';
 import type {
-  GenerateDirectPathwayWorkflowResult,
+  GenerateSkillsPathwayWorkflowResult,
   GeneratePathwayWorkflowResult,
   GenerateProfileWorkflowResult,
 } from '../workflows';
-import { DirectPathwayContextUnavailableError } from './directPathwayContext';
 
 /**
  * Controller-layer facade for Pathways tab actions.
@@ -46,7 +44,6 @@ export const usePathwaysController = () => {
     searchCatalogs,
     catalogUuidsToCatalogQueryUuids,
   }), [searchCatalogs, catalogUuidsToCatalogQueryUuids]);
-  const { data: enterpriseCustomer } = useEnterpriseCustomer();
 
   const startOnboarding = () => {
     // Minimal state transition only; workflow orchestration is intentionally deferred.
@@ -58,23 +55,14 @@ export const usePathwaysController = () => {
   ): Promise<GenerateProfileWorkflowResult> => generateProfileWorkflow(learnerIntent);
 
   /**
-   * Direct-flow composition: resolves the two pieces of enterprise context the hook-free
-   * workflow can't reach itself (the customer UUID and the catalog scope), guards them,
-   * then delegates. A `{ courses: [] }` resolution is a legitimate empty result, not a
-   * failure — only the guard below and the workflow's own service rejections reject.
+   * Default, skills-driven flow: resolves the catalog scope the hook-free workflow can't
+   * reach itself, then delegates. No enterprise-customer UUID is needed here — the only
+   * enterprise-scoping mechanism this flow uses is `catalogScope` reaching Algolia's own
+   * filters, not a separate catalog-inclusion lookup.
    */
-  const generateDirectPathway = (
+  const generateSkillsPathway = (
     learnerIntent: LearnerIntent,
-  ): Promise<GenerateDirectPathwayWorkflowResult> => {
-    const enterpriseCustomerUuid = enterpriseCustomer?.uuid;
-    // Rejected up front, before any external call: `catalogScope.searchCatalogs` doubles
-    // as the Enterprise Catalog inclusion check's `catalogUuids`, and that check cannot
-    // run without both values (see enterpriseCatalogInclusion.ts).
-    // if (!enterpriseCustomerUuid || catalogScope.searchCatalogs.length === 0) {
-    //   return Promise.reject(new DirectPathwayContextUnavailableError());
-    // }
-    return generateDirectPathwayWorkflow({ learnerIntent, enterpriseCustomerUuid, catalogScope });
-  };
+  ): Promise<GenerateSkillsPathwayWorkflowResult> => generateSkillsPathwayWorkflow({ learnerIntent, catalogScope });
 
   const generatePathway = (
     request: PathwayGenerationRequest,
@@ -88,7 +76,7 @@ export const usePathwaysController = () => {
   return {
     startOnboarding,
     generateProfile,
-    generateDirectPathway,
+    generateSkillsPathway,
     generatePathway,
     resetPathway,
   };

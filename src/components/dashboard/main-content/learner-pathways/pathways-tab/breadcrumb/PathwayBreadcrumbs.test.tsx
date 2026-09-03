@@ -48,11 +48,11 @@ describe('PathwayBreadcrumbs', () => {
     expect(screen.getByText('Career profile')).toBeInTheDocument();
   });
 
-  describe('direct flow', () => {
+  describe('skills flow', () => {
     it('view="pathway" shows only the Onboarding-quiz link and the Pathway active label, with no Career-profile link', async () => {
       const user = userEvent.setup();
       const onNavigate = jest.fn();
-      render(<MockPathwayBreadcrumbs view="pathway" onNavigate={onNavigate} flowVariant="direct" />);
+      render(<MockPathwayBreadcrumbs view="pathway" onNavigate={onNavigate} flowVariant="skills" />);
 
       expect(screen.getByText('Pathway')).toBeInTheDocument();
       expect(screen.queryByText('Career profile')).not.toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('PathwayBreadcrumbs', () => {
     });
 
     it('view="onboarding" renders no links', () => {
-      render(<MockPathwayBreadcrumbs view="onboarding" flowVariant="direct" />);
+      render(<MockPathwayBreadcrumbs view="onboarding" flowVariant="skills" />);
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
   });

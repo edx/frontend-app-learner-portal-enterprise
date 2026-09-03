@@ -39,7 +39,7 @@ const LearnerPathwaysTab = () => {
   const pathwayGenerationMode = usePathwaysStore(selectors.pathwayGenerationMode);
   const setSection = usePathwaysStore((state) => state.setSection);
   const commitProfileSuccess = usePathwaysStore((state) => state.commitProfileSuccess);
-  const commitDirectPathwaySuccess = usePathwaysStore((state) => state.commitDirectPathwaySuccess);
+  const commitSkillsPathwaySuccess = usePathwaysStore((state) => state.commitSkillsPathwaySuccess);
   const resetPathwaysState = usePathwaysStore((state) => state.resetPathwaysState);
   const intl = useIntl();
 
@@ -48,7 +48,7 @@ const LearnerPathwaysTab = () => {
     trackProfileGenerationCompleted, trackQuizRetaken, trackControlInteracted,
   } = usePathwaysAnalytics();
 
-  const { generateProfile, generateDirectPathway } = usePathwaysController();
+  const { generateProfile, generateSkillsPathway } = usePathwaysController();
   const {
     profile: intakeProfileRequestState,
     beginProfile: beginIntakeProfile,
@@ -137,20 +137,20 @@ const LearnerPathwaysTab = () => {
     });
     beginIntakeProfile();
 
-    if (flowVariant === 'direct') {
+    if (flowVariant === 'skills') {
       try {
-        const { courses } = await generateDirectPathway(values);
+        const { courses } = await generateSkillsPathway(values);
         if (courses.length === 0) {
           // A valid request that matched nothing catalog-eligible is not a failure: stay
           // on Intake with explanatory copy so the learner can broaden their answers and
           // resubmit. Deliberately not rethrown — nothing failed.
-          failIntakeProfile(intl.formatMessage(intakeMessages.noEligibleDirectCourses));
+          failIntakeProfile(intl.formatMessage(intakeMessages.noEligibleSkillsCourses));
           return;
         }
-        commitDirectPathwaySuccess({ courses });
+        commitSkillsPathwaySuccess({ courses });
         resolveIntakeProfile();
         setNavigationSource('workflow_completion');
-        // Straight to 'pathway': direct mode has no Career Profile step.
+        // Straight to 'pathway': skills mode has no Career Profile step.
         setSection(VIEWS.PATHWAY);
       } catch (error) {
         failIntakeProfile(errorMessage(error, 'Unable to generate your recommendations.'));
@@ -189,9 +189,9 @@ const LearnerPathwaysTab = () => {
     flowVariant,
     beginIntakeProfile,
     generateProfile,
-    generateDirectPathway,
+    generateSkillsPathway,
     commitProfileSuccess,
-    commitDirectPathwaySuccess,
+    commitSkillsPathwaySuccess,
     resolveIntakeProfile,
     setSection,
     setNavigationSource,

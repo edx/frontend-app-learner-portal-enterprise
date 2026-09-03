@@ -159,17 +159,17 @@ const messages = defineMessages({
   generateRecommendations: {
     id: 'learner.pathways.intake.actions.generateRecommendations',
     defaultMessage: 'Generate recommendations',
-    description: 'Primary action label for submitting intake in direct mode, where recommended courses are generated without an intermediate career profile step.',
+    description: 'Primary action label for submitting intake in skills mode, where recommended courses are generated without an intermediate career profile step.',
   },
   findingCourses: {
     id: 'learner.pathways.intake.actions.findingCourses',
     defaultMessage: 'Finding courses...',
-    description: 'Loading label shown on the intake submit action while direct-mode course recommendations are being generated.',
+    description: 'Loading label shown on the intake submit action while skills-mode course recommendations are being generated.',
   },
-  noEligibleDirectCourses: {
-    id: 'learner.pathways.intake.directFlow.noEligibleCourses',
+  noEligibleSkillsCourses: {
+    id: 'learner.pathways.intake.skillsFlow.noEligibleCourses',
     defaultMessage: 'We could not find any courses in your organization’s catalog that match your answers. Try adding more detail about your goal or background, then submit again.',
-    description: 'Shown on the intake page when direct-mode generation succeeded but returned no catalog-eligible courses. Not an error: the request worked, it simply matched nothing.',
+    description: 'Shown on the intake page when skills-mode generation succeeded but returned no catalog-eligible courses. Not an error: the request worked, it simply matched nothing.',
   },
 });
 

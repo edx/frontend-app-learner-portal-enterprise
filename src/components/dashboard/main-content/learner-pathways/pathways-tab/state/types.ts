@@ -51,12 +51,12 @@ export interface CareerMatch {
 /**
  * Which generation flow produced the current `pathwayCourses`. Deliberately mirrors
  * `PathwaysFlowVariant`'s values (see `../flowVariant.ts`) without importing it: that
- * type describes a live `?pathwaysFlow` query param — never persisted, never navigation
+ * type describes a live `?pathwayMode` query param — never persisted, never navigation
  * state (ADR 0020) — whereas this one is a durable committed fact about a built pathway.
  * The two value sets are kept identical on purpose so `LearnerPathwaysTab` can compare a
  * persisted mode against the active variant directly.
  */
-export type PathwayGenerationMode = 'career' | 'direct';
+export type PathwayGenerationMode = 'career' | 'skills';
 
 /**
  * Course progression states used by learner pathways course cards/listing.
@@ -122,8 +122,8 @@ export interface PathwaysState {
   pathwayInputFingerprint: string | null;
   /**
    * Which flow built `pathwayCourses`: `'career'` (Intake -> profile -> career selection
-   * -> build) or `'direct'` (Intake -> direct course retrieval, no profile). `null` means
-   * no pathway has been built yet. Metadata about the current pathway, exactly like
+   * -> build) or `'skills'` (Intake -> skills-driven Algolia retrieval, no profile).
+   * `null` means no pathway has been built yet. Metadata about the current pathway, like
    * `pathwayInputFingerprint` — cleared with it whenever no pathway exists.
    */
   pathwayGenerationMode: PathwayGenerationMode | null;
@@ -142,8 +142,8 @@ export interface CommitPathwayBuildInput {
   fingerprint: string;
 }
 
-/** Input for the atomic direct-mode pathway commit. */
-export interface CommitDirectPathwaySuccessInput {
+/** Input for the atomic skills-mode pathway commit. */
+export interface CommitSkillsPathwaySuccessInput {
   courses: PathwayCourse[];
 }
 
@@ -183,17 +183,17 @@ export interface PathwaysActions {
    */
   commitPathwayBuild: (input: CommitPathwayBuildInput) => void;
   /**
-   * Atomically commits a successful direct-mode generation: the complete course set plus
-   * `pathwayGenerationMode: 'direct'`, and — in the same commit — clears every
+   * Atomically commits a successful skills-mode generation: the complete course set plus
+   * `pathwayGenerationMode: 'skills'`, and — in the same commit — clears every
    * career-flow-only fact (`learnerProfile`, `careerMatches`, `selectedCareerId`,
-   * `selectedSkills`) along with `pathwayInputFingerprint`. Direct mode produces none of
+   * `selectedSkills`) along with `pathwayInputFingerprint`. Skills mode produces none of
    * those, and leaving a previous career session's values behind would make the store
    * claim this pathway came from a career/skill selection and a fingerprinted request it
    * never had. Never fabricates a `LearnerProfile` or `CareerMatch` to fill them.
    * Deliberately does not touch `section` (navigation stays with the caller) or
    * `learnerIntent` (already committed by the Intake form on submit).
    */
-  commitDirectPathwaySuccess: (input: CommitDirectPathwaySuccessInput) => void;
+  commitSkillsPathwaySuccess: (input: CommitSkillsPathwaySuccessInput) => void;
   /**
    * Commits the display-only stub profile/matches as if they were a real
    * commitProfileSuccess result — called once, the first time a pathway is built

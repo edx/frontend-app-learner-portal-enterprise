@@ -28,7 +28,7 @@ export { computePathwayInputFingerprint } from './pathwayGenerationRequest';
 
 export type {
   CareerMatch,
-  CommitDirectPathwaySuccessInput,
+  CommitSkillsPathwaySuccessInput,
   CommitPathwayBuildInput,
   CommitProfileSuccessInput,
   LearnerIntent,

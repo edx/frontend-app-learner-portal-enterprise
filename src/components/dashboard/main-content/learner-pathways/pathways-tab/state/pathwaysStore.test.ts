@@ -248,17 +248,17 @@ describe('pathwaysStore', () => {
     });
   });
 
-  describe('commitDirectPathwaySuccess', () => {
+  describe('commitSkillsPathwaySuccess', () => {
     const courses = [
       { courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' as const },
     ];
 
-    it('commits the courses and marks direct mode, clearing the fingerprint', () => {
-      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+    it('commits the courses and marks skills mode, clearing the fingerprint', () => {
+      usePathwaysStore.getState().commitSkillsPathwaySuccess({ courses });
 
       const state = usePathwaysStore.getState();
       expect(state.pathwayCourses).toEqual(courses);
-      expect(state.pathwayGenerationMode).toBe('direct');
+      expect(state.pathwayGenerationMode).toBe('skills');
       expect(state.pathwayInputFingerprint).toBeNull();
     });
 
@@ -272,7 +272,7 @@ describe('pathwaysStore', () => {
         selectedSkills: ['SQL'],
       });
 
-      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+      usePathwaysStore.getState().commitSkillsPathwaySuccess({ courses });
 
       const state = usePathwaysStore.getState();
       expect(state.learnerProfile).toBeNull();
@@ -286,7 +286,7 @@ describe('pathwaysStore', () => {
         pathwayCourses: [{ courseKey: 'stale-course', title: 'Old Course', status: 'completed' }],
       });
 
-      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+      usePathwaysStore.getState().commitSkillsPathwaySuccess({ courses });
 
       expect(usePathwaysStore.getState().pathwayCourses).toEqual(courses);
     });
@@ -297,7 +297,7 @@ describe('pathwaysStore', () => {
       };
       usePathwaysStore.setState({ section: 'onboarding', learnerIntent });
 
-      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+      usePathwaysStore.getState().commitSkillsPathwaySuccess({ courses });
 
       const state = usePathwaysStore.getState();
       expect(state.section).toBe('onboarding');
@@ -305,7 +305,7 @@ describe('pathwaysStore', () => {
     });
 
     it('resets pathwayGenerationMode back to null on resetPathwaysState', () => {
-      usePathwaysStore.getState().commitDirectPathwaySuccess({ courses });
+      usePathwaysStore.getState().commitSkillsPathwaySuccess({ courses });
 
       usePathwaysStore.getState().resetPathwaysState();
 

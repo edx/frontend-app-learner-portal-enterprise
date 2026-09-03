@@ -54,16 +54,10 @@ jest.mock('./services', () => ({
     ]),
   },
   getCourseAlgoliaIndex: jest.fn(),
-  // Direct-flow dependency seam for generateDirectPathwayWorkflow — mocked the same way
+  // Skills-flow dependency seam for generateSkillsPathwayWorkflow — mocked the same way
   // as the career-flow services above, so the real workflow runs end to end.
-  directCourseKeyRetrievalService: {
-    retrieveCourseKeys: jest.fn().mockResolvedValue({
-      retrievalStrategy: 'discovery_course_keys', courseKeys: ['direct-course-1'], fallback: null,
-    }),
-  },
-  filterCourseKeysByEnterpriseCatalog: jest.fn().mockResolvedValue(['direct-course-1']),
-  fetchCourseMetadataByKeys: jest.fn().mockResolvedValue([
-    { courseKey: 'direct-course-1', title: 'Direct Course One', status: 'not_started' },
+  searchCoursesForSkillsPathway: jest.fn().mockResolvedValue([
+    { courseKey: 'skills-course-1', title: 'Skills Course One', status: 'not_started' },
   ]),
 }));
 jest.mock('../../../../app/data/hooks', () => ({
@@ -95,16 +89,6 @@ jest.mock('../../../../app/data', () => ({
  * path.
  */
 
-const renderComponent = () => render(
-  <QueryClientProvider client={queryClient()}>
-    <MemoryRouter>
-      <IntlProvider locale="en">
-        <LearnerPathwaysTab />
-      </IntlProvider>
-    </MemoryRouter>
-  </QueryClientProvider>,
-);
-
 const renderWithSearch = (search: string) => render(
   <QueryClientProvider client={queryClient()}>
     <MemoryRouter initialEntries={[`/${search}`]}>
@@ -114,6 +98,15 @@ const renderWithSearch = (search: string) => render(
     </MemoryRouter>
   </QueryClientProvider>,
 );
+
+// This suite's pre-existing coverage (everything below, outside the trailing 'skills
+// flow' describe block) is entirely about the CAREER flow. Pinning `?pathwayMode=career`
+// here, rather than leaving it implicit, keeps every one of those assertions correct
+// regardless of which mode the app defaults to. The actual, no-query-param production
+// default (skills mode) is exercised via `renderSkillsFlow()` below.
+const renderComponent = () => renderWithSearch('?pathwayMode=career');
+
+const renderSkillsFlow = () => renderWithSearch('');
 
 const fillIntake = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
@@ -851,10 +844,10 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
     });
   });
 
-  describe('direct flow (real generateDirectPathwayWorkflow, end to end)', () => {
+  describe('skills flow (real generateSkillsPathwayWorkflow, end to end)', () => {
     it('completes Intake -> Pathway with real call-argument and persistence assertions, rendering the hydrated course and no fixture', async () => {
       const user = userEvent.setup();
-      renderWithSearch('?pathwaysFlow=direct');
+      renderSkillsFlow();
 
       await user.type(screen.getByLabelText(intakeMessages.motivationQuestionLabel.defaultMessage), 'Motivation');
       await user.type(screen.getByLabelText(intakeMessages.goalQuestionLabel.defaultMessage), 'Goal');
@@ -863,18 +856,18 @@ describe('LearnerPathwaysTab integration — edge cases from this session', () =
       await user.click(screen.getByRole('button', { name: intakeMessages.generateRecommendations.defaultMessage }));
 
       await waitFor(() => expect(screen.getByTestId('pathway-container')).toBeInTheDocument());
-      expect(screen.getByText('Direct Course One')).toBeInTheDocument();
+      expect(screen.getByText('Skills Course One')).toBeInTheDocument();
       expect(screen.queryByText('Introduction to Corporate Finance')).not.toBeInTheDocument();
       expect(screen.queryByTestId('profile-container')).not.toBeInTheDocument();
 
       const state = usePathwaysStore.getState();
-      expect(state.pathwayGenerationMode).toBe('direct');
+      expect(state.pathwayGenerationMode).toBe('skills');
       expect(state.pathwayCourses).toEqual([
-        { courseKey: 'direct-course-1', title: 'Direct Course One', status: 'not_started' },
+        { courseKey: 'skills-course-1', title: 'Skills Course One', status: 'not_started' },
       ]);
 
       const stored = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) as string);
-      expect(stored.state.pathwayGenerationMode).toBe('direct');
+      expect(stored.state.pathwayGenerationMode).toBe('skills');
     });
   });
 });

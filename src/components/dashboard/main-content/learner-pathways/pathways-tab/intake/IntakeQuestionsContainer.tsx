@@ -27,7 +27,7 @@ export interface IntakeQuestionsContainerProps {
   onSubmit: (values: IntakeFormValues) => void | Promise<void>;
   onSkip?: () => void;
   /**
-   * Which flow this submission starts. Direct mode generates course recommendations
+   * Which flow this submission starts. Skills mode generates course recommendations
    * without an intermediate Career Profile page, so the submit/loading copy must not
    * promise a profile. Defaults to the career flow.
    */
@@ -47,7 +47,7 @@ const IntakeQuestionsContainer = ({
   isProfileSubmitting,
   profileError,
 }: IntakeQuestionsContainerProps) => {
-  const isDirectFlow = flowVariant === 'direct';
+  const isSkillsFlow = flowVariant === 'skills';
   const learnerIntent = usePathwaysStore((state) => state.learnerIntent);
   const setLearnerIntent = usePathwaysStore((state) => state.setLearnerIntent);
   const intl = useIntl();
@@ -129,8 +129,8 @@ const IntakeQuestionsContainer = ({
     registerActions({
       primary: {
         id: 'intake-submit',
-        label: isDirectFlow ? messages.generateRecommendations : messages.submitAndReviewProfile,
-        loadingLabel: isDirectFlow ? messages.findingCourses : messages.submittingProfile,
+        label: isSkillsFlow ? messages.generateRecommendations : messages.submitAndReviewProfile,
+        loadingLabel: isSkillsFlow ? messages.findingCourses : messages.submittingProfile,
         variant: 'primary',
         type: 'submit',
         form: FORM_ID,
@@ -155,7 +155,7 @@ const IntakeQuestionsContainer = ({
       alignment: 'end',
     });
     return () => clearActions();
-  }, [onSkip, isDirectFlow, isProfileSubmitting, registerActions, clearActions, intl, giveFeedbackAction]);
+  }, [onSkip, isSkillsFlow, isProfileSubmitting, registerActions, clearActions, intl, giveFeedbackAction]);
 
   return (
     <section data-testid="intake-questions-container">

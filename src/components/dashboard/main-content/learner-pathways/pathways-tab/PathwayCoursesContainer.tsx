@@ -22,7 +22,7 @@ import { useEnterpriseCourseEnrollments, useEnterpriseCustomer } from '../../../
 
 export interface PathwayCoursesContainerProps {
   /**
-   * Navigate back to the Career Profile page. Career flow only — direct mode has no such
+   * Navigate back to the Career Profile page. Career flow only — skills mode has no such
    * page, and uses `onOpenRetakeQuiz` as its leading action instead.
    */
   onBackToProfile?: () => void;
@@ -42,7 +42,7 @@ const PathwayCoursesContainer = ({
   const { trackControlInteracted, trackFeedbackLinkClicked } = usePathwaysAnalytics();
   const storeCourses = usePathwaysCourses();
   const feedbackFormUrl = getConfig().PATHWAYS_FEEDBACK_FORM_URL;
-  const isDirectFlow = flowVariant === 'direct';
+  const isSkillsFlow = flowVariant === 'skills';
 
   const { data: enterpriseCustomer } = useEnterpriseCustomer<EnterpriseCustomer>();
   const { data: { enterpriseCourseEnrollments } } = useEnterpriseCourseEnrollments();
@@ -98,11 +98,11 @@ const PathwayCoursesContainer = ({
 
   useEffect(() => {
     registerActions({
-      // Direct mode has no Career Profile page to rebuild from, so its only backward
+      // Skills mode has no Career Profile page to rebuild from, so its only backward
       // move is retaking the quiz — routed through the same shared confirmation modal
       // the breadcrumb already uses, since it discards the built pathway. ArrowBack is
       // kept: both actions move the learner back a step.
-      primary: isDirectFlow
+      primary: isSkillsFlow
         ? {
           id: 'pathway-retake-quiz',
           label: careerMessages.retakeQuiz,
@@ -126,7 +126,7 @@ const PathwayCoursesContainer = ({
     });
     return () => clearActions();
   }, [
-    isDirectFlow, handleBackToProfile, handleOpenRetakeQuiz, registerActions, clearActions, intl, giveFeedbackAction,
+    isSkillsFlow, handleBackToProfile, handleOpenRetakeQuiz, registerActions, clearActions, intl, giveFeedbackAction,
   ]);
 
   return (

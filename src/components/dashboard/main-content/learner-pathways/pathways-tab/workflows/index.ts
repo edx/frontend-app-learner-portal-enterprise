@@ -1,10 +1,12 @@
-export { generateDirectPathwayWorkflow, DIRECT_PATHWAY_COURSE_LIMIT } from './generateDirectPathwayWorkflow';
+export { generateSkillsPathwayWorkflow } from './generateSkillsPathwayWorkflow';
 export { generatePathwayWorkflow } from './generatePathwayWorkflow';
 export { generateProfileWorkflow } from './generateProfileWorkflow';
 
 export type {
-  GenerateDirectPathwayWorkflowInput,
-  GenerateDirectPathwayWorkflowResult,
+  GenerateSkillsPathwayWorkflowInput,
+  GenerateSkillsPathwayWorkflowResult,
+} from './generateSkillsPathwayWorkflow';
+export type {
   GeneratePathwayWorkflowInput,
   GeneratePathwayWorkflowResult,
   GenerateProfileWorkflowInput,

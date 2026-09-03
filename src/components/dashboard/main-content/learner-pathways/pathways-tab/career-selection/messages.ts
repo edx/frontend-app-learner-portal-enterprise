@@ -191,7 +191,7 @@ const messages = defineMessages({
   retakeQuiz: {
     id: 'learner.pathways.career.selection.retake.quiz',
     defaultMessage: 'Retake quiz',
-    description: 'Leading action to retake the onboarding quiz, from the Career Profile page or the direct-flow Pathway page.',
+    description: 'Leading action to retake the onboarding quiz, from the Career Profile page or the skills-flow Pathway page.',
   },
   retakeQuizTitle: {
     id: 'learner.pathways.career.selection.retake.quiz.title',

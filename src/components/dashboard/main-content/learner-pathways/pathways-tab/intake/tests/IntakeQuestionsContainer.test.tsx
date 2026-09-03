@@ -382,16 +382,16 @@ describe('IntakeQuestionsContainer', () => {
     });
   });
 
-  describe('direct flow copy', () => {
+  describe('skills flow copy', () => {
     it('shows "Generate recommendations" instead of "Submit and review profile"', () => {
-      render(<MockIntakeQuestionsContainer flowVariant="direct" />);
+      render(<MockIntakeQuestionsContainer flowVariant="skills" />);
 
       expect(screen.getByRole('button', { name: messages.generateRecommendations.defaultMessage })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: messages.submitAndReviewProfile.defaultMessage })).not.toBeInTheDocument();
     });
 
     it('shows "Finding courses..." instead of "Generating your profile..." while pending', () => {
-      render(<MockIntakeQuestionsContainer flowVariant="direct" isProfileSubmitting />);
+      render(<MockIntakeQuestionsContainer flowVariant="skills" isProfileSubmitting />);
 
       const submitButton = screen.getByTestId('intake-submit-button');
       expect(submitButton).toHaveTextContent(messages.findingCourses.defaultMessage);
@@ -401,7 +401,7 @@ describe('IntakeQuestionsContainer', () => {
     it('still fires onSubmit with the trimmed values — the label swap changes nothing functionally', async () => {
       const user = userEvent.setup();
       const onSubmit = jest.fn();
-      render(<MockIntakeQuestionsContainer flowVariant="direct" onSubmit={onSubmit} />);
+      render(<MockIntakeQuestionsContainer flowVariant="skills" onSubmit={onSubmit} />);
 
       await user.type(screen.getByLabelText(messages.motivationQuestionLabel.defaultMessage), 'Motivation answer');
       await user.type(screen.getByLabelText(messages.goalQuestionLabel.defaultMessage), 'Goal answer');

@@ -111,7 +111,7 @@ export const normalizePathwaysState = (state: PathwaysState): PathwaysState => {
   const pathwayInputFingerprint = hasPathway ? state.pathwayInputFingerprint : null;
   // Same rule as the fingerprint: the mode describes `pathwayCourses`, so it cannot
   // outlive them. This is an internal self-consistency correction only — it deliberately
-  // does NOT (and cannot) compare against the live `?pathwaysFlow` variant, which is a
+  // does NOT (and cannot) compare against the live `?pathwayMode` variant, which is a
   // URL value this pure function never sees. That comparison lives in
   // LearnerPathwaysTab.tsx, where both values are actually available.
   const pathwayGenerationMode = hasPathway ? state.pathwayGenerationMode : null;

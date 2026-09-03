@@ -14,7 +14,7 @@ const buildStore = (stateOverrides: Partial<PathwaysStore> = {}): PathwaysStore 
   restoreSelectedSkills: noop,
   commitProfileSuccess: noop,
   commitPathwayBuild: noop,
-  commitDirectPathwaySuccess: noop,
+  commitSkillsPathwaySuccess: noop,
   commitStubProfile: noop,
   resetPathwaysState: noop,
   ...stateOverrides,
@@ -65,11 +65,11 @@ describe('partializePathwaysState', () => {
   });
 
   it('carries pathwayGenerationMode through verbatim', () => {
-    const store = buildStore({ pathwayGenerationMode: 'direct' });
+    const store = buildStore({ pathwayGenerationMode: 'skills' });
 
     const persisted = partializePathwaysState(store);
 
-    expect(persisted.pathwayGenerationMode).toBe('direct');
+    expect(persisted.pathwayGenerationMode).toBe('skills');
   });
 });
 
@@ -129,7 +129,7 @@ describe('mergePathwaysState', () => {
       careerMatches: [{ id: 'career-1', title: 'Data Analyst' }],
       pathwayCourses: [],
       pathwayInputFingerprint: 'stale-fingerprint',
-      pathwayGenerationMode: 'direct',
+      pathwayGenerationMode: 'skills',
     };
 
     const merged = mergePathwaysState(persistedState, currentState);

@@ -2,7 +2,7 @@ import type { PathwayCourse } from '../state';
 import type { PathwaysFlowVariant } from '../flowVariant';
 import { PATHWAY_COURSES_STUB } from './fixtures';
 
-/** Stable empty reference, so a direct-mode empty render doesn't invalidate a
+/** Stable empty reference, so a skills-mode empty render doesn't invalidate a
  *  downstream memo (e.g. `resolvePathwayCourses`) on every render. */
 const NO_COURSES: PathwayCourse[] = [];
 
@@ -13,11 +13,11 @@ const NO_COURSES: PathwayCourse[] = [];
  * in the defensive edge case of the Pathway section being reached without one (e.g. a
  * stale bookmark) — this is a render-time fallback, never persisted.
  *
- * The career flow keeps its long-standing fixture fallback. The direct flow never shows
- * it: its Pathway page is only ever reached from a real committed direct result, so an
+ * The career flow keeps its long-standing fixture fallback. The skills flow never shows
+ * it: its Pathway page is only ever reached from a real committed skills result, so an
  * empty store there genuinely means "nothing to show", and rendering the career
  * fixture's hardcoded investment-banking courses would present fabricated
- * recommendations as if Xpert had produced them.
+ * recommendations as if Algolia had produced them.
  */
 export const getDisplayedPathwayCourses = (
   storeCourses: PathwayCourse[],
@@ -26,5 +26,5 @@ export const getDisplayedPathwayCourses = (
   if (storeCourses.length > 0) {
     return storeCourses;
   }
-  return flowVariant === 'direct' ? NO_COURSES : PATHWAY_COURSES_STUB;
+  return flowVariant === 'skills' ? NO_COURSES : PATHWAY_COURSES_STUB;
 };
