@@ -7,9 +7,9 @@
     "extends @edx/browserslist-config"
   ],
   "dependencies": {
-    "@2uinc/frontend-enterprise-catalog-search": "^11.4.1",
-    "@2uinc/frontend-enterprise-logistration": "^9.2.3",
-    "@2uinc/frontend-enterprise-utils": "^10.0.2",
+    "@2uinc/frontend-enterprise-catalog-search": "^11.4.2",
+    "@2uinc/frontend-enterprise-logistration": "^9.2.9",
+    "@2uinc/frontend-enterprise-utils": "^10.0.8",
     "@algolia/client-search": "^4.24.0",
     "@edx/brand": "npm:@openedx/brand-openedx@^1.2.3",
     "@edx/frontend-component-footer": "^14.6.0",
