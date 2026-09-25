@@ -59,6 +59,34 @@ export function isLearnerPathwaysEnabledForEnterpriseCustomer(enterpriseCustomer
     || (!!enterpriseCustomerUuid && normalizedAllowlist.includes(enterpriseCustomerUuid));
 }
 
+/**
+ * Whether the learner portal pathway sidebar message is enabled for a specific enterprise
+ * customer, per the FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER config value — a
+ * single enterprise customer UUID, or null/undefined/empty when unset. The nil UUID (`uuid`'s
+ * `NIL` export) is a wildcard meaning "enabled for every enterprise customer". The comparison is
+ * case-insensitive, since UUIDs are canonically case-insensitive and this value is frequently
+ * hand-copied into env/config files.
+ *
+ * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
+ * @param {string|null} allowedEnterpriseCustomerUuid - The
+ *   FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER config value.
+ * @returns {Boolean} - Returns true if the feature is enabled for this customer.
+ */
+export function isPathwayMessageEnabledForEnterpriseCustomer(enterpriseCustomerUuid, allowedEnterpriseCustomerUuid) {
+  if (!allowedEnterpriseCustomerUuid) {
+    return false;
+  }
+  if (allowedEnterpriseCustomerUuid.includes(',')) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER holds a single enterprise customer '
+      + 'UUID, not a comma-separated list — this value will not match any customer.',
+    );
+  }
+  const normalizedAllowedUuid = allowedEnterpriseCustomerUuid.toLowerCase();
+  return normalizedAllowedUuid === NIL_UUID || normalizedAllowedUuid === enterpriseCustomerUuid?.toLowerCase();
+}
+
 //  Utility function to check the budget status
 export const getStatusMetadata = ({
   isPlanApproachingExpiry,

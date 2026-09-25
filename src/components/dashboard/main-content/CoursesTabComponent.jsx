@@ -48,7 +48,7 @@ const CoursesTabComponent = ({
     <MediaQuery minWidth={breakpoints.large.minWidth}>
       {matches => (matches && (
         <Sidebar data-testid="courses-tab-sidebar">
-          <DashboardSidebar />
+          <DashboardSidebar showPathwayMessage />
         </Sidebar>
       ))}
     </MediaQuery>
