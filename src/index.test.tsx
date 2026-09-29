@@ -35,6 +35,7 @@ describe('src/index.tsx bootstrap', () => {
     document.body.innerHTML = '<div id="root"></div>';
     process.env = { ...originalEnv };
     delete process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS;
+    delete process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER;
   });
 
   afterEach(() => {
@@ -90,6 +91,50 @@ describe('src/index.tsx bootstrap', () => {
 
     expect(mockMergeConfig).toHaveBeenCalledWith(
       expect.objectContaining({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ['uuid-1', 'uuid-2'] }),
+    );
+  });
+
+  it('defaults FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER to null when unset', () => {
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: null }),
+    );
+  });
+
+  it('passes FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER through as-is when set', () => {
+    process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER = '2e16fcfa-58ea-4021-be51-2235ef4b5284';
+
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: '2e16fcfa-58ea-4021-be51-2235ef4b5284',
+      }),
+    );
+  });
+
+  it('trims surrounding whitespace from FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER', () => {
+    process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER = '  2e16fcfa-58ea-4021-be51-2235ef4b5284  ';
+
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: '2e16fcfa-58ea-4021-be51-2235ef4b5284',
+      }),
     );
   });
 });

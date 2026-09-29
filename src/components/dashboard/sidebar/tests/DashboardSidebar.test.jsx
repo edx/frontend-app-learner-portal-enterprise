@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import '@testing-library/jest-dom/extend-expect';
 import { screen } from '@testing-library/react';
 
+import { getConfig } from '@edx/frontend-platform/config';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import DashboardSidebar from '../DashboardSidebar';
 import { renderWithRouter } from '../../../../utils/tests';
@@ -39,9 +40,7 @@ import { academiesFactory, enterpriseCustomerFactory } from '../../../app/data/s
 
 jest.mock('@edx/frontend-platform/config', () => ({
   ...jest.requireActual('@edx/frontend-platform/config'),
-  getConfig: jest.fn().mockReturnValue({
-    LEARNER_SUPPORT_URL: 'https://support.url',
-  }),
+  getConfig: jest.fn(),
 }));
 
 jest.mock('../../../app/data', () => ({
@@ -94,9 +93,19 @@ const DashboardSidebarWithContext = () => (
   </IntlProvider>
 );
 
+const DashboardSidebarWithPathwayMessage = () => (
+  <IntlProvider locale="en">
+    <DashboardSidebar showPathwayMessage />
+  </IntlProvider>
+);
+
 describe('<DashboardSidebar />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: null,
+    });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useEnterpriseCourseEnrollments.mockReturnValue({ data: { allEnrollmentsByStatus: {} } });
     useSubscriptions.mockReturnValue({
@@ -463,6 +472,45 @@ describe('<DashboardSidebar />', () => {
     renderWithRouter(<DashboardSidebarWithContext />);
     expect(screen.queryByText(NEED_HELP_BLOCK_TITLE)).toBeTruthy();
     expect(screen.queryByText(CONTACT_HELP_EMAIL_MESSAGE)).toBeTruthy();
+  });
+  test('Learner portal sidebar message (backend-driven) is rendered as its own card, separate from Need help', () => {
+    useEnterpriseCustomer.mockReturnValue({
+      data: {
+        ...mockEnterpriseCustomer,
+        enableLearnerPortalSidebarMessage: true,
+        learnerPortalSidebarContent: '<p>Custom backend-driven message</p>',
+      },
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.getByTestId('learner-portal-sidebar-message')).toBeInTheDocument();
+    expect(screen.getByText('Custom backend-driven message')).toBeInTheDocument();
+    expect(screen.queryByText(NEED_HELP_BLOCK_TITLE)).toBeTruthy();
+  });
+  test('Learner portal sidebar message (backend-driven) is not rendered when disabled', () => {
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.queryByTestId('learner-portal-sidebar-message')).not.toBeInTheDocument();
+  });
+  test('Pathway sidebar message is rendered as its own card, separate from Need help, for an allowlisted customer', () => {
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+    });
+    renderWithRouter(<DashboardSidebarWithPathwayMessage />);
+    expect(screen.getByTestId('pathway-sidebar-message')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to your pathway')).toBeInTheDocument();
+    expect(screen.queryByText(NEED_HELP_BLOCK_TITLE)).toBeTruthy();
+  });
+  test('Pathway sidebar message is not rendered when the customer is not allowlisted', () => {
+    renderWithRouter(<DashboardSidebarWithPathwayMessage />);
+    expect(screen.queryByTestId('pathway-sidebar-message')).not.toBeInTheDocument();
+  });
+  test('Pathway sidebar message is not rendered when showPathwayMessage is false, even for an allowlisted customer', () => {
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.queryByTestId('pathway-sidebar-message')).not.toBeInTheDocument();
   });
   test('Uses contact email first', () => {
     renderWithRouter(<DashboardSidebarWithContext />);

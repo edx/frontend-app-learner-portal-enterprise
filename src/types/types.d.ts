@@ -129,6 +129,13 @@ declare global {
     FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: string[] | null;
   };
 
+  // Unlike LearnerPathwaysAllowlistConfiguration above, this holds a single enterprise
+  // customer UUID (or the nil-UUID wildcard), not a comma-separated allowlist — named
+  // accordingly so it isn't mistaken for accepting a comma-separated list of UUIDs.
+  type PathwayMessageConfiguration = {
+    FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: string | null;
+  };
+
   interface Configuration extends
     AlgoliaConfiguration,
     ServiceUrls,
@@ -139,7 +146,8 @@ declare global {
     CookieConfiguration,
     OptimizelyConfiguration,
     PathwaysFeedbackConfiguration,
-    LearnerPathwaysAllowlistConfiguration {}
+    LearnerPathwaysAllowlistConfiguration,
+    PathwayMessageConfiguration {}
 
   // Application Data (enterprise)
 
