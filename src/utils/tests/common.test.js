@@ -3,6 +3,7 @@ import {
   createArrayFromValue,
   defaultQueryClientRetryHandler,
   fixedEncodeURIComponent,
+  getLocalizedHelpCenterUrl,
   hasTruthyValue,
   hasValidStartExpirationDates,
   isDefinedAndNotNull,
@@ -183,5 +184,43 @@ describe('defaultQueryClientRetryHandler', () => {
   }) => {
     const shouldRetry = defaultQueryClientRetryHandler(retryCount, error);
     expect(shouldRetry).toBe(expectedShouldRetry);
+  });
+});
+
+describe('getLocalizedHelpCenterUrl', () => {
+  it.each([
+    { locale: 'en', expectedLanguage: 'en_US' },
+    { locale: 'es-419', expectedLanguage: 'es' },
+    { locale: 'es-es', expectedLanguage: 'es' },
+    { locale: 'fr', expectedLanguage: 'fr' },
+    { locale: 'pt-br', expectedLanguage: 'pt_BR' },
+    { locale: 'zh-cn', expectedLanguage: 'zh_CN' },
+    // Region-specific locales must not collapse onto the wrong variant via their language subtag.
+    { locale: 'pt-PT', expectedLanguage: 'pt_PT' },
+    { locale: 'zh-HK', expectedLanguage: 'zh_TW' },
+  ])('sets the language query param for locale $locale', ({ locale, expectedLanguage }) => {
+    const result = new URL(getLocalizedHelpCenterUrl('https://help.edx.org/edxlearner/s/', locale));
+    expect(result.origin + result.pathname).toEqual('https://help.edx.org/edxlearner/s/');
+    expect(result.searchParams.get('language')).toEqual(expectedLanguage);
+  });
+
+  it('replaces an existing language query param and preserves other params and the hash', () => {
+    const result = new URL(getLocalizedHelpCenterUrl(
+      'https://help.edx.org/edxlearner/s/article/pacing?language=en_US&foo=bar#answer',
+      'es-419',
+    ));
+    expect(result.searchParams.getAll('language')).toEqual(['es']);
+    expect(result.searchParams.get('foo')).toEqual('bar');
+    expect(result.hash).toEqual('#answer');
+  });
+
+  it.each([
+    { url: undefined, locale: 'es-419' },
+    { url: null, locale: 'es-419' },
+    { url: '', locale: 'es-419' },
+    { url: 'not a url', locale: 'es-419' },
+    { url: 'https://help.edx.org/edxlearner/s/', locale: undefined },
+  ])('returns the url unchanged for url=$url, locale=$locale', ({ url, locale }) => {
+    expect(getLocalizedHelpCenterUrl(url, locale)).toEqual(url);
   });
 });

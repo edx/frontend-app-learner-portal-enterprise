@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
 import { Alert } from '@openedx/paragon';
 import { Warning } from '@openedx/paragon/icons';
+import { useIntl } from '@edx/frontend-platform/i18n';
 import { getSearchErrorMessage } from '../utils/search';
 
 const SearchError = ({ title }) => {
-  const searchErrorMessage = getSearchErrorMessage(title);
+  const intl = useIntl();
+  const { messageTitle, messageContent, values } = getSearchErrorMessage(title);
 
   return (
     <Alert
@@ -14,9 +16,9 @@ const SearchError = ({ title }) => {
       open
     >
       <Alert.Heading>
-        {searchErrorMessage.messageTitle}
+        {intl.formatMessage(messageTitle, values)}
       </Alert.Heading>
-      {searchErrorMessage.messageContent}
+      {intl.formatMessage(messageContent, values)}
     </Alert>
   );
 };

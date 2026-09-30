@@ -1,5 +1,6 @@
 import { AppContext } from '@edx/frontend-platform/react';
 import { renderWithRouter, sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
+import { getConfig, mergeConfig } from '@edx/frontend-platform/config';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -57,9 +58,9 @@ const mockAddToast = jest.fn();
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
 const mockAuthenticatedUser = authenticatedUserFactory();
 
-const BaseCourseCardWrapper = (props) => (
+const BaseCourseCardWrapper = ({ locale = 'en', intlMessages, ...props }) => (
   <QueryClientProvider client={queryClient()}>
-    <IntlProvider locale="en">
+    <IntlProvider locale={locale} messages={intlMessages}>
       <AppContext.Provider value={{ authenticatedUser: mockAuthenticatedUser }}>
         <ToastsContext.Provider value={{ addToast: mockAddToast }}>
           <BaseCourseCard {...props} />
@@ -315,11 +316,86 @@ describe('<BaseCourseCard />', () => {
     expect(screen.getByTestId('course-pacing-help-link')).toBeInTheDocument();
     expect(screen.getByText(`${pacing}-paced`)).toBeInTheDocument();
 
-    if (courseHasEnded) {
-      expect(screen.getByText('This course was', { exact: false })).toBeInTheDocument();
-    } else {
-      expect(screen.getByText('This course is', { exact: false })).toBeInTheDocument();
-    }
+    const tense = courseHasEnded ? 'was' : 'is';
+    // Paragon's Hyperlink appends screen reader text for target="_blank", hence startsWith.
+    expect(screen.getByText(
+      (_, element) => element.textContent.startsWith(`This course ${tense} ${pacing}-paced`),
+      { selector: 'div.small' },
+    )).toBeInTheDocument();
+  });
+
+  describe('pacing text and help link localization', () => {
+    const PACED_HELP_URL = 'https://help.edx.org/edxlearner/s/article/pacing';
+    const MISC_TEXT_ID_PREFIX = 'enterprise.learner_portal.dashboard.enrollments.course.misc_text';
+    let originalPacedHelpUrl;
+
+    beforeEach(() => {
+      ({ LEARNER_SUPPORT_PACED_COURSE_MODE_URL: originalPacedHelpUrl } = getConfig());
+      mergeConfig({ LEARNER_SUPPORT_PACED_COURSE_MODE_URL: PACED_HELP_URL });
+    });
+
+    afterEach(() => {
+      mergeConfig({ LEARNER_SUPPORT_PACED_COURSE_MODE_URL: originalPacedHelpUrl });
+    });
+
+    const renderPacingCard = ({ pacing, hasEnded = false, ...wrapperProps }) => renderWithRouter(
+      <BaseCourseCardWrapper
+        type={COURSE_STATUSES.inProgress}
+        title="edX Demonstration Course"
+        linkToCourse="https://edx.org"
+        courseRunId="my+course+key"
+        hasEmailsEnabled
+        startDate={dayjs().subtract(25, 'days').toISOString()}
+        endDate={hasEnded ? dayjs().subtract(1, 'days').toISOString() : dayjs().add(10, 'days').toISOString()}
+        orgName="some_name"
+        pacing={pacing}
+        {...wrapperProps}
+      />,
+    );
+
+    it.each([
+      { locale: 'en', expectedLanguage: 'en_US' },
+      { locale: 'es-419', expectedLanguage: 'es' },
+      { locale: 'pt-br', expectedLanguage: 'pt_BR' },
+    ])('localizes the pacing help link href for locale $locale', ({ locale, expectedLanguage }) => {
+      renderPacingCard({ pacing: 'self', locale });
+      const href = new URL(screen.getByTestId('course-pacing-help-link').getAttribute('href'));
+      expect(href.origin + href.pathname).toEqual(PACED_HELP_URL);
+      expect(href.searchParams.get('language')).toEqual(expectedLanguage);
+    });
+
+    // `linkText` is the part of the sentence the help link wraps. It is translated copy, so the
+    // raw API value ("self"/"instructor") must never be interpolated into it.
+    it.each([
+      {
+        pacing: 'self', hasEnded: false, id: `${MISC_TEXT_ID_PREFIX}.self_paced_is`, translated: 'Este curso es a tu propio ritmo', linkText: 'a tu propio ritmo',
+      },
+      {
+        pacing: 'self', hasEnded: true, id: `${MISC_TEXT_ID_PREFIX}.self_paced_was`, translated: 'Este curso fue a tu propio ritmo', linkText: 'a tu propio ritmo',
+      },
+      {
+        pacing: 'instructor', hasEnded: false, id: `${MISC_TEXT_ID_PREFIX}.instructor_paced_is`, translated: 'Este curso es dirigido por un instructor', linkText: 'dirigido por un instructor',
+      },
+      {
+        pacing: 'instructor', hasEnded: true, id: `${MISC_TEXT_ID_PREFIX}.instructor_paced_was`, translated: 'Este curso fue dirigido por un instructor', linkText: 'dirigido por un instructor',
+      },
+    ])('renders the translated pacing text for $id', ({
+      pacing, hasEnded, id, translated, linkText,
+    }) => {
+      const intlMessages = { [id]: translated.replace(linkText, `<a>${linkText}</a>`) };
+      renderPacingCard({
+        pacing, hasEnded, locale: 'es-419', intlMessages,
+      });
+
+      expect(screen.getByText(
+        (_, element) => element.textContent.startsWith(translated),
+        { selector: 'div.small' },
+      )).toBeInTheDocument();
+      expect(screen.getByTestId('course-pacing-help-link')).toHaveTextContent(linkText);
+      expect(screen.queryByText(/-paced/)).not.toBeInTheDocument();
+      expect(new URL(screen.getByTestId('course-pacing-help-link').getAttribute('href')).searchParams.get('language'))
+        .toEqual('es');
+    });
   });
 
   it.each([
