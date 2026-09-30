@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import { Alert } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 import { ZoomOut } from '@openedx/paragon/icons';
 
 import { PopularResults } from './popular-results';
 import { getNoResultsMessage } from '../utils/search';
 
 const SearchNoResults = ({ title, indexName }) => {
-  const noResultsMessage = getNoResultsMessage(title);
+  const intl = useIntl();
+  const { messageTitle, messageContent, values } = getNoResultsMessage(title);
 
   return (
     <>
@@ -17,8 +19,8 @@ const SearchNoResults = ({ title, indexName }) => {
         icon={ZoomOut}
         show
       >
-        <Alert.Heading>{noResultsMessage.messageTitle}</Alert.Heading>
-        {noResultsMessage.messageContent}
+        <Alert.Heading>{intl.formatMessage(messageTitle, values)}</Alert.Heading>
+        {intl.formatMessage(messageContent, values)}
       </Alert>
       <PopularResults title={title} indexName={indexName} />
     </>
