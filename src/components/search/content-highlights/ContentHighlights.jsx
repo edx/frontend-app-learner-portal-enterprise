@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ContentHighlightSet from './ContentHighlightSet';
 import { useCanOnlyViewHighlights, useContentHighlightSets, useEnterpriseCustomer } from '../../app/data';
 import SearchNoResults from '../SearchNoResults';
+import { HIGHLIGHTS_TITLE } from '../constants';
 
 const ContentHighlights = ({ className }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
@@ -23,7 +24,7 @@ const ContentHighlights = ({ className }) => {
     if (canOnlyViewHighlights) {
       return (
         <Container size="lg" className={className}>
-          <SearchNoResults title="highlights" />
+          <SearchNoResults title={HIGHLIGHTS_TITLE} />
         </Container>
       );
     }

@@ -6,6 +6,7 @@ import {
   CONTENT_TYPE_VIDEO,
   COURSE_TITLE,
   EXECUTIVE_EDUCATION_TITLE,
+  HIGHLIGHTS_TITLE,
   NUM_RESULTS_ACADEMY,
   NUM_RESULTS_COURSE,
   NUM_RESULTS_PATHWAY,
@@ -20,6 +21,7 @@ import SearchProgramCard from '../search/SearchProgramCard';
 import SearchPathwayCard from '../pathway/SearchPathwayCard';
 import SearchAcademyCard from '../academies/SearchAcademyCard';
 import SearchVideoCard from '../search/SearchVideoCard';
+import messages from '../search/messages';
 
 export const getContentTypeFromTitle = (title) => {
   switch (title) {
@@ -89,18 +91,89 @@ export const getSkeletonCardFromTitle = (title) => {
   }
 };
 
-export const getNoResultsMessage = (title) => {
-  const lowerCaseTitle = title.toLowerCase();
-  return {
-    messageTitle: `No ${lowerCaseTitle} were found to match your search results.`,
-    messageContent: `Check out some popular ${lowerCaseTitle} below.`,
-  };
+// The message set each section title can render. Titles are only listed for the states they
+// actually reach: `SearchAcademy` renders `SearchError` but returns `null` instead of an empty
+// state, so academies deliberately have no no-results/popular messages. Anything missing (an
+// unlisted title, or a state a title never reaches) falls back to the generic `*Default` message,
+// which interpolates the content type name.
+const SEARCH_MESSAGES_BY_TITLE = {
+  [COURSE_TITLE]: {
+    noResultsTitle: messages.noResultsTitleCourses,
+    noResultsContent: messages.noResultsContentCourses,
+    errorTitle: messages.errorTitleCourses,
+    popularHeading: messages.popularHeadingCourses,
+  },
+  [EXECUTIVE_EDUCATION_TITLE]: {
+    noResultsTitle: messages.noResultsTitleExecutiveEducation,
+    noResultsContent: messages.noResultsContentExecutiveEducation,
+    errorTitle: messages.errorTitleExecutiveEducation,
+    popularHeading: messages.popularHeadingExecutiveEducation,
+  },
+  [PROGRAM_TITLE]: {
+    noResultsTitle: messages.noResultsTitlePrograms,
+    noResultsContent: messages.noResultsContentPrograms,
+    errorTitle: messages.errorTitlePrograms,
+    popularHeading: messages.popularHeadingPrograms,
+  },
+  [PATHWAY_TITLE]: {
+    noResultsTitle: messages.noResultsTitlePathways,
+    noResultsContent: messages.noResultsContentPathways,
+    errorTitle: messages.errorTitlePathways,
+    popularHeading: messages.popularHeadingPathways,
+  },
+  [VIDEO_TITLE]: {
+    noResultsTitle: messages.noResultsTitleVideos,
+    noResultsContent: messages.noResultsContentVideos,
+    errorTitle: messages.errorTitleVideos,
+    popularHeading: messages.popularHeadingVideos,
+  },
+  [HIGHLIGHTS_TITLE]: {
+    noResultsTitle: messages.noResultsTitleHighlights,
+    noResultsContent: messages.noResultsContentHighlights,
+    errorTitle: messages.errorTitleHighlights,
+    popularHeading: messages.popularHeadingHighlights,
+  },
+  [ACADEMY_TITLE]: {
+    errorTitle: messages.errorTitleAcademies,
+  },
 };
 
-export const getSearchErrorMessage = (title) => {
-  const lowerCaseTitle = title.toLowerCase();
-  return {
-    messageTitle: `An error occurred while finding ${lowerCaseTitle} that match your search.`,
-    messageContent: 'Please try again later.',
-  };
+const DEFAULT_SEARCH_MESSAGES = {
+  noResultsTitle: messages.noResultsTitleDefault,
+  noResultsContent: messages.noResultsContentDefault,
+  errorTitle: messages.errorTitleDefault,
+  popularHeading: messages.popularHeadingDefault,
 };
+
+const getSearchMessage = (key, title) => (
+  SEARCH_MESSAGES_BY_TITLE[title]?.[key] ?? DEFAULT_SEARCH_MESSAGES[key]
+);
+
+/**
+ * Returns the message descriptors, and the values the fallback descriptors need, for the
+ * "no results" alert of a search section. Format them with `intl.formatMessage(descriptor, values)`.
+ */
+export const getNoResultsMessage = (title) => ({
+  messageTitle: getSearchMessage('noResultsTitle', title),
+  messageContent: getSearchMessage('noResultsContent', title),
+  values: { contentType: title.toLowerCase() },
+});
+
+/**
+ * Returns the message descriptors, and the values the fallback descriptors need, for the search
+ * error alert of a search section. Format them with `intl.formatMessage(descriptor, values)`.
+ */
+export const getSearchErrorMessage = (title) => ({
+  messageTitle: getSearchMessage('errorTitle', title),
+  messageContent: messages.errorTryAgainLater,
+  values: { contentType: title.toLowerCase() },
+});
+
+/**
+ * Returns the message descriptor, and the values the fallback descriptor needs, for the
+ * "Popular ..." heading of a search section.
+ */
+export const getPopularResultsHeading = (title) => ({
+  message: getSearchMessage('popularHeading', title),
+  values: { contentType: title },
+});

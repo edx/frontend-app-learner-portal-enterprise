@@ -1,3 +1,4 @@
+import { getPrimaryLanguageSubtag } from '@edx/frontend-platform/i18n';
 import { logError } from '@edx/frontend-platform/logging';
 import { camelCaseObject } from '@edx/frontend-platform/utils';
 import { memoize } from 'lodash-es';
@@ -205,3 +206,40 @@ export function findCourseStatusKey(statusValue) {
 }
 
 export const memoizedCamelCaseObject = memoize(camelCaseObject);
+
+/**
+ * Salesforce language codes for locales whose code differs from the locale's primary
+ * language subtag. Locales not listed here use the primary subtag (e.g. "es-419" -> "es").
+ */
+const HELP_CENTER_LANGUAGE_BY_LOCALE_SUBTAG = {
+  en: 'en_US',
+  pt: 'pt_BR',
+  zh: 'zh_CN',
+};
+
+/**
+ * Returns the given Help Center (Salesforce) URL with its `language` query parameter set to
+ * the learner's current locale, so linked support articles open in the learner's language
+ * instead of the Help Center's default (English).
+ *
+ * The URL is returned unchanged if it is empty or cannot be parsed.
+ *
+ * @param {string} url The configured Help Center URL (e.g., LEARNER_SUPPORT_URL).
+ * @param {string} locale The learner's current locale (e.g., `intl.locale`).
+ * @returns {string}
+ */
+export function getLocalizedHelpCenterUrl(url, locale) {
+  if (!url || !locale) {
+    return url;
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return url;
+  }
+  const languageSubtag = getPrimaryLanguageSubtag(locale).toLowerCase();
+  const helpCenterLanguage = HELP_CENTER_LANGUAGE_BY_LOCALE_SUBTAG[languageSubtag] || languageSubtag;
+  parsedUrl.searchParams.set('language', helpCenterLanguage);
+  return parsedUrl.toString();
+}

@@ -3,12 +3,13 @@ import { connectStateResults } from 'react-instantsearch-dom';
 import { useNbHitsFromSearchResults } from '@2uinc/frontend-enterprise-catalog-search';
 import { Skeleton, CardGrid } from '@openedx/paragon';
 import { v4 as uuidv4 } from 'uuid';
+import { useIntl } from '@edx/frontend-platform/i18n';
 
 import SearchError from '../SearchError';
 import { isDefinedAndNotNull } from '../../../utils/common';
 import { NUM_RESULTS_TO_DISPLAY } from './data/constants';
 import { CARDGRID_COLUMN_SIZES } from '../constants';
-import { getHitComponentFromTitle, getSkeletonCardFromTitle } from '../../utils/search';
+import { getHitComponentFromTitle, getPopularResultsHeading, getSkeletonCardFromTitle } from '../../utils/search';
 
 const PopularResults = ({
   searchResults,
@@ -17,10 +18,12 @@ const PopularResults = ({
   title,
   numberResultsToDisplay,
 }) => {
+  const intl = useIntl();
   const nbHits = useNbHitsFromSearchResults(searchResults);
   const hits = searchResults?.hits || [];
   const SkeletonCard = getSkeletonCardFromTitle(title);
   const HitComponent = getHitComponentFromTitle(title);
+  const { message: popularHeading, values: popularHeadingValues } = getPopularResultsHeading(title);
 
   return (
     <>
@@ -36,7 +39,7 @@ const PopularResults = ({
       )}
       {!isSearchStalled && nbHits > 0 && (
         <>
-          <h2 className="mb-3">{`Popular ${title}`}</h2>
+          <h2 className="mb-3">{intl.formatMessage(popularHeading, popularHeadingValues)}</h2>
           <CardGrid columnSizes={CARDGRID_COLUMN_SIZES}>
             {hits.map(hit => <HitComponent key={uuidv4()} hit={hit} />)}
           </CardGrid>

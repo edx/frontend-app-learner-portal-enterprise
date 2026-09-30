@@ -32,7 +32,12 @@ import {
   EXECUTIVE_EDUCATION_COURSE_MODES,
   useEnterpriseCustomer,
 } from '../../../../app/data';
-import { isCourseEnded, isDefinedAndNotNull, isTodayWithinDateThreshold } from '../../../../../utils/common';
+import {
+  getLocalizedHelpCenterUrl,
+  isCourseEnded,
+  isDefinedAndNotNull,
+  isTodayWithinDateThreshold,
+} from '../../../../../utils/common';
 import { getNormalizedStartDate } from '../../../../course/data';
 
 const messages = defineMessages({
@@ -136,15 +141,25 @@ const messages = defineMessages({
     defaultMessage: 'Enrollment deadline approaching',
     description: 'Tooltip content for enrollment deadline approaching',
   },
-  pacingWas: {
-    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.pacing_was',
-    defaultMessage: 'This course was <a>{pacing}-paced</a>',
-    description: 'The label for the course miscellaneous past tense text for course mode pacing',
+  selfPacedWas: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.self_paced_was',
+    defaultMessage: 'This course was <a>self-paced</a>',
+    description: 'Text on an ended course card stating the course was self-paced. The <a> tags wrap a link to a help article about course pacing.',
   },
-  pacingIs: {
-    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.pacing_is',
-    defaultMessage: 'This course is <a>{pacing}-paced</a>',
-    description: 'The label for the course miscellaneous current tense text for course mode pacing',
+  selfPacedIs: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.self_paced_is',
+    defaultMessage: 'This course is <a>self-paced</a>',
+    description: 'Text on a course card stating the course is self-paced. The <a> tags wrap a link to a help article about course pacing.',
+  },
+  instructorPacedWas: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.instructor_paced_was',
+    defaultMessage: 'This course was <a>instructor-paced</a>',
+    description: 'Text on an ended course card stating the course was instructor-paced. The <a> tags wrap a link to a help article about course pacing.',
+  },
+  instructorPacedIs: {
+    id: 'enterprise.learner_portal.dashboard.enrollments.course.misc_text.instructor_paced_is',
+    defaultMessage: 'This course is <a>instructor-paced</a>',
+    description: 'Text on a course card stating the course is instructor-paced. The <a> tags wrap a link to a help article about course pacing.',
   },
 });
 
@@ -234,7 +249,7 @@ const BaseCourseCard = ({
   const getCoursePaceHyperlink = (chunks) => (
     <Hyperlink
       className={classNames('text-underline', { 'text-light-200': EXECUTIVE_EDUCATION_COURSE_MODES.includes(mode) })}
-      destination={LEARNER_SUPPORT_PACED_COURSE_MODE_URL}
+      destination={getLocalizedHelpCenterUrl(LEARNER_SUPPORT_PACED_COURSE_MODE_URL, intl.locale)}
       target="_blank"
       data-testid="course-pacing-help-link"
     >
@@ -318,11 +333,14 @@ const BaseCourseCard = ({
     if (!pacing || !COURSE_PACING[pacing.toUpperCase()]) {
       return null;
     }
-    const courseHasEnded = isCourseEnded(endDate);
-    if (courseHasEnded) {
-      return messages.pacingWas;
+    // Each pacing type/tense is a complete message so translators never have to
+    // compose a sentence around an untranslated API value (e.g. "self").
+    // Case-insensitive, matching the validity check above.
+    const isSelfPaced = COURSE_PACING[pacing.toUpperCase()] === COURSE_PACING.SELF;
+    if (isCourseEnded(endDate)) {
+      return isSelfPaced ? messages.selfPacedWas : messages.instructorPacedWas;
     }
-    return messages.pacingIs;
+    return isSelfPaced ? messages.selfPacedIs : messages.instructorPacedIs;
   };
 
   const resetModals = () => {
@@ -633,7 +651,6 @@ const BaseCourseCard = ({
       <div className="small">
         {intl.formatMessage(courseMiscText, {
           a: getCoursePaceHyperlink,
-          pacing,
         })}
       </div>
     );
