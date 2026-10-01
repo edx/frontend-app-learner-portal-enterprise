@@ -13,7 +13,7 @@ Ensure you have gone through [Onboarding for devs](https://openedx.atlassian.net
 
 Clone this repo: `git clone https://github.com/openedx/frontend-app-learner-portal-enterpise.git`
 
-Install nodejs (using nvm maybe a good idea to be able to switch node versions and because there is an .nvmrc file that will be usable by nvm)
+Install nodejs (using nvm is good idea to be able to switch node versions and because there is an .nvmrc file that will be usable by nvm)
 
 To run the project, first install dependencies
 
