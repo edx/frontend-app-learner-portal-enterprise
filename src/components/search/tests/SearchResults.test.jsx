@@ -353,16 +353,16 @@ describe('<SearchResults />', () => {
     renderWithRouter(
       <SearchResultsWithContext {...propsForError} />,
     );
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle, 'i'))).toBeTruthy();
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
   test('renders an alert in case of an error for videos', () => {
     const searchErrorMessage = getSearchErrorMessage(VIDEO_TITLE);
     renderWithRouter(
       <SearchResultsWithContext {...propsForVideosError} />,
     );
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle, 'i'))).toBeTruthy();
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
 
   test('renders an alert in case of an error for programs', () => {
@@ -376,8 +376,8 @@ describe('<SearchResults />', () => {
     renderWithRouter(
       <SearchResultsWithContext {...propsForErrorProgram} />,
     );
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle, 'i'))).toBeTruthy();
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
 
   test('renders an alert in case of an error for pathways', () => {
@@ -391,8 +391,8 @@ describe('<SearchResults />', () => {
     renderWithRouter(
       <SearchResultsWithContext {...propsForErrorPathway} />,
     );
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle, 'i'))).toBeTruthy();
-    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(searchErrorMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
 
   test('renders an alert in case of no results for courses', async () => {
@@ -401,8 +401,8 @@ describe('<SearchResults />', () => {
       <SearchResultsWithContext {...propsForNoResults} />,
     );
     await waitFor(() => {
-      expect(screen.getByText(new RegExp(noResultsMessage.messageTitle, 'i'))).toBeTruthy();
-      expect(screen.getByText(new RegExp(noResultsMessage.messageContent, 'i'))).toBeTruthy();
+      expect(screen.getByText(new RegExp(noResultsMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+      expect(screen.getByText(new RegExp(noResultsMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
     });
   });
   test('renders an alert in case of no results for videos', async () => {
@@ -411,8 +411,8 @@ describe('<SearchResults />', () => {
       <SearchResultsWithContext {...propsForNoVideoResults} />,
     );
     await waitFor(() => {
-      expect(screen.getByText(new RegExp(noResultsMessage.messageTitle, 'i'))).toBeTruthy();
-      expect(screen.getByText(new RegExp(noResultsMessage.messageContent, 'i'))).toBeTruthy();
+      expect(screen.getByText(new RegExp(noResultsMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+      expect(screen.getByText(new RegExp(noResultsMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
     });
   });
 
@@ -427,8 +427,8 @@ describe('<SearchResults />', () => {
     renderWithRouter(
       <SearchResultsWithContext {...propsForNoResultsProgram} />,
     );
-    expect(screen.getByText(new RegExp(noResultsMessage.messageTitle, 'i'))).toBeTruthy();
-    expect(screen.getByText(new RegExp(noResultsMessage.messageContent, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(noResultsMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(noResultsMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
 
   test('does not render an alert in case of no results for pathways', () => {
@@ -443,8 +443,26 @@ describe('<SearchResults />', () => {
     renderWithRouter(
       <SearchResultsWithContext {...propsForNoResultsPathway} />,
     );
-    expect(screen.queryByText(new RegExp(noResultsMessage.messageTitle, 'i'))).toBeNull();
-    expect(screen.queryByText(new RegExp(noResultsMessage.messageContent, 'i'))).toBeNull();
+    expect(screen.queryByText(new RegExp(noResultsMessage.messageTitle.defaultMessage, 'i'))).toBeNull();
+    expect(screen.queryByText(new RegExp(noResultsMessage.messageContent.defaultMessage, 'i'))).toBeNull();
+  });
+
+  // `ContentTypeSearchResultsContainer` renders pathways without `isPathwaySearchResults`, so the
+  // pathway empty state is reachable and its dedicated messages are not dead strings.
+  test('renders an alert in case of no results for pathways without isPathwaySearchResults', () => {
+    const propsForNoResultsPathway = {
+      ...propsForNoResults,
+      hitComponent: SearchPathwayCard,
+      title: PATHWAY_TITLE,
+      contentType: CONTENT_TYPE_PATHWAY,
+    };
+    const noResultsMessage = getNoResultsMessage(PATHWAY_TITLE);
+    renderWithRouter(
+      <SearchResultsWithContext {...propsForNoResultsPathway} />,
+    );
+    expect(noResultsMessage.messageTitle.id).toEqual('enterprise.search.noResults.title.pathways');
+    expect(screen.getByText(new RegExp(noResultsMessage.messageTitle.defaultMessage, 'i'))).toBeTruthy();
+    expect(screen.getByText(new RegExp(noResultsMessage.messageContent.defaultMessage, 'i'))).toBeTruthy();
   });
 
   test('calls noSearchResults handler when no results are found', async () => {

@@ -1,3 +1,4 @@
+import { getPrimaryLanguageSubtag } from '@edx/frontend-platform/i18n';
 import { logError } from '@edx/frontend-platform/logging';
 import { camelCaseObject } from '@edx/frontend-platform/utils';
 import { memoize } from 'lodash-es';
@@ -205,3 +206,62 @@ export function findCourseStatusKey(statusValue) {
 }
 
 export const memoizedCamelCaseObject = memoize(camelCaseObject);
+
+/**
+ * Salesforce language codes for region-specific locales, which must be matched on the full
+ * locale: resolving these by language subtag alone would pick the wrong variant ("zh-HK" would
+ * become Simplified "zh_CN", and "pt-PT" would become Brazilian "pt_BR"). Only locales the app
+ * actually ships are listed; see src/i18n/messages for the supported set.
+ */
+const HELP_CENTER_LANGUAGE_BY_LOCALE = {
+  'pt-pt': 'pt_PT',
+  'zh-hk': 'zh_TW',
+};
+
+/**
+ * Salesforce language codes for locales whose code differs from the locale's primary language
+ * subtag. Locales matching neither map use the subtag as-is (e.g. "es-419" -> "es").
+ */
+const HELP_CENTER_LANGUAGE_BY_LANGUAGE_SUBTAG = {
+  en: 'en_US',
+  pt: 'pt_BR',
+  zh: 'zh_CN',
+};
+
+/**
+ * Returns the given help.edx.org article URL with its `language` query parameter set to the
+ * learner's current locale, so linked support articles open in the learner's language.
+ *
+ * Only for help.edx.org, which honors `language`. It is deliberately NOT applied to the
+ * enterprise Help Center (enterprise-support.edx.org): multilingual is not configured in that
+ * Salesforce Experience Cloud site, so it strips the parameter and always serves English.
+ * Applying this helper there would produce a redirect without changing the language. Today the
+ * only caller is the course pacing help link; see ENT-12344.
+ *
+ * English is set explicitly rather than omitted, because Salesforce persists a language
+ * preference per session: without the parameter an English learner can be served a page in a
+ * language they previously viewed.
+ *
+ * The URL is returned unchanged if it is empty or cannot be parsed.
+ *
+ * @param {string} url A help.edx.org article URL (e.g., LEARNER_SUPPORT_PACED_COURSE_MODE_URL).
+ * @param {string} locale The learner's current locale (e.g., `intl.locale`).
+ * @returns {string}
+ */
+export function getLocalizedHelpCenterUrl(url, locale) {
+  if (!url || !locale) {
+    return url;
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return url;
+  }
+  const languageSubtag = getPrimaryLanguageSubtag(locale).toLowerCase();
+  const helpCenterLanguage = HELP_CENTER_LANGUAGE_BY_LOCALE[locale.toLowerCase()]
+    ?? HELP_CENTER_LANGUAGE_BY_LANGUAGE_SUBTAG[languageSubtag]
+    ?? languageSubtag;
+  parsedUrl.searchParams.set('language', helpCenterLanguage);
+  return parsedUrl.toString();
+}

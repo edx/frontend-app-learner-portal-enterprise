@@ -17,6 +17,9 @@ export const PROGRAM_TITLE = 'Programs';
 export const PATHWAY_TITLE = 'Pathways';
 export const ACADEMY_TITLE = 'Academies';
 export const VIDEO_TITLE = 'Videos';
+// Section title used by ContentHighlights for its empty state; unlike the titles above it is not a
+// search results section, so it is lower-cased in the copy it renders.
+export const HIGHLIGHTS_TITLE = 'highlights';
 export const HEADER_TITLE = 'Search Courses and Programs';
 export const SEARCH_TRACKING_NAME = 'learner_portal';
 

@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { getConfig } from '@edx/frontend-platform/config';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { resetMockReactInstantSearch, setFakeHits } from 'react-instantsearch-dom';
 
 import ContentHighlights from '../ContentHighlights';
 import { useCanOnlyViewHighlights, useContentHighlightSets, useEnterpriseCustomer } from '../../../app/data';
@@ -17,6 +19,8 @@ jest.mock('../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
   useContentHighlightSets: jest.fn(),
   useCanOnlyViewHighlights: jest.fn(),
+  useDefaultSearchFilters: jest.fn(() => ''),
+  useContentTypeFilter: jest.fn(() => ({ contentTypeFilter: '' })),
 }));
 
 const mockHighlightedContent = {};
@@ -77,5 +81,21 @@ describe('ContentHighlights', () => {
     });
     render(<ContentHighlights />);
     expect(screen.queryAllByTestId('content-highlight-set')).toHaveLength(2);
+  });
+
+  // `PopularResults` has no hit component for highlights, so it can only render this empty state
+  // while the popular index itself returns nothing. See ENT-12344 review notes.
+  it('renders the highlights empty state for learners who can only view highlights', () => {
+    setFakeHits([]);
+    useContentHighlightSets.mockReturnValue({ data: [] });
+    useCanOnlyViewHighlights.mockReturnValue({ data: true });
+    render(
+      <IntlProvider locale="en">
+        <ContentHighlights />
+      </IntlProvider>,
+    );
+    expect(screen.getByText('No highlights were found to match your search results.')).toBeInTheDocument();
+    expect(screen.getByText('Check out some popular highlights below.')).toBeInTheDocument();
+    resetMockReactInstantSearch();
   });
 });
