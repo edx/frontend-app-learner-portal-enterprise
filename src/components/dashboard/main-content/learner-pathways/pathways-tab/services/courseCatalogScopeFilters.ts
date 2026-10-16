@@ -13,7 +13,7 @@ export const buildCourseCatalogScopeFilters = (catalogScope: CourseRetrievalCata
   const supportedLocale = getPathwaysSupportedLocale();
   return new AlgoliaFilterBuilder()
     .and('content_type', 'course')
-    .filterByCatalogQueryUuids(catalogScope.searchCatalogs, catalogScope.catalogUuidsToCatalogQueryUuids)
+    // .filterByCatalogQueryUuids(catalogScope.searchCatalogs, catalogScope.catalogUuidsToCatalogQueryUuids)
     .filterByMetadataLanguage(supportedLocale)
     .filterCoursesByLanguage(getPathwaysSupportedLocaleLanguageName(supportedLocale))
     .build();

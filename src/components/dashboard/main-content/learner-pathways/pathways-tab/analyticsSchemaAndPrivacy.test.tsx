@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent, render, screen, waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -85,9 +87,13 @@ const assertFlatPayload = (payload: Record<string, unknown>) => {
   });
 };
 
+// This suite's coverage is entirely about the CAREER flow (Goal Summary -> career
+// selection -> build -> Recommendation Feedback). Pinning `?pathwayMode=career`, rather
+// than leaving it implicit, keeps every assertion below correct regardless of which mode
+// the app defaults to.
 const renderComponent = () => render(
   <QueryClientProvider client={queryClient()}>
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/?pathwayMode=career']}>
       <IntlProvider locale="en">
         <LearnerPathwaysTab />
       </IntlProvider>
@@ -152,8 +158,17 @@ describe('Learner Pathways analytics — schema and privacy', () => {
     // Captured before Retake Quiz resets the store back to null/empty below.
     const builtLearnerProfile = usePathwaysStore.getState().learnerProfile!;
 
-    // Course engagement.
-    await user.click(screen.getByRole('link', { name: /View Course/ }));
+    // Course engagement. Ctrl-clicked deliberately: the row action is a real
+    // react-router `Link` (`PathwayCourseActionButton.tsx`), and this suite's
+    // `MemoryRouter` has no `<Routes>` boundary restricting `LearnerPathwaysTab` to its
+    // own path — unlike production, where that navigation unmounts this component
+    // entirely, a real (non-modified) click here would navigate this same in-memory
+    // router to the course URL and drop `?pathwayMode=career` from it, flipping the
+    // resolved flow variant to the new skills default and bouncing back to Onboarding
+    // for the remainder of this test. A modifier-key click is real react-router `Link`
+    // behavior (it deliberately skips client-side navigation for modified clicks) that
+    // still fires the `onClick` analytics handler under test, without that side effect.
+    fireEvent.click(screen.getByRole('link', { name: /View Course/ }), { ctrlKey: true });
 
     // Retake, to also capture QUIZ_RETAKEN and the reset control-interaction pair.
     await user.click(screen.getByRole('link', { name: 'Onboarding quiz' }));

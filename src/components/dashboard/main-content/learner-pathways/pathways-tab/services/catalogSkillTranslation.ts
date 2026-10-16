@@ -112,6 +112,44 @@ const groundSignal = (signal: SkillSignal, lookup: Map<string, CatalogLookupEntr
 };
 
 /**
+ * Grounds a flat list of raw skill names against the real catalog facet vocabulary,
+ * exact case-insensitive match only, dropping malformed compound terms and anything not
+ * literally present in the catalog. Unlike `translateSkillsToCatalog`, this performs no
+ * strict/boost split, promotion, or query-building — it's the shared grounding primitive
+ * used both by that function and by callers (like the Algolia skills fallback) that want
+ * every input treated as a single uniform boost tier instead.
+ *
+ * Preserves first-seen order among distinct grounded catalog values; when the same
+ * catalog value is reachable from more than one input name, only the first is kept.
+ */
+export const groundSkillNames = (
+  names: string[],
+  facetSnapshot: CatalogFacetSnapshot,
+): CatalogSkillMatch[] => {
+  const lookup = buildCatalogLookup(facetSnapshot);
+  const seen = new Set<string>();
+  const grounded: CatalogSkillMatch[] = [];
+
+  names.forEach((rawName) => {
+    const name = normalizeString(rawName);
+    if (!name || isMalformedCompound(name)) {
+      return;
+    }
+    const match = groundSignal({ name, tier: 'boost', priority: 0 }, lookup);
+    if (!match) {
+      return;
+    }
+    const key = normalizeCatalogTerm(match.catalogSkill);
+    if (!seen.has(key)) {
+      seen.add(key);
+      grounded.push(match);
+    }
+  });
+
+  return grounded;
+};
+
+/**
  * Translates a course search's skill signals (required/preferred intent skills plus the
  * selected career's development skills) into a grounded `CatalogTranslation` ready for
  * the course retrieval ladder: catalog-valid strict/boost skill filters, a primary query,

@@ -160,6 +160,41 @@ describe('usePathwaysStore <-> localStorage', () => {
     // the learner rebuilds — never silently treated as valid/unchanged.
     expect(state.selectedSkills).toBeNull();
     expect(state.pathwayInputFingerprint).toBeNull();
+    // `pathwayGenerationMode` is absent from this pre-refactor blob entirely — it
+    // hydrates to null just like every other new field a v1-shaped blob never had.
+    expect(state.pathwayGenerationMode).toBeNull();
+  });
+
+  it('hydrates a seeded pathwayGenerationMode alongside its pathway', () => {
+    localStorage.setItem(PATHWAYS_STORAGE_KEY, JSON.stringify({
+      state: {
+        section: 'pathway',
+        pathwayCourses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+        pathwayGenerationMode: 'skills',
+      },
+      version: PATHWAYS_STORAGE_VERSION,
+    }));
+
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+
+    expect(usePathwaysStore.getState().section).toBe('pathway');
+    expect(usePathwaysStore.getState().pathwayGenerationMode).toBe('skills');
+  });
+
+  it('persists pathwayGenerationMode: "skills" to localStorage on a skills-mode commit', () => {
+    // eslint-disable-next-line global-require
+    const { usePathwaysStore } = require('./pathwaysStore');
+
+    usePathwaysStore.getState().commitSkillsPathwaySuccess({
+      courses: [{ courseKey: 'course-1', title: 'Intro to SQL', status: 'not_started' }],
+    });
+
+    const stored = JSON.parse(localStorage.getItem(PATHWAYS_STORAGE_KEY) as string);
+    expect(stored.state.pathwayGenerationMode).toBe('skills');
+    expect(stored.state.pathwayInputFingerprint).toBeNull();
+    expect(stored.state.learnerProfile).toBeNull();
+    expect(stored.state.careerMatches).toEqual([]);
   });
 
   it('persists only the durable subset to localStorage on a state change', () => {

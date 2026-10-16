@@ -4,6 +4,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import { Link } from 'react-router-dom';
 import messages from './messages';
 import { View } from '../constants';
+import type { PathwaysFlowVariant } from '../flowVariant';
 
 type BreadcrumbMessageKey = 'onboardingQuiz' | 'profile' | 'pathway';
 
@@ -15,24 +16,36 @@ interface BreadcrumbStep {
 interface Props {
   view: View;
   onNavigate: (view: View) => void;
+  /**
+   * Which flow's step list to render. The skills flow is two steps — it has no Career
+   * Profile page — so its trail must not offer a link to a page it never visits.
+   * Defaults to the three-step career trail.
+   */
+  flowVariant?: PathwaysFlowVariant;
 }
 
-const breadcrumbSteps: BreadcrumbStep[] = [
+const careerBreadcrumbSteps: BreadcrumbStep[] = [
   { label: 'onboardingQuiz', view: 'onboarding' },
   { label: 'profile', view: 'profile' },
   { label: 'pathway', view: 'pathway' },
 ];
 
-const getActiveStepIndex = (view: View) => (
-  breadcrumbSteps.findIndex((step) => step.view === view)
+const skillsBreadcrumbSteps: BreadcrumbStep[] = [
+  { label: 'onboardingQuiz', view: 'onboarding' },
+  { label: 'pathway', view: 'pathway' },
+];
+
+const getBreadcrumbSteps = (flowVariant: PathwaysFlowVariant): BreadcrumbStep[] => (
+  flowVariant === 'skills' ? skillsBreadcrumbSteps : careerBreadcrumbSteps
 );
 
-const PathwayBreadcrumbs = ({ view, onNavigate }: Props) => {
+const PathwayBreadcrumbs = ({ view, onNavigate, flowVariant = 'career' }: Props) => {
   const intl = useIntl();
-  const activeStepIndex = getActiveStepIndex(view);
+  const steps = getBreadcrumbSteps(flowVariant);
+  const activeStepIndex = steps.findIndex((step) => step.view === view);
 
   const links = activeStepIndex > 0
-    ? breadcrumbSteps
+    ? steps
       .slice(0, activeStepIndex)
       .map((step) => ({
         label: intl.formatMessage(messages[step.label]),
@@ -45,7 +58,7 @@ const PathwayBreadcrumbs = ({ view, onNavigate }: Props) => {
     : [];
 
   const activeLabel = activeStepIndex >= 0
-    ? intl.formatMessage(messages[breadcrumbSteps[activeStepIndex].label])
+    ? intl.formatMessage(messages[steps[activeStepIndex].label])
     : '';
 
   return (
