@@ -110,6 +110,11 @@ Routes are organized around enterprise customer slugs:
 - Requires OpenEdX devstack with enterprise integration enabled
 - Access via: `http://localhost:8734/{enterprise-slug}` (e.g., `http://localhost:8734/test-enterprise`)
 
+### Local Stage Development
+
+- Runs on `localhost.stage.edx.org:8734`
+- Start with: `npm run start:stage`
+
 ### Key Components Architecture
 
 #### Data Loading Pattern
