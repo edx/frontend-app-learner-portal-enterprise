@@ -8,6 +8,7 @@ import SubsidiesSummary from '../sidebar/SubsidiesSummary';
 import LearnerPortalSidebarMessage from '../sidebar/LearnerPortalSidebarMessage';
 import PathwaySidebarMessage from '../sidebar/PathwaySidebarMessage';
 import CourseEnrollmentsEmptyStateContainer from './course-enrollments/CourseEnrollmentsEmptyStateContainer';
+import LearningGoalForm from './LearningGoalForm';
 
 const DashboardMainContent = () => (
   <Stack gap={5}>
@@ -16,6 +17,7 @@ const DashboardMainContent = () => (
         <SubsidiesSummary />
       ))}
     </MediaQuery>
+    <LearningGoalForm />
     <div>
       <CourseEnrollments>
         {/* The children below will only be rendered if there are no course enrollments. */}
