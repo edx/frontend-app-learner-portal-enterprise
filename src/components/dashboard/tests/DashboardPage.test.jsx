@@ -530,49 +530,51 @@ describe('<Dashboard />', () => {
       expect(screen.queryByText(SUBSCRIPTION_EXPIRED_MODAL_TITLE)).toBeFalsy();
     });
 
+    // Compute the expiration date at render time; building it at module load made the expected diff timing-dependent.
     it.each([
       {
         daysUntilExpirationIncludingRenewals: 60,
-        expirationDate: dayjs().add(60, 'days').toISOString(),
+        expiresIn: [60, 'days'],
         expectedText: 'days.',
-        expectedTimeDiff: (dayjs().add(60, 'days')).diff(dayjs(), 'day'),
+        expectedTimeDiff: 60,
       },
       {
         daysUntilExpirationIncludingRenewals: 1,
-        expirationDate: dayjs().add(36, 'hours').toISOString(),
+        expiresIn: [36, 'hours'],
         expectedText: 'day.',
-        expectedTimeDiff: (dayjs().add(36, 'hours')).diff(dayjs(), 'day'),
+        expectedTimeDiff: 1,
       },
       {
         daysUntilExpirationIncludingRenewals: 0,
-        expirationDate: dayjs().add(150, 'minutes').toISOString(),
+        expiresIn: [150, 'minutes'],
         expectedText: 'hours.',
-        expectedTimeDiff: (dayjs().add(150, 'minutes')).diff(dayjs(), 'hour'),
+        expectedTimeDiff: 2,
       },
       {
         daysUntilExpirationIncludingRenewals: 0,
-        expirationDate: dayjs().add(90, 'minutes').toISOString(),
+        expiresIn: [90, 'minutes'],
         expectedText: 'hour.',
-        expectedTimeDiff: (dayjs().add(90, 'minutes')).diff(dayjs(), 'hour'),
+        expectedTimeDiff: 1,
       },
       {
         daysUntilExpirationIncludingRenewals: 0,
-        expirationDate: dayjs().add(150, 'seconds').toISOString(),
+        expiresIn: [150, 'seconds'],
         expectedText: 'minutes.',
-        expectedTimeDiff: (dayjs().add(150, 'seconds')).diff(dayjs(), 'minute'),
+        expectedTimeDiff: 2,
       },
       {
         daysUntilExpirationIncludingRenewals: 0,
-        expirationDate: dayjs().add(90, 'seconds').toISOString(),
+        expiresIn: [90, 'seconds'],
         expectedText: 'minute.',
-        expectedTimeDiff: (dayjs().add(90, 'seconds')).diff(dayjs(), 'minute'),
+        expectedTimeDiff: 1,
       },
     ])('should render expiration modal with (%s)', async ({
-      expirationDate,
+      expiresIn,
       daysUntilExpirationIncludingRenewals,
       expectedText,
       expectedTimeDiff,
     }) => {
+      const expirationDate = dayjs().add(...expiresIn).toISOString();
       useSubscriptions.mockReturnValue({
         data: {
           showExpirationNotifications: true,
