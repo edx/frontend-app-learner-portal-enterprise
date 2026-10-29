@@ -7,15 +7,21 @@ import ChatPane from './chat/ChatPane';
 import { usePersonalizedSearchController } from './hooks/usePersonalizedSearchController';
 import messages from './messages';
 import LearningPagePane from './page/LearningPagePane';
+import type { ChatTransport } from './services/ChatTransport';
 import './styles/index.scss';
+
+export interface PersonalizedSearchTabProps {
+  /** Tests inject a transport; the app selects one from PERSONALIZED_SEARCH_TRANSPORT. */
+  transport?: ChatTransport;
+}
 
 /**
  * Personalized Search (Chat) tab: chat on one side, the AI-composed learning page on the
  * other (KD-1). Below 768 px, Phase 1 stacks the chat above the page.
  */
-const PersonalizedSearchTab = () => {
+const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
   const intl = useIntl();
-  const controller = usePersonalizedSearchController();
+  const controller = usePersonalizedSearchController({ transport });
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
 
   if (controller.unavailable) {
@@ -26,7 +32,20 @@ const PersonalizedSearchTab = () => {
     );
   }
 
-  const chat = <ChatPane openingChips={controller.openingChips} />;
+  const chat = (
+    <ChatPane
+      turns={controller.turns}
+      openingChips={controller.openingChips}
+      busy={controller.busy}
+      draft={controller.draft}
+      announcement={controller.announcement}
+      onDraftChange={controller.setDraft}
+      onSend={controller.send}
+      onNewChat={controller.newChat}
+      onViewPage={controller.viewPage}
+      onShowLastRecommendations={controller.showLastRecommendations}
+    />
+  );
   const page = <LearningPagePane />;
 
   return (
