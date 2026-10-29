@@ -76,6 +76,13 @@ export const endActiveTurn = (
   };
 };
 
+/** Removes a finished turn (Retry replaces a failed turn with a fresh one). */
+export const removeTurn = (state: ChatStreamState, localId: string): ChatStreamState => ({
+  ...state,
+  turns: state.turns.filter((turn) => turn.localId !== localId),
+  activeTurnId: state.activeTurnId === localId ? null : state.activeTurnId,
+});
+
 /**
  * Folds one stream part into chat state. Pure: never mutates `state`, and returns `state`
  * itself for parts it ignores (unknown types, unknown block versions, parts with no turn).

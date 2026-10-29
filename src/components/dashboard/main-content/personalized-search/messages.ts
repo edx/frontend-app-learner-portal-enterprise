@@ -141,6 +141,41 @@ const messages = defineMessages({
     defaultMessage: 'A suggested order',
     description: 'Heading of the suggested learning order on the learning page.',
   },
+  stop: {
+    id: 'learner.personalizedSearch.chat.stop',
+    defaultMessage: 'Stop',
+    description: 'Button that stops the reply being written.',
+  },
+  stopped: {
+    id: 'learner.personalizedSearch.chat.stopped',
+    defaultMessage: 'Stopped',
+    description: 'Label on a reply the learner stopped.',
+  },
+  retry: {
+    id: 'learner.personalizedSearch.chat.retry',
+    defaultMessage: 'Retry',
+    description: 'Button that sends the same message again after an error.',
+  },
+  errorTurnInProgress: {
+    id: 'learner.personalizedSearch.error.turnInProgress',
+    defaultMessage: 'Your previous message is still being answered. Try again in a moment.',
+    description: 'Shown when another reply in this chat is still being written.',
+  },
+  errorThrottled: {
+    id: 'learner.personalizedSearch.error.throttled',
+    defaultMessage: 'You\'re sending messages quickly. Try again in a minute.',
+    description: 'Shown when the learner is rate limited.',
+  },
+  errorCatalog: {
+    id: 'learner.personalizedSearch.error.catalog',
+    defaultMessage: 'We couldn\'t search your catalog right now. Try again.',
+    description: 'Shown when the catalog search could not start.',
+  },
+  errorGeneric: {
+    id: 'learner.personalizedSearch.error.generic',
+    defaultMessage: 'Something went wrong building your page. Try again.',
+    description: 'Shown when a reply fails while it is being written.',
+  },
   chatPaneLabel: {
     id: 'learner.personalizedSearch.chat.label',
     defaultMessage: 'Chat',

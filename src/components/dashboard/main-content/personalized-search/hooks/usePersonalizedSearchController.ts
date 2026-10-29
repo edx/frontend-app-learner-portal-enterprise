@@ -3,15 +3,18 @@ import {
 } from 'react';
 import { getConfig } from '@edx/frontend-platform/config';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { logError } from '@edx/frontend-platform/logging';
 import { v4 as uuidv4 } from 'uuid';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useEnterpriseCustomer } from '../../../../app/data';
 import { isSendableMessage } from '../chat/Composer';
+import { previousPageTurnId } from '../chat/MessageList';
 import messages from '../messages';
 import type { ChatTransport } from '../services/ChatTransport';
 import { selectTransport } from '../services/selectTransport';
 import { usePersonalizedSearchStore } from '../state/personalizedSearchStore';
+import { removeTurn } from '../stream/applyPart';
 import { sendTurnWorkflow } from '../workflows';
 
 /**
@@ -59,6 +62,7 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     }
     const controller = new AbortController();
     abortRef.current = controller;
+    const localId = uuidv4();
     store.setDraft('');
     store.setViewedTurnId(null);
     store.setAnnouncement('');
@@ -70,18 +74,41 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
         sessionUuid: store.stream.session.sessionUuid,
         message,
       },
-      localId: uuidv4(),
+      localId,
       signal: controller.signal,
       dispatch: store.setStream,
     });
 
     if (abortRef.current === controller) { abortRef.current = null; }
+    const after = usePersonalizedSearchStore.getState();
     if (result.outcome === 'done') {
-      usePersonalizedSearchStore.getState().setAnnouncement(
-        intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }),
-      );
+      after.setAnnouncement(intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }));
+    } else if (result.outcome === 'stopped') {
+      // The stopped turn's blocks were discarded, so show the page from before it.
+      const { turns } = after.stream;
+      after.setViewedTurnId(previousPageTurnId(turns, turns.findIndex((t) => t.localId === localId)));
+    } else if (result.status === 403 || result.status === 404) {
+      if (result.status === 403) {
+        logError(`Personalized Search turn forbidden for enterprise ${enterpriseCustomerUuid}`);
+      }
+      after.setUnavailable(true);
+    } else if (result.status === 400) {
+      after.setDraft(message);
     }
   }, [enterpriseCustomerUuid, intl, transport]);
+
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
+  /** Resends a failed turn's message on the same session, replacing the failed turn. */
+  const retry = useCallback((turnId: string) => {
+    const store = usePersonalizedSearchStore.getState();
+    const failed = store.stream.turns.find((t) => t.localId === turnId);
+    if (!failed?.userMessage || store.stream.activeTurnId) { return; }
+    store.setStream((current) => removeTurn(current, turnId));
+    send(failed.userMessage);
+  }, [send]);
 
   const newChat = useCallback(() => {
     abortRef.current?.abort();
@@ -116,6 +143,8 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     announcement,
     openingChips,
     send,
+    stop,
+    retry,
     newChat,
     viewPage,
     showLastRecommendations,
