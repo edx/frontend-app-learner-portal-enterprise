@@ -1,0 +1,179 @@
+/**
+ * Wire types for the Personalized Search turn stream: Vercel AI SDK "UI Message Stream" v1
+ * parts (tech spec KD-4, "Stream contract") and Block catalog v1 (KD-5).
+ *
+ * Only `stream/` knows the protocol. Everything above it consumes `ChatStreamState`.
+ */
+
+export type ItemType = 'course' | 'executive_education' | 'program';
+
+export type StatusStep = 'understanding' | 'searching' | 'writing';
+
+export type ErrorCode =
+  | 'intent_invalid'
+  | 'retrieval_failed'
+  | 'model_failed'
+  | 'deadline_exceeded'
+  | 'internal';
+
+export type FollowUpAttribute = 'level' | 'time' | 'pacing' | 'type' | 'open';
+
+// ---- ItemCard (server-hydrated from the Algolia hit; spec "ItemCard" table) ----
+
+export interface CourseLink {
+  kind: 'course';
+  course_key: string;
+  course_type: string | null;
+}
+
+export interface ProgramLink {
+  kind: 'program';
+  program_uuid: string;
+}
+
+/**
+ * Card facts. Key names mirror the Algolia source fields named in the spec; all are optional
+ * so the card renders whatever the server sends (reconcile with the chunk 6 goldens).
+ */
+export interface ItemFacts {
+  level_type?: string | null;
+  weeks_to_complete?: number | null;
+  pacing_type?: string | null;
+  program_type?: string | null;
+  course_count?: number | null;
+}
+
+export interface ItemCard {
+  item_id: string;
+  item_type: ItemType;
+  title: string;
+  image_url: string | null;
+  partner_name: string | null;
+  partner_logo_url: string | null;
+  link: CourseLink | ProgramLink;
+  facts: ItemFacts;
+  why: string | null;
+  fit: string[];
+}
+
+// ---- Block catalog v1 ----
+
+export interface PageHeaderProps {
+  title: string;
+  dek: string;
+  label: string;
+}
+
+export interface ItemSectionProps {
+  item_type: ItemType;
+  label: string;
+  dek: string;
+  fallback: boolean;
+  items: ItemCard[];
+}
+
+export interface InsightProps {
+  title: string;
+  body: string;
+}
+
+export interface PlanStep {
+  item_id: string;
+  note: string;
+}
+
+export interface PlanProps {
+  steps: PlanStep[];
+}
+
+export type Block =
+  | { v: 1; type: 'page_header'; props: PageHeaderProps }
+  | { v: 1; type: 'item_section'; props: ItemSectionProps }
+  | { v: 1; type: 'insight'; props: InsightProps }
+  | { v: 1; type: 'plan'; props: PlanProps };
+
+export type BlockType = Block['type'];
+
+export const BLOCK_CATALOG_VERSION = 1;
+
+export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = ['page_header', 'item_section', 'insight', 'plan'];
+
+// ---- Parts ----
+
+export interface SessionData {
+  session_uuid: string;
+  turn_sequence: number;
+  title: string | null;
+}
+
+export interface FollowupsData {
+  question: string;
+  attribute: FollowUpAttribute;
+  suggestions: string[];
+}
+
+export interface TimingData {
+  backend: string;
+  model_intent: string | null;
+  model_compose: string | null;
+  intent_ms: number | null;
+  retrieval_ms: number | null;
+  first_text_ms: number | null;
+  first_section_ms: number | null;
+  complete_ms: number | null;
+  dropped_lines: number;
+}
+
+export type Part =
+  | { type: 'start'; messageId: string }
+  | { type: 'finish' }
+  | { type: 'error'; errorText: string }
+  | { type: 'text-start'; id: string }
+  | { type: 'text-delta'; id: string; delta: string }
+  | { type: 'text-end'; id: string }
+  | { type: 'data-session'; id: string; data: SessionData }
+  | { type: 'data-status'; data: { step: StatusStep }; transient?: boolean }
+  | { type: 'data-block'; id: string; data: Block }
+  | { type: 'data-followups'; id: string; data: FollowupsData }
+  | { type: 'data-timing'; id: string; data: TimingData; transient?: boolean };
+
+export type PartType = Part['type'];
+
+// ---- Reduced state ----
+
+export type TurnStatus = 'streaming' | 'done' | 'error' | 'stopped';
+
+export interface PageBlock {
+  id: string;
+  block: Block;
+}
+
+export interface AssistantTurn {
+  /** Client-side id; stable for the life of the turn (the server messageId arrives later). */
+  localId: string;
+  /** `turn_<ChatTurn.uuid>` from the `start` part; null until it arrives. */
+  messageId: string | null;
+  userMessage: string | null;
+  status: TurnStatus;
+  step: StatusStep | null;
+  text: string;
+  /** Page blocks in first-arrival order, upserted by part id. */
+  blocks: PageBlock[];
+  followups: FollowupsData | null;
+  /** In-stream error code, or a transport error code set by the workflow. */
+  error: string | null;
+  timing: TimingData | null;
+}
+
+export interface ChatSessionInfo {
+  sessionUuid: string | null;
+  title: string | null;
+  turnSequence: number | null;
+}
+
+export interface ChatStreamState {
+  session: ChatSessionInfo;
+  turns: AssistantTurn[];
+  /** localId of the turn currently receiving parts, if any. */
+  activeTurnId: string | null;
+}

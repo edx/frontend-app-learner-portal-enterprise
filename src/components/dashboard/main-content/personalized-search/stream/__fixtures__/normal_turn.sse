@@ -1,0 +1,40 @@
+data: {"type":"start","messageId":"turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60"}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":null}}
+
+data: {"type":"data-status","data":{"step":"understanding"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"searching"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"writing"},"transient":true}
+
+data: {"type":"text-start","id":"reply"}
+
+data: {"type":"text-delta","id":"reply","delta":"I built you a page on "}
+
+data: {"type":"text-delta","id":"reply","delta":"leading a team: two courses to start "}
+
+data: {"type":"text-delta","id":"reply","delta":"and a certificate if you want to go further."}
+
+data: {"type":"text-end","id":"reply"}
+
+data: {"type":"data-block","id":"blk_1","data":{"v":1,"type":"page_header","props":{"title":"Becoming a confident team lead","dek":"Start with the everyday skills of managing people, then add strategy once the basics feel natural.","label":"Your learning page"}}}
+
+data: {"type":"data-block","id":"blk_2","data":{"v":1,"type":"item_section","props":{"item_type":"course","label":"Courses · 3 picks","dek":"Short, practical courses for new managers.","fallback":false,"items":[{"item_id":"edX+LDR201","item_type":"course","title":"Leading High-Performing Teams","image_url":"https://prod-discovery.edx-cdn.org/media/course/image/edx-ldr201.jpg","partner_name":"edX","partner_logo_url":null,"link":{"kind":"course","course_key":"edX+LDR201","course_type":"verified-audit"},"facts":{"level_type":"Intermediate","weeks_to_complete":6,"pacing_type":"self_paced"},"why":"You said you want to lead a team; this builds the coaching and delegation habits new managers lean on first.","fit":["Leadership","Self-paced"]},{"item_id":"edX+COM110","item_type":"course","title":"Communicating with Influence","image_url":"https://prod-discovery.edx-cdn.org/media/course/image/edx-com110.jpg","partner_name":"edX","partner_logo_url":null,"link":{"kind":"course","course_key":"edX+COM110","course_type":"verified-audit"},"facts":{"level_type":"Introductory","weeks_to_complete":4,"pacing_type":"self_paced"},"why":"Clear communication is the skill your team will notice first, and this one fits in four weeks.","fit":["Communication","Under 4 weeks"]},{"item_id":"edX+STR305","item_type":"course","title":"Strategic Thinking for Managers","image_url":"https://prod-discovery.edx-cdn.org/media/course/image/edx-str305.jpg","partner_name":"edX","partner_logo_url":null,"link":{"kind":"course","course_key":"edX+STR305","course_type":"verified-audit"},"facts":{"level_type":"Advanced","weeks_to_complete":8,"pacing_type":"instructor_paced"},"why":"Once the basics are in place, this helps you set direction rather than just run the day to day.","fit":["Strategy"]}]}}}
+
+data: {"type":"data-block","id":"blk_3","data":{"v":1,"type":"item_section","props":{"item_type":"program","label":"Programs · 1 pick","dek":"A credential that goes deeper.","fallback":false,"items":[{"item_id":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d","item_type":"program","title":"Professional Certificate in Management","image_url":null,"partner_name":"edX","partner_logo_url":null,"link":{"kind":"program","program_uuid":"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"},"facts":{"level_type":"Intermediate","program_type":"Professional Certificate","course_count":3},"why":"If you want a credential to show for it, this three-course certificate covers the same ground in more depth.","fit":["Certificate","Leadership"]}]}}}
+
+data: {"type":"data-followups","id":"followups","data":{"question":"What level are you aiming for?","attribute":"level","suggestions":["Introductory","Intermediate","Advanced"]}}
+
+data: {"type":"data-block","id":"blk_4","data":{"v":1,"type":"insight","props":{"title":"Start with people skills","body":"Most new leads struggle more with feedback and delegation than with strategy. Starting there pays off fastest."}}}
+
+data: {"type":"data-block","id":"blk_5","data":{"v":1,"type":"plan","props":{"steps":[{"item_id":"edX+COM110","note":"Start here: four weeks, self-paced"},{"item_id":"edX+LDR201","note":"Then build team habits"},{"item_id":"edX+STR305","note":"Finish with strategy"}]}}}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":"Becoming a team lead"}}
+
+data: {"type":"data-timing","id":"timing","transient":true,"data":{"backend":"claude","model_intent":"claude-haiku-4-5-20251001","model_compose":"claude-haiku-4-5-20251001","intent_ms":700,"retrieval_ms":300,"first_text_ms":1400,"first_section_ms":2600,"complete_ms":4800,"dropped_lines":0}}
+
+data: {"type":"finish"}
+
+data: [DONE]
+
