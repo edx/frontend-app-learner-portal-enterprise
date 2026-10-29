@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { useMediaQuery } from '@openedx/paragon';
+import { MemoryRouter } from 'react-router-dom';
 
 import PersonalizedSearchTab from './PersonalizedSearchTab';
 import { usePersonalizedSearchStore } from './state/personalizedSearchStore';
@@ -23,7 +24,9 @@ jest.mock('../../../app/data', () => ({
 
 const renderTab = () => render(
   <IntlProvider locale="en">
-    <PersonalizedSearchTab />
+    <MemoryRouter>
+      <PersonalizedSearchTab />
+    </MemoryRouter>
   </IntlProvider>,
 );
 
@@ -60,6 +63,7 @@ describe('PersonalizedSearchTab', () => {
     (useMediaQuery as jest.Mock).mockReturnValue(true);
     const { container } = renderTab();
     expect(useMediaQuery).toHaveBeenCalledWith({ minWidth: 768 });
+    expect(useMediaQuery).toHaveBeenCalledWith({ query: '(prefers-reduced-motion: reduce)' });
     expect(container.querySelector('[data-layout="dual"]')).toBeInTheDocument();
     expect(container.querySelector('.personalized-search__chat-col')).toBeInTheDocument();
     expect(container.querySelector('.personalized-search__page-col')).toBeInTheDocument();
