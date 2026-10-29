@@ -4,6 +4,7 @@ import {
 import { getConfig } from '@edx/frontend-platform/config';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { logError } from '@edx/frontend-platform/logging';
+import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -12,10 +13,30 @@ import { isSendableMessage } from '../chat/Composer';
 import { previousPageTurnId } from '../chat/MessageList';
 import messages from '../messages';
 import type { ChatTransport } from '../services/ChatTransport';
+import { fetchDebugConfig, getPersonalizedSearchApiBaseUrl } from '../services/debugConfig';
+import { FixtureChatTransport } from '../services/FixtureChatTransport';
 import { selectTransport } from '../services/selectTransport';
+import { SseChatTransport } from '../services/SseChatTransport';
+import type { DebugOverrides } from '../services/SseChatTransport';
 import { usePersonalizedSearchStore } from '../state/personalizedSearchStore';
+import type { DebugSettings } from '../state/personalizedSearchStore';
+import type { BenchmarkRow } from '../debug/benchmark';
 import { removeTurn } from '../stream/applyPart';
 import { sendTurnWorkflow } from '../workflows';
+
+/** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
+export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
+  const overrides: DebugOverrides = {};
+  if (settings.intentModel) {
+    overrides.intent_model = settings.intentModel;
+    overrides.intent_effort = settings.intentEffort;
+  }
+  if (settings.composeModel) {
+    overrides.compose_model = settings.composeModel;
+    overrides.compose_effort = settings.composeEffort;
+  }
+  return Object.keys(overrides).length ? overrides : null;
+};
 
 /**
  * Controller for the Personalized Search tab: the only place React context and hooks are
@@ -25,14 +46,26 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
   const intl = useIntl();
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const enterpriseCustomerUuid = enterpriseCustomer?.uuid as string | undefined;
-  const transport = useMemo(
-    () => injected ?? selectTransport(getConfig().PERSONALIZED_SEARCH_TRANSPORT),
-    [injected],
+  const { search } = useLocation();
+  const debugEnabled = new URLSearchParams(search).get('debug') === 'true';
+  const getDebugOverrides = useCallback(() => (
+    debugEnabled ? toDebugOverrides(usePersonalizedSearchStore.getState().debugSettings) : null
+  ), [debugEnabled]);
+  const configuredTransport = useMemo(
+    () => injected ?? selectTransport(getConfig().PERSONALIZED_SEARCH_TRANSPORT, getDebugOverrides),
+    [injected, getDebugOverrides],
   );
+  // Debug mode's AI switch: live enterprise-access turns, or the canned fixture turns.
+  const liveTransport = useMemo(
+    () => injected ?? new SseChatTransport({ getBaseUrl: getPersonalizedSearchApiBaseUrl, getDebugOverrides }),
+    [injected, getDebugOverrides],
+  );
+  const fixtureTransport = useMemo(() => injected ?? new FixtureChatTransport(), [injected]);
   const abortRef = useRef<AbortController | null>(null);
 
   const {
     stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
+    debugSettings, debugConfig, debugConfigError,
   } = usePersonalizedSearchStore(useShallow((state) => ({
     stream: state.stream,
     viewedTurnId: state.viewedTurnId,
@@ -40,7 +73,30 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     draft: state.draft,
     unavailable: state.unavailable,
     announcement: state.announcement,
+    debugSettings: state.debugSettings,
+    debugConfig: state.debugConfig,
+    debugConfigError: state.debugConfigError,
   })));
+
+  let transport = configuredTransport;
+  if (debugEnabled) {
+    transport = debugSettings.live ? liveTransport : fixtureTransport;
+  }
+  const debugBaseUrl = debugEnabled ? getPersonalizedSearchApiBaseUrl() : null;
+
+  // Load the server's model menu once per page view in debug mode.
+  useEffect(() => {
+    if (!debugEnabled || !debugBaseUrl || !enterpriseCustomerUuid
+        || usePersonalizedSearchStore.getState().debugConfig !== undefined) {
+      return;
+    }
+    fetchDebugConfig(debugBaseUrl, enterpriseCustomerUuid)
+      .then((config) => usePersonalizedSearchStore.getState().setDebugConfig(config))
+      .catch((e) => {
+        logError(e);
+        usePersonalizedSearchStore.getState().setDebugConfig(null, 'Could not load the model menu.');
+      });
+  }, [debugEnabled, debugBaseUrl, enterpriseCustomerUuid]);
 
   const busy = stream.activeTurnId !== null;
 
@@ -129,6 +185,24 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     usePersonalizedSearchStore.getState().setDraft(value);
   }, []);
 
+  const setDebugSettings = useCallback((changes: Partial<DebugSettings>) => {
+    const store = usePersonalizedSearchStore.getState();
+    store.setDebugSettings(changes);
+    // Switching backends retries availability: the other backend may answer.
+    if (changes.live !== undefined) { store.setUnavailable(false); }
+  }, []);
+
+  const copyBenchmark = useCallback(async (rows: BenchmarkRow[]) => {
+    const store = usePersonalizedSearchStore.getState();
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(rows, null, 2));
+      store.setAnnouncement(`Copied ${rows.length} benchmark rows.`);
+    } catch (e) {
+      logError(e);
+      store.setAnnouncement('Could not copy the benchmark rows.');
+    }
+  }, []);
+
   return {
     enterpriseCustomerUuid,
     enterpriseSlug: enterpriseCustomer?.slug as string | undefined,
@@ -149,6 +223,13 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     viewPage,
     showLastRecommendations,
     setDraft,
+    debugEnabled,
+    debugBaseUrl,
+    debugSettings,
+    debugConfig,
+    debugConfigError,
+    setDebugSettings,
+    copyBenchmark,
   };
 };
 

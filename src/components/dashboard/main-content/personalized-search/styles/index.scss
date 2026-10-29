@@ -46,3 +46,13 @@
     transform: none;
   }
 }
+
+// Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
+.personalized-search__debug-table {
+  max-width: 100%;
+  overflow-x: auto;
+
+  table {
+    white-space: nowrap;
+  }
+}

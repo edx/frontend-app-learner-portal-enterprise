@@ -4,6 +4,7 @@ import {
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import ChatPane from './chat/ChatPane';
+import DebugPanel from './debug/DebugPanel';
 import { usePersonalizedSearchController } from './hooks/usePersonalizedSearchController';
 import messages from './messages';
 import LearningPagePane from './page/LearningPagePane';
@@ -24,14 +25,6 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
   const controller = usePersonalizedSearchController({ transport });
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
   const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
-
-  if (controller.unavailable) {
-    return (
-      <Alert variant="warning" className="mt-3">
-        {intl.formatMessage(messages.notAvailable)}
-      </Alert>
-    );
-  }
 
   const chat = (
     <ChatPane
@@ -59,8 +52,32 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
     />
   );
 
+  const debugPanel = controller.debugEnabled && (
+    <DebugPanel
+      baseUrl={controller.debugBaseUrl}
+      settings={controller.debugSettings}
+      config={controller.debugConfig}
+      configError={controller.debugConfigError}
+      turns={controller.turns}
+      onChange={controller.setDebugSettings}
+      onCopyResults={controller.copyBenchmark}
+    />
+  );
+
+  if (controller.unavailable) {
+    return (
+      <div className="personalized-search py-3">
+        {debugPanel}
+        <Alert variant="warning" className="mt-3">
+          {intl.formatMessage(messages.notAvailable)}
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'stacked'}>
+      {debugPanel}
       {isWide ? (
         <Row>
           <Col md={5} className="personalized-search__chat-col">{chat}</Col>
