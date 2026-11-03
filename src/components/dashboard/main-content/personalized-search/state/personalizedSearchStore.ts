@@ -1,7 +1,42 @@
 import { create } from 'zustand';
 
+import type { DebugConfig } from '../services/debugConfig';
 import { getInitialChatStreamState } from '../stream/applyPart';
 import type { ChatStreamState } from '../stream/types';
+
+/** Debug panel choices (`?debug=true`). null model/effort means "use the server default". */
+export interface DebugSettings {
+  /** Live AI from enterprise-access; off replays the canned fixture turns. */
+  live: boolean;
+  intentModel: string | null;
+  intentEffort: string | null;
+  composeModel: string | null;
+  composeEffort: string | null;
+}
+
+export const DEBUG_SETTINGS_STORAGE_KEY = 'personalizedSearch.debugSettings';
+
+const defaultDebugSettings = (): DebugSettings => ({
+  live: true, intentModel: null, intentEffort: null, composeModel: null, composeEffort: null,
+});
+
+/** Per-browser convenience only; any storage failure falls back to the defaults. */
+export const loadDebugSettings = (): DebugSettings => {
+  try {
+    const raw = window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY);
+    return raw ? { ...defaultDebugSettings(), ...JSON.parse(raw) } : defaultDebugSettings();
+  } catch {
+    return defaultDebugSettings();
+  }
+};
+
+const saveDebugSettings = (settings: DebugSettings) => {
+  try {
+    window.localStorage.setItem(DEBUG_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage blocked (private window, previews): the choice lasts until reload.
+  }
+};
 
 export interface PersonalizedSearchState {
   /** Chat turns and session, folded from stream parts by `applyPart`. */
@@ -16,6 +51,10 @@ export interface PersonalizedSearchState {
   unavailable: boolean;
   /** Polite live-region text announced when a turn finishes. */
   announcement: string;
+  debugSettings: DebugSettings;
+  /** Server model menu: undefined until loaded, null when the server has debug overrides off. */
+  debugConfig: DebugConfig | null | undefined;
+  debugConfigError: string | null;
 }
 
 export interface PersonalizedSearchStore extends PersonalizedSearchState {
@@ -25,6 +64,9 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setDraft: (draft: string) => void;
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
+  setDebugSettings: (changes: Partial<DebugSettings>) => void;
+  setDebugConfig: (config: DebugConfig | null | undefined, error?: string | null) => void;
+  /** Clears the conversation; debug choices and the model menu survive New chat. */
   reset: () => void;
 }
 
@@ -35,6 +77,9 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   draft: '',
   unavailable: false,
   announcement: '',
+  debugSettings: loadDebugSettings(),
+  debugConfig: undefined,
+  debugConfigError: null,
 });
 
 /**
@@ -49,5 +94,16 @@ export const usePersonalizedSearchStore = create<PersonalizedSearchStore>()((set
   setDraft: (draft) => set({ draft }),
   setUnavailable: (unavailable) => set({ unavailable }),
   setAnnouncement: (announcement) => set({ announcement }),
-  reset: () => set(getInitialPersonalizedSearchState()),
+  setDebugSettings: (changes) => set((state) => {
+    const debugSettings = { ...state.debugSettings, ...changes };
+    saveDebugSettings(debugSettings);
+    return { debugSettings };
+  }),
+  setDebugConfig: (debugConfig, debugConfigError = null) => set({ debugConfig, debugConfigError }),
+  reset: () => set((state) => ({
+    ...getInitialPersonalizedSearchState(),
+    debugSettings: state.debugSettings,
+    debugConfig: state.debugConfig,
+    debugConfigError: state.debugConfigError,
+  })),
 }));
