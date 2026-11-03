@@ -2,7 +2,7 @@ import {
   Alert, Badge, Button, Card, Form, Stack,
 } from '@openedx/paragon';
 
-import type { DebugConfig } from '../services/debugConfig';
+import type { DebugConfig, DebugModel } from '../services/debugConfig';
 import type { DebugSettings } from '../state/personalizedSearchStore';
 import type { AssistantTurn } from '../stream/types';
 import {
@@ -21,6 +21,13 @@ export interface DebugPanelProps {
 }
 
 const SERVER_DEFAULT = '';
+
+/** `gpt-5.4-mini · $0.75/$4.5 per 1M`, or just the label for a backend with no token pricing (Xpert). */
+export const modelOptionLabel = (model: DebugModel) => (
+  model.price_in === null || model.price_out === null
+    ? `${model.label ?? model.id} · no token pricing`
+    : `${model.label ?? model.id} · $${model.price_in}/$${model.price_out} per 1M`
+);
 
 const formatMs = (value: number | null) => (value === null ? '–' : `${(value / 1000).toFixed(2)} s`);
 const formatCost = (value: number | null) => (value === null ? '–' : `$${value.toFixed(4)}`);
@@ -67,7 +74,7 @@ const ModelPicker = ({
         >
           <option value={SERVER_DEFAULT}>{`Server default (${defaultModel})`}</option>
           {config.models.map((m) => (
-            <option key={m.id} value={m.id}>{`${m.id} · $${m.price_in}/$${m.price_out} per 1M`}</option>
+            <option key={m.id} value={m.id}>{modelOptionLabel(m)}</option>
           ))}
         </Form.Control>
       </Form.Group>
