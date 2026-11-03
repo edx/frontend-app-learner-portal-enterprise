@@ -45,6 +45,8 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
       onNewChat={controller.newChat}
       onViewPage={controller.viewPage}
       onShowLastRecommendations={controller.showLastRecommendations}
+      onStop={controller.stop}
+      onRetry={controller.retry}
     />
   );
   const page = (

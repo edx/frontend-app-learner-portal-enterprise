@@ -7,7 +7,7 @@ import type { AssistantMessageProps } from './AssistantMessage';
 
 export interface MessageListProps extends Pick<
 AssistantMessageProps,
-'busy' | 'onSend' | 'onViewPage' | 'onShowLastRecommendations'
+'busy' | 'onSend' | 'onViewPage' | 'onShowLastRecommendations' | 'onRetry'
 > {
   turns: AssistantTurn[];
 }
