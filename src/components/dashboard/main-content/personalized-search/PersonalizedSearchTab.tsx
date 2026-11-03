@@ -23,6 +23,7 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
   const intl = useIntl();
   const controller = usePersonalizedSearchController({ transport });
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
+  const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
 
   if (controller.unavailable) {
     return (
@@ -46,7 +47,15 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
       onShowLastRecommendations={controller.showLastRecommendations}
     />
   );
-  const page = <LearningPagePane />;
+  const page = (
+    <LearningPagePane
+      turns={controller.turns}
+      viewedTurnId={controller.viewedTurnId}
+      pageFocusRequest={controller.pageFocusRequest}
+      enterpriseSlug={controller.enterpriseSlug ?? ''}
+      reducedMotion={reducedMotion}
+    />
+  );
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'stacked'}>
