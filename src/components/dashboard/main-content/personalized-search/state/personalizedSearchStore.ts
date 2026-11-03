@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { DebugConfig } from '../services/debugConfig';
+import type { SessionSummary } from '../services/sessionsRepository';
 import { getInitialChatStreamState } from '../stream/applyPart';
 import type { ChatStreamState } from '../stream/types';
 
@@ -40,6 +41,21 @@ const saveDebugSettings = (settings: DebugSettings) => {
 
 export type MobilePane = 'chat' | 'page';
 
+/** History sheet state (REQ-010). */
+export interface HistoryState {
+  open: boolean;
+  items: SessionSummary[];
+  /** Last page loaded; 0 before the first load. */
+  page: number;
+  hasMore: boolean;
+  loading: boolean;
+  error: boolean;
+}
+
+const initialHistory = (): HistoryState => ({
+  open: false, items: [], page: 0, hasMore: false, loading: false, error: false,
+});
+
 export interface PersonalizedSearchState {
   /** Chat turns and session, folded from stream parts by `applyPart`. */
   stream: ChatStreamState;
@@ -55,6 +71,11 @@ export interface PersonalizedSearchState {
   announcement: string;
   /** Below 768 px one pane shows at a time (REQ-011). */
   mobilePane: MobilePane;
+  /** `past` while a reopened session is shown unchanged; the first send switches back to `live`. */
+  mode: 'live' | 'past';
+  /** When the reopened session was created, for the "Past search · {date}" banner. */
+  pastSessionCreated: string | null;
+  history: HistoryState;
   /**
    * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
    * while a newer page exists and the page pane is hidden; deriving it from this, rather than
@@ -75,6 +96,8 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
   setMobilePane: (pane: MobilePane) => void;
+  setMode: (mode: 'live' | 'past', pastSessionCreated?: string | null) => void;
+  setHistory: (changes: Partial<HistoryState>) => void;
   setSeenPageTurnId: (turnId: string | null) => void;
   setDebugSettings: (changes: Partial<DebugSettings>) => void;
   setDebugConfig: (config: DebugConfig | null | undefined, error?: string | null) => void;
@@ -90,6 +113,9 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   unavailable: false,
   announcement: '',
   mobilePane: 'chat',
+  mode: 'live',
+  pastSessionCreated: null,
+  history: initialHistory(),
   seenPageTurnId: null,
   debugSettings: loadDebugSettings(),
   debugConfig: undefined,
@@ -109,6 +135,8 @@ export const usePersonalizedSearchStore = create<PersonalizedSearchStore>()((set
   setUnavailable: (unavailable) => set({ unavailable }),
   setAnnouncement: (announcement) => set({ announcement }),
   setMobilePane: (mobilePane) => set({ mobilePane }),
+  setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
+  setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
   setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   setDebugSettings: (changes) => set((state) => {
     const debugSettings = { ...state.debugSettings, ...changes };

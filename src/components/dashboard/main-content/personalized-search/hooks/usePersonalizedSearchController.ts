@@ -19,12 +19,13 @@ import { fetchDebugConfig, getPersonalizedSearchApiBaseUrl } from '../services/d
 import { FixtureChatTransport } from '../services/FixtureChatTransport';
 import { selectTransport } from '../services/selectTransport';
 import { SseChatTransport } from '../services/SseChatTransport';
+import { getSession, listSessions } from '../services/sessionsRepository';
 import type { DebugOverrides } from '../services/SseChatTransport';
 import { usePersonalizedSearchStore } from '../state/personalizedSearchStore';
 import type { DebugSettings, MobilePane } from '../state/personalizedSearchStore';
 import type { BenchmarkRow } from '../debug/benchmark';
 import { removeTurn } from '../stream/applyPart';
-import { sendTurnWorkflow } from '../workflows';
+import { reopenSessionWorkflow, sendTurnWorkflow } from '../workflows';
 
 /** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
 export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
@@ -67,7 +68,7 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
 
   const {
     stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
-    mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError,
+    mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
   } = usePersonalizedSearchStore(useShallow((state) => ({
     stream: state.stream,
     viewedTurnId: state.viewedTurnId,
@@ -77,6 +78,9 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     announcement: state.announcement,
     mobilePane: state.mobilePane,
     seenPageTurnId: state.seenPageTurnId,
+    mode: state.mode,
+    pastSessionCreated: state.pastSessionCreated,
+    history: state.history,
     debugSettings: state.debugSettings,
     debugConfig: state.debugConfig,
     debugConfigError: state.debugConfigError,
@@ -135,6 +139,8 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     const controller = new AbortController();
     abortRef.current = controller;
     const localId = uuidv4();
+    // Sending from a reopened session continues it (same session uuid), now live.
+    if (store.mode === 'past') { store.setMode('live'); }
     store.setDraft('');
     store.setViewedTurnId(null);
     store.setAnnouncement('');
@@ -193,6 +199,55 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     store.setMobilePane('page');
   }, []);
 
+  const loadHistoryPage = useCallback(async (page: number) => {
+    const store = usePersonalizedSearchStore.getState();
+    if (!enterpriseCustomerUuid || store.history.loading) { return; }
+    store.setHistory({ loading: true, error: false });
+    try {
+      const result = await listSessions(getPersonalizedSearchApiBaseUrl(), enterpriseCustomerUuid, page);
+      const { history: current } = usePersonalizedSearchStore.getState();
+      usePersonalizedSearchStore.getState().setHistory({
+        items: page === 1 ? result.results : [...current.items, ...result.results],
+        page,
+        hasMore: !!result.next,
+        loading: false,
+      });
+    } catch (e) {
+      logError(e);
+      usePersonalizedSearchStore.getState().setHistory({ loading: false, error: true });
+    }
+  }, [enterpriseCustomerUuid]);
+
+  const openHistory = useCallback(() => {
+    usePersonalizedSearchStore.getState().setHistory({ open: true });
+    loadHistoryPage(1);
+  }, [loadHistoryPage]);
+
+  const closeHistory = useCallback(() => {
+    usePersonalizedSearchStore.getState().setHistory({ open: false });
+  }, []);
+
+  const loadMoreHistory = useCallback(() => {
+    loadHistoryPage(usePersonalizedSearchStore.getState().history.page + 1);
+  }, [loadHistoryPage]);
+
+  /** Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. */
+  const openSession = useCallback(async (sessionUuid: string) => {
+    const store = usePersonalizedSearchStore.getState();
+    if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
+    try {
+      const detail = await getSession(getPersonalizedSearchApiBaseUrl(), enterpriseCustomerUuid, sessionUuid);
+      const after = usePersonalizedSearchStore.getState();
+      after.reset();
+      after.setStream(() => reopenSessionWorkflow(detail));
+      after.setMode('past', detail.created);
+      after.setHistory({ open: false });
+    } catch (e) {
+      logError(e);
+      usePersonalizedSearchStore.getState().setHistory({ error: true });
+    }
+  }, [enterpriseCustomerUuid]);
+
   const showPane = useCallback((pane: MobilePane) => {
     usePersonalizedSearchStore.getState().setMobilePane(pane);
   }, []);
@@ -250,6 +305,13 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     mobilePane,
     hasNewPicks,
     showPane,
+    mode,
+    pastSessionCreated,
+    history,
+    openHistory,
+    closeHistory,
+    loadMoreHistory,
+    openSession,
     setDraft,
     debugEnabled,
     debugBaseUrl,
