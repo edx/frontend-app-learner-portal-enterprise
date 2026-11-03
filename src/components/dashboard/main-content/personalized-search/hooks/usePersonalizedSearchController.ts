@@ -3,6 +3,7 @@ import {
 } from 'react';
 import { getConfig } from '@edx/frontend-platform/config';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { breakpoints, useMediaQuery } from '@openedx/paragon';
 import { logError } from '@edx/frontend-platform/logging';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +13,7 @@ import { useEnterpriseCustomer } from '../../../../app/data';
 import { isSendableMessage } from '../chat/Composer';
 import { previousPageTurnId } from '../chat/MessageList';
 import messages from '../messages';
+import { latestPicksTurnId } from '../page/LearningPagePane';
 import type { ChatTransport } from '../services/ChatTransport';
 import { fetchDebugConfig, getPersonalizedSearchApiBaseUrl } from '../services/debugConfig';
 import { FixtureChatTransport } from '../services/FixtureChatTransport';
@@ -19,7 +21,7 @@ import { selectTransport } from '../services/selectTransport';
 import { SseChatTransport } from '../services/SseChatTransport';
 import type { DebugOverrides } from '../services/SseChatTransport';
 import { usePersonalizedSearchStore } from '../state/personalizedSearchStore';
-import type { DebugSettings } from '../state/personalizedSearchStore';
+import type { DebugSettings, MobilePane } from '../state/personalizedSearchStore';
 import type { BenchmarkRow } from '../debug/benchmark';
 import { removeTurn } from '../stream/applyPart';
 import { sendTurnWorkflow } from '../workflows';
@@ -65,7 +67,7 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
 
   const {
     stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
-    debugSettings, debugConfig, debugConfigError,
+    mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError,
   } = usePersonalizedSearchStore(useShallow((state) => ({
     stream: state.stream,
     viewedTurnId: state.viewedTurnId,
@@ -73,10 +75,24 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     draft: state.draft,
     unavailable: state.unavailable,
     announcement: state.announcement,
+    mobilePane: state.mobilePane,
+    seenPageTurnId: state.seenPageTurnId,
     debugSettings: state.debugSettings,
     debugConfig: state.debugConfig,
     debugConfigError: state.debugConfigError,
   })));
+
+  // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
+  const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
+  const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
+  const newestPicksTurnId = useMemo(() => latestPicksTurnId(stream.turns), [stream.turns]);
+  const pageOnScreen = isWide || mobilePane === 'page';
+  useEffect(() => {
+    if (pageOnScreen && newestPicksTurnId !== seenPageTurnId) {
+      usePersonalizedSearchStore.getState().setSeenPageTurnId(newestPicksTurnId);
+    }
+  }, [pageOnScreen, newestPicksTurnId, seenPageTurnId]);
+  const hasNewPicks = !pageOnScreen && newestPicksTurnId !== null && newestPicksTurnId !== seenPageTurnId;
 
   let transport = configuredTransport;
   if (debugEnabled) {
@@ -172,12 +188,19 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
   }, []);
 
   const viewPage = useCallback((turnId: string) => {
-    usePersonalizedSearchStore.getState().setViewedTurnId(turnId);
+    const store = usePersonalizedSearchStore.getState();
+    store.setViewedTurnId(turnId);
+    store.setMobilePane('page');
+  }, []);
+
+  const showPane = useCallback((pane: MobilePane) => {
+    usePersonalizedSearchStore.getState().setMobilePane(pane);
   }, []);
 
   const showLastRecommendations = useCallback((turnId: string) => {
     const store = usePersonalizedSearchStore.getState();
     store.setViewedTurnId(turnId);
+    store.setMobilePane('page');
     store.requestPageFocus();
   }, []);
 
@@ -222,6 +245,11 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     newChat,
     viewPage,
     showLastRecommendations,
+    isWide,
+    reducedMotion,
+    mobilePane,
+    hasNewPicks,
+    showPane,
     setDraft,
     debugEnabled,
     debugBaseUrl,
