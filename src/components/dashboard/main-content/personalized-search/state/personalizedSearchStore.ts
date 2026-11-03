@@ -38,6 +38,8 @@ const saveDebugSettings = (settings: DebugSettings) => {
   }
 };
 
+export type MobilePane = 'chat' | 'page';
+
 export interface PersonalizedSearchState {
   /** Chat turns and session, folded from stream parts by `applyPart`. */
   stream: ChatStreamState;
@@ -51,6 +53,14 @@ export interface PersonalizedSearchState {
   unavailable: boolean;
   /** Polite live-region text announced when a turn finishes. */
   announcement: string;
+  /** Below 768 px one pane shows at a time (REQ-011). */
+  mobilePane: MobilePane;
+  /**
+   * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
+   * while a newer page exists and the page pane is hidden; deriving it from this, rather than
+   * storing a flag, means a stopped or failed turn that discards its blocks can't leave it stale.
+   */
+  seenPageTurnId: string | null;
   debugSettings: DebugSettings;
   /** Server model menu: undefined until loaded, null when the server has debug overrides off. */
   debugConfig: DebugConfig | null | undefined;
@@ -64,6 +74,8 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setDraft: (draft: string) => void;
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
+  setMobilePane: (pane: MobilePane) => void;
+  setSeenPageTurnId: (turnId: string | null) => void;
   setDebugSettings: (changes: Partial<DebugSettings>) => void;
   setDebugConfig: (config: DebugConfig | null | undefined, error?: string | null) => void;
   /** Clears the conversation; debug choices and the model menu survive New chat. */
@@ -77,6 +89,8 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   draft: '',
   unavailable: false,
   announcement: '',
+  mobilePane: 'chat',
+  seenPageTurnId: null,
   debugSettings: loadDebugSettings(),
   debugConfig: undefined,
   debugConfigError: null,
@@ -94,6 +108,8 @@ export const usePersonalizedSearchStore = create<PersonalizedSearchStore>()((set
   setDraft: (draft) => set({ draft }),
   setUnavailable: (unavailable) => set({ unavailable }),
   setAnnouncement: (announcement) => set({ announcement }),
+  setMobilePane: (mobilePane) => set({ mobilePane }),
+  setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   setDebugSettings: (changes) => set((state) => {
     const debugSettings = { ...state.debugSettings, ...changes };
     saveDebugSettings(debugSettings);

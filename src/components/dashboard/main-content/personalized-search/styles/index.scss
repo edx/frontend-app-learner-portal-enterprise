@@ -56,3 +56,13 @@
     white-space: nowrap;
   }
 }
+
+// Below 768 px: the Chat/Page toggle spans the width, one pane shows at a time (REQ-011).
+.personalized-search__pane-toggle {
+  display: flex;
+  width: 100%;
+
+  .btn {
+    flex: 1 1 0;
+  }
+}
