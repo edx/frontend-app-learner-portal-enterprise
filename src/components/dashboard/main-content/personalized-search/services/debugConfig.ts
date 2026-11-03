@@ -3,9 +3,12 @@ import { getConfig } from '@edx/frontend-platform/config';
 
 export interface DebugModel {
   id: string;
-  price_in: number;
-  price_cached_in: number;
-  price_out: number;
+  /** Display name; `Xpert platform` for the `xpert` backend. */
+  label?: string;
+  /** USD per 1M tokens; null when the backend reports no token counts (Xpert). */
+  price_in: number | null;
+  price_cached_in: number | null;
+  price_out: number | null;
   /** Reasoning efforts this model accepts; `[null]` for models without reasoning. */
   efforts: Array<string | null>;
 }
