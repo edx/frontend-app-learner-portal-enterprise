@@ -7,6 +7,7 @@ import ChatPane from './chat/ChatPane';
 import DebugPanel from './debug/DebugPanel';
 import HistoryPanel from './history/HistoryPanel';
 import PastSearchBanner from './history/PastSearchBanner';
+import SavedView from './saved/SavedView';
 import { usePersonalizedSearchController } from './hooks/usePersonalizedSearchController';
 import messages from './messages';
 import LearningPagePane from './page/LearningPagePane';
@@ -25,7 +26,9 @@ export interface PersonalizedSearchTabProps {
 const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
   const intl = useIntl();
   const controller = usePersonalizedSearchController({ transport });
-  const { isWide, reducedMotion, mobilePane } = controller;
+  const {
+    isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
+  } = controller;
 
   const chat = (
     <ChatPane
@@ -50,6 +53,14 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
       pageFocusRequest={controller.pageFocusRequest}
       enterpriseSlug={controller.enterpriseSlug ?? ''}
       reducedMotion={reducedMotion || controller.mode === 'past'}
+      savedIds={savedIds}
+      dismissedIds={dismissedIds}
+      onToggleSave={controller.toggleSave}
+      onDismiss={controller.dismiss}
+      undoItem={feedback.undo}
+      onUndo={controller.undoDismiss}
+      feedbackError={feedback.error}
+      onClearNotice={controller.clearFeedbackNotice}
     />
   );
 
@@ -78,6 +89,11 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
 
   const toolbar = (
     <Stack direction="horizontal" gap={2} className="justify-content-end mb-2 personalized-search__toolbar">
+      <Button variant="outline-primary" size="sm" onClick={controller.openSaved}>
+        {controller.feedbackLoaded
+          ? intl.formatMessage(messages.savedButton, { count: feedback.saved.length })
+          : intl.formatMessage(messages.saved)}
+      </Button>
       <Button variant="outline-primary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
         {intl.formatMessage(messages.history)}
       </Button>
@@ -92,12 +108,22 @@ const PersonalizedSearchTab = ({ transport }: PersonalizedSearchTabProps) => {
       onOpenSession={controller.openSession}
     />
   );
+  const savedView = (
+    <SavedView
+      open={controller.savedOpen}
+      items={feedback.saved}
+      enterpriseSlug={controller.enterpriseSlug ?? ''}
+      onClose={controller.closeSaved}
+      onToggleSave={controller.toggleSave}
+    />
+  );
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
       {debugPanel}
       {toolbar}
       {overlays}
+      {savedView}
       {controller.mode === 'past' && controller.pastSessionCreated && (
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}

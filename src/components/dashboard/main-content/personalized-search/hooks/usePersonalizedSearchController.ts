@@ -19,13 +19,16 @@ import { fetchDebugConfig, getPersonalizedSearchApiBaseUrl } from '../services/d
 import { FixtureChatTransport } from '../services/FixtureChatTransport';
 import { selectTransport } from '../services/selectTransport';
 import { SseChatTransport } from '../services/SseChatTransport';
+import { addFeedback, listFeedback, removeFeedback } from '../services/feedbackRepository';
 import { getSession, listSessions } from '../services/sessionsRepository';
 import type { DebugOverrides } from '../services/SseChatTransport';
 import { usePersonalizedSearchStore } from '../state/personalizedSearchStore';
 import type { DebugSettings, MobilePane } from '../state/personalizedSearchStore';
 import type { BenchmarkRow } from '../debug/benchmark';
 import { removeTurn } from '../stream/applyPart';
-import { reopenSessionWorkflow, sendTurnWorkflow } from '../workflows';
+import { itemFeedbackWorkflow, reopenSessionWorkflow, sendTurnWorkflow } from '../workflows';
+import type { FeedbackAction } from '../workflows';
+import type { ItemCard } from '../stream/types';
 
 /** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
 export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
@@ -69,6 +72,7 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
   const {
     stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
     mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
+    feedback, savedOpen, feedbackLoaded,
   } = usePersonalizedSearchStore(useShallow((state) => ({
     stream: state.stream,
     viewedTurnId: state.viewedTurnId,
@@ -81,6 +85,9 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     mode: state.mode,
     pastSessionCreated: state.pastSessionCreated,
     history: state.history,
+    feedback: state.feedback,
+    savedOpen: state.savedOpen,
+    feedbackLoaded: state.feedbackLoaded,
     debugSettings: state.debugSettings,
     debugConfig: state.debugConfig,
     debugConfigError: state.debugConfigError,
@@ -199,6 +206,50 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     store.setMobilePane('page');
   }, []);
 
+  // Saved and dismissed items (REQ-009), loaded once, lazily: when the page first has picks to mark
+  // or hide, or when the Saved view opens, so the opening state makes no network request.
+  useEffect(() => {
+    const store = usePersonalizedSearchStore.getState();
+    if (!enterpriseCustomerUuid || store.feedbackLoaded || !(newestPicksTurnId || savedOpen)) { return; }
+    store.setFeedbackLoaded(true);
+    const baseUrl = getPersonalizedSearchApiBaseUrl();
+    Promise.all([
+      listFeedback(baseUrl, enterpriseCustomerUuid, 'saved'),
+      listFeedback(baseUrl, enterpriseCustomerUuid, 'not_interested'),
+    ]).then(([saved, dismissed]) => {
+      usePersonalizedSearchStore.getState().setFeedback((f) => ({
+        ...f,
+        saved: saved.map((row) => row.card_snapshot).filter((card): card is ItemCard => !!card),
+        dismissedIds: dismissed.map((row) => row.item_id),
+      }));
+    }).catch((e) => logError(e));
+  }, [enterpriseCustomerUuid, newestPicksTurnId, savedOpen]);
+
+  const runFeedback = useCallback(async (action: FeedbackAction) => {
+    if (!enterpriseCustomerUuid) { return; }
+    const baseUrl = getPersonalizedSearchApiBaseUrl();
+    const { sessionUuid } = usePersonalizedSearchStore.getState().stream.session;
+    await itemFeedbackWorkflow(action, {
+      api: {
+        add: (kind, item) => addFeedback(baseUrl, enterpriseCustomerUuid, kind, item, sessionUuid),
+        remove: (kind, itemId) => removeFeedback(baseUrl, enterpriseCustomerUuid, kind, itemId),
+      },
+      update: (fn) => usePersonalizedSearchStore.getState().setFeedback(fn),
+      getState: () => usePersonalizedSearchStore.getState().feedback,
+    });
+  }, [enterpriseCustomerUuid]);
+
+  const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
+  const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
+  const toggleSave = useCallback((item: ItemCard) => runFeedback({ type: 'toggleSave', item }), [runFeedback]);
+  const dismiss = useCallback((item: ItemCard) => runFeedback({ type: 'dismiss', item }), [runFeedback]);
+  const undoDismiss = useCallback(() => runFeedback({ type: 'undoDismiss' }), [runFeedback]);
+  const clearFeedbackNotice = useCallback(() => {
+    usePersonalizedSearchStore.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
+  }, []);
+  const openSaved = useCallback(() => usePersonalizedSearchStore.getState().setSavedOpen(true), []);
+  const closeSaved = useCallback(() => usePersonalizedSearchStore.getState().setSavedOpen(false), []);
+
   const loadHistoryPage = useCallback(async (page: number) => {
     const store = usePersonalizedSearchStore.getState();
     if (!enterpriseCustomerUuid || store.history.loading) { return; }
@@ -312,6 +363,17 @@ export const usePersonalizedSearchController = ({ transport: injected }: { trans
     closeHistory,
     loadMoreHistory,
     openSession,
+    feedback,
+    feedbackLoaded,
+    savedIds,
+    dismissedIds,
+    savedOpen,
+    toggleSave,
+    dismiss,
+    undoDismiss,
+    clearFeedbackNotice,
+    openSaved,
+    closeSaved,
     setDraft,
     debugEnabled,
     debugBaseUrl,
