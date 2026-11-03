@@ -256,6 +256,66 @@ const messages = defineMessages({
     defaultMessage: 'Loading',
     description: 'Screen-reader text for a loading spinner.',
   },
+  save: {
+    id: 'learner.personalizedSearch.feedback.save',
+    defaultMessage: 'Save',
+    description: 'Saves a recommended item.',
+  },
+  saved: {
+    id: 'learner.personalizedSearch.feedback.saved',
+    defaultMessage: 'Saved',
+    description: 'Shown on a saved item\'s save toggle, and labels the Saved view button.',
+  },
+  saveItem: {
+    id: 'learner.personalizedSearch.feedback.saveItem',
+    defaultMessage: 'Save {title}',
+    description: 'Accessible label for saving an item.',
+  },
+  unsaveItem: {
+    id: 'learner.personalizedSearch.feedback.unsaveItem',
+    defaultMessage: 'Remove {title} from saved',
+    description: 'Accessible label for unsaving an item.',
+  },
+  notInterested: {
+    id: 'learner.personalizedSearch.feedback.notInterested',
+    defaultMessage: 'Not interested',
+    description: 'Hides a recommended item and excludes it from later recommendations.',
+  },
+  notInterestedItem: {
+    id: 'learner.personalizedSearch.feedback.notInterestedItem',
+    defaultMessage: 'Not interested in {title}',
+    description: 'Accessible label for dismissing an item.',
+  },
+  hiddenItem: {
+    id: 'learner.personalizedSearch.feedback.hidden',
+    defaultMessage: 'Hidden {title}. You won\'t see it in later recommendations.',
+    description: 'Notice after Not interested, with an Undo action.',
+  },
+  undo: {
+    id: 'learner.personalizedSearch.feedback.undo',
+    defaultMessage: 'Undo',
+    description: 'Undoes Not interested.',
+  },
+  feedbackError: {
+    id: 'learner.personalizedSearch.feedback.error',
+    defaultMessage: 'We couldn\'t save that change. Try again.',
+    description: 'Shown when Save, Not interested or Undo fails; the change is reverted.',
+  },
+  savedButton: {
+    id: 'learner.personalizedSearch.saved.button',
+    defaultMessage: 'Saved ({count})',
+    description: 'Opens the Saved view; count is the number of saved items.',
+  },
+  savedTitle: {
+    id: 'learner.personalizedSearch.saved.title',
+    defaultMessage: 'Saved items',
+    description: 'Heading of the Saved view.',
+  },
+  savedEmpty: {
+    id: 'learner.personalizedSearch.saved.empty',
+    defaultMessage: 'Nothing saved yet. Use Save on a recommendation to keep it here.',
+    description: 'Empty Saved view.',
+  },
   notAvailable: {
     id: 'learner.personalizedSearch.error.notAvailable',
     defaultMessage: 'Personalized Search isn\'t available right now',

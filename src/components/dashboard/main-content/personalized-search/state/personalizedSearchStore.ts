@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { DebugConfig } from '../services/debugConfig';
 import type { SessionSummary } from '../services/sessionsRepository';
+import type { FeedbackState } from '../workflows/itemFeedbackWorkflow';
 import { getInitialChatStreamState } from '../stream/applyPart';
 import type { ChatStreamState } from '../stream/types';
 
@@ -76,6 +77,10 @@ export interface PersonalizedSearchState {
   /** When the reopened session was created, for the "Past search · {date}" banner. */
   pastSessionCreated: string | null;
   history: HistoryState;
+  /** Saved and dismissed items (REQ-009); survives New chat. */
+  feedback: FeedbackState;
+  feedbackLoaded: boolean;
+  savedOpen: boolean;
   /**
    * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
    * while a newer page exists and the page pane is hidden; deriving it from this, rather than
@@ -98,6 +103,9 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setMobilePane: (pane: MobilePane) => void;
   setMode: (mode: 'live' | 'past', pastSessionCreated?: string | null) => void;
   setHistory: (changes: Partial<HistoryState>) => void;
+  setFeedback: (update: (feedback: FeedbackState) => FeedbackState) => void;
+  setFeedbackLoaded: (loaded: boolean) => void;
+  setSavedOpen: (open: boolean) => void;
   setSeenPageTurnId: (turnId: string | null) => void;
   setDebugSettings: (changes: Partial<DebugSettings>) => void;
   setDebugConfig: (config: DebugConfig | null | undefined, error?: string | null) => void;
@@ -116,6 +124,11 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   mode: 'live',
   pastSessionCreated: null,
   history: initialHistory(),
+  feedback: {
+    saved: [], dismissedIds: [], undo: null, error: false,
+  },
+  feedbackLoaded: false,
+  savedOpen: false,
   seenPageTurnId: null,
   debugSettings: loadDebugSettings(),
   debugConfig: undefined,
@@ -137,6 +150,9 @@ export const usePersonalizedSearchStore = create<PersonalizedSearchStore>()((set
   setMobilePane: (mobilePane) => set({ mobilePane }),
   setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
   setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
+  setFeedback: (update) => set((state) => ({ feedback: update(state.feedback) })),
+  setFeedbackLoaded: (feedbackLoaded) => set({ feedbackLoaded }),
+  setSavedOpen: (savedOpen) => set({ savedOpen }),
   setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   setDebugSettings: (changes) => set((state) => {
     const debugSettings = { ...state.debugSettings, ...changes };
@@ -149,5 +165,7 @@ export const usePersonalizedSearchStore = create<PersonalizedSearchStore>()((set
     debugSettings: state.debugSettings,
     debugConfig: state.debugConfig,
     debugConfigError: state.debugConfigError,
+    feedback: { ...state.feedback, undo: null, error: false },
+    feedbackLoaded: state.feedbackLoaded,
   })),
 }));

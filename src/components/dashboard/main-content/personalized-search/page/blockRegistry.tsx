@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 import { BLOCK_CATALOG_VERSION } from '../stream/types';
-import type { Block } from '../stream/types';
+import type { Block, ItemCard } from '../stream/types';
 import InsightBlock from './InsightBlock';
 import ItemSectionBlock from './ItemSectionBlock';
 import PageHeaderBlock from './PageHeaderBlock';
@@ -10,6 +10,11 @@ import PlanBlock from './PlanBlock';
 export interface BlockRenderContext {
   enterpriseSlug: string;
   itemTitles: Record<string, string>;
+  /** Item feedback (REQ-009); optional so read-only renders need none. */
+  savedIds?: ReadonlySet<string>;
+  dismissedIds?: ReadonlySet<string>;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
 }
 
 type Renderers = {
@@ -19,7 +24,16 @@ type Renderers = {
 /** Closed registry of Block catalog v1 (KD-5): `type -> Paragon component`. */
 export const blockRegistry: Renderers = {
   page_header: (props) => <PageHeaderBlock {...props} />,
-  item_section: (props, ctx) => <ItemSectionBlock {...props} enterpriseSlug={ctx.enterpriseSlug} />,
+  item_section: (props, ctx) => (
+    <ItemSectionBlock
+      {...props}
+      enterpriseSlug={ctx.enterpriseSlug}
+      savedIds={ctx.savedIds}
+      dismissedIds={ctx.dismissedIds}
+      onToggleSave={ctx.onToggleSave}
+      onDismiss={ctx.onDismiss}
+    />
+  ),
   insight: (props) => <InsightBlock {...props} />,
   plan: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
 };

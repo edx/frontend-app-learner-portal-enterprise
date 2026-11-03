@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import { Stack } from '@openedx/paragon';
+import { Alert, Button, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import type { AssistantTurn, PageBlock } from '../stream/types';
+import type { AssistantTurn, ItemCard, PageBlock } from '../stream/types';
 import { renderBlock } from './blockRegistry';
 
 /**
@@ -43,16 +43,29 @@ export interface LearningPagePaneProps {
   pageFocusRequest: number;
   enterpriseSlug: string;
   reducedMotion: boolean;
+  /** Item feedback (REQ-009). */
+  savedIds?: ReadonlySet<string>;
+  dismissedIds?: ReadonlySet<string>;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
+  /** The card just hidden by Not interested, offered for Undo. */
+  undoItem?: ItemCard | null;
+  onUndo?: () => void;
+  feedbackError?: boolean;
+  onClearNotice?: () => void;
 }
 
 const LearningPagePane = ({
-  turns, viewedTurnId, pageFocusRequest, enterpriseSlug, reducedMotion,
+  turns, viewedTurnId, pageFocusRequest, enterpriseSlug, reducedMotion, savedIds, dismissedIds, onToggleSave,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
   const pageTurn = selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
-  const ctx = useMemo(() => ({ enterpriseSlug, itemTitles: itemTitlesOf(blocks) }), [blocks, enterpriseSlug]);
+  const ctx = useMemo(() => ({
+    enterpriseSlug, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss,
+  }), [blocks, enterpriseSlug, savedIds, dismissedIds, onToggleSave, onDismiss]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
@@ -71,6 +84,22 @@ const LearningPagePane = ({
       aria-label={intl.formatMessage(messages.pagePaneLabel)}
       data-turn-id={pageTurn?.localId}
     >
+      {feedbackError && (
+        <Alert variant="danger" dismissible onClose={onClearNotice} className="mb-3">
+          {intl.formatMessage(messages.feedbackError)}
+        </Alert>
+      )}
+      {undoItem && !feedbackError && (
+        <Alert
+          variant="light"
+          className="mb-3"
+          actions={[<Button key="undo" size="sm" onClick={onUndo}>{intl.formatMessage(messages.undo)}</Button>]}
+          dismissible
+          onClose={onClearNotice}
+        >
+          {intl.formatMessage(messages.hiddenItem, { title: undoItem.title })}
+        </Alert>
+      )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
