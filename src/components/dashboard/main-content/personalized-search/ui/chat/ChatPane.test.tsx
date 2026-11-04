@@ -23,7 +23,7 @@ jest.mock('../../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
 }));
 
-const NORMAL_REPLY = 'I built you a page on leading a team: two courses to start and a certificate if you want to go further.';
+const NORMAL_REPLY = 'Here are picks for leading a team.';
 
 /** A fixture transport that replays the given goldens in order, one per sent message. */
 const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
@@ -102,9 +102,9 @@ describe('ChatPane', () => {
     await waitForIdle();
     expect(sent).toEqual(['Build data skills']);
 
-    await user.click(await screen.findByText('Advanced'));
+    await user.click(await screen.findByText('1 to 3 months'));
     await waitForIdle();
-    expect(sent).toEqual(['Build data skills', 'Advanced']);
+    expect(sent).toEqual(['Build data skills', '1 to 3 months']);
   });
 
   it('chips are keyboard operable', async () => {
@@ -125,7 +125,7 @@ describe('ChatPane', () => {
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
-    await user.click(screen.getByText('Advanced'));
+    await user.click(screen.getByText('1 to 3 months'));
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
@@ -196,7 +196,7 @@ describe('ChatPane', () => {
 
     const liveRegions = container.querySelectorAll('[aria-live="polite"]');
     expect(liveRegions).toHaveLength(1);
-    expect(liveRegions[0]).toHaveTextContent('New reply, 4 picks on your learning page');
+    expect(liveRegions[0]).toHaveTextContent('New reply, 3 picks on your learning page');
     await waitFor(() => expect(composer()).toHaveFocus());
   });
 });
