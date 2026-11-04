@@ -1,0 +1,24 @@
+data: {"type":"start","messageId":"turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60"}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":null}}
+
+data: {"type":"data-status","data":{"step":"understanding"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"searching"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"writing"},"transient":true}
+
+data: {"type":"text-start","id":"reply"}
+
+data: {"type":"text-delta","id":"reply","delta":"I built you a page on leading a team."}
+
+data: {"type":"text-end","id":"reply"}
+
+data: {"type":"data-block","id":"blk_1","data":{"v":1,"type":"page_header","props":{"title":"Becoming a confident team lead","dek":"Start with the everyday skills of managing people.","label":"Your learning page"}}}
+
+data: {"type":"data-block","id":"blk_2","data":{"v":1,"type":"item_section","props":{"item_type":"course","label":"Courses · 1 pick","dek":"A practical place to start.","fallback":false,"items":[{"item_id":"edX+LDR201","item_type":"course","title":"Leading High-Performing Teams","image_url":"https://prod-discovery.edx-cdn.org/media/course/image/edx-ldr201.jpg","partner_name":"edX","partner_logo_url":null,"link":{"kind":"course","course_key":"edX+LDR201","course_type":"verified-audit"},"facts":{"level_type":"Intermediate","weeks_to_complete":6,"pacing_type":"self_paced"},"why":"You said you want to lead a team; this builds the coaching and delegation habits new managers lean on first.","fit":["Leadership","Self-paced"]}]}}}
+
+data: {"type":"error","errorText":"model_failed"}
+
+data: [DONE]
+

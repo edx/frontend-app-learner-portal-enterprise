@@ -1,0 +1,28 @@
+data: {"type":"start","messageId":"turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60"}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":null}}
+
+data: {"type":"data-status","data":{"step":"understanding"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"searching"},"transient":true}
+
+data: {"type":"data-status","data":{"step":"writing"},"transient":true}
+
+data: {"type":"text-start","id":"reply"}
+
+data: {"type":"text-delta","id":"reply","delta":"I couldn't find anything in your catalog on underwater basket weaving. "}
+
+data: {"type":"text-delta","id":"reply","delta":"Is there a related skill you would like to build?"}
+
+data: {"type":"text-end","id":"reply"}
+
+data: {"type":"data-followups","id":"followups","data":{"question":"What would you like to learn instead?","attribute":"open","suggestions":["Something creative","A hands-on craft skill","Show me popular courses"]}}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":"Underwater basket weaving"}}
+
+data: {"type":"data-timing","id":"timing","transient":true,"data":{"backend":"claude","model_intent":"claude-haiku-4-5-20251001","model_compose":"claude-haiku-4-5-20251001","intent_ms":700,"retrieval_ms":300,"first_text_ms":1400,"first_section_ms":null,"complete_ms":3100,"dropped_lines":0}}
+
+data: {"type":"finish"}
+
+data: [DONE]
+

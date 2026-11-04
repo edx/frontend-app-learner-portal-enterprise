@@ -1,0 +1,22 @@
+data: {"type":"start","messageId":"turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60"}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":null}}
+
+data: {"type":"data-status","data":{"step":"understanding"},"transient":true}
+
+data: {"type":"text-start","id":"reply"}
+
+data: {"type":"text-delta","id":"reply","delta":"I can help you find learning in your organization's catalog. What would you like to learn?"}
+
+data: {"type":"text-end","id":"reply"}
+
+data: {"type":"data-followups","id":"followups","data":{"question":"What would you like to learn?","attribute":"open","suggestions":["Prepare for a leadership role","Learn AI for my job","Build data skills","Something quick, under 4 weeks"]}}
+
+data: {"type":"data-session","id":"session","data":{"session_uuid":"6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70","turn_sequence":1,"title":"What's the weather in Boston tomorrow?"}}
+
+data: {"type":"data-timing","id":"timing","transient":true,"data":{"backend":"claude","model_intent":"claude-haiku-4-5-20251001","model_compose":"claude-haiku-4-5-20251001","intent_ms":700,"retrieval_ms":null,"first_text_ms":820,"first_section_ms":null,"complete_ms":900,"dropped_lines":0}}
+
+data: {"type":"finish"}
+
+data: [DONE]
+

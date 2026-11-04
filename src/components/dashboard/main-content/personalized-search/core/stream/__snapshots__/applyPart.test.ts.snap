@@ -1,0 +1,489 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": "I want to get better at leading a team",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "dek": "Matches from your organization’s catalog.",
+              "label": "Your learning page",
+              "title": "Results for “I want to get better at leading a team”",
+            },
+            "type": "page_header",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Courses that match your search.",
+              "fallback": false,
+              "item_type": "course",
+              "items": [
+                {
+                  "facts": {
+                    "level_type": "Intermediate",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 6,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-ldr201.jpg",
+                  "item_id": "edX+LDR201",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+LDR201",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Leading High-Performing Teams",
+                  "why": null,
+                },
+                {
+                  "facts": {
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 4,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-com110.jpg",
+                  "item_id": "edX+COM110",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+COM110",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Communicating with Influence",
+                  "why": null,
+                },
+                {
+                  "facts": {
+                    "level_type": "Advanced",
+                    "pacing_type": "instructor_paced",
+                    "weeks_to_complete": 8,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-str305.jpg",
+                  "item_id": "edX+STR305",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+STR305",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Strategic Thinking for Managers",
+                  "why": null,
+                },
+              ],
+              "label": "Courses · 3 picks",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_2",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Programs that match your search.",
+              "fallback": false,
+              "item_type": "program",
+              "items": [
+                {
+                  "facts": {
+                    "course_count": 3,
+                    "level_type": "Intermediate",
+                    "program_type": "Professional Certificate",
+                  },
+                  "fit": [],
+                  "image_url": null,
+                  "item_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "item_type": "program",
+                  "link": {
+                    "kind": "program",
+                    "program_uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Professional Certificate in Management",
+                  "why": null,
+                },
+              ],
+              "label": "Programs · 1 pick",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_3",
+        },
+      ],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "What would you like to learn?",
+        "suggestions": [
+          "Prepare for a leadership role",
+          "Learn AI for my job",
+          "Build data skills",
+          "Something quick, under 4 weeks",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "done",
+      "step": null,
+      "text": "Here's what I found in your catalog.",
+      "timing": {
+        "backend": "claude",
+        "complete_ms": 480,
+        "dropped_lines": 0,
+        "first_section_ms": 460,
+        "first_text_ms": 450,
+        "intent_ms": null,
+        "model_compose": null,
+        "model_intent": null,
+        "retrieval_ms": 300,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": null,
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": "model_failed",
+      "followups": null,
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "error",
+      "step": null,
+      "text": "I built you a page on leading a team.",
+      "timing": null,
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": "Underwater basket weaving",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "What would you like to learn instead?",
+        "suggestions": [
+          "Something creative",
+          "A hands-on craft skill",
+          "Show me popular courses",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "done",
+      "step": null,
+      "text": "I couldn't find anything in your catalog on underwater basket weaving. Is there a related skill you would like to build?",
+      "timing": {
+        "backend": "claude",
+        "complete_ms": 3100,
+        "dropped_lines": 0,
+        "first_section_ms": null,
+        "first_text_ms": 1400,
+        "intent_ms": 700,
+        "model_compose": "claude-haiku-4-5-20251001",
+        "model_intent": "claude-haiku-4-5-20251001",
+        "retrieval_ms": 300,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": "Becoming a team lead",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "dek": "Start with the everyday skills of managing people, then add strategy once the basics feel natural.",
+              "label": "Your learning page",
+              "title": "Becoming a confident team lead",
+            },
+            "type": "page_header",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Short, practical courses for new managers.",
+              "fallback": false,
+              "item_type": "course",
+              "items": [
+                {
+                  "facts": {
+                    "level_type": "Intermediate",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 6,
+                  },
+                  "fit": [
+                    "Leadership",
+                    "Self-paced",
+                  ],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-ldr201.jpg",
+                  "item_id": "edX+LDR201",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+LDR201",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Leading High-Performing Teams",
+                  "why": "You said you want to lead a team; this builds the coaching and delegation habits new managers lean on first.",
+                },
+                {
+                  "facts": {
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 4,
+                  },
+                  "fit": [
+                    "Communication",
+                    "Under 4 weeks",
+                  ],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-com110.jpg",
+                  "item_id": "edX+COM110",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+COM110",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Communicating with Influence",
+                  "why": "Clear communication is the skill your team will notice first, and this one fits in four weeks.",
+                },
+                {
+                  "facts": {
+                    "level_type": "Advanced",
+                    "pacing_type": "instructor_paced",
+                    "weeks_to_complete": 8,
+                  },
+                  "fit": [
+                    "Strategy",
+                  ],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-str305.jpg",
+                  "item_id": "edX+STR305",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+STR305",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Strategic Thinking for Managers",
+                  "why": "Once the basics are in place, this helps you set direction rather than just run the day to day.",
+                },
+              ],
+              "label": "Courses · 3 picks",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_2",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "A credential that goes deeper.",
+              "fallback": false,
+              "item_type": "program",
+              "items": [
+                {
+                  "facts": {
+                    "course_count": 3,
+                    "level_type": "Intermediate",
+                    "program_type": "Professional Certificate",
+                  },
+                  "fit": [
+                    "Certificate",
+                    "Leadership",
+                  ],
+                  "image_url": null,
+                  "item_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "item_type": "program",
+                  "link": {
+                    "kind": "program",
+                    "program_uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Professional Certificate in Management",
+                  "why": "If you want a credential to show for it, this three-course certificate covers the same ground in more depth.",
+                },
+              ],
+              "label": "Programs · 1 pick",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_3",
+        },
+        {
+          "block": {
+            "props": {
+              "body": "Most new leads struggle more with feedback and delegation than with strategy. Starting there pays off fastest.",
+              "title": "Start with people skills",
+            },
+            "type": "insight",
+            "v": 1,
+          },
+          "id": "blk_4",
+        },
+        {
+          "block": {
+            "props": {
+              "steps": [
+                {
+                  "item_id": "edX+COM110",
+                  "note": "Start here: four weeks, self-paced",
+                },
+                {
+                  "item_id": "edX+LDR201",
+                  "note": "Then build team habits",
+                },
+                {
+                  "item_id": "edX+STR305",
+                  "note": "Finish with strategy",
+                },
+              ],
+            },
+            "type": "plan",
+            "v": 1,
+          },
+          "id": "blk_5",
+        },
+      ],
+      "error": null,
+      "followups": {
+        "attribute": "level",
+        "question": "What level are you aiming for?",
+        "suggestions": [
+          "Introductory",
+          "Intermediate",
+          "Advanced",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "done",
+      "step": null,
+      "text": "I built you a page on leading a team: two courses to start and a certificate if you want to go further.",
+      "timing": {
+        "backend": "claude",
+        "complete_ms": 4800,
+        "dropped_lines": 0,
+        "first_section_ms": 2600,
+        "first_text_ms": 1400,
+        "intent_ms": 700,
+        "model_compose": "claude-haiku-4-5-20251001",
+        "model_intent": "claude-haiku-4-5-20251001",
+        "retrieval_ms": 300,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": "What's the weather in Boston tomorrow?",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "What would you like to learn?",
+        "suggestions": [
+          "Prepare for a leadership role",
+          "Learn AI for my job",
+          "Build data skills",
+          "Something quick, under 4 weeks",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "done",
+      "step": null,
+      "text": "I can help you find learning in your organization's catalog. What would you like to learn?",
+      "timing": {
+        "backend": "claude",
+        "complete_ms": 900,
+        "dropped_lines": 0,
+        "first_section_ms": null,
+        "first_text_ms": 820,
+        "intent_ms": 700,
+        "model_compose": "claude-haiku-4-5-20251001",
+        "model_intent": "claude-haiku-4-5-20251001",
+        "retrieval_ms": null,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
