@@ -44,6 +44,7 @@ describe('SseChatTransport', () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('normal_turn.sse'), [7, 200]) });
     const transport = new SseChatTransport({
       ...options,
+      getDebugOverrides: () => ({ compose_model: 'gpt-4.1', compose_effort: null }),
     });
     const parts = await collect(transport.send({ request: REQUEST }));
 
@@ -56,9 +57,16 @@ describe('SseChatTransport', () => {
       enterprise_customer_uuid: 'ent-1',
       session_uuid: null,
       message: 'Lead a team',
+      debug: { compose_model: 'gpt-4.1', compose_effort: null },
     });
     expect(parts[0].type).toBe('start');
     expect(parts[parts.length - 1].type).toBe('finish');
+  });
+
+  it('sends no debug key without overrides', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')) });
+    await collect(new SseChatTransport(options).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('debug');
   });
 
   it.each([

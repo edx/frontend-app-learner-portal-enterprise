@@ -112,6 +112,30 @@ export interface FollowupsData {
   suggestions: string[];
 }
 
+/** Token and timing detail for one model call; sent only when enterprise-access debug is on. */
+export interface ModelCallDebug {
+  model: string;
+  effort: string | null;
+  input_tokens: number | null;
+  cached_input_tokens: number | null;
+  output_tokens: number | null;
+  reasoning_tokens: number | null;
+  elapsed_ms: number | null;
+  first_token_ms: number | null;
+  cost_usd: number | null;
+}
+
+/** Dev-only extras on `data-timing` (enterprise-access `PERSONALIZED_SEARCH_DEBUG_OVERRIDES_ENABLED`). */
+export interface TimingDebug {
+  candidates: number;
+  followup_attribute: string | null;
+  catalog: string | null;
+  dropped?: string[];
+  intent?: ModelCallDebug | null;
+  compose?: ModelCallDebug | null;
+  cost_usd: number | null;
+}
+
 export interface TimingData {
   backend: string;
   model_intent: string | null;
@@ -122,6 +146,7 @@ export interface TimingData {
   first_section_ms: number | null;
   complete_ms: number | null;
   dropped_lines: number;
+  debug?: TimingDebug;
 }
 
 export type Part =

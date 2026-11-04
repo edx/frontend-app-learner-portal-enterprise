@@ -5,6 +5,7 @@ import {
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import ChatPane from '../ui/chat/ChatPane';
+import DebugPanel from '../ui/debug/DebugPanel';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
 import SavedView from '../ui/saved/SavedView';
@@ -83,9 +84,22 @@ const PersonalizedSearchTab = ({
     />
   );
 
+  const debugPanel = controller.debugEnabled && (
+    <DebugPanel
+      baseUrl={controller.debugBaseUrl}
+      settings={controller.debugSettings}
+      config={controller.debugConfig}
+      configError={controller.debugConfigError}
+      turns={controller.turns}
+      onChange={controller.setDebugSettings}
+      onCopyResults={controller.copyBenchmark}
+    />
+  );
+
   if (controller.unavailable) {
     return (
       <div className="personalized-search py-3">
+        {debugPanel}
         <Alert variant="warning" className="mt-3">
           {intl.formatMessage(messages.notAvailable)}
         </Alert>
@@ -126,6 +140,7 @@ const PersonalizedSearchTab = ({
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
+      {debugPanel}
       {toolbar}
       {overlays}
       {savedView}
