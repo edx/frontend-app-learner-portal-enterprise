@@ -1,0 +1,119 @@
+import type { ReactElement } from 'react';
+
+import { BLOCK_CATALOG_VERSION } from '../core/stream/types';
+import type { Block, PageBlock } from '../core/stream/types';
+import type { ItemLinks } from '../ui/cards/EditorialItemCard';
+import InsightBlock from './InsightBlock';
+import ItemSectionBlock from './ItemSectionBlock';
+import PageHeaderBlock from './PageHeaderBlock';
+import PlanBlock from './PlanBlock';
+
+export interface BlockRenderContext {
+  /** How item cards link to course and program pages (supplied by the host). */
+  links: ItemLinks;
+  itemTitles: Record<string, string>;
+}
+
+/** How one block type renders, and where the learning page puts it. */
+export interface BlockDefinition<P = never> {
+  render: (props: P, ctx: BlockRenderContext) => ReactElement | null;
+  /** `top` blocks share the row above the rest (the page header, the plan); the others stack below. */
+  slot?: 'top' | 'body';
+  /** Classes for the block's wrapper in the top row. */
+  slotClassName?: string;
+}
+
+type CatalogBlocks = {
+  [T in Block['type']]: BlockDefinition<Extract<Block, { type: T }>['props']>;
+};
+
+/** Block catalog v1 (KD-5): `type -> Paragon component`. */
+export const catalogBlocks: CatalogBlocks = {
+  page_header: {
+    render: (props) => <PageHeaderBlock {...props} />,
+    slot: 'top',
+    slotClassName: 'personalized-search__header-col mr-4 mb-3',
+  },
+  item_section: {
+    render: (props, ctx) => (
+      <ItemSectionBlock
+        {...props}
+        links={ctx.links}
+      />
+    ),
+  },
+  insight: { render: (props) => <InsightBlock {...props} /> },
+  plan: {
+    render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
+    slot: 'top',
+    slotClassName: 'personalized-search__plan-col mb-3',
+  },
+};
+
+export interface BlockLayout {
+  /** The first block of each `top` type, in registration order. */
+  top: Array<{ entry: PageBlock; className?: string }>;
+  /** Everything else, in stream order. */
+  body: PageBlock[];
+}
+
+/**
+ * Block renderers for the learning page. Hosts can add or replace block types without forking the
+ * feature: `createBlockRegistry().register('my_block', { render })`. The registry also validates
+ * blocks for the stream reducer, so a block reaches the page only if something can render it.
+ */
+export interface BlockRegistry {
+  /** A new registry with `type` added or replaced (registries are immutable). */
+  register: <P>(type: string, definition: BlockDefinition<P>) => BlockRegistry;
+  get: (type: string) => BlockDefinition<unknown> | undefined;
+  types: () => string[];
+  /** Catalog version matches, the type is registered and `props` is an object. */
+  isRenderable: (block: unknown) => block is Block;
+  layout: (blocks: PageBlock[]) => BlockLayout;
+}
+
+type AnyDefinition = BlockDefinition<unknown>;
+
+export const createBlockRegistry = (
+  definitions: Record<string, unknown> = catalogBlocks,
+): BlockRegistry => {
+  const entries = { ...definitions } as Record<string, AnyDefinition>;
+  const get = (type: string) => (
+    Object.prototype.hasOwnProperty.call(entries, type) ? entries[type] : undefined
+  );
+  return {
+    register: (type, definition) => createBlockRegistry({ ...entries, [type]: definition }),
+    get,
+    types: () => Object.keys(entries),
+    isRenderable: (block: unknown): block is Block => {
+      if (!block || typeof block !== 'object') { return false; }
+      const { v, type, props } = block as { v?: unknown; type?: unknown; props?: unknown };
+      return v === BLOCK_CATALOG_VERSION && typeof type === 'string' && !!get(type)
+        && !!props && typeof props === 'object';
+    },
+    layout: (blocks) => {
+      const top: BlockLayout['top'] = [];
+      Object.keys(entries).filter((type) => entries[type].slot === 'top').forEach((type) => {
+        const entry = blocks.find(({ block }) => block.type === type);
+        if (entry) { top.push({ entry, className: entries[type].slotClassName }); }
+      });
+      const chosen = new Set(top.map(({ entry }) => entry));
+      return { top, body: blocks.filter((entry) => !chosen.has(entry)) };
+    },
+  };
+};
+
+export const defaultBlockRegistry = createBlockRegistry();
+
+type UnvalidatedBlock = Block | { v?: unknown; type?: unknown; props?: unknown };
+
+/** Renders a block, or returns null for an unknown type or version. */
+export const renderBlock = (
+  block: UnvalidatedBlock,
+  ctx: BlockRenderContext,
+  registry: BlockRegistry = defaultBlockRegistry,
+) => {
+  if (!block || block.v !== BLOCK_CATALOG_VERSION || typeof block.type !== 'string') { return null; }
+  const definition = registry.get(block.type);
+  return definition ? definition.render(block.props, ctx) : null;
+};

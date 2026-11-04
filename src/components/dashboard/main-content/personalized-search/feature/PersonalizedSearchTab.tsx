@@ -9,6 +9,8 @@ import { createPersonalizedSearchController } from './usePersonalizedSearchContr
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 import type { PersonalizedSearchDeps } from './deps';
+import { defaultBlockRegistry } from '../blocks/blockRegistry';
+import type { BlockRegistry } from '../blocks/blockRegistry';
 import messages from '../ui/messages';
 import LearningPagePane from '../ui/page/LearningPagePane';
 import type { ChatTransport } from '../core/transports/ChatTransport';
@@ -21,20 +23,26 @@ export interface PersonalizedSearchTabProps {
   deps: PersonalizedSearchDeps;
   /** Tests pass a store to inspect it; otherwise each mounted tab creates its own. */
   store?: PersonalizedSearchStoreApi;
+  /** Block renderers for the learning page; Block catalog v1 by default. */
+  registry?: BlockRegistry;
 }
 
 /**
  * Personalized Search (Chat) tab: chat on one side, the AI-composed learning page on the
  * other (KD-1). Below 768 px, Phase 1 stacks the chat above the page.
  */
-const PersonalizedSearchTab = ({ transport, deps, store }: PersonalizedSearchTabProps) => {
+const PersonalizedSearchTab = ({
+  transport, deps, store, registry = defaultBlockRegistry,
+}: PersonalizedSearchTabProps) => {
   const intl = useIntl();
   const [usePersonalizedSearchController] = useState(() => createPersonalizedSearchController({
     deps,
     store: store ?? createPersonalizedSearchStore(),
+    isRenderableBlock: registry.isRenderable,
   }));
   const controller = usePersonalizedSearchController({ transport });
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
+  const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
 
   if (controller.unavailable) {
     return (
@@ -58,7 +66,16 @@ const PersonalizedSearchTab = ({ transport, deps, store }: PersonalizedSearchTab
       onShowLastRecommendations={controller.showLastRecommendations}
     />
   );
-  const page = <LearningPagePane />;
+  const page = (
+    <LearningPagePane
+      turns={controller.turns}
+      registry={registry}
+      viewedTurnId={controller.viewedTurnId}
+      pageFocusRequest={controller.pageFocusRequest}
+      links={controller.links}
+      reducedMotion={reducedMotion}
+    />
+  );
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'stacked'}>
