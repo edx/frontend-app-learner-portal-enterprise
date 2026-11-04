@@ -5,6 +5,8 @@ import {
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import ChatPane from '../ui/chat/ChatPane';
+import HistoryPanel from '../ui/history/HistoryPanel';
+import PastSearchBanner from '../ui/history/PastSearchBanner';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
@@ -66,7 +68,7 @@ const PersonalizedSearchTab = ({
       viewedTurnId={controller.viewedTurnId}
       pageFocusRequest={controller.pageFocusRequest}
       links={controller.links}
-      reducedMotion={reducedMotion}
+      reducedMotion={reducedMotion || controller.mode === 'past'}
     />
   );
 
@@ -80,8 +82,30 @@ const PersonalizedSearchTab = ({
     );
   }
 
+  const toolbar = (
+    <Stack direction="horizontal" gap={2} className="justify-content-end mb-2 personalized-search__toolbar">
+      <Button variant="outline-primary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
+        {intl.formatMessage(messages.history)}
+      </Button>
+    </Stack>
+  );
+  const overlays = (
+    <HistoryPanel
+      history={controller.history}
+      busy={controller.busy}
+      onClose={controller.closeHistory}
+      onLoadMore={controller.loadMoreHistory}
+      onOpenSession={controller.openSession}
+    />
+  );
+
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
+      {toolbar}
+      {overlays}
+      {controller.mode === 'past' && controller.pastSessionCreated && (
+        <PastSearchBanner created={controller.pastSessionCreated} />
+      )}
       {isWide ? (
         <Row>
           <Col md={5} className="personalized-search__chat-col">{chat}</Col>

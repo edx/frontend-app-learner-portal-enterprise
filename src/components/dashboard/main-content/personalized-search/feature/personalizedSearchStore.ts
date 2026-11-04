@@ -2,8 +2,15 @@ import { createStore } from 'zustand/vanilla';
 
 import { getInitialChatStreamState } from '../core/stream/applyPart';
 import type { ChatStreamState } from '../core/stream/types';
+import type { HistoryState } from '../core/state';
+
+export type { HistoryState };
 
 export type MobilePane = 'chat' | 'page';
+
+const initialHistory = (): HistoryState => ({
+  open: false, items: [], page: 0, hasMore: false, loading: false, error: false,
+});
 
 export interface PersonalizedSearchState {
   /** Chat turns and session, folded from stream parts by `applyPart`. */
@@ -20,6 +27,11 @@ export interface PersonalizedSearchState {
   announcement: string;
   /** Below 768 px one pane shows at a time (REQ-011). */
   mobilePane: MobilePane;
+  /** `past` while a reopened session is shown unchanged; the first send switches back to `live`. */
+  mode: 'live' | 'past';
+  /** When the reopened session was created, for the "Past search · {date}" banner. */
+  pastSessionCreated: string | null;
+  history: HistoryState;
   /**
    * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
    * while a newer page exists and the page pane is hidden; deriving it from this, rather than
@@ -36,6 +48,8 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
   setMobilePane: (pane: MobilePane) => void;
+  setMode: (mode: 'live' | 'past', pastSessionCreated?: string | null) => void;
+  setHistory: (changes: Partial<HistoryState>) => void;
   setSeenPageTurnId: (turnId: string | null) => void;
   reset: () => void;
 }
@@ -48,6 +62,9 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   unavailable: false,
   announcement: '',
   mobilePane: 'chat',
+  mode: 'live',
+  pastSessionCreated: null,
+  history: initialHistory(),
   seenPageTurnId: null,
 });
 
@@ -65,6 +82,8 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
   setUnavailable: (unavailable) => set({ unavailable }),
   setAnnouncement: (announcement) => set({ announcement }),
   setMobilePane: (mobilePane) => set({ mobilePane }),
+  setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
+  setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
   setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   reset: () => set(getInitialPersonalizedSearchState()),
 }));
