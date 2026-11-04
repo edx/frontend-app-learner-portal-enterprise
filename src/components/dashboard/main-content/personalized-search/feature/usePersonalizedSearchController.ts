@@ -13,12 +13,29 @@ import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { ItemCard } from '../core/stream/types';
 import type { ChatTransport } from '../core/transports/ChatTransport';
+import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
+import type { DebugOverrides } from '../core/transports/SseChatTransport';
+import type { BenchmarkRow } from '../core/debug/benchmark';
 import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
 import {
   itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
 } from '../core/workflows';
-import type { MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+
+/** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
+export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
+  const overrides: DebugOverrides = {};
+  if (settings.intentModel) {
+    overrides.intent_model = settings.intentModel;
+    overrides.intent_effort = settings.intentEffort;
+  }
+  if (settings.composeModel) {
+    overrides.compose_model = settings.composeModel;
+    overrides.compose_effort = settings.composeEffort;
+  }
+  return Object.keys(overrides).length ? overrides : null;
+};
 
 export interface PersonalizedSearchControllerOptions {
   deps: PersonalizedSearchDeps;
@@ -44,15 +61,25 @@ export const createPersonalizedSearchController = ({
     const enterpriseCustomerUuid = enterpriseCustomer.uuid;
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
-    const transport = useMemo(
-      () => injected ?? deps.createTransport(),
-      [injected],
+    const debugEnabled = deps.debug.useDebugRequested();
+    const getDebugOverrides = useCallback(() => (
+      debugEnabled ? toDebugOverrides(storeApi.getState().debugSettings) : null
+    ), [debugEnabled]);
+    const configuredTransport = useMemo(
+      () => injected ?? deps.createTransport(getDebugOverrides),
+      [injected, getDebugOverrides],
     );
+    // Debug mode's AI switch: live enterprise-access turns, or the canned fixture turns.
+    const liveTransport = useMemo(
+      () => injected ?? deps.debug.createLiveTransport(getDebugOverrides),
+      [injected, getDebugOverrides],
+    );
+    const fixtureTransport = useMemo(() => injected ?? new FixtureChatTransport(), [injected]);
     const abortRef = useRef<AbortController | null>(null);
 
     const {
       stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
-      mobilePane, seenPageTurnId, mode, pastSessionCreated, history,
+      mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
       feedback, savedOpen, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
@@ -69,6 +96,9 @@ export const createPersonalizedSearchController = ({
       feedback: state.feedback,
       savedOpen: state.savedOpen,
       feedbackLoaded: state.feedbackLoaded,
+      debugSettings: state.debugSettings,
+      debugConfig: state.debugConfig,
+      debugConfigError: state.debugConfigError,
     })));
 
     // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
@@ -82,6 +112,26 @@ export const createPersonalizedSearchController = ({
       }
     }, [pageOnScreen, newestPicksTurnId, seenPageTurnId]);
     const hasNewPicks = !pageOnScreen && newestPicksTurnId !== null && newestPicksTurnId !== seenPageTurnId;
+
+    let transport = configuredTransport;
+    if (debugEnabled) {
+      transport = debugSettings.live ? liveTransport : fixtureTransport;
+    }
+    const debugBaseUrl = debugEnabled ? deps.debug.getApiBaseUrl() : null;
+
+    // Load the server's model menu once per page view in debug mode.
+    useEffect(() => {
+      if (!debugEnabled || !debugBaseUrl || !enterpriseCustomerUuid
+          || storeApi.getState().debugConfig !== undefined) {
+        return;
+      }
+      deps.debug.fetchDebugConfig(enterpriseCustomerUuid)
+        .then((config) => storeApi.getState().setDebugConfig(config))
+        .catch((e) => {
+          deps.logError(e);
+          storeApi.getState().setDebugConfig(null, intl.formatMessage(messages.debugMenuError));
+        });
+    }, [debugEnabled, debugBaseUrl, enterpriseCustomerUuid, intl]);
 
     const busy = stream.activeTurnId !== null;
 
@@ -268,6 +318,24 @@ export const createPersonalizedSearchController = ({
       storeApi.getState().setDraft(value);
     }, []);
 
+    const setDebugSettings = useCallback((changes: Partial<DebugSettings>) => {
+      const store = storeApi.getState();
+      store.setDebugSettings(changes);
+      // Switching backends retries availability: the other backend may answer.
+      if (changes.live !== undefined) { store.setUnavailable(false); }
+    }, []);
+
+    const copyBenchmark = useCallback(async (rows: BenchmarkRow[]) => {
+      const store = storeApi.getState();
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(rows, null, 2));
+        store.setAnnouncement(intl.formatMessage(messages.debugCopied, { count: rows.length }));
+      } catch (e) {
+        deps.logError(e);
+        store.setAnnouncement(intl.formatMessage(messages.debugCopyFailed));
+      }
+    }, [intl]);
+
     return {
       enterpriseCustomerUuid,
       enterpriseSlug,
@@ -312,6 +380,13 @@ export const createPersonalizedSearchController = ({
       openSaved,
       closeSaved,
       setDraft,
+      debugEnabled,
+      debugBaseUrl,
+      debugSettings,
+      debugConfig,
+      debugConfigError,
+      setDebugSettings,
+      copyBenchmark,
     };
   };
   return usePersonalizedSearchController;

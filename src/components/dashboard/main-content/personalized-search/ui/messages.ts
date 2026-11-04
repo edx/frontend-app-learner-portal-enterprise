@@ -321,6 +321,21 @@ const messages = defineMessages({
     defaultMessage: 'Personalized Search isn\'t available right now',
     description: 'Shown when the Personalized Search backend is off or the learner lacks access.',
   },
+  debugMenuError: {
+    id: 'learner.personalizedSearch.debug.menuError',
+    defaultMessage: 'Could not load the model menu.',
+    description: 'Debug panel (?debug=true): the model menu request failed.',
+  },
+  debugCopied: {
+    id: 'learner.personalizedSearch.debug.copied',
+    defaultMessage: 'Copied {count} benchmark rows.',
+    description: 'Debug panel (?debug=true): announced after copying benchmark results.',
+  },
+  debugCopyFailed: {
+    id: 'learner.personalizedSearch.debug.copyFailed',
+    defaultMessage: 'Could not copy the benchmark rows.',
+    description: 'Debug panel (?debug=true): copying benchmark results failed.',
+  },
 });
 
 export default messages;

@@ -6,7 +6,18 @@ import {
 import type { ChatTransport, SendTurnOptions } from './ChatTransport';
 import type { ApiOptions, GetHttpClient } from '../http';
 
-export type SseChatTransportOptions = ApiOptions;
+/** Per-turn model overrides; enterprise-access honours them only when its debug setting is on. */
+export interface DebugOverrides {
+  intent_model?: string;
+  intent_effort?: string | null;
+  compose_model?: string;
+  compose_effort?: string | null;
+}
+
+export interface SseChatTransportOptions extends ApiOptions {
+  /** Overrides to send with each turn (the debug panel), or null. */
+  getDebugOverrides?: () => DebugOverrides | null;
+}
 
 const readErrorCode = async (response: Response): Promise<string | null> => {
   try {
@@ -28,13 +39,17 @@ export class SseChatTransport implements ChatTransport {
 
   private readonly getBaseUrl: () => string;
 
-  constructor({ getHttpClient, getBaseUrl }: SseChatTransportOptions) {
+  private readonly getDebugOverrides: () => DebugOverrides | null;
+
+  constructor({ getHttpClient, getBaseUrl, getDebugOverrides = () => null }: SseChatTransportOptions) {
     this.getHttpClient = getHttpClient;
     this.getBaseUrl = getBaseUrl;
+    this.getDebugOverrides = getDebugOverrides;
   }
 
   async* send({ request, signal }: SendTurnOptions): AsyncGenerator<Part, void, undefined> {
     const baseUrl = this.getBaseUrl();
+    const debug = this.getDebugOverrides();
     let response: Response;
     try {
       const { data } = await this.getHttpClient().get(`${baseUrl}/csrf/api/v1/token`, { signal });
@@ -47,7 +62,7 @@ export class SseChatTransport implements ChatTransport {
           'USE-JWT-COOKIE': 'true',
           'X-CSRFToken': data?.csrfToken ?? '',
         },
-        body: JSON.stringify(toTurnRequestBody(request)),
+        body: JSON.stringify({ ...toTurnRequestBody(request), ...(debug ? { debug } : {}) }),
         signal,
       });
     } catch (e) {
