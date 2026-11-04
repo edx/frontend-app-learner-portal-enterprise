@@ -6,6 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
 import { MemoryRouter } from 'react-router-dom';
+import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
@@ -24,9 +25,11 @@ import {
   DASHBOARD_COURSES_TAB,
   DASHBOARD_MY_CAREER_TAB,
   DASHBOARD_PATHWAYS_TAB,
+  DASHBOARD_PERSONALIZED_SEARCH_TAB,
   DASHBOARD_PROGRAMS_TAB,
 } from './constants';
 import { LearnerPathwaysTab } from '../main-content/learner-pathways';
+import { PersonalizedSearchTab } from '../main-content/personalized-search';
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
@@ -220,6 +223,68 @@ describe('useDashboardTabs', () => {
 
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       expect(getPathwaysTabBetaBadge(result.current.tabs)).toBeFalsy();
+    });
+  });
+
+  describe('personalized search tab', () => {
+    const ALLOWLISTED_UUID = 'b1f2b4e6-5a3c-4f7b-9d1e-2c3b4a5d6e7f';
+
+    const enableLearnerPathways = () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    };
+
+    it('appears immediately after the Pathways tab when Learner Pathways is enabled, keeping existing order', () => {
+      enableLearnerPathways();
+      useEnterpriseCustomer.mockReturnValue({
+        data: enterpriseCustomerFactory({ enable_pathways: true, enable_programs: true }),
+      });
+      features.FEATURE_ENABLE_MY_CAREER = true;
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).toEqual([
+        DASHBOARD_COURSES_TAB,
+        DASHBOARD_PROGRAMS_TAB,
+        DASHBOARD_PATHWAYS_TAB,
+        DASHBOARD_PERSONALIZED_SEARCH_TAB,
+        DASHBOARD_MY_CAREER_TAB,
+      ]);
+    });
+
+    it('has a Beta badge in its title', () => {
+      enableLearnerPathways();
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      expect(tab.props.title.props.children[1].props.children).toBe('Beta');
+    });
+
+    it('is absent when the operator flag is off', () => {
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+    });
+
+    it('is absent when the customer is not in the allowlist', () => {
+      enableLearnerPathways();
+      mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+    });
+
+    it('renders PersonalizedSearchTab and sends its own page-visit event when selected', () => {
+      enableLearnerPathways();
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      });
+      expect(result.current.activeTab).toBe(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      expect(tab.props.children.type).toBe(PersonalizedSearchTab);
+      expect(sendPageEvent).toHaveBeenLastCalledWith(
+        'enterprise_learner_portal',
+        'edx.ui.enterprise.learner_portal.personalized_search_tab.page_visit',
+        expect.objectContaining({ tab: DASHBOARD_PERSONALIZED_SEARCH_TAB }),
+      );
     });
   });
 
