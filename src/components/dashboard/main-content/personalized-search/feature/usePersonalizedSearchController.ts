@@ -1,10 +1,16 @@
-import { useMemo } from 'react';
+import {
+  useCallback, useEffect, useMemo, useRef,
+} from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { v4 as uuidv4 } from 'uuid';
 import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
+import { isSendableMessage } from '../core/selectors';
+import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { PersonalizedSearchDeps } from './deps';
+import { sendTurnWorkflow } from '../core/workflows';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
 export interface PersonalizedSearchControllerOptions {
@@ -21,15 +27,30 @@ export interface PersonalizedSearchControllerOptions {
 export const createPersonalizedSearchController = ({
   deps, store: storeApi,
 }: PersonalizedSearchControllerOptions) => {
-  const usePersonalizedSearchController = () => {
+  const usePersonalizedSearchController = (
+    { transport: injected }: { transport?: ChatTransport } = {},
+  ) => {
     const intl = useIntl();
     const enterpriseCustomer = deps.useEnterpriseContext();
-    const transport = useMemo(() => deps.createTransport(), []);
+    const enterpriseCustomerUuid = enterpriseCustomer.uuid;
+    const transport = useMemo(
+      () => injected ?? deps.createTransport(),
+      [injected],
+    );
+    const abortRef = useRef<AbortController | null>(null);
 
-    const { stream, unavailable } = useStore(storeApi, useShallow((state) => ({
+    const {
+      stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
+    } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
+      viewedTurnId: state.viewedTurnId,
+      pageFocusRequest: state.pageFocusRequest,
+      draft: state.draft,
       unavailable: state.unavailable,
+      announcement: state.announcement,
     })));
+
+    const busy = stream.activeTurnId !== null;
 
     const openingChips = useMemo(() => [
       intl.formatMessage(messages.chipLeadership),
@@ -38,12 +59,78 @@ export const createPersonalizedSearchController = ({
       intl.formatMessage(messages.chipQuick),
     ], [intl]);
 
+    // Abort an in-flight turn when the tab unmounts.
+    useEffect(() => () => abortRef.current?.abort(), []);
+
+    const send = useCallback(async (rawMessage: string) => {
+      const store = storeApi.getState();
+      const message = rawMessage.trim();
+      if (!enterpriseCustomerUuid || store.stream.activeTurnId || !isSendableMessage(message)) {
+        return;
+      }
+      const controller = new AbortController();
+      abortRef.current = controller;
+      store.setDraft('');
+      store.setViewedTurnId(null);
+      store.setAnnouncement('');
+
+      const result = await sendTurnWorkflow({
+        transport,
+        request: {
+          enterpriseCustomerUuid,
+          sessionUuid: store.stream.session.sessionUuid,
+          message,
+        },
+        localId: uuidv4(),
+        signal: controller.signal,
+        dispatch: store.setStream,
+      });
+
+      if (abortRef.current === controller) { abortRef.current = null; }
+      if (result.outcome === 'done') {
+        storeApi.getState().setAnnouncement(
+          intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }),
+        );
+      }
+    }, [enterpriseCustomerUuid, intl, transport]);
+
+    const newChat = useCallback(() => {
+      abortRef.current?.abort();
+      storeApi.getState().reset();
+    }, []);
+
+    const viewPage = useCallback((turnId: string) => {
+      storeApi.getState().setViewedTurnId(turnId);
+    }, []);
+
+    const showLastRecommendations = useCallback((turnId: string) => {
+      const store = storeApi.getState();
+      store.setViewedTurnId(turnId);
+      store.requestPageFocus();
+    }, []);
+
+    const setDraft = useCallback((value: string) => {
+      storeApi.getState().setDraft(value);
+    }, []);
+
     return {
-      enterpriseCustomerUuid: enterpriseCustomer.uuid,
+      enterpriseCustomerUuid,
+      enterpriseSlug: enterpriseCustomer.slug,
       transport,
       turns: stream.turns,
+      session: stream.session,
+      busy,
+      viewedTurnId,
+      pageFocusRequest,
+      draft,
       unavailable,
+      announcement,
       openingChips,
+      send,
+      newChat,
+      viewPage,
+      showLastRecommendations,
+      setDraft,
     };
   };
   return usePersonalizedSearchController;
