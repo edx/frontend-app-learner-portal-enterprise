@@ -364,6 +364,17 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
         {
           "block": {
             "props": {
+              "body": "New leads grow fastest by practising feedback.",
+              "title": "Start with people skills",
+            },
+            "type": "insight",
+            "v": 1,
+          },
+          "id": "blk_4",
+        },
+        {
+          "block": {
+            "props": {
               "steps": [
                 {
                   "item_id": "edX+C1",
@@ -378,7 +389,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "plan",
             "v": 1,
           },
-          "id": "blk_4",
+          "id": "blk_5",
         },
       ],
       "error": null,
@@ -398,7 +409,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
       "text": "Here are picks for leading a team.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 5850,
+        "complete_ms": 6600,
         "dropped_lines": 0,
         "first_section_ms": 3000,
         "first_text_ms": 400,
