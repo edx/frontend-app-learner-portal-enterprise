@@ -18,3 +18,18 @@ export const previousPageTurnId = (turns: AssistantTurn[], index: number): strin
   }
   return null;
 };
+
+/**
+ * The turn whose page is shown: the viewed turn if it has a page, else the latest turn with a
+ * page. Off-topic, text-only, stopped and errored turns have no blocks, so the previous page stays.
+ */
+export const selectPageTurn = (turns: AssistantTurn[], viewedTurnId: string | null): AssistantTurn | null => {
+  if (viewedTurnId) {
+    const viewed = turns.find((turn) => turn.localId === viewedTurnId);
+    if (viewed && viewed.blocks.length > 0) { return viewed; }
+  }
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    if (turns[i].blocks.length > 0) { return turns[i]; }
+  }
+  return null;
+};
