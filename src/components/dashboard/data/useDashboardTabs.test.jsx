@@ -229,13 +229,13 @@ describe('useDashboardTabs', () => {
   describe('personalized search tab', () => {
     const ALLOWLISTED_UUID = 'b1f2b4e6-5a3c-4f7b-9d1e-2c3b4a5d6e7f';
 
-    const enableLearnerPathways = () => {
+    const enablePersonalizedSearch = () => {
       useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
-      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: true } });
     };
 
-    it('appears immediately after the Pathways tab when Learner Pathways is enabled, keeping existing order', () => {
-      enableLearnerPathways();
+    it('appears immediately after the Pathways tab when its flag is on, keeping existing order', () => {
+      enablePersonalizedSearch();
       useEnterpriseCustomer.mockReturnValue({
         data: enterpriseCustomerFactory({ enable_pathways: true, enable_programs: true }),
       });
@@ -251,28 +251,30 @@ describe('useDashboardTabs', () => {
     });
 
     it('has a Beta badge in its title', () => {
-      enableLearnerPathways();
+      enablePersonalizedSearch();
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
       expect(tab.props.title.props.children[1].props.children).toBe('Beta');
     });
 
-    it('is absent when the operator flag is off', () => {
+    it('is absent when its flag is off, even with the Learner Pathways operator flag on', () => {
       useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
-      useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: false } });
+      useEnterpriseFeatures.mockReturnValue({
+        data: { enterpriseAiPathwaysOperatorEnabled: true, enterprisePersonalizedSearchEnabled: false },
+      });
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
     });
 
-    it('is absent when the customer is not in the allowlist', () => {
-      enableLearnerPathways();
+    it('does not depend on the Learner Pathways customer allowlist', () => {
+      enablePersonalizedSearch();
       mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
-      expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
     });
 
     it('renders PersonalizedSearchTab and sends its own page-visit event when selected', () => {
-      enableLearnerPathways();
+      enablePersonalizedSearch();
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       act(() => {
         result.current.onSelectHandler(DASHBOARD_PERSONALIZED_SEARCH_TAB);

@@ -71,6 +71,8 @@ const useDashboardTabs = () => {
   const hasExistingPathways = enterprisePathways.length > 0;
   const hasPathwaysTab = enablePathways && (isLearnerPathwaysEnabled || hasExistingPathways);
   const showLearnerPathwaysAlert = enablePathways && isLearnerPathwaysEnabled;
+  // Personalized Search has its own per-learner flag (edx-enterprise `enterprise.personalized_search_enabled`).
+  const isPersonalizedSearchEnabled = !!enterpriseFeatures?.enterprisePersonalizedSearchEnabled;
 
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
@@ -90,8 +92,8 @@ const useDashboardTabs = () => {
       isAvailable: hasPathwaysTab,
     },
     [DASHBOARD_PERSONALIZED_SEARCH_TAB]: {
-      isVisible: isLearnerPathwaysEnabled,
-      isAvailable: isLearnerPathwaysEnabled,
+      isVisible: isPersonalizedSearchEnabled,
+      isAvailable: isPersonalizedSearchEnabled,
     },
     [DASHBOARD_MY_CAREER_TAB]: {
       isVisible: enableMyCareer,
@@ -103,7 +105,7 @@ const useDashboardTabs = () => {
     enablePrograms,
     enterprisePrograms.length,
     hasPathwaysTab,
-    isLearnerPathwaysEnabled,
+    isPersonalizedSearchEnabled,
   ]);
 
   const activeTab = tabState[requestedTab]?.isAvailable
