@@ -191,6 +191,26 @@ const messages = defineMessages({
     defaultMessage: 'Your learning page is empty. Tell me what you want to learn and I\'ll build it.',
     description: 'Shown in the learning page pane before the first turn.',
   },
+  paneToggle: {
+    id: 'learner.personalizedSearch.paneToggle.label',
+    defaultMessage: 'Show the chat or your learning page',
+    description: 'Accessible label for the chat/page toggle shown below 768 px.',
+  },
+  paneChat: {
+    id: 'learner.personalizedSearch.paneToggle.chat',
+    defaultMessage: 'Chat',
+    description: 'Toggle button that shows the chat pane on small screens.',
+  },
+  panePage: {
+    id: 'learner.personalizedSearch.paneToggle.page',
+    defaultMessage: 'Page',
+    description: 'Toggle button that shows the learning page pane on small screens.',
+  },
+  newPicks: {
+    id: 'learner.personalizedSearch.paneToggle.newPicks',
+    defaultMessage: 'New picks',
+    description: 'Badge on the Page toggle when the learning page has picks the learner has not seen yet.',
+  },
   notAvailable: {
     id: 'learner.personalizedSearch.error.notAvailable',
     defaultMessage: 'Personalized Search isn\'t available right now',

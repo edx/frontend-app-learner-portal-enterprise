@@ -19,6 +19,14 @@ export const previousPageTurnId = (turns: AssistantTurn[], index: number): strin
   return null;
 };
 
+/** The newest turn that put item picks on the page, or null ("New picks", REQ-011). */
+export const latestPicksTurnId = (turns: AssistantTurn[]): string | null => {
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    if (turns[i].blocks.some(({ block }) => block.type === 'item_section')) { return turns[i].localId; }
+  }
+  return null;
+};
+
 /**
  * The turn whose page is shown: the viewed turn if it has a page, else the latest turn with a
  * page. Off-topic, text-only, stopped and errored turns have no blocks, so the previous page stays.
