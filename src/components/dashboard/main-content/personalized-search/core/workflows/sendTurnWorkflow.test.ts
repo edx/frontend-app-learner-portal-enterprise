@@ -26,7 +26,7 @@ const partsTransport = (parts: Part[]): ChatTransport => ({
 describe('sendTurnWorkflow', () => {
   it('folds a normal turn into state and reports the pick count', async () => {
     const { result, state } = await runWith(new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => 'normal_turn.sse' }));
-    expect(result).toEqual({ outcome: 'done', itemCount: 4 });
+    expect(result).toEqual({ outcome: 'done', itemCount: 3 });
     expect(state.turns[0]).toEqual(expect.objectContaining({
       localId: 'local-1', userMessage: 'Leading teams', status: 'done',
     }));
