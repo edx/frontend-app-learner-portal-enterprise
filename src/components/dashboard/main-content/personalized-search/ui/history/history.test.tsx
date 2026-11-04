@@ -141,7 +141,7 @@ describe('History panel (chunk 29)', () => {
     await user.click(within(panel).getByRole('button', { name: 'Becoming a team lead' }));
     expect(await screen.findByText(/^Past search · Oct 29, 2026/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Past searches' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Becoming a confident team lead' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
     expect(container.querySelector('.personalized-search__block--enter')).toBeNull(); // no animation
 
     await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter');
