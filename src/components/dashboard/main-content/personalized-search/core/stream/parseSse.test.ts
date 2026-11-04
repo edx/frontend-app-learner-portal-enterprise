@@ -20,13 +20,19 @@ describe('parseSse', () => {
   it('yields the same parts when the stream is split at every byte offset', async () => {
     const bytes = readGoldenBytes('normal_turn.sse');
     const expected = await collect(parseSse(streamFromBytes(bytes)));
-    // The fixture includes multi-byte characters ("·"), so some offsets fall mid-character.
-    expect(bytes.length).toBeGreaterThan(new TextDecoder().decode(bytes).length);
     for (let offset = 1; offset < bytes.length; offset += 1) {
       // eslint-disable-next-line no-await-in-loop
       const parts = await collect(parseSse(streamFromBytes(bytes, [offset])));
       expect(parts).toEqual(expected);
     }
+  });
+
+  it('decodes raw multi-byte characters split across reads', async () => {
+    // enterprise-access escapes non-ASCII in JSON, but raw UTF-8 is valid on the wire too.
+    const bytes = new TextEncoder().encode('data: {"type":"text-delta","id":"reply","delta":"Courses · 2 picks"}\n\ndata: [DONE]\n\n');
+    const cut = bytes.indexOf(0xc2) + 1; // inside the two-byte "·"
+    const parts = await collect(parseSse(streamFromBytes(bytes, [cut])));
+    expect(parts).toEqual([{ type: 'text-delta', id: 'reply', delta: 'Courses · 2 picks' }]);
   });
 
   it('yields the same parts when every byte arrives separately', async () => {
