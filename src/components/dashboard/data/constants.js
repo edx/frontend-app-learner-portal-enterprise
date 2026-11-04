@@ -14,12 +14,14 @@ export const DASHBOARD_COURSES_TAB = 'courses';
 export const DASHBOARD_PROGRAMS_TAB = 'programs';
 export const DASHBOARD_PATHWAYS_TAB = 'pathways';
 export const DASHBOARD_MY_CAREER_TAB = 'my-career';
+export const DASHBOARD_PERSONALIZED_SEARCH_TAB = 'personalized-search';
 
 export const DASHBOARD_TABS_SEGMENT_KEY = {
   [DASHBOARD_COURSES_TAB]: 'courses_tab',
   [DASHBOARD_PROGRAMS_TAB]: 'programs_tab',
   [DASHBOARD_PATHWAYS_TAB]: 'pathways_tab',
   [DASHBOARD_MY_CAREER_TAB]: 'career_tab',
+  [DASHBOARD_PERSONALIZED_SEARCH_TAB]: 'personalized_search_tab',
 };
 
 export const BUDGET_STATUSES = {

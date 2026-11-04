@@ -356,7 +356,8 @@ describe('<Dashboard />', () => {
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
     useEnterprisePathwaysList.mockReturnValue({ data: camelCaseObject(learnerPathwayData) });
     renderWithRouter(<DashboardWithContext />);
-    expect(within(screen.getByRole('tablist')).getByText('Beta')).toBeInTheDocument();
+    // The Personalized Search tab carries its own Beta badge, so scope to the Pathways tab.
+    expect(within(screen.getByText('Pathways').closest('[role="tab"]')).getByText('Beta')).toBeInTheDocument();
 
     await user.click(screen.getByText('Pathways'));
 
