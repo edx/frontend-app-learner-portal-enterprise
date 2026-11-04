@@ -11,9 +11,13 @@ import messages from '../ui/messages';
 import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
+import type { ItemCard } from '../core/stream/types';
 import type { ChatTransport } from '../core/transports/ChatTransport';
+import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
-import { loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow } from '../core/workflows';
+import {
+  itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
+} from '../core/workflows';
 import type { MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
 export interface PersonalizedSearchControllerOptions {
@@ -49,6 +53,7 @@ export const createPersonalizedSearchController = ({
     const {
       stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
       mobilePane, seenPageTurnId, mode, pastSessionCreated, history,
+      feedback, savedOpen, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
@@ -61,6 +66,9 @@ export const createPersonalizedSearchController = ({
       mode: state.mode,
       pastSessionCreated: state.pastSessionCreated,
       history: state.history,
+      feedback: state.feedback,
+      savedOpen: state.savedOpen,
+      feedbackLoaded: state.feedbackLoaded,
     })));
 
     // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
@@ -156,6 +164,41 @@ export const createPersonalizedSearchController = ({
       store.setViewedTurnId(turnId);
       store.setMobilePane('page');
     }, []);
+
+    // Saved and dismissed items (REQ-009), loaded once, lazily: when the page first has picks to mark
+    // or hide, or when the Saved view opens, so the opening state makes no network request.
+    useEffect(() => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.feedbackLoaded || !(newestPicksTurnId || savedOpen)) { return; }
+      store.setFeedbackLoaded(true);
+      loadFeedbackWorkflow(deps.feedbackApi, enterpriseCustomerUuid).then((loaded) => {
+        storeApi.getState().setFeedback((f) => ({ ...f, ...loaded }));
+      }).catch((e) => deps.logError(e));
+    }, [enterpriseCustomerUuid, newestPicksTurnId, savedOpen]);
+
+    const runFeedback = useCallback(async (action: FeedbackAction) => {
+      if (!enterpriseCustomerUuid) { return; }
+      const { sessionUuid } = storeApi.getState().stream.session;
+      await itemFeedbackWorkflow(action, {
+        api: {
+          add: (kind, item) => deps.feedbackApi.addFeedback(enterpriseCustomerUuid, kind, item, sessionUuid),
+          remove: (kind, itemId) => deps.feedbackApi.removeFeedback(enterpriseCustomerUuid, kind, itemId),
+        },
+        update: (fn) => storeApi.getState().setFeedback(fn),
+        getState: () => storeApi.getState().feedback,
+      });
+    }, [enterpriseCustomerUuid]);
+
+    const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
+    const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
+    const toggleSave = useCallback((item: ItemCard) => runFeedback({ type: 'toggleSave', item }), [runFeedback]);
+    const dismiss = useCallback((item: ItemCard) => runFeedback({ type: 'dismiss', item }), [runFeedback]);
+    const undoDismiss = useCallback(() => runFeedback({ type: 'undoDismiss' }), [runFeedback]);
+    const clearFeedbackNotice = useCallback(() => {
+      storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
+    }, []);
+    const openSaved = useCallback(() => storeApi.getState().setSavedOpen(true), []);
+    const closeSaved = useCallback(() => storeApi.getState().setSavedOpen(false), []);
 
     const loadHistoryPage = useCallback(async (page: number) => {
       const store = storeApi.getState();
@@ -257,6 +300,17 @@ export const createPersonalizedSearchController = ({
       closeHistory,
       loadMoreHistory,
       openSession,
+      feedback,
+      feedbackLoaded,
+      savedIds,
+      dismissedIds,
+      savedOpen,
+      toggleSave,
+      dismiss,
+      undoDismiss,
+      clearFeedbackNotice,
+      openSaved,
+      closeSaved,
       setDraft,
     };
   };
