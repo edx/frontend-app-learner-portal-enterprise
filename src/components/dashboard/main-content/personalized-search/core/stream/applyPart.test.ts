@@ -47,7 +47,7 @@ describe('applyPart', () => {
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
     expect(turn.text).toBe('Here are picks for leading a team.');
-    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'plan']);
+    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();
