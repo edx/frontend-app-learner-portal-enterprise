@@ -117,14 +117,14 @@ describe('LearningPagePane', () => {
     unmount();
 
     renderPane(turns, { viewedTurnId: 'turn-1' });
-    expect(screen.getByText('Becoming a confident team lead')).toBeInTheDocument();
+    expect(screen.getByText('Lead with confidence')).toBeInTheDocument();
   });
 
   it('keeps the previous page for off-topic and text-only turns', () => {
     const { turns } = runTurns(['normal_turn.sse', 'off_topic_turn.sse', 'no_match_turn.sse']);
     const { container } = renderPane(turns);
     expect(container.querySelector('section')).toHaveAttribute('data-turn-id', 'turn-1');
-    expect(screen.getByText('Becoming a confident team lead')).toBeInTheDocument();
+    expect(screen.getByText('Lead with confidence')).toBeInTheDocument();
   });
 
   it('renders nothing for an unknown block type or version', () => {
@@ -257,10 +257,9 @@ describe('LearningPagePane', () => {
     renderPane(turns);
     const links = screen.getAllByRole('link');
     expect(links.map((l) => l.textContent)).toEqual([
-      'Leading High-Performing Teams',
-      'Communicating with Influence',
-      'Strategic Thinking for Managers',
-      'Professional Certificate in Management',
+      'Course edX+C1',
+      'Course edX+C2',
+      'Program p-1',
     ]);
     for (let i = 0; i < links.length; i += 1) {
       // eslint-disable-next-line no-await-in-loop
@@ -268,7 +267,7 @@ describe('LearningPagePane', () => {
       expect(links[i]).toHaveFocus();
     }
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d`);
+    expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-1`);
   });
 
   it('adds the entrance transition only when reduced motion is not requested', () => {
