@@ -3,6 +3,8 @@ import { createStore } from 'zustand/vanilla';
 import { getInitialChatStreamState } from '../core/stream/applyPart';
 import type { ChatStreamState } from '../core/stream/types';
 
+export type MobilePane = 'chat' | 'page';
+
 export interface PersonalizedSearchState {
   /** Chat turns and session, folded from stream parts by `applyPart`. */
   stream: ChatStreamState;
@@ -16,6 +18,14 @@ export interface PersonalizedSearchState {
   unavailable: boolean;
   /** Polite live-region text announced when a turn finishes. */
   announcement: string;
+  /** Below 768 px one pane shows at a time (REQ-011). */
+  mobilePane: MobilePane;
+  /**
+   * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
+   * while a newer page exists and the page pane is hidden; deriving it from this, rather than
+   * storing a flag, means a stopped or failed turn that discards its blocks can't leave it stale.
+   */
+  seenPageTurnId: string | null;
 }
 
 export interface PersonalizedSearchStore extends PersonalizedSearchState {
@@ -25,6 +35,8 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setDraft: (draft: string) => void;
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
+  setMobilePane: (pane: MobilePane) => void;
+  setSeenPageTurnId: (turnId: string | null) => void;
   reset: () => void;
 }
 
@@ -35,6 +47,8 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   draft: '',
   unavailable: false,
   announcement: '',
+  mobilePane: 'chat',
+  seenPageTurnId: null,
 });
 
 /**
@@ -50,6 +64,8 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
   setDraft: (draft) => set({ draft }),
   setUnavailable: (unavailable) => set({ unavailable }),
   setAnnouncement: (announcement) => set({ announcement }),
+  setMobilePane: (mobilePane) => set({ mobilePane }),
+  setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   reset: () => set(getInitialPersonalizedSearchState()),
 }));
 
