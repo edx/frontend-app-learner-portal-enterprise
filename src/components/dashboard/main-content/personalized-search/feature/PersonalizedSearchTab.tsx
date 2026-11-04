@@ -11,9 +11,12 @@ import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 import type { PersonalizedSearchDeps } from './deps';
 import messages from '../ui/messages';
 import LearningPagePane from '../ui/page/LearningPagePane';
+import type { ChatTransport } from '../core/transports/ChatTransport';
 import '../ui/styles/index.scss';
 
 export interface PersonalizedSearchTabProps {
+  /** Tests inject a transport; the app selects one from PERSONALIZED_SEARCH_TRANSPORT. */
+  transport?: ChatTransport;
   /** What the feature needs from its host (the learner portal passes `portalDeps`). */
   deps: PersonalizedSearchDeps;
   /** Tests pass a store to inspect it; otherwise each mounted tab creates its own. */
@@ -24,13 +27,13 @@ export interface PersonalizedSearchTabProps {
  * Personalized Search (Chat) tab: chat on one side, the AI-composed learning page on the
  * other (KD-1). Below 768 px, Phase 1 stacks the chat above the page.
  */
-const PersonalizedSearchTab = ({ deps, store }: PersonalizedSearchTabProps) => {
+const PersonalizedSearchTab = ({ transport, deps, store }: PersonalizedSearchTabProps) => {
   const intl = useIntl();
   const [usePersonalizedSearchController] = useState(() => createPersonalizedSearchController({
     deps,
     store: store ?? createPersonalizedSearchStore(),
   }));
-  const controller = usePersonalizedSearchController();
+  const controller = usePersonalizedSearchController({ transport });
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
 
   if (controller.unavailable) {
@@ -41,7 +44,20 @@ const PersonalizedSearchTab = ({ deps, store }: PersonalizedSearchTabProps) => {
     );
   }
 
-  const chat = <ChatPane openingChips={controller.openingChips} />;
+  const chat = (
+    <ChatPane
+      turns={controller.turns}
+      openingChips={controller.openingChips}
+      busy={controller.busy}
+      draft={controller.draft}
+      announcement={controller.announcement}
+      onDraftChange={controller.setDraft}
+      onSend={controller.send}
+      onNewChat={controller.newChat}
+      onViewPage={controller.viewPage}
+      onShowLastRecommendations={controller.showLastRecommendations}
+    />
+  );
   const page = <LearningPagePane />;
 
   return (
