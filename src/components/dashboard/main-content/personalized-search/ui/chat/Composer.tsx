@@ -10,10 +10,12 @@ export interface ComposerProps {
   disabled: boolean;
   onDraftChange: (draft: string) => void;
   onSend: (message: string) => void;
+  /** Shown instead of Send while a turn is in progress. */
+  onStop: () => void;
 }
 
 const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
-  draft, disabled, onDraftChange, onSend,
+  draft, disabled, onDraftChange, onSend, onStop,
 }, ref) => {
   const intl = useIntl();
   const tooLong = draft.trim().length > MAX_MESSAGE_LENGTH;
@@ -54,7 +56,11 @@ const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
           <Form.Control.Feedback type="invalid">{intl.formatMessage(messages.messageTooLong)}</Form.Control.Feedback>
         )}
       </Form.Group>
-      <Button type="submit" disabled={!canSend}>{intl.formatMessage(messages.send)}</Button>
+      {disabled ? (
+        <Button variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
+      ) : (
+        <Button type="submit" disabled={!canSend}>{intl.formatMessage(messages.send)}</Button>
+      )}
     </Form>
   );
 });
