@@ -1,5 +1,6 @@
 import { logError } from '@edx/frontend-platform/logging';
 
+import { createFeedbackApi } from '../../core/api/feedback';
 import { createSessionsApi } from '../../core/api/sessions';
 import type { PersonalizedSearchDeps } from '../../feature/deps';
 import { getPersonalizedSearchApiBaseUrl, getTransportSetting } from './config';
@@ -17,4 +18,5 @@ export const portalDeps: PersonalizedSearchDeps = {
   logError,
   createItemLinks: createPortalItemLinks,
   sessionsApi: createSessionsApi(apiOptions),
+  feedbackApi: createFeedbackApi(apiOptions),
 };

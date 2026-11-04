@@ -1,3 +1,4 @@
+import type { FeedbackApiClient } from '../core/api/feedback';
 import type { SessionsApi } from '../core/api/sessions';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
@@ -21,4 +22,5 @@ export interface PersonalizedSearchDeps {
   /** Course and program links for the learner's enterprise. */
   createItemLinks: (enterpriseSlug: string) => ItemLinks;
   sessionsApi: SessionsApi;
+  feedbackApi: FeedbackApiClient;
 }

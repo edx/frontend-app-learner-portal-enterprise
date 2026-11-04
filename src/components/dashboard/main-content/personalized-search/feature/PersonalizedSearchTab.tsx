@@ -7,6 +7,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import ChatPane from '../ui/chat/ChatPane';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
+import SavedView from '../ui/saved/SavedView';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
@@ -43,7 +44,9 @@ const PersonalizedSearchTab = ({
     isRenderableBlock: registry.isRenderable,
   }));
   const controller = usePersonalizedSearchController({ transport });
-  const { isWide, reducedMotion, mobilePane } = controller;
+  const {
+    isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
+  } = controller;
 
   const chat = (
     <ChatPane
@@ -69,6 +72,14 @@ const PersonalizedSearchTab = ({
       pageFocusRequest={controller.pageFocusRequest}
       links={controller.links}
       reducedMotion={reducedMotion || controller.mode === 'past'}
+      savedIds={savedIds}
+      dismissedIds={dismissedIds}
+      onToggleSave={controller.toggleSave}
+      onDismiss={controller.dismiss}
+      undoItem={feedback.undo}
+      onUndo={controller.undoDismiss}
+      feedbackError={feedback.error}
+      onClearNotice={controller.clearFeedbackNotice}
     />
   );
 
@@ -84,6 +95,11 @@ const PersonalizedSearchTab = ({
 
   const toolbar = (
     <Stack direction="horizontal" gap={2} className="justify-content-end mb-2 personalized-search__toolbar">
+      <Button variant="outline-primary" size="sm" onClick={controller.openSaved}>
+        {controller.feedbackLoaded
+          ? intl.formatMessage(messages.savedButton, { count: feedback.saved.length })
+          : intl.formatMessage(messages.saved)}
+      </Button>
       <Button variant="outline-primary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
         {intl.formatMessage(messages.history)}
       </Button>
@@ -98,11 +114,21 @@ const PersonalizedSearchTab = ({
       onOpenSession={controller.openSession}
     />
   );
+  const savedView = (
+    <SavedView
+      open={controller.savedOpen}
+      items={feedback.saved}
+      links={controller.links}
+      onClose={controller.closeSaved}
+      onToggleSave={controller.toggleSave}
+    />
+  );
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
       {toolbar}
       {overlays}
+      {savedView}
       {controller.mode === 'past' && controller.pastSessionCreated && (
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}
