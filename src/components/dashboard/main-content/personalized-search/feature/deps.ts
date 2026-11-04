@@ -1,4 +1,5 @@
 import type { ChatTransport } from '../core/transports/ChatTransport';
+import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 
 /** The enterprise the learner is in, as the host knows it. */
 export interface EnterpriseContext {
@@ -16,4 +17,6 @@ export interface PersonalizedSearchDeps {
   /** The transport for turns, chosen from host config. */
   createTransport: () => ChatTransport;
   logError: (error: unknown) => void;
+  /** Course and program links for the learner's enterprise. */
+  createItemLinks: (enterpriseSlug: string) => ItemLinks;
 }

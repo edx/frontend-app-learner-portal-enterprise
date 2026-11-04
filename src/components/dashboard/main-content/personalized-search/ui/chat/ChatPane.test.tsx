@@ -5,6 +5,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useMediaQuery } from '@openedx/paragon';
+import { MemoryRouter } from 'react-router-dom';
 
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
@@ -41,7 +42,9 @@ const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
 
 const renderTab = (transport: FixtureChatTransport) => render(
   <IntlProvider locale="en">
-    <PersonalizedSearchTab store={testStore} transport={transport} />
+    <MemoryRouter>
+      <PersonalizedSearchTab store={testStore} transport={transport} />
+    </MemoryRouter>
   </IntlProvider>,
 );
 
