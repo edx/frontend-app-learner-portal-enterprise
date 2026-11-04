@@ -6,3 +6,4 @@ Framework-free TypeScript. No React, no `@edx/*`, no host imports.
 - `transports/`: the `ChatTransport` port and its implementations (fixture, buffered, SSE). Network transports take an injected `getHttpClient` and `getBaseUrl` (`http.ts`).
 - `workflows/`: hook-free turn logic the controller calls.
 - `selectors.ts`: pure selectors over chat state.
+- `api/`: enterprise-access clients (sessions) over the injected HTTP client.

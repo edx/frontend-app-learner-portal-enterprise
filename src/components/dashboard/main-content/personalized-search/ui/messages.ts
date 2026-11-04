@@ -211,6 +211,51 @@ const messages = defineMessages({
     defaultMessage: 'New picks',
     description: 'Badge on the Page toggle when the learning page has picks the learner has not seen yet.',
   },
+  history: {
+    id: 'learner.personalizedSearch.history.button',
+    defaultMessage: 'History',
+    description: 'Opens the list of the learner\'s past Personalized Search sessions.',
+  },
+  historyTitle: {
+    id: 'learner.personalizedSearch.history.title',
+    defaultMessage: 'Past searches',
+    description: 'Heading of the history panel.',
+  },
+  historyEmpty: {
+    id: 'learner.personalizedSearch.history.empty',
+    defaultMessage: 'No past searches yet.',
+    description: 'Shown in the history panel when the learner has no sessions.',
+  },
+  historyError: {
+    id: 'learner.personalizedSearch.history.error',
+    defaultMessage: 'We couldn\'t load your past searches. Try again.',
+    description: 'Shown when the history list or a past session fails to load.',
+  },
+  historyLoadMore: {
+    id: 'learner.personalizedSearch.history.loadMore',
+    defaultMessage: 'Load more',
+    description: 'Loads the next page of past sessions.',
+  },
+  historyPicks: {
+    id: 'learner.personalizedSearch.history.picks',
+    defaultMessage: '{count, plural, one {# pick} other {# picks}}',
+    description: 'How many items a past session recommended.',
+  },
+  pastSearch: {
+    id: 'learner.personalizedSearch.history.pastSearch',
+    defaultMessage: 'Past search · {date}. Send a message to continue it.',
+    description: 'Banner over a reopened past session.',
+  },
+  close: {
+    id: 'learner.personalizedSearch.close',
+    defaultMessage: 'Close',
+    description: 'Closes a panel.',
+  },
+  loading: {
+    id: 'learner.personalizedSearch.loading',
+    defaultMessage: 'Loading',
+    description: 'Screen-reader text for a loading spinner.',
+  },
   notAvailable: {
     id: 'learner.personalizedSearch.error.notAvailable',
     defaultMessage: 'Personalized Search isn\'t available right now',

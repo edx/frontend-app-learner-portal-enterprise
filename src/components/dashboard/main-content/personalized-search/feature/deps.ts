@@ -1,3 +1,4 @@
+import type { SessionsApi } from '../core/api/sessions';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 
@@ -19,4 +20,5 @@ export interface PersonalizedSearchDeps {
   logError: (error: unknown) => void;
   /** Course and program links for the learner's enterprise. */
   createItemLinks: (enterpriseSlug: string) => ItemLinks;
+  sessionsApi: SessionsApi;
 }

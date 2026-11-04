@@ -13,7 +13,7 @@ import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { PersonalizedSearchDeps } from './deps';
-import { sendTurnWorkflow } from '../core/workflows';
+import { loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow } from '../core/workflows';
 import type { MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
 export interface PersonalizedSearchControllerOptions {
@@ -48,7 +48,7 @@ export const createPersonalizedSearchController = ({
 
     const {
       stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
-      mobilePane, seenPageTurnId,
+      mobilePane, seenPageTurnId, mode, pastSessionCreated, history,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
@@ -58,6 +58,9 @@ export const createPersonalizedSearchController = ({
       announcement: state.announcement,
       mobilePane: state.mobilePane,
       seenPageTurnId: state.seenPageTurnId,
+      mode: state.mode,
+      pastSessionCreated: state.pastSessionCreated,
+      history: state.history,
     })));
 
     // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
@@ -93,6 +96,8 @@ export const createPersonalizedSearchController = ({
       const controller = new AbortController();
       abortRef.current = controller;
       const localId = uuidv4();
+      // Sending from a reopened session continues it (same session uuid), now live.
+      if (store.mode === 'past') { store.setMode('live'); }
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -152,6 +157,59 @@ export const createPersonalizedSearchController = ({
       store.setMobilePane('page');
     }, []);
 
+    const loadHistoryPage = useCallback(async (page: number) => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.history.loading) { return; }
+      store.setHistory({ loading: true, error: false });
+      try {
+        const loaded = await loadHistoryPageWorkflow(
+          deps.sessionsApi,
+          enterpriseCustomerUuid,
+          page,
+          () => storeApi.getState().history.items,
+        );
+        storeApi.getState().setHistory({ ...loaded, loading: false });
+      } catch (e) {
+        deps.logError(e);
+        storeApi.getState().setHistory({ loading: false, error: true });
+      }
+    }, [enterpriseCustomerUuid]);
+
+    const openHistory = useCallback(() => {
+      storeApi.getState().setHistory({ open: true });
+      loadHistoryPage(1);
+    }, [loadHistoryPage]);
+
+    const closeHistory = useCallback(() => {
+      storeApi.getState().setHistory({ open: false });
+    }, []);
+
+    const loadMoreHistory = useCallback(() => {
+      loadHistoryPage(storeApi.getState().history.page + 1);
+    }, [loadHistoryPage]);
+
+    /** Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. */
+    const openSession = useCallback(async (sessionUuid: string) => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
+      try {
+        const reopened = await openSessionWorkflow(
+          deps.sessionsApi,
+          enterpriseCustomerUuid,
+          sessionUuid,
+          isRenderableBlock,
+        );
+        const after = storeApi.getState();
+        after.reset();
+        after.setStream(() => reopened.stream);
+        after.setMode('past', reopened.created);
+        after.setHistory({ open: false });
+      } catch (e) {
+        deps.logError(e);
+        storeApi.getState().setHistory({ error: true });
+      }
+    }, [enterpriseCustomerUuid]);
+
     const showPane = useCallback((pane: MobilePane) => {
       storeApi.getState().setMobilePane(pane);
     }, []);
@@ -192,6 +250,13 @@ export const createPersonalizedSearchController = ({
       mobilePane,
       hasNewPicks,
       showPane,
+      mode,
+      pastSessionCreated,
+      history,
+      openHistory,
+      closeHistory,
+      loadMoreHistory,
+      openSession,
       setDraft,
     };
   };
