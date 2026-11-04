@@ -141,7 +141,7 @@ describe('Personalized Search mobile chat/page toggle (chunk 32)', () => {
     expect(pagePane()).toBeVisible();
     expect(chatPane()).not.toBeVisible();
     expect(store().viewedTurnId).toBe(store().stream.turns[0].localId);
-    expect(within(pagePane()).getByRole('heading', { name: 'Becoming a confident team lead' })).toBeInTheDocument();
+    expect(within(pagePane()).getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
   });
 
   it('"See your last recommendations" on a text-only turn switches to the page pane with the last page', async () => {
@@ -155,6 +155,6 @@ describe('Personalized Search mobile chat/page toggle (chunk 32)', () => {
 
     await user.click(within(chatPane()).getByRole('button', { name: 'See your last recommendations' }));
     expect(pagePane()).toBeVisible();
-    expect(within(pagePane()).getByRole('heading', { name: 'Becoming a confident team lead' })).toBeInTheDocument();
+    expect(within(pagePane()).getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
   });
 });
