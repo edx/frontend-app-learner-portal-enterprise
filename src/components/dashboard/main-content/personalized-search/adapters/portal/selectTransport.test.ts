@@ -1,6 +1,7 @@
 import { BufferedChatTransport } from '../../core/transports/BufferedChatTransport';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import { selectTransport } from './selectTransport';
+import { SseChatTransport } from '../../core/transports/SseChatTransport';
 import { UnavailableChatTransport } from '../../core/transports/UnavailableChatTransport';
 import { TransportError } from '../../core/transports/ChatTransport';
 
@@ -8,9 +9,11 @@ describe('selectTransport', () => {
   it.each([
     ['fixture', FixtureChatTransport],
     ['buffered', BufferedChatTransport],
-    [null, UnavailableChatTransport],
-    [undefined, UnavailableChatTransport],
-    ['', UnavailableChatTransport],
+    ['unavailable', UnavailableChatTransport],
+    ['sse', SseChatTransport],
+    [null, SseChatTransport],
+    [undefined, SseChatTransport],
+    ['', SseChatTransport],
   ])('PERSONALIZED_SEARCH_TRANSPORT=%p selects %p', (setting, expected) => {
     expect(selectTransport(setting)).toBeInstanceOf(expected);
   });
