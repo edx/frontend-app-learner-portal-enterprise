@@ -46,10 +46,10 @@ describe('applyPart', () => {
     const [turn] = state.turns;
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
-    expect(turn.text).toBe('I built you a page on leading a team: two courses to start and a certificate if you want to go further.');
-    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
-    expect(turn.followups?.attribute).toBe('level');
-    expect(state.session.title).toBe('Becoming a team lead');
+    expect(turn.text).toBe('Here are picks for leading a team.');
+    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'plan']);
+    expect(turn.followups?.attribute).toBe('type');
+    expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();
   });
 
@@ -102,7 +102,7 @@ describe('applyPart', () => {
   });
 
   it('endActiveTurn marks the turn stopped and discards its blocks', () => {
-    const midway = applyParts(startedState(), goldenParts('normal_turn.sse').slice(0, 12));
+    const midway = applyParts(startedState(), goldenParts('normal_turn.sse').slice(0, 15));
     expect(midway.turns[0].blocks.length).toBeGreaterThan(0);
     const stopped = endActiveTurn(midway, { status: 'stopped' });
     expect(stopped.turns[0]).toEqual(expect.objectContaining({ status: 'stopped', blocks: [], step: null }));
