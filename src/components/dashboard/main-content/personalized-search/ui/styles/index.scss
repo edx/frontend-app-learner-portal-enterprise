@@ -163,9 +163,15 @@
 .personalized-search__clamp-3 { -webkit-line-clamp: 3; }
 .personalized-search__clamp-1 { -webkit-line-clamp: 1; }
 
-.personalized-search__card-action {
+// The bookmark and menu sit on the image, so they keep a white circle (IconButton is transparent).
+.personalized-search__card .btn-icon.personalized-search__card-action {
   background-color: #fff;
   box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, .2);
+
+  &:hover,
+  &:focus {
+    background-color: #f2f0ef;
+  }
 }
 
 // History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on
