@@ -328,6 +328,16 @@ describe('LearningPagePane', () => {
     expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
   });
 
+  it('shows the latest caveat above the previous results when that turn found nothing', () => {
+    const { turns } = runTurns(['normal_turn.sse', 'no_match_turn.sse']);
+    const { container } = renderPane(turns);
+    const caveat = container.querySelector('.personalized-search__caveat') as HTMLElement;
+    expect(within(caveat).getByText('No matching courses')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    const firstBlock = container.querySelector('[data-block-id]');
+    expect(firstBlock).toContainElement(caveat);
+  });
+
   it('hides a dismissed top pick and compared option', () => {
     const { turns } = runTurns(['normal_turn.sse']);
     renderPane(turns, { dismissedIds: new Set(['p-1']) });
