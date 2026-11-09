@@ -95,22 +95,22 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     await renderWithPage(user);
     expect(await screen.findByRole('button', { name: 'Saved (1)' })).toBeInTheDocument();
 
-    const save = screen.getByRole('button', { name: 'Save Leading High-Performing Teams' });
+    const save = screen.getByRole('button', { name: 'Save Course edX+C1' });
     expect(save).toHaveAttribute('aria-pressed', 'false');
     await user.click(save);
-    const unsave = screen.getByRole('button', { name: 'Remove Leading High-Performing Teams from saved' });
+    const unsave = screen.getByRole('button', { name: 'Remove Course edX+C1 from saved' });
     expect(unsave).toHaveAttribute('aria-pressed', 'true');
     expect(http.post).toHaveBeenCalledWith(URL, expect.objectContaining({
       enterprise_customer_uuid: 'ent-uuid',
-      item_id: 'edX+LDR201',
+      item_id: 'edX+C1',
       kind: 'saved',
-      card_snapshot: expect.objectContaining({ title: 'Leading High-Performing Teams' }),
+      card_snapshot: expect.objectContaining({ title: 'Course edX+C1' }),
     }));
     expect(screen.getByRole('button', { name: 'Saved (2)' })).toBeInTheDocument();
 
     await user.click(unsave);
     expect(http.delete).toHaveBeenCalledWith(URL, {
-      params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+LDR201', kind: 'saved' },
+      params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'saved' },
     });
     expect(screen.getByRole('button', { name: 'Saved (1)' })).toBeInTheDocument();
   });
@@ -128,17 +128,17 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
   it('Not interested hides the card with Undo, by keyboard', async () => {
     const user = userEvent.setup();
     await renderWithPage(user);
-    const dismiss = screen.getByRole('button', { name: 'Not interested in Leading High-Performing Teams' });
+    const dismiss = screen.getByRole('button', { name: 'Not interested in Course edX+C1' });
     dismiss.focus();
     await user.keyboard('{Enter}');
-    expect(screen.queryByRole('link', { name: 'Leading High-Performing Teams' })).not.toBeInTheDocument();
-    expect(http.post).toHaveBeenCalledWith(URL, expect.objectContaining({ item_id: 'edX+LDR201', kind: 'not_interested' }));
-    expect(screen.getByText(/Hidden Leading High-Performing Teams/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Course edX+C1' })).not.toBeInTheDocument();
+    expect(http.post).toHaveBeenCalledWith(URL, expect.objectContaining({ item_id: 'edX+C1', kind: 'not_interested' }));
+    expect(screen.getByText(/Hidden Course edX+C1/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(screen.getByRole('link', { name: 'Leading High-Performing Teams' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
     expect(http.delete).toHaveBeenCalledWith(URL, {
-      params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+LDR201', kind: 'not_interested' },
+      params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'not_interested' },
     });
   });
 
@@ -146,8 +146,8 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     const user = userEvent.setup();
     http.post.mockRejectedValue(new Error('down'));
     await renderWithPage(user);
-    await user.click(screen.getByRole('button', { name: 'Not interested in Leading High-Performing Teams' }));
+    await user.click(screen.getByRole('button', { name: 'Not interested in Course edX+C1' }));
     expect(await screen.findByText("We couldn't save that change. Try again.")).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Leading High-Performing Teams' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
   });
 });
