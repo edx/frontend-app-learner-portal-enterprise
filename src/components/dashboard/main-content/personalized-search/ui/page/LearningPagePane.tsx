@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import { Stack } from '@openedx/paragon';
+import { Alert, Button, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
 import { selectPageTurn } from '../../core/selectors';
-import type { AssistantTurn, PageBlock } from '../../core/stream/types';
+import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
@@ -26,17 +26,30 @@ export interface LearningPagePaneProps {
   /** Block renderers; Block catalog v1 by default. */
   registry?: BlockRegistry;
   reducedMotion: boolean;
+  /** Item feedback (REQ-009). */
+  savedIds?: ReadonlySet<string>;
+  dismissedIds?: ReadonlySet<string>;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
+  /** The card just hidden by Not interested, offered for Undo. */
+  undoItem?: ItemCard | null;
+  onUndo?: () => void;
+  feedbackError?: boolean;
+  onClearNotice?: () => void;
 }
 
 const LearningPagePane = ({
-  turns, viewedTurnId, pageFocusRequest, links, reducedMotion,
+  turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
   const pageTurn = selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
-  const ctx = useMemo(() => ({ links, itemTitles: itemTitlesOf(blocks) }), [blocks, links]);
+  const ctx = useMemo(() => ({
+    links, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
@@ -53,6 +66,22 @@ const LearningPagePane = ({
       aria-label={intl.formatMessage(messages.pagePaneLabel)}
       data-turn-id={pageTurn?.localId}
     >
+      {feedbackError && (
+        <Alert variant="danger" dismissible onClose={onClearNotice} className="mb-3">
+          {intl.formatMessage(messages.feedbackError)}
+        </Alert>
+      )}
+      {undoItem && !feedbackError && (
+        <Alert
+          variant="light"
+          className="mb-3"
+          actions={[<Button key="undo" size="sm" onClick={onUndo}>{intl.formatMessage(messages.undo)}</Button>]}
+          dismissible
+          onClose={onClearNotice}
+        >
+          {intl.formatMessage(messages.hiddenItem, { title: undoItem.title })}
+        </Alert>
+      )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (

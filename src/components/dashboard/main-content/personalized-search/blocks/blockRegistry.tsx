@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 import { BLOCK_CATALOG_VERSION } from '../core/stream/types';
-import type { Block, PageBlock } from '../core/stream/types';
+import type { Block, ItemCard, PageBlock } from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 import InsightBlock from './InsightBlock';
 import ItemSectionBlock from './ItemSectionBlock';
@@ -12,6 +12,11 @@ export interface BlockRenderContext {
   /** How item cards link to course and program pages (supplied by the host). */
   links: ItemLinks;
   itemTitles: Record<string, string>;
+  /** Item feedback (REQ-009); optional so read-only renders need none. */
+  savedIds?: ReadonlySet<string>;
+  dismissedIds?: ReadonlySet<string>;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
 }
 
 /** How one block type renders, and where the learning page puts it. */
@@ -39,6 +44,10 @@ export const catalogBlocks: CatalogBlocks = {
       <ItemSectionBlock
         {...props}
         links={ctx.links}
+        savedIds={ctx.savedIds}
+        dismissedIds={ctx.dismissedIds}
+        onToggleSave={ctx.onToggleSave}
+        onDismiss={ctx.onDismiss}
       />
     ),
   },

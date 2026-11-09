@@ -1,5 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
-import { Badge, Card, Stack } from '@openedx/paragon';
+import {
+  Badge, Button, Card, Stack,
+} from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -37,13 +39,19 @@ const useFacts = (item: ItemCard): string[] => {
 export interface EditorialItemCardProps {
   item: ItemCard;
   links: ItemLinks;
+  /** Save / Not interested (REQ-009); omitted where the card is read-only. */
+  saved?: boolean;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
 }
 
 /**
  * Recommendation card with the prototype's "Why this fits you" and fit badges. Server-hydrated
  * from the Algolia hit (KD-5); every field renders as text.
  */
-const EditorialItemCard = ({ item, links }: EditorialItemCardProps) => {
+const EditorialItemCard = ({
+  item, links, saved = false, onToggleSave, onDismiss,
+}: EditorialItemCardProps) => {
   const intl = useIntl();
   const facts = useFacts(item);
   const typeBadge = {
@@ -87,6 +95,31 @@ const EditorialItemCard = ({ item, links }: EditorialItemCardProps) => {
           </div>
         )}
       </Card.Section>
+      {(onToggleSave || onDismiss) && (
+        <Card.Footer className="justify-content-start">
+          {onToggleSave && (
+            <Button
+              variant={saved ? 'primary' : 'outline-primary'}
+              size="sm"
+              aria-pressed={saved}
+              aria-label={intl.formatMessage(saved ? messages.unsaveItem : messages.saveItem, { title: item.title })}
+              onClick={() => onToggleSave(item)}
+            >
+              {intl.formatMessage(saved ? messages.saved : messages.save)}
+            </Button>
+          )}
+          {onDismiss && (
+            <Button
+              variant="tertiary"
+              size="sm"
+              aria-label={intl.formatMessage(messages.notInterestedItem, { title: item.title })}
+              onClick={() => onDismiss(item)}
+            >
+              {intl.formatMessage(messages.notInterested)}
+            </Button>
+          )}
+        </Card.Footer>
+      )}
     </Card>
   );
 };
