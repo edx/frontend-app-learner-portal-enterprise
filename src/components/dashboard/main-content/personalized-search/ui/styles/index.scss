@@ -170,9 +170,14 @@
 
 // History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on
 // each side, and one row per conversation that highlights on hover and marks the open one.
-.personalized-search__history-sheet {
+// Paragon's side Sheet is 272px with padding and takes no className, so size the one holding history.
+.pgn__sheet-component:has(.personalized-search__history) {
   width: 100%;
   max-width: 25rem;
+  padding: 0;
+  box-shadow: 0 0 1rem 0 rgba(0, 0, 0, .15), 0 0 .625rem 0 rgba(0, 0, 0, .15);
+
+  .pgn__sheet-content { height: 100%; }
 }
 
 .personalized-search__history-header {

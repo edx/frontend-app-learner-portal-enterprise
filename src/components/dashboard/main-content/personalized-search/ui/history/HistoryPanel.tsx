@@ -64,7 +64,7 @@ const HistoryPanel = ({
     ? intl.formatTime(item.last_message_at, { timeStyle: 'short' })
     : intl.formatDate(item.last_message_at, { dateStyle: 'medium' }));
   return (
-    <Sheet show={history.open} onClose={onClose} position="right" className="personalized-search__history-sheet">
+    <Sheet show={history.open} onClose={onClose} position="right">
       <div
         className="personalized-search__history d-flex flex-column h-100"
         role="dialog"
