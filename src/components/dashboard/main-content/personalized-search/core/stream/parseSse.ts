@@ -43,7 +43,10 @@ export async function* parseSse(body: ReadableStream<Uint8Array>): AsyncGenerato
   let finished = false;
 
   function* drain(flush: boolean): Generator<Part | typeof DONE_SENTINEL> {
-    buffer = buffer.replace(/\r\n?/g, '\n');
+    // A chunk can end between the \r and \n of one line break; hold a trailing \r back until the next chunk, or it
+    // would be normalized to \n and the \n that follows would read as a second line break (a false event boundary).
+    const heldCr = !flush && buffer.endsWith('\r') ? '\r' : '';
+    buffer = buffer.slice(0, buffer.length - heldCr.length).replace(/\r\n?/g, '\n');
     let boundary = buffer.indexOf('\n\n');
     while (boundary !== -1) {
       const rawEvent = buffer.slice(0, boundary);
@@ -59,6 +62,7 @@ export async function* parseSse(body: ReadableStream<Uint8Array>): AsyncGenerato
       }
       boundary = buffer.indexOf('\n\n');
     }
+    buffer += heldCr;
     if (flush && buffer.trim()) {
       const data = eventData(buffer);
       buffer = '';
