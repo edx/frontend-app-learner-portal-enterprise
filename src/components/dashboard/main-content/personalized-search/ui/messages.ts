@@ -96,6 +96,51 @@ const messages = defineMessages({
     defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} on your learning page',
     description: 'Screen-reader announcement when a Personalized Search reply finishes.',
   },
+  whyThisFits: {
+    id: 'learner.personalizedSearch.page.card.whyThisFits',
+    defaultMessage: 'Why this fits you',
+    description: 'Heading above the AI-written reason a recommended item fits the learner.',
+  },
+  executiveEducation: {
+    id: 'learner.personalizedSearch.page.card.executiveEducation',
+    defaultMessage: 'Executive Education',
+    description: 'Badge on an Executive Education item card.',
+  },
+  program: {
+    id: 'learner.personalizedSearch.page.card.program',
+    defaultMessage: 'Program',
+    description: 'Badge on a program item card.',
+  },
+  weeks: {
+    id: 'learner.personalizedSearch.page.card.weeks',
+    defaultMessage: '{count, plural, one {# week} other {# weeks}}',
+    description: 'Course length fact on an item card.',
+  },
+  courseCount: {
+    id: 'learner.personalizedSearch.page.card.courseCount',
+    defaultMessage: '{count, plural, one {# course} other {# courses}}',
+    description: 'Number of courses in a program, on an item card.',
+  },
+  selfPaced: {
+    id: 'learner.personalizedSearch.page.card.selfPaced',
+    defaultMessage: 'Self-paced',
+    description: 'Pacing fact on an item card.',
+  },
+  instructorPaced: {
+    id: 'learner.personalizedSearch.page.card.instructorPaced',
+    defaultMessage: 'Instructor-paced',
+    description: 'Pacing fact on an item card.',
+  },
+  partnerLogoAlt: {
+    id: 'learner.personalizedSearch.page.card.partnerLogoAlt',
+    defaultMessage: '{partner} logo',
+    description: 'Alt text for a partner logo on an item card.',
+  },
+  planTitle: {
+    id: 'learner.personalizedSearch.page.plan.title',
+    defaultMessage: 'A suggested order',
+    description: 'Heading of the suggested learning order on the learning page.',
+  },
   chatPaneLabel: {
     id: 'learner.personalizedSearch.chat.label',
     defaultMessage: 'Chat',
