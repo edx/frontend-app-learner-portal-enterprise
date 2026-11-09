@@ -20,6 +20,7 @@ import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
 import type { BenchmarkRow } from '../core/debug/benchmark';
+import { reconcileDebugSettings } from '../core/debug/reconcileDebugSettings';
 import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
 import {
@@ -132,7 +133,13 @@ export const createPersonalizedSearchController = ({
         return;
       }
       deps.debug.fetchDebugConfig(enterpriseCustomerUuid)
-        .then((config) => storeApi.getState().setDebugConfig(config))
+        .then((config) => {
+          const store = storeApi.getState();
+          store.setDebugConfig(config);
+          // Saved choices the server no longer offers fall back to its defaults (see reconcileDebugSettings).
+          const stale = config ? reconcileDebugSettings(store.debugSettings, config) : {};
+          if (Object.keys(stale).length) { store.setDebugSettings(stale); }
+        })
         .catch((e) => {
           deps.logError(e);
           storeApi.getState().setDebugConfig(null, intl.formatMessage(messages.debugMenuError));

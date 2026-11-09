@@ -1,6 +1,7 @@
 import {
-  Alert, Badge, Button, Card, Form, Stack,
+  Alert, Badge, Button, Card, Form, Icon, OverlayTrigger, Stack, Tooltip,
 } from '@openedx/paragon';
+import { InfoOutline } from '@openedx/paragon/icons';
 
 import type { DebugConfig, DebugModel } from '../../core/api/debug';
 import type { DebugSettings } from '../../core/state';
@@ -47,8 +48,17 @@ const COLUMN_LABELS: Record<NumericColumn, string> = {
   costUsd: 'Cost',
 };
 
+/** What each step's model does, for the info hover next to its picker. */
+export const STEP_INFO = {
+  Intent: 'Reads the learner\'s message and turns it into a structured search (skills, roles, level, pacing, '
+    + 'time and content types), merged with earlier turns, and checks that it\'s about learning. It runs first, '
+    + 'so a small, fast model keeps the reply snappy.',
+  Compose: 'Picks from the search shortlist and writes the chat reply and the results: the top pick, the '
+    + 'comparison, the sections and the follow-up question. It streams, so its speed sets when results appear.',
+};
+
 interface ModelPickerProps {
-  label: string;
+  label: keyof typeof STEP_INFO;
   idPrefix: string;
   config: DebugConfig;
   model: string | null;
@@ -65,7 +75,18 @@ const ModelPicker = ({
   return (
     <Stack direction="horizontal" gap={2} className="flex-wrap">
       <Form.Group controlId={`${idPrefix}-model`} className="mb-0">
-        <Form.Label className="small mb-1">{label} model</Form.Label>
+        <div className="d-flex align-items-center mb-1">
+          <Form.Label className="small mb-0">{label} model</Form.Label>
+          <OverlayTrigger
+            placement="top"
+            trigger={['hover', 'focus']}
+            overlay={<Tooltip id={`${idPrefix}-info`}>{STEP_INFO[label]}</Tooltip>}
+          >
+            <Button variant="link" size="inline" className="ml-1 p-0 d-inline-flex" aria-label={`About the ${label.toLowerCase()} model`}>
+              <Icon src={InfoOutline} size="xs" />
+            </Button>
+          </OverlayTrigger>
+        </div>
         <Form.Control
           as="select"
           size="sm"

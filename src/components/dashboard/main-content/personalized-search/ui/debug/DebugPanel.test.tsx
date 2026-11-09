@@ -109,6 +109,44 @@ describe('Personalized Search debug panel (?debug=true)', () => {
       .toEqual(expect.objectContaining({ composeModel: 'gpt-4.1', live: true }));
   });
 
+  it('switching back to Server default stops sending the override', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'gpt-4.1');
+    await user.selectOptions(screen.getByLabelText('Compose model'), '');
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toBeUndefined();
+  });
+
+  it('drops a saved model the server no longer offers, so turns use the default again', async () => {
+    window.localStorage.setItem(DEBUG_SETTINGS_STORAGE_KEY, JSON.stringify({
+      live: true, intentModel: 'retired-model', intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: 'ultra',
+    }));
+    testStore.setState({ debugSettings: loadDebugSettings() });
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await waitFor(() => expect(testStore.getState().debugSettings).toEqual(expect.objectContaining({
+      intentModel: null, intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: null,
+    })));
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({ compose_model: 'gpt-5.4-mini', compose_effort: null });
+  });
+
+  it('explains what the intent and compose models do on hover or focus', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.hover(screen.getByRole('button', { name: 'About the compose model' }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/writes the chat reply and the results/);
+    await user.unhover(screen.getByRole('button', { name: 'About the compose model' }));
+    screen.getByRole('button', { name: 'About the intent model' }).focus();
+    await waitFor(() => expect(screen.getByRole('tooltip')).toHaveTextContent(/structured search/));
+  });
+
   it('offers the Xpert platform without token pricing and sends it as the override', async () => {
     const user = userEvent.setup();
     renderTab('/test-enterprise?tab=personalized-search&debug=true');
