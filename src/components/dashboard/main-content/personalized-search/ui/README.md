@@ -6,9 +6,9 @@ Presentational Paragon components. Every input is a prop; no store, no host impo
 
 Learner messages are gray bubbles on the right. Assistant replies are plain text after a sparkle icon, with the follow-up question as the last line. The latest follow-up chips sit above the message box: first the fixed chips that narrow the results, then up to three chips the AI wrote for this conversation, marked with a sparkle. When there is nothing left to narrow, the AI's chips stand in for the generic opening chips. A note under the message box says results come from the organization's catalog.
 
-## For you and Saved tabs
+## For you, Excluded and Saved tabs
 
-The results pane has two tabs: "For you" (the AI-personalized results, marked with a sparkle) and "Saved (n)". Saved lists the learner's saved items as standard cards; unsaving removes a card and lowers the count. With nothing saved, a dashed note explains that saved items stay across chats. Saving from For you shows a "Saved" toast whose "View saved" action opens the tab.
+The results pane has "For you" (the AI-personalized results, marked with a sparkle) and "Saved (n)". Once the learner has excluded anything ("Not for me", now or earlier), an "Excluded (n)" tab appears between them. It lists the excluded items, and "Include again" lets an item back into results. Restoring the last one returns to For you and leaves the tab disabled; after a reload with nothing excluded it doesn't appear. Saved lists the learner's saved items as standard cards; unsaving removes a card and lowers the count. With nothing saved, a dashed note explains that saved items stay across chats. Saving from For you shows a "Saved" toast whose "View saved" action opens the tab.
 
 ## Result cards
 

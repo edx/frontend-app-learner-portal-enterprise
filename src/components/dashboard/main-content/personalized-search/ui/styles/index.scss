@@ -265,6 +265,12 @@
   overflow: hidden;
 }
 
+// A button inside a card sits above the card's full-card link.
+.personalized-search__card-control {
+  position: relative;
+  z-index: 2;
+}
+
 // Saved tab empty state (wireframe D2b).
 .personalized-search__saved-empty {
   max-width: 40rem;

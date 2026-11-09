@@ -62,10 +62,12 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     jest.clearAllMocks();
     testStore.setState({
       feedback: {
-        saved: [], dismissedIds: [], undo: null, error: false,
+        saved: [], dismissedIds: [], dismissed: [], undo: null, error: false,
       },
       feedbackLoaded: false,
       savedOpen: false,
+      excludedOpen: false,
+      excludedTabShown: false,
     });
     store().reset();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-uuid', slug: 'test-enterprise' } });
@@ -150,6 +152,50 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
     expect(http.delete).toHaveBeenCalledWith(URL, {
       params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'not_interested' },
+    });
+  });
+
+  describe('the Excluded tab', () => {
+    const excludedTab = () => screen.queryByRole('tab', { name: /^Excluded/ });
+
+    it('is hidden with nothing excluded, appears after Not for me, and Include again lets the item back in', async () => {
+      const user = userEvent.setup();
+      await renderWithPage(user);
+      await screen.findByRole('tab', { name: 'Saved (1)' });
+      expect(excludedTab()).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'More options for Course edX+C1' }));
+      await user.click(await screen.findByRole('button', { name: 'Not for me' }));
+      // Paragon's overflow "More..." tab always renders in jsdom (no layout), so leave it out.
+      const tabs = screen.getAllByRole('tab').map((tab) => tab.textContent).filter((name) => name !== 'More...');
+      expect(tabs).toEqual(['For you', 'Excluded (1)', 'Saved (1)']);
+
+      await user.click(screen.getByRole('tab', { name: 'Excluded (1)' }));
+      const view = screen.getByRole('tabpanel', { name: 'Excluded (1)' });
+      expect(within(view).getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
+      await user.click(within(view).getByRole('button', { name: 'Include Course edX+C1 in results again' }));
+      expect(http.delete).toHaveBeenCalledWith(URL, {
+        params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'not_interested' },
+      });
+      // Empty now: back on For you with the item showing, and the tab stays, disabled, until a reload.
+      expect(await screen.findByRole('tab', { name: 'For you' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('link', { name: 'Course edX+C1' }).length).toBeGreaterThan(0);
+      expect(excludedTab()).toHaveTextContent('Excluded (0)');
+      expect(excludedTab()).toHaveClass('disabled');
+    });
+
+    it('shows on load when the learner excluded items before, and not after a reload with none', async () => {
+      const user = userEvent.setup();
+      http.get.mockImplementation(async (_url: string, { params }: { params: { kind: string } }) => ({
+        data: {
+          results: params.kind === 'not_interested'
+            ? [{ item_id: 'edX+GONE', kind: 'not_interested', card_snapshot: { ...SAVED_SNAPSHOT, item_id: 'edX+GONE', title: 'Excluded earlier' } }]
+            : [],
+        },
+      }));
+      await renderWithPage(user);
+      await user.click(await screen.findByRole('tab', { name: 'Excluded (1)' }));
+      expect(screen.getByRole('link', { name: 'Excluded earlier' })).toBeInTheDocument();
     });
   });
 

@@ -10,6 +10,7 @@ import DebugPanel from '../ui/debug/DebugPanel';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
 import SavedView from '../ui/saved/SavedView';
+import ExcludedView from '../ui/saved/ExcludedView';
 import ResultsTabs from '../ui/page/ResultsTabs';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
 import { useFitToViewport } from './useFitToViewport';
@@ -99,10 +100,24 @@ const PersonalizedSearchTab = ({
   );
   const page = (
     <ResultsTabs
-      activeTab={controller.savedOpen ? 'saved' : 'for-you'}
+      activeTab={(controller.savedOpen && 'saved') || (controller.excludedOpen && 'excluded') || 'for-you'}
       savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
-      onSelect={(tab) => (tab === 'saved' ? controller.openSaved() : controller.closeSaved())}
+      excludedCount={feedback.dismissed.length}
+      showExcluded={controller.excludedTabShown}
+      onSelect={(tab) => {
+        if (tab === 'saved') { controller.openSaved(); } else if (tab === 'excluded') {
+          controller.openExcluded();
+        } else { controller.closeSaved(); }
+      }}
       forYou={forYou}
+      excluded={(
+        <ExcludedView
+          items={feedback.dismissed}
+          links={controller.links}
+          onRestore={controller.restore}
+          onOpen={(item) => controller.openItem(item, 'excluded_tab')}
+        />
+      )}
       saved={(
         <SavedView
           items={feedback.saved}

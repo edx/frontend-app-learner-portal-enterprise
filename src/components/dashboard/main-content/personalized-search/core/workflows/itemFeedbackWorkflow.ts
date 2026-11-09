@@ -6,6 +6,8 @@ export interface FeedbackState {
   /** Saved cards, newest first (from the server's snapshots, plus optimistic saves). */
   saved: ItemCard[];
   dismissedIds: string[];
+  /** Dismissed ("Not for me") cards, newest first, for the Excluded tab (from the server's snapshots). */
+  dismissed: ItemCard[];
   /** The last dismissed card, offered for Undo. */
   undo: ItemCard | null;
   error: boolean;
@@ -21,7 +23,9 @@ export type FeedbackUpdate = (update: (state: FeedbackState) => FeedbackState) =
 export type FeedbackAction =
   | { type: 'toggleSave'; item: ItemCard }
   | { type: 'dismiss'; item: ItemCard }
-  | { type: 'undoDismiss' };
+  | { type: 'undoDismiss' }
+  /** Include a dismissed item in results again (the Excluded tab). */
+  | { type: 'restore'; item: ItemCard };
 
 const withoutItem = (items: ItemCard[], itemId: string) => items.filter((i) => i.item_id !== itemId);
 
@@ -51,13 +55,18 @@ export const itemFeedbackWorkflow = async (
       error: false,
       undo: item,
       dismissedIds: [...s.dismissedIds.filter((id) => id !== item.item_id), item.item_id],
+      dismissed: [item, ...withoutItem(s.dismissed, item.item_id)],
     }));
     call = () => api.add('not_interested', item);
   } else {
-    const item = before.undo;
+    const item = action.type === 'restore' ? action.item : before.undo;
     if (!item) { return true; }
     update((s) => ({
-      ...s, error: false, undo: null, dismissedIds: s.dismissedIds.filter((id) => id !== item.item_id),
+      ...s,
+      error: false,
+      undo: s.undo?.item_id === item.item_id ? null : s.undo,
+      dismissedIds: s.dismissedIds.filter((id) => id !== item.item_id),
+      dismissed: withoutItem(s.dismissed, item.item_id),
     }));
     call = () => api.remove('not_interested', item.item_id);
   }
@@ -70,11 +79,11 @@ export const itemFeedbackWorkflow = async (
   }
 };
 
-/** Loads the learner's saved cards and dismissed item ids in this enterprise (REQ-009). */
+/** Loads the learner's saved cards and dismissed items in this enterprise (REQ-009). */
 export const loadFeedbackWorkflow = async (
   api: Pick<FeedbackApiClient, 'listFeedback'>,
   enterpriseCustomerUuid: string,
-): Promise<Pick<FeedbackState, 'saved' | 'dismissedIds'>> => {
+): Promise<Pick<FeedbackState, 'saved' | 'dismissedIds' | 'dismissed'>> => {
   const [saved, dismissed] = await Promise.all([
     api.listFeedback(enterpriseCustomerUuid, 'saved'),
     api.listFeedback(enterpriseCustomerUuid, 'not_interested'),
@@ -82,5 +91,6 @@ export const loadFeedbackWorkflow = async (
   return {
     saved: saved.map((row) => row.card_snapshot).filter((card): card is ItemCard => !!card),
     dismissedIds: dismissed.map((row) => row.item_id),
+    dismissed: dismissed.map((row) => row.card_snapshot).filter((card): card is ItemCard => !!card),
   };
 };

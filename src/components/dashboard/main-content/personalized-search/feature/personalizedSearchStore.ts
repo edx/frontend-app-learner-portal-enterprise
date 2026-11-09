@@ -62,6 +62,12 @@ export interface PersonalizedSearchState {
   feedback: FeedbackState;
   feedbackLoaded: boolean;
   savedOpen: boolean;
+  excludedOpen: boolean;
+  /**
+   * Whether the Excluded tab shows: once the learner has any excluded item (loaded or dismissed now),
+   * until the page reloads. Restoring the last one leaves it showing, disabled.
+   */
+  excludedTabShown: boolean;
   /**
    * The newest page (turn with an item section) the learner has had on screen. "New picks" shows
    * while a newer page exists and the page pane is hidden; deriving it from this, rather than
@@ -87,6 +93,8 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setFeedback: (update: (feedback: FeedbackState) => FeedbackState) => void;
   setFeedbackLoaded: (loaded: boolean) => void;
   setSavedOpen: (open: boolean) => void;
+  setExcludedOpen: (open: boolean) => void;
+  showExcludedTab: () => void;
   setSeenPageTurnId: (turnId: string | null) => void;
   setDebugSettings: (changes: Partial<DebugSettings>) => void;
   setDebugConfig: (config: DebugConfig | null | undefined, error?: string | null) => void;
@@ -106,10 +114,12 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   pastSessionCreated: null,
   history: initialHistory(),
   feedback: {
-    saved: [], dismissedIds: [], undo: null, error: false,
+    saved: [], dismissedIds: [], dismissed: [], undo: null, error: false,
   },
   feedbackLoaded: false,
   savedOpen: false,
+  excludedOpen: false,
+  excludedTabShown: false,
   seenPageTurnId: null,
   debugSettings: loadDebugSettings(),
   debugConfig: undefined,
@@ -134,7 +144,12 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
   setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
   setFeedback: (update) => set((state) => ({ feedback: update(state.feedback) })),
   setFeedbackLoaded: (feedbackLoaded) => set({ feedbackLoaded }),
-  setSavedOpen: (savedOpen) => set({ savedOpen }),
+  // One results tab at a time: For you (both closed), Saved or Excluded.
+  setSavedOpen: (savedOpen) => set((state) => ({ savedOpen, excludedOpen: savedOpen ? false : state.excludedOpen })),
+  setExcludedOpen: (excludedOpen) => set((state) => ({
+    excludedOpen, savedOpen: excludedOpen ? false : state.savedOpen,
+  })),
+  showExcludedTab: () => set({ excludedTabShown: true }),
   setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
   setDebugSettings: (changes) => set((state) => {
     const debugSettings = { ...state.debugSettings, ...changes };
@@ -148,6 +163,7 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
     debugConfig: state.debugConfig,
     debugConfigError: state.debugConfigError,
     feedback: { ...state.feedback, undo: null, error: false },
+    excludedTabShown: state.excludedTabShown,
     feedbackLoaded: state.feedbackLoaded,
   })),
 }));
