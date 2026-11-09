@@ -27,6 +27,18 @@ describe('parseSse', () => {
     }
   });
 
+  it('keeps a CRLF split across two reads as one line break', async () => {
+    // "data: a\r\ndata: b\r\n\r\n" is ONE event with two data lines; splitting between \r and \n must not end it early.
+    const text = 'data: {"type":"text-delta","id":"r",\r\ndata: "delta":"x"}\r\n\r\ndata: [DONE]\r\n\r\n';
+    const bytes = new TextEncoder().encode(text);
+    const expected = await collect(parseSse(streamFromBytes(bytes)));
+    for (let offset = 1; offset < bytes.length; offset += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      expect(await collect(parseSse(streamFromBytes(bytes, [offset])))).toEqual(expected);
+    }
+    expect(expected).toEqual([{ type: 'text-delta', id: 'r', delta: 'x' }]);
+  });
+
   it('decodes raw multi-byte characters split across reads', async () => {
     // enterprise-access escapes non-ASCII in JSON, but raw UTF-8 is valid on the wire too.
     const bytes = new TextEncoder().encode('data: {"type":"text-delta","id":"reply","delta":"Courses · 2 picks"}\n\ndata: [DONE]\n\n');
