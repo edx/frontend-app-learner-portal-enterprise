@@ -78,6 +78,49 @@
   max-width: 85%;
 }
 
+// Result cards (wireframe D2): a 4px top accent per content type, one link per card that lifts on
+// hover, a 3px focus outline, and the bookmark and actions menu above the card's link.
+.personalized-search__card {
+  position: relative;
+  border-top: 4px solid #2d494e;
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+
+  &--certificate { border-top-color: #03c7e8; }
+  &--program { border-top-color: #f0cc00; }
+  &--executive_education { border-top-color: #d23228; }
+  &--course { border-top-color: #2d494e; }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .15);
+  }
+
+  &:focus-within {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  .personalized-search__card-actions {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 2;
+    display: flex;
+    gap: .25rem;
+  }
+
+  .personalized-search__why {
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover { transform: none; }
+  }
+}
+
 // Saved tab empty state (wireframe D2b).
 .personalized-search__saved-empty {
   max-width: 40rem;

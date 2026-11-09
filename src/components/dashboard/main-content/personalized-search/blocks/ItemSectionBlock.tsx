@@ -22,7 +22,7 @@ const ItemSectionBlock = ({
     <section className="personalized-search__section" data-item-type={itemType}>
       <h3 className="h4 mb-1">{label}</h3>
       {dek && <p className="text-gray-700 mb-3">{dek}</p>}
-      <CardGrid columnSizes={{ xs: 12, lg: 6, xl: 4 }}>
+      <CardGrid columnSizes={visible.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
         {visible.map((item) => (
           <EditorialItemCard
             key={item.item_id}
@@ -31,6 +31,7 @@ const ItemSectionBlock = ({
             saved={savedIds?.has(item.item_id) ?? false}
             onToggleSave={onToggleSave}
             onDismiss={onDismiss}
+            orientation={visible.length === 1 ? 'horizontal' : 'vertical'}
           />
         ))}
       </CardGrid>
