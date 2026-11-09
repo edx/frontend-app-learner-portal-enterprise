@@ -300,10 +300,13 @@ describe('LearningPagePane', () => {
     expect(onDismiss).toHaveBeenCalledWith(expect.objectContaining({ item_id: 'p-1' }));
 
     const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
-    const compareCards = Array.from(compare.querySelectorAll('.personalized-search__card')) as HTMLElement[];
-    expect(compareCards.map((el) => el.querySelector('.personalized-search__card-eyebrow')?.textContent)).toEqual([
+    // Each "Best for" label sits just above its card, outside it.
+    expect(within(compare).getAllByRole('heading', { level: 4 }).filter((h) => !h.closest('.personalized-search__card'))
+      .map((h) => h.textContent)).toEqual([
       'Best for a recognized credential', 'Best for an executive-level perspective', 'Best for a quick start',
     ]);
+    const option = within(compare).getByText('Best for a quick start').closest('.personalized-search__compare-option');
+    expect(option?.querySelector('.personalized-search__card')).toBeInTheDocument();
     // The same card as the rest of the results: image and the Not for me menu.
     const pickInCompare = within(compare).getByRole('link', { name: 'Program p-1' })
       .closest('.personalized-search__card') as HTMLElement;
