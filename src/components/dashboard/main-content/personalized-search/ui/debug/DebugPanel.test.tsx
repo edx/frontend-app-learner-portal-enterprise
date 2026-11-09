@@ -7,7 +7,9 @@ import { useMediaQuery } from '@openedx/paragon';
 import { MemoryRouter } from 'react-router-dom';
 
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
-import { DEBUG_SETTINGS_STORAGE_KEY, loadDebugSettings, createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
+import {
+  DEBUG_SETTINGS_STORAGE_KEY, defaultDebugSettings, createPersonalizedSearchStore,
+} from '../../feature/personalizedSearchStore';
 import { installStreamGlobals, readGoldenBytes, streamFromBytes } from '../../core/stream/testUtils';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
@@ -66,7 +68,7 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     jest.clearAllMocks();
     window.localStorage.clear();
     testStore.setState({
-      debugSettings: loadDebugSettings(), debugConfig: undefined, debugConfigError: null,
+      debugSettings: defaultDebugSettings(), debugConfig: undefined, debugConfigError: null,
     });
     testStore.getState().reset();
     (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-uuid', slug: 'test-enterprise' } });
@@ -105,8 +107,32 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(url).toBe('http://ea.test/api/v1/personalized-search/turns/');
     expect(JSON.parse(init.body).debug).toEqual({ compose_model: 'gpt-4.1', compose_effort: null });
     expect(screen.getByRole('button', { name: 'Copy results as JSON' })).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY) as string))
-      .toEqual(expect.objectContaining({ composeModel: 'gpt-4.1', live: true }));
+    // Kept for this conversation only, never in the browser.
+    expect(window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY)).toBeNull();
+  });
+
+  it('a new conversation goes back to the server default models, in the store and the dropdown', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'gpt-4.1');
+    expect(screen.getByLabelText('Compose model')).toHaveValue('gpt-4.1');
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.getByLabelText('Compose model')).toHaveValue('');
+    expect(testStore.getState().debugSettings).toEqual(defaultDebugSettings());
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).debug).toBeUndefined();
+  });
+
+  it('a page load starts on the defaults and clears a choice an earlier version saved', () => {
+    window.localStorage.setItem(DEBUG_SETTINGS_STORAGE_KEY, JSON.stringify({ composeModel: 'gpt-4.1' }));
+    const store = createPersonalizedSearchStore();
+    expect(store.getState().debugSettings).toEqual(defaultDebugSettings());
+    expect(window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY)).toBeNull();
   });
 
   it('switching back to Server default stops sending the override', async () => {
@@ -120,11 +146,12 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toBeUndefined();
   });
 
-  it('drops a saved model the server no longer offers, so turns use the default again', async () => {
-    window.localStorage.setItem(DEBUG_SETTINGS_STORAGE_KEY, JSON.stringify({
-      live: true, intentModel: 'retired-model', intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: 'ultra',
-    }));
-    testStore.setState({ debugSettings: loadDebugSettings() });
+  it('drops a chosen model the server no longer offers, so turns use the default again', async () => {
+    testStore.setState({
+      debugSettings: {
+        live: true, intentModel: 'retired-model', intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: 'ultra',
+      },
+    });
     const user = userEvent.setup();
     renderTab('/test-enterprise?tab=personalized-search&debug=true');
     await screen.findByText('Catalog: Example catalog');

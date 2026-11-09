@@ -21,3 +21,7 @@ Each finished reply has thumbs up ("Helpful") and down ("Not helpful") with `ari
 ## History
 
 `HistoryPanel` follows the Xpert chat sidebar, the platform's existing chatbot: a 25rem right-hand panel with a title bar and an icon close button, conversations under day dividers (Today, Yesterday, Previous 7 days, Older), and one row per conversation with its title (two lines at most) above the time or date and the number of picks. The conversation on screen is marked with `aria-current` and a left rule.
+
+## Debug panel (`?debug=true`)
+
+The panel switches live AI on or off and picks the intent and compose models and their reasoning effort; the benchmark table lists each turn's models, timings, tokens and cost. Model choices last one conversation: a page load, New chat and reopening a past search all return to the server defaults, and nothing is saved in the browser. Only the Live switch carries over to a new conversation in the same page view.
