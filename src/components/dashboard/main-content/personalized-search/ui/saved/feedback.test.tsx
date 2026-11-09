@@ -133,7 +133,7 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     await user.keyboard('{Enter}');
     expect(screen.queryByRole('link', { name: 'Course edX+C1' })).not.toBeInTheDocument();
     expect(http.post).toHaveBeenCalledWith(URL, expect.objectContaining({ item_id: 'edX+C1', kind: 'not_interested' }));
-    expect(screen.getByText(/Hidden Course edX+C1/)).toBeInTheDocument();
+    expect(screen.getByText(/Hidden Course edX\+C1/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
