@@ -17,3 +17,7 @@ The results pane has two tabs: "For you" (the AI-personalized results, marked wi
 ## Thumbs on replies
 
 Each finished reply has thumbs up ("Helpful") and down ("Not helpful") with `aria-pressed`. Pressing the same one again clears it. The rating is optimistic and reverts if the call fails; if the server has no rating endpoint (404), the thumbs disappear for the rest of the session. Each turn learns its `sequence` from `data-session`, which the rating endpoint needs.
+
+## History
+
+`HistoryPanel` follows the Xpert chat sidebar, the platform's existing chatbot: a 25rem right-hand panel with a title bar and an icon close button, conversations under day dividers (Today, Yesterday, Previous 7 days, Older), and one row per conversation with its title (two lines at most) above the time or date and the number of picks. The conversation on screen is marked with `aria-current` and a left rule.

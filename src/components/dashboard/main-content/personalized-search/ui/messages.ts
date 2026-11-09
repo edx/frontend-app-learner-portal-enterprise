@@ -261,6 +261,26 @@ const messages = defineMessages({
     defaultMessage: '{count, plural, one {# pick} other {# picks}}',
     description: 'How many items a past session recommended.',
   },
+  historyToday: {
+    id: 'learner.personalizedSearch.history.today',
+    defaultMessage: 'Today',
+    description: 'History panel divider over the conversations from today.',
+  },
+  historyYesterday: {
+    id: 'learner.personalizedSearch.history.yesterday',
+    defaultMessage: 'Yesterday',
+    description: 'History panel divider over the conversations from yesterday.',
+  },
+  historyPreviousWeek: {
+    id: 'learner.personalizedSearch.history.previousWeek',
+    defaultMessage: 'Previous 7 days',
+    description: 'History panel divider over the conversations from the last week.',
+  },
+  historyOlder: {
+    id: 'learner.personalizedSearch.history.older',
+    defaultMessage: 'Older',
+    description: 'History panel divider over conversations more than a week old.',
+  },
   pastSearch: {
     id: 'learner.personalizedSearch.history.pastSearch',
     defaultMessage: 'Past search · {date}. Send a message to continue it.',

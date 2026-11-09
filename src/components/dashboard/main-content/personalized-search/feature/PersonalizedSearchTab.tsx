@@ -158,6 +158,7 @@ const PersonalizedSearchTab = ({
     <HistoryPanel
       history={controller.history}
       busy={controller.busy}
+      currentSessionUuid={controller.session.sessionUuid}
       onClose={controller.closeHistory}
       onLoadMore={controller.loadMoreHistory}
       onOpenSession={controller.openSession}

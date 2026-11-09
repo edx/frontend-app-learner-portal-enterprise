@@ -168,6 +168,72 @@
   box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, .2);
 }
 
+// History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on
+// each side, and one row per conversation that highlights on hover and marks the open one.
+.personalized-search__history-sheet {
+  width: 100%;
+  max-width: 25rem;
+}
+
+.personalized-search__history-header {
+  min-height: 3rem;
+  padding: .5rem .75rem .5rem 1.5rem;
+  border-bottom: 1px solid #d7d3d1;
+}
+
+.personalized-search__history-list {
+  overflow-y: auto;
+}
+
+.personalized-search__history-divider {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1 1;
+    border-bottom: 1px solid #d7d3d1;
+  }
+
+  &::before { margin-right: .625rem; }
+  &::after { margin-left: .625rem; }
+}
+
+.personalized-search__history-item {
+  display: block;
+  width: 100%;
+  padding: .625rem 1.5rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  color: inherit;
+  text-align: left;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background-color: #f2f0ef;
+  }
+
+  &:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: -3px;
+  }
+
+  &--current {
+    border-left-color: #00262b;
+    background-color: #f2f0ef;
+  }
+}
+
+.personalized-search__clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 // Saved tab empty state (wireframe D2b).
 .personalized-search__saved-empty {
   max-width: 40rem;

@@ -18,6 +18,7 @@ import { readGolden } from '../../core/stream/testUtils';
 import { parseSseText } from '../../core/stream/parseSse';
 import type { Part } from '../../core/stream/types';
 import { reopenSessionWorkflow } from '../../core/workflows';
+import HistoryPanel, { groupByDay } from './HistoryPanel';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
 const testStore = createPersonalizedSearchStore();
@@ -129,7 +130,7 @@ describe('History panel (chunk 29)', () => {
 
     await user.click(screen.getByRole('button', { name: 'History' }));
     const panel = await screen.findByRole('dialog', { name: 'Past searches' });
-    await within(panel).findByRole('button', { name: 'Becoming a team lead' });
+    await within(panel).findByRole('button', { name: /^Becoming a team lead/ });
     expect(httpGet).toHaveBeenCalledWith(
       'http://ea.test/api/v1/personalized-search/sessions/',
       { params: { enterprise_customer_uuid: 'ent-uuid', page: 1 } },
@@ -138,7 +139,7 @@ describe('History panel (chunk 29)', () => {
     await user.click(within(panel).getByRole('button', { name: 'Load more' }));
     await waitFor(() => expect(within(panel).getAllByRole('button', { name: /^(Becoming|Search)/ })).toHaveLength(21));
 
-    await user.click(within(panel).getByRole('button', { name: 'Becoming a team lead' }));
+    await user.click(within(panel).getByRole('button', { name: /^Becoming a team lead/ }));
     expect(await screen.findByText(/^Past search · Oct 29, 2026/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Past searches' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
@@ -150,6 +151,58 @@ describe('History panel (chunk 29)', () => {
     expect(transport.requests[0]).toEqual(expect.objectContaining({ sessionUuid: DETAIL.uuid, message: 'Something shorter' }));
     expect(screen.queryByText(/^Past search/)).not.toBeInTheDocument();
     expect(testStore.getState().stream.turns).toHaveLength(2);
+  });
+
+  it('lays out like the Xpert sidebar: day dividers, title then time and picks, the open one current', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const onOpenSession = jest.fn();
+    const at = (iso: string, uuid: string, title: string, count = 0) => ({
+      uuid, title, first_prompt: 'prompt', item_count: count, last_message_at: iso, created: iso,
+    });
+    render(
+      <IntlProvider locale="en" timeZone="UTC">
+        <HistoryPanel
+          history={{
+            open: true,
+            items: [at(new Date().toISOString(), 's-1', 'Today search', 8), at('2026-10-01T12:00:00Z', 's-2', 'Old search')],
+            page: 1,
+            hasMore: false,
+            loading: false,
+            error: false,
+          }}
+          busy={false}
+          currentSessionUuid="s-1"
+          onClose={onClose}
+          onLoadMore={jest.fn()}
+          onOpenSession={onOpenSession}
+        />
+      </IntlProvider>,
+    );
+    const panel = screen.getByRole('dialog', { name: 'Past searches' });
+    const today = within(panel).getByRole('region', { name: 'Today' });
+    const current = within(today).getByRole('button', { name: /^Today search .* · 8 picks$/ });
+    expect(current).toHaveAttribute('aria-current', 'true');
+    const older = within(panel).getByRole('region', { name: 'Older' });
+    expect(within(older).getByRole('button', { name: 'Old search Oct 1, 2026' })).not.toHaveAttribute('aria-current');
+    await user.click(within(older).getByRole('button', { name: /^Old search/ }));
+    expect(onOpenSession).toHaveBeenCalledWith('s-2');
+    await user.click(within(panel).getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('groups sessions by today, yesterday, the previous 7 days and older', () => {
+    const now = new Date(2026, 10, 9, 16, 0);
+    const item = (date: Date, uuid: string) => ({
+      uuid, title: uuid, first_prompt: '', item_count: 0, last_message_at: date.toISOString(), created: '',
+    });
+    const groups = groupByDay([
+      item(new Date(2026, 10, 9, 9), 'a'), item(new Date(2026, 10, 9, 1), 'b'), item(new Date(2026, 10, 8, 23), 'c'),
+      item(new Date(2026, 10, 3), 'd'), item(new Date(2026, 9, 1), 'e'),
+    ], now);
+    expect(groups.map(({ day, items }) => [day, items.map(({ uuid }) => uuid)])).toEqual([
+      ['today', ['a', 'b']], ['yesterday', ['c']], ['week', ['d']], ['older', ['e']],
+    ]);
   });
 
   it('shows an error when history fails to load', async () => {
