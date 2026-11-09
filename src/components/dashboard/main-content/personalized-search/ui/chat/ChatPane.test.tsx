@@ -24,7 +24,7 @@ jest.mock('../../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
 }));
 
-const NORMAL_REPLY = 'Here are picks for leading a team.';
+const NORMAL_REPLY = 'I put a leadership certificate at the top.';
 
 /** A fixture transport that replays the given goldens in order, one per sent message. */
 const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
@@ -78,7 +78,8 @@ describe('ChatPane', () => {
 
     const seenSteps: string[] = [];
     const seenReplyLengths: number[] = [];
-    for (let i = 0; i < 25; i += 1) {
+    // The golden has more parts than before (reserve cards, newer blocks), so allow enough ticks to finish.
+    for (let i = 0; i < 40; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await act(async () => { await jest.advanceTimersByTimeAsync(50); });
       const step = document.querySelector('.personalized-search__status')?.getAttribute('data-step');

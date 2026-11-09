@@ -57,6 +57,11 @@ export interface ItemCard {
   facts: ItemFacts;
   why: string | null;
   fit: string[];
+  /** Optional, additive in v1: new to the conversation since the previous turn. */
+  status?: 'new';
+  /** Optional, additive in v1: where the server placed the card (usage events echo these). */
+  section?: string;
+  position?: number;
 }
 
 // ---- Block catalog v1 ----
@@ -73,6 +78,10 @@ export interface ItemSectionProps {
   dek: string;
   fallback: boolean;
   items: ItemCard[];
+  /** Optional, additive in v1: the catalog's matches for this type ("See all (n)"). */
+  total?: number;
+  /** Optional, additive in v1: next-best cards that fill a card the learner removes. */
+  reserve?: ItemCard[];
 }
 
 export interface InsightProps {

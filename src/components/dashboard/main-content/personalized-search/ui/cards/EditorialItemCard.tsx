@@ -15,6 +15,8 @@ import type { ItemCard } from '../../core/stream/types';
  */
 export interface ItemLinks {
   getItemHref: (item: ItemCard) => string;
+  /** Optional: the host's full search for a type, for "See all (n)". */
+  getSeeAllHref?: (itemType: ItemCard['item_type'], query: string) => string;
   LinkComponent: ComponentType<{ to: string; className?: string; children: ReactNode }>;
 }
 

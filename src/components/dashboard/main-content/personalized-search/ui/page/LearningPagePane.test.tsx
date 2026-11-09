@@ -281,6 +281,62 @@ describe('LearningPagePane', () => {
     expect(screen.getByText('~5 hrs/week')).toBeInTheDocument();
   });
 
+  it('groups sections under More options with the type, See all (n), one line and two cards', () => {
+    const turns = turnWithParts([{
+      type: 'data-block',
+      id: 'blk_1',
+      data: {
+        v: 1,
+        type: 'item_section',
+        props: {
+          item_type: 'course',
+          label: 'Courses · 3 picks',
+          dek: 'Focused, single-topic learning.',
+          fallback: false,
+          total: 7,
+          items: [card({ item_id: 'c1', title: 'One' }), card({ item_id: 'c2', title: 'Two' }),
+            card({ item_id: 'c3', title: 'Three' })],
+          reserve: [card({ item_id: 'c4', title: 'Four' })],
+        },
+      },
+    }]);
+    renderPane(turns);
+    expect(screen.getByText('More options')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Courses' })).toBeInTheDocument();
+    expect(screen.getByText('Focused, single-topic learning.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See all (7)' }))
+      .toHaveAttribute('href', `/${SLUG}/search?q=m&content_type=course`);
+    expect(screen.getAllByRole('link', { name: /One|Two|Three|Four/ }).map((l) => l.textContent)).toEqual(['One', 'Two']);
+  });
+
+  it('fills a removed card with the next item, then the reserve, and drops See all without a total', () => {
+    const section = (dismissed: string[]) => {
+      const turns = turnWithParts([{
+        type: 'data-block',
+        id: 'blk_1',
+        data: {
+          v: 1,
+          type: 'item_section',
+          props: {
+            item_type: 'program',
+            label: 'Programs',
+            dek: '',
+            fallback: false,
+            items: [card({ item_id: 'p1', title: 'P1' }), card({ item_id: 'p2', title: 'P2' })],
+            reserve: [card({ item_id: 'p3', title: 'P3' })],
+          },
+        },
+      }]);
+      return renderPane(turns, { dismissedIds: new Set(dismissed) });
+    };
+    const first = section(['p1']);
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['P2', 'P3']);
+    expect(screen.queryByRole('link', { name: /See all/ })).not.toBeInTheDocument();
+    first.unmount();
+    section(['p1', 'p2', 'p3']);
+    expect(screen.queryByText('Programs')).not.toBeInTheDocument();
+  });
+
   it('card links are reachable by Tab in reading order and open with Enter', async () => {
     const user = userEvent.setup();
     const { turns } = runTurns(['normal_turn.sse']);
@@ -289,7 +345,7 @@ describe('LearningPagePane', () => {
     expect(links.map((l) => l.textContent)).toEqual([
       'Course edX+C1',
       'Course edX+C2',
-      'Program p-1',
+      'Program p-2',
     ]);
     // Each card's link comes first; its Why this? toggle follows it.
     for (let i = 0; i < links.length; i += 1) {
@@ -300,7 +356,7 @@ describe('LearningPagePane', () => {
     }
     links[links.length - 1].focus();
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-1`);
+    expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-2`);
   });
 
   it('adds the entrance transition only when reduced motion is not requested', () => {

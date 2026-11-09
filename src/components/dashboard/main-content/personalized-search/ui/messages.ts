@@ -326,6 +326,31 @@ const messages = defineMessages({
     defaultMessage: 'Not for me',
     description: 'Menu action that removes a card from the results.',
   },
+  moreOptions: {
+    id: 'learner.personalizedSearch.results.moreOptions',
+    defaultMessage: 'More options',
+    description: 'Eyebrow above the results grouped by type.',
+  },
+  sectionCourse: {
+    id: 'learner.personalizedSearch.results.section.course',
+    defaultMessage: 'Courses',
+    description: 'Heading of the course group.',
+  },
+  sectionExecutiveEducation: {
+    id: 'learner.personalizedSearch.results.section.executiveEducation',
+    defaultMessage: 'Executive Education',
+    description: 'Heading of the Executive Education group.',
+  },
+  sectionProgram: {
+    id: 'learner.personalizedSearch.results.section.program',
+    defaultMessage: 'Programs',
+    description: 'Heading of the program group.',
+  },
+  seeAll: {
+    id: 'learner.personalizedSearch.results.seeAll',
+    defaultMessage: 'See all ({count})',
+    description: 'Link to the full search for a type, with the number of matches.',
+  },
   notInterested: {
     id: 'learner.personalizedSearch.feedback.notInterested',
     defaultMessage: 'Not interested',

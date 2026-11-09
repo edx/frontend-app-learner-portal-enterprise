@@ -17,6 +17,8 @@ export interface BlockRenderContext {
   dismissedIds?: ReadonlySet<string>;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
+  /** The learner's message for this turn, for "See all (n)" links to the host's search. */
+  searchQuery?: string;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -48,6 +50,7 @@ export const catalogBlocks: CatalogBlocks = {
         dismissedIds={ctx.dismissedIds}
         onToggleSave={ctx.onToggleSave}
         onDismiss={ctx.onDismiss}
+        searchQuery={ctx.searchQuery}
       />
     ),
   },
