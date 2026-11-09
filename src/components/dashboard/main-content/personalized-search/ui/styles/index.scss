@@ -121,6 +121,16 @@
   }
 }
 
+// Decision guide (wireframe D2): the top pick's card is about 300px beside its details; compare cards are compact.
+.personalized-search__top-pick-card {
+  flex: 0 0 18.75rem;
+  max-width: 100%;
+}
+
+.personalized-search__top-pick-details {
+  min-width: 14rem;
+}
+
 // Saved tab empty state (wireframe D2b).
 .personalized-search__saved-empty {
   max-width: 40rem;

@@ -7,6 +7,8 @@ import InsightBlock from './InsightBlock';
 import ItemSectionBlock from './ItemSectionBlock';
 import PageHeaderBlock from './PageHeaderBlock';
 import PlanBlock from './PlanBlock';
+import TopPickBlock from './TopPickBlock';
+import CompareBlock from './CompareBlock';
 
 export interface BlockRenderContext {
   /** How item cards link to course and program pages (supplied by the host). */
@@ -19,6 +21,10 @@ export interface BlockRenderContext {
   onDismiss?: (item: ItemCard) => void;
   /** The learner's message for this turn, for "See all (n)" links to the host's search. */
   searchQuery?: string;
+  /** Sends a chat message for the learner (More like this). */
+  onAsk?: (message: string) => void;
+  /** The turn's top pick, so other blocks can tag it. */
+  topPickId?: string;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -55,6 +61,8 @@ export const catalogBlocks: CatalogBlocks = {
     ),
   },
   insight: { render: (props) => <InsightBlock {...props} /> },
+  top_pick: { render: (props, ctx) => <TopPickBlock {...props} ctx={ctx} /> },
+  compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
     render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
     slot: 'top',

@@ -29,7 +29,7 @@ export const accentOf = (item: ItemCard): string => {
 };
 
 /** "Professional Certificate", "Executive Education" or "Course": the header and label always name the type. */
-const useTypeLabel = (item: ItemCard): string => {
+export const useTypeLabel = (item: ItemCard): string => {
   const intl = useIntl();
   if (item.item_type === 'program') {
     return item.facts?.program_type || intl.formatMessage(messages.program);
@@ -38,7 +38,7 @@ const useTypeLabel = (item: ItemCard): string => {
 };
 
 /** Time first (hours per week and length), since time is often the learner's main constraint. */
-const useMeta = (item: ItemCard): { time: string[]; detail: string[] } => {
+export const useMeta = (item: ItemCard): { time: string[]; detail: string[] } => {
   const intl = useIntl();
   const {
     hours_per_week_min: minHours,

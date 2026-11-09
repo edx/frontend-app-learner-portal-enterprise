@@ -88,6 +88,7 @@ const PersonalizedSearchTab = ({
       onUndo={controller.undoDismiss}
       feedbackError={feedback.error}
       onClearNotice={controller.clearFeedbackNotice}
+      onAsk={controller.busy ? undefined : controller.send}
     />
   );
   const page = (

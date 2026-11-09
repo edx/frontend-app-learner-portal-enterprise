@@ -104,7 +104,8 @@ describe('LearningPagePane', () => {
       const count = container.querySelectorAll('[data-block-id]').length;
       if (counts[counts.length - 1] !== count) { counts.push(count); }
     });
-    expect(counts).toEqual([0, 1, 2, 3, 4, 5]);
+    // page_header, top_pick, compare, two sections, insight, plan: each appears as its part arrives.
+    expect(counts).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(screen.getByText('A suggested order')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Start with people skills' })).toBeInTheDocument();
   });
@@ -281,6 +282,38 @@ describe('LearningPagePane', () => {
     expect(screen.getByText('~5 hrs/week')).toBeInTheDocument();
   });
 
+  it('leads with the top pick and a Best for comparison from the golden turn', async () => {
+    const user = userEvent.setup();
+    const onAsk = jest.fn();
+    const onDismiss = jest.fn();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { onAsk, onDismiss });
+    expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    const topPick = screen.getByRole('heading', { name: 'Top pick' }).closest('section') as HTMLElement;
+    expect(within(topPick).getByText('Because you want to lead a team and earn a credential.')).toBeInTheDocument();
+    expect(within(topPick).getByText('Certificate')).toBeInTheDocument();
+    await user.click(within(topPick).getByRole('button', { name: 'More like this' }));
+    expect(onAsk).toHaveBeenCalledWith('More like Program p-1');
+    await user.click(within(topPick).getByRole('button', { name: 'Not for me: Program p-1' }));
+    expect(onDismiss).toHaveBeenCalledWith(expect.objectContaining({ item_id: 'p-1' }));
+
+    const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
+    expect(within(compare).getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual([
+      'Best for a recognized credential', 'Best for an executive-level perspective', 'Best for a quick start',
+    ]);
+    const pickInCompare = within(compare).getByRole('link', { name: 'Program p-1' })
+      .closest('.personalized-search__card') as HTMLElement;
+    expect(within(pickInCompare).getByText('Top pick')).toBeInTheDocument();
+  });
+
+  it('hides a dismissed top pick and compared option', () => {
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { dismissedIds: new Set(['p-1']) });
+    expect(screen.queryByRole('heading', { name: 'Top pick' })).not.toBeInTheDocument();
+    const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
+    expect(within(compare).queryByRole('link', { name: 'Program p-1' })).not.toBeInTheDocument();
+  });
+
   it('groups sections under More options with the type, See all (n), one line and two cards', () => {
     const turns = turnWithParts([{
       type: 'data-block',
@@ -343,17 +376,22 @@ describe('LearningPagePane', () => {
     renderPane(turns);
     const links = screen.getAllByRole('link');
     expect(links.map((l) => l.textContent)).toEqual([
+      'Program p-1',
+      'Program p-1',
+      'Course Yale+E1',
+      'Course edX+C3',
       'Course edX+C1',
       'Course edX+C2',
       'Program p-2',
     ]);
-    // Each card's link comes first; its Why this? toggle follows it.
-    for (let i = 0; i < links.length; i += 1) {
-      links[i].focus();
+    // Links come in reading order, and Tab reaches each one (cards add their own controls between them).
+    const reached = new Set<Element>();
+    for (let i = 0; i < 40 && reached.size < new Set(links).size; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await user.tab();
-      expect(links[i].closest('.personalized-search__card')).toContainElement(document.activeElement as HTMLElement);
+      if (links.includes(document.activeElement as HTMLElement)) { reached.add(document.activeElement as Element); }
     }
+    expect(reached.size).toBe(new Set(links).size);
     links[links.length - 1].focus();
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-2`);

@@ -50,8 +50,10 @@ describe('applyPart', () => {
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
     expect(turn.text).toBe('I put a leadership certificate at the top.');
-    // Block types added after catalog v1's first four (profile, top_pick, compare) are dropped until registered.
-    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
+    // profile isn't registered here, so it's dropped; the decision-guide blocks render in stream order.
+    expect(turn.blocks.map((b) => b.block.type)).toEqual(
+      ['page_header', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
+    );
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();

@@ -39,11 +39,13 @@ export interface LearningPagePaneProps {
   onUndo?: () => void;
   feedbackError?: boolean;
   onClearNotice?: () => void;
+  /** Sends a chat message for the learner (More like this). */
+  onAsk?: (message: string) => void;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
-  onDismiss, undoItem, onUndo, feedbackError, onClearNotice,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
@@ -51,9 +53,18 @@ const LearningPagePane = ({
   const pageTurn = selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const searchQuery = pageTurn?.userMessage ?? undefined;
+  const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
   const ctx = useMemo(() => ({
-    links, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery]);
+    links,
+    itemTitles: itemTitlesOf(blocks),
+    savedIds,
+    dismissedIds,
+    onToggleSave,
+    onDismiss,
+    searchQuery,
+    onAsk,
+    topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }

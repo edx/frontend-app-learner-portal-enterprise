@@ -98,17 +98,38 @@ export interface PlanProps {
   steps: PlanStep[];
 }
 
+/** The one item to start with (additive in v1, KD-11). */
+export interface TopPickProps {
+  item: ItemCard;
+  reason: string;
+  checks: string[];
+}
+
+export interface CompareOption {
+  best_for: string;
+  item: ItemCard;
+}
+
+/** 2-3 options with what each is best for (additive in v1, KD-11). */
+export interface CompareProps {
+  options: CompareOption[];
+}
+
 export type Block =
   | { v: 1; type: 'page_header'; props: PageHeaderProps }
   | { v: 1; type: 'item_section'; props: ItemSectionProps }
   | { v: 1; type: 'insight'; props: InsightProps }
-  | { v: 1; type: 'plan'; props: PlanProps };
+  | { v: 1; type: 'plan'; props: PlanProps }
+  | { v: 1; type: 'top_pick'; props: TopPickProps }
+  | { v: 1; type: 'compare'; props: CompareProps };
 
 export type BlockType = Block['type'];
 
 export const BLOCK_CATALOG_VERSION = 1;
 
-export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = ['page_header', 'item_section', 'insight', 'plan'];
+export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = [
+  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare',
+];
 
 // ---- Parts ----
 
