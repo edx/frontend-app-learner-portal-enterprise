@@ -84,12 +84,14 @@
   max-width: 85%;
 }
 
-// Result cards (wireframe D2): a 4px top accent per content type, one link per card that lifts on
-// hover, a 3px focus outline, and the bookmark and actions menu above the card's link.
+// Result cards (wireframe D2): a 4px top accent per content type, one link per card with a hover
+// shadow, a 3px outline when its link has keyboard focus, and the bookmark and actions menu above the
+// link. No hover transform: a transform puts each card on its own layer, so the next card painted over
+// the open "Not for me" menu, and the card moving under the pointer made the menu jump.
 .personalized-search__card {
   position: relative;
   border-top: 4px solid #2d494e;
-  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+  transition: box-shadow 120ms ease-out;
 
   &--certificate { border-top-color: #03c7e8; }
   &--program { border-top-color: #f0cc00; }
@@ -97,11 +99,21 @@
   &--course { border-top-color: #2d494e; }
 
   &:hover {
-    transform: translateY(-2px);
     box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .15);
   }
 
-  &:focus-within {
+  // A card with an open menu (or focus inside it) sits above its neighbours.
+  &:focus-within,
+  &:has(.dropdown-menu.show) {
+    z-index: 3;
+  }
+
+  // One short item: no need for Paragon's 18rem minimum, which hung past the card's edge.
+  .dropdown-menu {
+    min-width: 10rem;
+  }
+
+  &:has(.stretched-link:focus-visible) {
     outline: 3px solid currentColor;
     outline-offset: 2px;
   }
@@ -122,8 +134,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-
-    &:hover { transform: none; }
   }
 }
 
