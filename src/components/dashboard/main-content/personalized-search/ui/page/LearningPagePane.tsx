@@ -10,6 +10,7 @@ import messages from '../messages';
 import { selectPageTurn } from '../../core/selectors';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
+import ResultsSkeleton from './ResultsSkeleton';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
 
@@ -56,7 +57,13 @@ const LearningPagePane = ({
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
-  const pageTurn = selectPageTurn(turns, viewedTurnId);
+  // Once a live turn is past understanding the message (it's searching or writing), its results replace
+  // the previous ones: placeholders first, then its blocks top to bottom. Until then (or for an
+  // off-topic turn) the previous results stay.
+  const latest = turns[turns.length - 1];
+  const loadingTurn = !viewedTurnId && latest?.status === 'streaming'
+    && (latest.blocks.length > 0 || latest.step === 'searching' || latest.step === 'writing') ? latest : null;
+  const pageTurn = loadingTurn ?? selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const searchQuery = pageTurn?.userMessage ?? undefined;
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
@@ -90,31 +97,50 @@ const LearningPagePane = ({
     return () => root.removeAttribute(SCROLL_ANCHOR_OFF);
   }, []);
 
-  // New results (a turn's first block) bring the results column back to its top when the learner has
-  // scrolled past it; the page scrolls the results, so a refinement would otherwise land off screen.
-  // Not on mount, so reopening a search or returning to the tab doesn't jump.
+  // New results start at the top: the results pane scrolls back to its top when another turn's results
+  // (or their placeholders) take over. In the wide layout the pane is its own scroll container; on
+  // phones the page scrolls, so it scrolls the page back to the pane. Not on mount, so reopening a
+  // search or returning to the tab doesn't jump.
   const shownTurnId = pageTurn?.localId ?? null;
   const lastShownTurnId = useRef(shownTurnId);
   useEffect(() => {
     if (shownTurnId === lastShownTurnId.current) { return; }
     lastShownTurnId.current = shownTurnId;
     const pane = paneRef.current;
-    const column = (pane?.closest('.personalized-search__page-col') as HTMLElement | null) ?? pane;
-    if (!shownTurnId || !column) { return; }
-    const { top } = column.getBoundingClientRect();
+    if (!shownTurnId || !pane) { return; }
+    const scroller = pane.closest('.personalized-search__results-scroll') as HTMLElement | null;
+    if (scroller) {
+      if (scroller.scrollTop > 0) { scroller.scrollTop = 0; }
+      return;
+    }
+    const { top } = pane.getBoundingClientRect();
     if (top < 0) {
       window.scrollTo({ top: Math.max(top + window.scrollY - 16, 0), behavior: reducedMotion ? 'auto' : 'smooth' });
     }
   }, [shownTurnId, reducedMotion]);
 
-  const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
-  // Sections are grouped under "More options", one group per row so every card has the same width.
-  const groups = body.filter(({ block }) => block.type === 'item_section');
-  // The profile renders inside the header's "Why these?", not as a block of its own; caveats lead the pane.
-  const others = body.filter(({ block }) => !['item_section', 'profile', 'caveat'].includes(block.type));
-  // The latest turn's caveat shows even when that turn has no results of its own (the previous ones stay).
-  const latest = turns[turns.length - 1];
-  const caveat = (latest?.status === 'done' ? latest.blocks : blocks).find(({ block }) => block.type === 'caveat');
+  // Blocks render in the order they stream, which is page order (the compose prompt writes them top
+  // to bottom), so a new block only ever appears below the ones already shown. Consecutive sections
+  // share one "More options" group; the profile shows through the header's "Why these?".
+  const segments = useMemo(() => {
+    const out: Array<{ key: string; entries: PageBlock[] }> = [];
+    blocks.forEach((entry) => {
+      if (entry.block.type === 'profile') { return; }
+      const last = out[out.length - 1];
+      if (entry.block.type === 'item_section' && last?.entries[0].block.type === 'item_section') {
+        last.entries.push(entry);
+      } else {
+        out.push({ key: entry.id, entries: [entry] });
+      }
+    });
+    return out;
+  }, [blocks]);
+  // A caveat from the latest finished turn shows above the previous results when that turn has none.
+  const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn
+    ? latest.blocks.find(({ block }) => block.type === 'caveat') : undefined;
+  const loading = !!pageTurn && pageTurn.status === 'streaming';
+  const has = (type: string) => blocks.some(({ block }) => block.type === type);
+  const reachedCards = has('compare') || has('item_section');
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (
@@ -137,45 +163,38 @@ const LearningPagePane = ({
       >
         {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
       </Toast>
-      {caveat && (
-        <div className="mb-4" data-block-id={caveat.id}>{renderBlock(caveat.block, ctx, registry)}</div>
+      {standaloneCaveat && (
+        <div className="mb-4" data-block-id={standaloneCaveat.id}>{renderBlock(standaloneCaveat.block, ctx, registry)}</div>
       )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
         <Stack gap={4}>
-          {top.length > 0 && (
-            <div className="d-flex flex-wrap personalized-search__page-top">
-              {top.map(({ entry, className }) => (
-                <div
-                  key={entry.id}
-                  className={classNames(blockClass, className)}
-                  data-block-id={entry.id}
-                >
-                  {renderBlock(entry.block, ctx, registry)}
-                </div>
-              ))}
-            </div>
-          )}
-          {others.map(({ id, block }) => (
-            <div key={id} className={blockClass} data-block-id={id}>
-              {renderBlock(block, ctx, registry)}
-            </div>
-          ))}
-          {groups.length > 0 && (
-            <div className="personalized-search__more-options">
+          {segments.map(({ key, entries }) => (entries[0].block.type === 'item_section' ? (
+            <div key={key} className="personalized-search__more-options">
               <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
                 <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
                 {intl.formatMessage(messages.moreOptions)}
               </p>
               <Stack gap={4}>
-                {groups.map(({ id, block }) => (
+                {entries.map(({ id, block }) => (
                   <div key={id} className={blockClass} data-block-id={id}>
                     {renderBlock(block, ctx, registry)}
                   </div>
                 ))}
               </Stack>
             </div>
+          ) : (
+            <div key={key} className={blockClass} data-block-id={key}>
+              {renderBlock(entries[0].block, ctx, registry)}
+            </div>
+          )))}
+          {loading && (
+            <ResultsSkeleton
+              header={!has('page_header')}
+              topPick={!has('top_pick') && !reachedCards}
+              cards
+            />
           )}
         </Stack>
       )}

@@ -60,9 +60,10 @@ describe('block registry', () => {
         entry('d', 'page_header'), entry('e', 'item_section'),
       ];
       const { top, body } = defaultBlockRegistry.layout(blocks);
-      expect(top.map((t) => t.entry.id)).toEqual(['c', 'b']);
+      // The plan isn't a top block: it renders where it arrives, last.
+      expect(top.map((t) => t.entry.id)).toEqual(['c']);
       expect(top[0].className).toContain('personalized-search__header-col');
-      expect(body.map((b) => b.id)).toEqual(['a', 'd', 'e']);
+      expect(body.map((b) => b.id)).toEqual(['a', 'b', 'd', 'e']);
     });
 
     it('treats a host-registered top type as a top slot', () => {

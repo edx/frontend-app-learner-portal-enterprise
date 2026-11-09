@@ -51,10 +51,17 @@
 // its top (useFitToViewport), so the messages scroll inside it and the composer is a footer that never
 // leaves view, before or after the page scrolls. Only the results scroll with the page.
 .personalized-search[data-layout="dual"] {
-  .personalized-search__chat-col {
-    position: sticky;
-    top: 1rem;
-    align-self: flex-start;
+  // Wide layout: both panes fit the window (useFitToViewport) and scroll inside themselves.
+  .personalized-search__panes {
+    min-height: 0;
+  }
+
+  .personalized-search__results-scroll {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    // Results update in place; anchoring would hold the old scroll spot as new blocks stream in.
+    overflow-anchor: none;
+    padding-bottom: 1rem;
   }
 
   .personalized-search__chat-panel {
@@ -75,6 +82,12 @@
     min-height: 0;
     overflow-y: auto;
     padding-right: .25rem;
+    scrollbar-gutter: stable;
+
+    // While a turn streams, the conversation is held at its newest message.
+    &--locked {
+      overflow-y: hidden;
+    }
   }
 }
 
