@@ -7,7 +7,8 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
-import { isSendableMessage } from '../core/selectors';
+import { isSendableMessage, previousPageTurnId } from '../core/selectors';
+import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { PersonalizedSearchDeps } from './deps';
@@ -75,6 +76,7 @@ export const createPersonalizedSearchController = ({
       }
       const controller = new AbortController();
       abortRef.current = controller;
+      const localId = uuidv4();
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -86,19 +88,42 @@ export const createPersonalizedSearchController = ({
           sessionUuid: store.stream.session.sessionUuid,
           message,
         },
-        localId: uuidv4(),
+        localId,
         signal: controller.signal,
         dispatch: store.setStream,
         isRenderableBlock,
       });
 
       if (abortRef.current === controller) { abortRef.current = null; }
+      const after = storeApi.getState();
       if (result.outcome === 'done') {
-        storeApi.getState().setAnnouncement(
-          intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }),
-        );
+        after.setAnnouncement(intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }));
+      } else if (result.outcome === 'stopped') {
+        // The stopped turn's blocks were discarded, so show the page from before it.
+        const { turns } = after.stream;
+        after.setViewedTurnId(previousPageTurnId(turns, turns.findIndex((t) => t.localId === localId)));
+      } else if (result.status === 403 || result.status === 404) {
+        if (result.status === 403) {
+          deps.logError(`Personalized Search turn forbidden for enterprise ${enterpriseCustomerUuid}`);
+        }
+        after.setUnavailable(true);
+      } else if (result.status === 400) {
+        after.setDraft(message);
       }
     }, [enterpriseCustomerUuid, intl, transport]);
+
+    const stop = useCallback(() => {
+      abortRef.current?.abort();
+    }, []);
+
+    /** Resends a failed turn's message on the same session, replacing the failed turn. */
+    const retry = useCallback((turnId: string) => {
+      const store = storeApi.getState();
+      const failed = store.stream.turns.find((t) => t.localId === turnId);
+      if (!failed?.userMessage || store.stream.activeTurnId) { return; }
+      store.setStream((current) => removeTurn(current, turnId));
+      send(failed.userMessage);
+    }, [send]);
 
     const newChat = useCallback(() => {
       abortRef.current?.abort();
@@ -134,6 +159,8 @@ export const createPersonalizedSearchController = ({
       announcement,
       openingChips,
       send,
+      stop,
+      retry,
       newChat,
       viewPage,
       showLastRecommendations,
