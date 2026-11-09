@@ -225,6 +225,8 @@ export interface AssistantTurn {
   localId: string;
   /** `turn_<ChatTurn.uuid>` from the `start` part; null until it arrives. */
   messageId: string | null;
+  /** The turn's sequence in its session, from `data-session`; null until it arrives. */
+  sequence: number | null;
   userMessage: string | null;
   status: TurnStatus;
   step: StatusStep | null;

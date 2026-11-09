@@ -68,6 +68,8 @@ const PersonalizedSearchTab = ({
       onSend={controller.send}
       onStop={controller.stop}
       onRetry={controller.retry}
+      ratings={controller.ratings}
+      onRate={controller.rateTurn}
     />
   );
   const forYou = (

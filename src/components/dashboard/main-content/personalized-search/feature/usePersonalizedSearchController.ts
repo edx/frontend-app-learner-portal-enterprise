@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useMemo, useRef,
+  useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { breakpoints, useMediaQuery } from '@openedx/paragon';
@@ -11,7 +11,7 @@ import messages from '../ui/messages';
 import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
-import type { ItemCard } from '../core/stream/types';
+import type { AssistantTurn, ItemCard } from '../core/stream/types';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
@@ -22,6 +22,8 @@ import {
   itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
 } from '../core/workflows';
 import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+
+export type TurnRating = 1 | -1 | null;
 
 /** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
 export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
@@ -247,6 +249,26 @@ export const createPersonalizedSearchController = ({
     const clearFeedbackNotice = useCallback(() => {
       storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
     }, []);
+    // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
+    const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
+    const [ratingUnavailable, setRatingUnavailable] = useState(false);
+    const rateTurn = useCallback(async (turn: AssistantTurn, rating: 1 | -1) => {
+      const { sessionUuid } = storeApi.getState().stream.session;
+      if (!enterpriseCustomerUuid || !sessionUuid || !turn.sequence) { return; }
+      const previous = ratings[turn.localId] ?? null;
+      const next = previous === rating ? null : rating;
+      setRatings((current) => ({ ...current, [turn.localId]: next }));
+      try {
+        await deps.feedbackApi.rateTurn(enterpriseCustomerUuid, sessionUuid, turn.sequence, next);
+      } catch (e) {
+        setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        if ((e as { response?: { status?: number } })?.response?.status === 404) {
+          setRatingUnavailable(true);
+        } else {
+          deps.logError(e);
+        }
+      }
+    }, [enterpriseCustomerUuid, ratings]);
     const openSaved = useCallback(() => storeApi.getState().setSavedOpen(true), []);
     const closeSaved = useCallback(() => storeApi.getState().setSavedOpen(false), []);
 
@@ -337,6 +359,8 @@ export const createPersonalizedSearchController = ({
     }, [intl]);
 
     return {
+      ratings,
+      rateTurn: ratingUnavailable ? undefined : rateTurn,
       enterpriseCustomerUuid,
       enterpriseSlug,
       links,

@@ -13,3 +13,7 @@ The results pane has two tabs: "For you" (the AI-personalized results, marked wi
 ## Result cards
 
 `EditorialItemCard` is the edx.org-style card: a 4px top accent per type (Professional Certificates #03C7E8, Executive Education #D23228, other programs #F0CC00, courses #2D494E), the type label, title, partner, hours per week and length, then pacing and level. The whole card is one link (a stretched title link) that lifts on hover and shows a 3px outline on keyboard focus. The bookmark and a "More options" menu with "Not for me" sit above the link. "Why this?" opens the one-line reason. A section with a single card lays it out horizontally. "Not for me" removes the card and offers Undo in a toast.
+
+## Thumbs on replies
+
+Each finished reply has thumbs up ("Helpful") and down ("Not helpful") with `aria-pressed`. Pressing the same one again clears it. The rating is optimistic and reverts if the call fails; if the server has no rating endpoint (404), the thumbs disappear for the rest of the session. Each turn learns its `sequence` from `data-session`, which the rating endpoint needs.

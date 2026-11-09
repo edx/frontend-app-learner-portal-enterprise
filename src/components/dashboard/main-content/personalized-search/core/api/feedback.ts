@@ -14,6 +14,10 @@ export interface FeedbackRow {
 
 export const getItemFeedbackUrl = (baseUrl: string) => `${baseUrl}/api/v1/personalized-search/item-feedback/`;
 
+export const getTurnRatingUrl = (baseUrl: string, sessionUuid: string, sequence: number) => (
+  `${baseUrl}/api/v1/personalized-search/sessions/${sessionUuid}/turns/${sequence}/feedback/`
+);
+
 export interface FeedbackApiClient {
   /** The learner's feedback of one kind in this enterprise, newest first (REQ-009). */
   listFeedback: (enterpriseCustomerUuid: string, kind: FeedbackKind) => Promise<FeedbackRow[]>;
@@ -26,6 +30,10 @@ export interface FeedbackApiClient {
   ) => Promise<void>;
   /** Undo Save or Not interested. */
   removeFeedback: (enterpriseCustomerUuid: string, kind: FeedbackKind, itemId: string) => Promise<void>;
+  /** Thumbs up (1), down (-1) or cleared (null) on one of the learner's replies. */
+  rateTurn: (
+    enterpriseCustomerUuid: string, sessionUuid: string, sequence: number, rating: 1 | -1 | null,
+  ) => Promise<void>;
 }
 
 export const createFeedbackApi = ({ getHttpClient, getBaseUrl }: ApiOptions): FeedbackApiClient => ({
@@ -48,6 +56,11 @@ export const createFeedbackApi = ({ getHttpClient, getBaseUrl }: ApiOptions): Fe
   removeFeedback: async (enterpriseCustomerUuid, kind, itemId) => {
     await getHttpClient().delete(getItemFeedbackUrl(getBaseUrl()), {
       params: { enterprise_customer_uuid: enterpriseCustomerUuid, item_id: itemId, kind },
+    });
+  },
+  rateTurn: async (enterpriseCustomerUuid, sessionUuid, sequence, rating) => {
+    await getHttpClient().post(getTurnRatingUrl(getBaseUrl(), sessionUuid, sequence), {
+      enterprise_customer_uuid: enterpriseCustomerUuid, rating,
     });
   },
 });
