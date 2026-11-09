@@ -4,6 +4,7 @@ import type { SessionsApi } from '../core/api/sessions';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
+import type { TrackAction, TrackProperties } from '../core/analytics';
 
 /** The enterprise the learner is in, as the host knows it. */
 export interface EnterpriseContext {
@@ -37,4 +38,11 @@ export interface PersonalizedSearchDeps {
   feedbackApi: FeedbackApiClient;
   /** `?debug=true` tooling; only used when `useDebugRequested` returns true. */
   debug: DebugDeps;
+  /**
+   * Sends one usage event (KD-12). Properties are flat and already carry the join keys and the
+   * enterprise; the host only names and sends the event. Must never throw.
+   */
+  trackEvent: (action: TrackAction, properties: TrackProperties) => void;
+  /** How the learner reached the tab, for `tab_viewed`. */
+  getEntryPoint: () => string;
 }

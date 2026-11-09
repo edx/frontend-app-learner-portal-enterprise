@@ -35,6 +35,7 @@ const turn = (status: AssistantTurn['status'], t: TimingData | null, userMessage
   localId: Math.random().toString(),
   messageId: null,
   sequence: null,
+  analytics: null,
   userMessage,
   status,
   step: null,

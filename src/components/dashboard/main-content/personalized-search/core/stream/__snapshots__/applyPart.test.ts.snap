@@ -10,6 +10,7 @@ exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`
   },
   "turns": [
     {
+      "analytics": null,
       "blocks": [
         {
           "block": {
@@ -177,6 +178,15 @@ exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] =
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [],
       "error": "model_failed",
       "followups": {
@@ -211,6 +221,15 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [
         {
           "block": {
@@ -267,6 +286,15 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [
         {
           "block": {
@@ -317,6 +345,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                 },
                 "partner_logo_url": "https://logo/mit.png",
                 "partner_name": "MITx",
+                "position": 1,
+                "section": "top_pick",
                 "title": "Program p-1",
                 "why": "Because you want to lead a team and earn a credential.",
               },
@@ -349,6 +379,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                     },
                     "partner_logo_url": "https://logo/mit.png",
                     "partner_name": "MITx",
+                    "position": 2,
+                    "section": "compare",
                     "title": "Program p-1",
                     "why": null,
                   },
@@ -374,6 +406,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                     },
                     "partner_logo_url": "https://logo/edx.png",
                     "partner_name": "edX",
+                    "position": 3,
+                    "section": "compare",
                     "title": "Course Yale+E1",
                     "why": null,
                   },
@@ -399,6 +433,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                     },
                     "partner_logo_url": "https://logo/edx.png",
                     "partner_name": "edX",
+                    "position": 4,
+                    "section": "compare",
                     "title": "Course edX+C3",
                     "why": null,
                   },
@@ -439,6 +475,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/edx.png",
                   "partner_name": "edX",
+                  "position": 5,
+                  "section": "course",
                   "title": "Course edX+C1",
                   "why": "Covers the basics you asked for.",
                 },
@@ -463,6 +501,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/edx.png",
                   "partner_name": "edX",
+                  "position": 6,
+                  "section": "course",
                   "title": "Course edX+C2",
                   "why": "Builds on it.",
                 },
@@ -523,6 +563,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/mit.png",
                   "partner_name": "MITx",
+                  "position": 7,
+                  "section": "program",
                   "title": "Program p-2",
                   "why": "A full certificate.",
                 },
@@ -608,6 +650,15 @@ exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [],
       "error": null,
       "followups": {

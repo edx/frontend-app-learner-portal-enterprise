@@ -5,6 +5,8 @@
  * Only `stream/` knows the protocol. Everything above it consumes `ChatStreamState`.
  */
 
+import type { AnalyticsContext } from '../analytics';
+
 export type ItemType = 'course' | 'executive_education' | 'program';
 
 export type StatusStep = 'understanding' | 'searching' | 'writing';
@@ -207,7 +209,8 @@ export type Part =
   | { type: 'data-status'; data: { step: StatusStep }; transient?: boolean }
   | { type: 'data-block'; id: string; data: Block }
   | { type: 'data-followups'; id: string; data: FollowupsData }
-  | { type: 'data-timing'; id: string; data: TimingData; transient?: boolean };
+  | { type: 'data-timing'; id: string; data: TimingData; transient?: boolean }
+  | { type: 'data-analytics'; id: string; data: AnalyticsContext };
 
 export type PartType = Part['type'];
 
@@ -227,6 +230,8 @@ export interface AssistantTurn {
   messageId: string | null;
   /** The turn's sequence in its session, from `data-session`; null until it arrives. */
   sequence: number | null;
+  /** The server's join keys for this turn's usage events (`data-analytics`); null until they arrive. */
+  analytics: AnalyticsContext | null;
   userMessage: string | null;
   status: TurnStatus;
   step: StatusStep | null;
