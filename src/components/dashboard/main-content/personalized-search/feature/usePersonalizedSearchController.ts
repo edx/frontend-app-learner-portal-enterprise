@@ -220,6 +220,7 @@ export const createPersonalizedSearchController = ({
           sessionUuid: store.stream.session.sessionUuid,
           message,
           ...(resumedFromHistory ? { resumedFromHistory } : {}),
+          ...(deps.getContentLocale ? { locale: deps.getContentLocale() } : {}),
         },
         localId,
         signal: controller.signal,

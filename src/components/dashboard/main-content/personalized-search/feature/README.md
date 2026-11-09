@@ -29,3 +29,5 @@ Events sent by the client: `tab_viewed` (entry point), `prompt_submitted` (`prom
 ## The conversation in the URL
 
 After the first message the URL carries `?session=<uuid>`, the session's id and the usage events' `conversation_id`. The update replaces the history entry, so leaving for a course page or the search page and pressing Back returns to the tab, which reopens that conversation (as a past search; the next message continues it). An unknown or foreign id is dropped and the tab starts fresh. New chat removes the parameter. The host supplies the URL access through the `useSessionParam` port.
+
+Each turn sends the learner's content language (`locale`) from the optional `getContentLocale` port. The portal resolves it the way Learner Pathways does (`getPathwaysSupportedLocale`: the portal language when the MFE's `SUPPORTED_ALGOLIA_LANGUAGE_FILTERS` lists it, otherwise `en`). enterprise-access then returns catalog records whose metadata is in that language, limits courses to ones taught in it, and has the AI write in it.
