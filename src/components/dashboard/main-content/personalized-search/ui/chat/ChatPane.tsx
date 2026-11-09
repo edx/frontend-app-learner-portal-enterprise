@@ -16,7 +16,7 @@ export interface ChatPaneProps {
   draft: string;
   announcement: string;
   onDraftChange: (draft: string) => void;
-  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed starter chip. */
+  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed chip. */
   onSend: (message: string, source?: PromptSource, chipLabel?: string) => void;
   onStop: () => void;
   onRetry: (turnId: string) => void;
@@ -41,7 +41,9 @@ const ChatPane = ({
   }, [busy]);
 
   const latest = turns[turns.length - 1];
-  const chips = latest?.status === 'done' ? latest.followups?.suggestions ?? [] : [];
+  const followups = latest?.status === 'done' ? latest.followups : null;
+  const chips = followups?.suggestions ?? [];
+  const ideas = followups?.ideas ?? [];
 
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
@@ -76,8 +78,14 @@ const ChatPane = ({
           />
         )}
       </div>
-      {chips.length > 0 && (
-        <FollowUpChips suggestions={chips} disabled={busy} onSelect={(chip) => onSend(chip, 'followup_chip')} />
+      {(chips.length > 0 || ideas.length > 0) && (
+        <FollowUpChips
+          suggestions={chips}
+          ideas={ideas}
+          disabled={busy}
+          onSelect={(chip) => onSend(chip, 'followup_chip', chip)}
+          onSelectIdea={(idea) => onSend(idea, 'suggested_chip')}
+        />
       )}
       <Composer
         ref={composerRef}

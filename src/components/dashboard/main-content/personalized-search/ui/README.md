@@ -4,7 +4,7 @@ Presentational Paragon components. Every input is a prop; no store, no host impo
 
 ## Chat look
 
-Learner messages are gray bubbles on the right. Assistant replies are plain text after a sparkle icon, with the follow-up question as the last line. The latest follow-up chips sit above the message box, and a note under it says results come from the organization's catalog.
+Learner messages are gray bubbles on the right. Assistant replies are plain text after a sparkle icon, with the follow-up question as the last line. The latest follow-up chips sit above the message box: first the fixed chips that narrow the results, then up to three chips the AI wrote for this conversation, marked with a sparkle. When there is nothing left to narrow, the AI's chips stand in for the generic opening chips. A note under the message box says results come from the organization's catalog.
 
 ## For you and Saved tabs
 

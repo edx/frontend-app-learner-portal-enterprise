@@ -141,6 +141,21 @@ const messages = defineMessages({
     defaultMessage: 'A suggested order',
     description: 'Heading of the suggested learning order on the learning page.',
   },
+  planInfoTitle: {
+    id: 'learner.personalizedSearch.page.plan.infoTitle',
+    defaultMessage: 'How this order was picked',
+    description: 'Info button and popover title explaining the suggested learning order.',
+  },
+  planInfoBody: {
+    id: 'learner.personalizedSearch.page.plan.infoBody',
+    defaultMessage: 'These steps come from your results. The best fit for your goal comes first, and each step builds on the one before: foundations before advanced, shorter before longer.',
+    description: 'Explains how the steps of the suggested learning order were chosen and ordered.',
+  },
+  suggestedChip: {
+    id: 'learner.personalizedSearch.chat.suggestedChip',
+    defaultMessage: 'Suggested',
+    description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
+  },
   forYouTab: {
     id: 'learner.personalizedSearch.results.tab.forYou',
     defaultMessage: 'For you',

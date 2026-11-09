@@ -43,7 +43,7 @@ export interface LearningPagePaneProps {
   onAsk?: (message: string) => void;
   /** Usage events (KD-12). */
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
 }
 
 const LearningPagePane = ({

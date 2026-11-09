@@ -18,6 +18,11 @@ import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import { expectFlat } from './analyticsTestUtils';
 import { useEnterpriseCustomer } from '../../../../app/data';
 
+/** A follow-up chip by its text (results headings can share it, e.g. "Programs"). */
+const followUpChip = (text: string) => screen.getAllByText(text)
+  .map((el) => el.closest('.pgn__chip') as HTMLElement)
+  .find(Boolean) as HTMLElement;
+
 jest.mock('@2uinc/frontend-enterprise-utils', () => ({
   ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
   sendEnterpriseTrackEvent: jest.fn(),
@@ -126,11 +131,18 @@ describe('Personalized Search usage events: what the client sends', () => {
     });
   });
 
-  it('a follow-up chip is reported as such', async () => {
+  it('a fixed follow-up chip is reported with its label; an AI-suggested chip without its text', async () => {
     const user = userEvent.setup();
     await sendStarter(user);
-    await user.click(screen.getByRole('button', { name: 'Under 4 weeks' }));
-    expect(named('prompt_submitted')[1]).toEqual(expect.objectContaining({ prompt_source: 'followup_chip', chip_label: null }));
+    await user.click(followUpChip('Programs'));
+    expect(named('prompt_submitted')[1]).toEqual(
+      expect.objectContaining({ prompt_source: 'followup_chip', chip_label: 'Programs' }),
+    );
+    await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+    await user.click(screen.getByText('Giving feedback to my team'));
+    expect(named('prompt_submitted')[2]).toEqual(
+      expect.objectContaining({ prompt_source: 'suggested_chip', chip_label: null }),
+    );
   });
 });
 
