@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import classNames from 'classnames';
 import {
-  Badge, Button, Card, Collapsible, Dropdown, Icon,
+  Badge, Card, Collapsible, Dropdown, Icon, IconButton,
 } from '@openedx/paragon';
 import { Bookmark, BookmarkBorder, MoreVert } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -68,6 +68,12 @@ export const useMeta = (item: ItemCard): { time: string[]; detail: string[] } =>
   return { time: present(time), detail: present(detail) };
 };
 
+/**
+ * Cards per row, the same breakpoints everywhere results show (top pick, compare, groups, Saved): one on
+ * phones, two on tablets and three on wide screens, close to the search page's card width.
+ */
+export const RESULT_COLUMN_SIZES = { xs: 12, md: 6, xl: 4 };
+
 export interface EditorialItemCardProps {
   item: ItemCard;
   links: ItemLinks;
@@ -75,8 +81,8 @@ export interface EditorialItemCardProps {
   saved?: boolean;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
-  /** Horizontal when a row has a single card, so the row doesn't look oddly spaced. */
-  orientation?: 'vertical' | 'horizontal';
+  /** A short line above the type label, such as "Best for …" in Compare top options. */
+  eyebrow?: ReactNode;
   /** Extra content under the meta line, such as a status badge. */
   footer?: ReactNode;
   /** Usage events: the card was opened, or its "Why this?" was expanded. */
@@ -85,12 +91,14 @@ export interface EditorialItemCardProps {
 }
 
 /**
- * The edx.org-style result card (wireframe D2): a 4px accent per content type, the type label, title,
- * partner, hours per week and length, and one short reason behind "Why this?". The whole card is one
- * link; the bookmark and the actions menu sit above it. Server-hydrated (KD-5); every field renders as text.
+ * The edx.org-style result card (wireframe D2): a 4px accent per content type, the image, type label,
+ * title, partner, hours per week and length, and one short reason behind "Why this?". Every card has the
+ * same parts in the same place (titles clamp to three lines, a missing image keeps its space), so a row
+ * of cards lines up like the search page. The whole card is one link; the bookmark and the actions menu
+ * sit above it. Server-hydrated (KD-5); every field renders as text.
  */
 const EditorialItemCard = ({
-  item, links, saved = false, onToggleSave, onDismiss, orientation = 'vertical', footer, onOpen, onExplain,
+  item, links, saved = false, onToggleSave, onDismiss, eyebrow, footer, onOpen, onExplain,
 }: EditorialItemCardProps) => {
   const intl = useIntl();
   const typeLabel = useTypeLabel(item);
@@ -99,16 +107,14 @@ const EditorialItemCard = ({
 
   return (
     <Card
-      orientation={orientation}
       className={classNames(
         'personalized-search__card h-100',
         `personalized-search__card--${accentOf(item)}`,
-        `personalized-search__card--${orientation}`,
         { 'personalized-search__card--updated': item.status === 'new' },
       )}
       data-item-id={item.item_id}
     >
-      {item.image_url && (
+      {item.image_url ? (
         <Card.ImageCap
           src={item.image_url}
           srcAlt=""
@@ -117,26 +123,33 @@ const EditorialItemCard = ({
             ? intl.formatMessage(messages.partnerLogoAlt, { partner: item.partner_name })
             : undefined}
         />
-      )}
-      <Card.Section className="personalized-search__card-body">
+      ) : <div className="personalized-search__card-image-placeholder bg-light-400" aria-hidden />}
+      <Card.Section className="personalized-search__card-body d-flex flex-column">
+        {eyebrow && <p className="small font-weight-bold mb-2 personalized-search__card-eyebrow">{eyebrow}</p>}
         <p className="x-small text-gray-700 mb-1">{typeLabel}</p>
-        <h4 className="h5 mb-1 personalized-search__card-title">
+        <h4 className="h5 mb-1 personalized-search__card-title personalized-search__clamp-3">
           {/* stretched-link makes the whole card one link; the actions sit above it. */}
           <links.LinkComponent to={links.getItemHref(item)} className="stretched-link" onClick={() => onOpen?.(item)}>
             {item.title}
           </links.LinkComponent>
         </h4>
-        {item.partner_name && <p className="small text-gray-700 mb-2">{item.partner_name}</p>}
+        {item.partner_name && (
+          <p className="small text-gray-700 mb-2 personalized-search__clamp-1">{item.partner_name}</p>
+        )}
         {time.length > 0 && <p className="x-small mb-0">{time.join(' · ')}</p>}
         {detail.length > 0 && <p className="x-small text-gray-700 mb-0">{detail.join(', ')}</p>}
-        {item.status === 'new' && (
-          <Badge variant="info" className="mt-2">{intl.formatMessage(messages.updated)}</Badge>
+        {(item.status === 'new' || footer) && (
+          <div className="mt-2">
+            {item.status === 'new' && (
+              <Badge variant="info" className="mr-2">{intl.formatMessage(messages.updated)}</Badge>
+            )}
+            {footer}
+          </div>
         )}
-        {footer}
         {item.why && (
           <Collapsible
             styling="basic"
-            className="personalized-search__why mt-2"
+            className="personalized-search__why mt-auto pt-2"
             title={<span className="small">{intl.formatMessage(messages.whyThis)}</span>}
             onToggle={(isOpen: boolean) => { if (isOpen) { onExplain?.(item); } }}
           >
@@ -147,29 +160,27 @@ const EditorialItemCard = ({
       {hasActions && (
         <div className="personalized-search__card-actions">
           {onToggleSave && (
-            <Button
-              variant="light"
+            <IconButton
+              src={saved ? Bookmark : BookmarkBorder}
+              iconAs={Icon}
               size="sm"
-              className="personalized-search__card-action rounded-circle"
+              className="personalized-search__card-action"
               aria-pressed={saved}
-              aria-label={intl.formatMessage(saved ? messages.unsaveItem : messages.saveItem, { title: item.title })}
+              alt={intl.formatMessage(saved ? messages.unsaveItem : messages.saveItem, { title: item.title })}
               onClick={() => onToggleSave(item)}
-            >
-              <Icon src={saved ? Bookmark : BookmarkBorder} size="sm" />
-            </Button>
+            />
           )}
           {onDismiss && (
             <Dropdown>
               <Dropdown.Toggle
                 id={`personalized-search-actions-${item.item_id}`}
-                as={Button}
-                variant="light"
+                as={IconButton}
+                src={MoreVert}
+                iconAs={Icon}
                 size="sm"
-                className="personalized-search__card-action rounded-circle"
-                aria-label={intl.formatMessage(messages.moreActions, { title: item.title })}
-              >
-                <Icon src={MoreVert} size="sm" />
-              </Dropdown.Toggle>
+                className="personalized-search__card-action"
+                alt={intl.formatMessage(messages.moreActions, { title: item.title })}
+              />
               <Dropdown.Menu>
                 <Dropdown.Item as="button" onClick={() => onDismiss(item)}>
                   {intl.formatMessage(messages.notForMe)}

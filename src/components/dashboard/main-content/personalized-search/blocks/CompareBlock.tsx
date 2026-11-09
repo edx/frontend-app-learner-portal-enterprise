@@ -1,13 +1,16 @@
-import { Col, Icon, Row } from '@openedx/paragon';
+import { Badge, CardGrid, Icon } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../ui/messages';
 import type { CompareProps } from '../core/stream/types';
-import CompactItemCard from '../ui/cards/CompactItemCard';
+import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { BlockRenderContext } from './blockRegistry';
 
-/** "Compare top options" (wireframe D2): a "Best for …" headline above each mini card. */
+/**
+ * "Compare top options" (wireframe D2): the same cards as the rest of the results, in the same grid, each
+ * opening with its "Best for …" line so the cards stay aligned however long that line is.
+ */
 const CompareBlock = ({ options, ctx }: CompareProps & { ctx: BlockRenderContext }) => {
   const intl = useIntl();
   const visible = options.filter(({ item }) => !ctx.dismissedIds?.has(item.item_id));
@@ -18,21 +21,24 @@ const CompareBlock = ({ options, ctx }: CompareProps & { ctx: BlockRenderContext
         <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
         {intl.formatMessage(messages.compareTopOptions)}
       </p>
-      <Row>
+      <CardGrid columnSizes={RESULT_COLUMN_SIZES}>
         {visible.map(({ best_for: bestFor, item }) => (
-          <Col key={item.item_id} md={12 / Math.max(visible.length, 2)} className="mb-3 d-flex flex-column">
-            <h4 className="h4 mb-2">{intl.formatMessage(messages.bestFor, { bestFor })}</h4>
-            <CompactItemCard
-              item={item}
-              links={ctx.links}
-              saved={ctx.savedIds?.has(item.item_id) ?? false}
-              onToggleSave={ctx.onToggleSave}
-              isTopPick={ctx.topPickId === item.item_id}
-              onOpen={ctx.onOpenItem}
-            />
-          </Col>
+          <EditorialItemCard
+            key={item.item_id}
+            item={item}
+            links={ctx.links}
+            eyebrow={intl.formatMessage(messages.bestFor, { bestFor })}
+            footer={ctx.topPickId === item.item_id && (
+              <Badge variant="light" className="text-danger-500">{intl.formatMessage(messages.topPick)}</Badge>
+            )}
+            saved={ctx.savedIds?.has(item.item_id) ?? false}
+            onToggleSave={ctx.onToggleSave}
+            onDismiss={ctx.onDismiss}
+            onOpen={ctx.onOpenItem}
+            onExplain={(opened) => ctx.onExplain?.('tile', opened)}
+          />
         ))}
-      </Row>
+      </CardGrid>
     </section>
   );
 };

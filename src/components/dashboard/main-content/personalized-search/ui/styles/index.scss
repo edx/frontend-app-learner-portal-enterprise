@@ -141,14 +141,31 @@
   to { box-shadow: 0 0 0 0 rgba(3, 199, 232, 0); }
 }
 
-// Decision guide (wireframe D2): the top pick's card is about 300px beside its details; compare cards are compact.
-.personalized-search__top-pick-card {
-  flex: 0 0 18.75rem;
-  max-width: 100%;
+// Every result card has the same parts in the same place: a missing image keeps the image cap's space,
+// the title clamps to three lines and the partner to one, and "Why this?" sits at the bottom.
+.personalized-search__card-image-placeholder {
+  height: 8.75rem;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 
-.personalized-search__top-pick-details {
-  min-width: 14rem;
+.personalized-search__card-body {
+  flex: 1 1 auto;
+}
+
+.personalized-search__clamp-3,
+.personalized-search__clamp-1 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.personalized-search__clamp-3 { -webkit-line-clamp: 3; }
+.personalized-search__clamp-1 { -webkit-line-clamp: 1; }
+
+.personalized-search__card-action {
+  background-color: #fff;
+  box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, .2);
 }
 
 // Saved tab empty state (wireframe D2b).
