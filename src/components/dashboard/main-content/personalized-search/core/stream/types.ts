@@ -177,6 +177,16 @@ export interface ModelCallDebug {
   elapsed_ms: number | null;
   first_token_ms: number | null;
   cost_usd: number | null;
+  /** The response cache (enterprise-access KD-13): replayed ('hit') or called ('miss'). */
+  cache?: 'hit' | 'miss' | null;
+  /** On a hit, the original call's tokens. */
+  tokens_saved?: TokensSaved | null;
+}
+
+export interface TokensSaved {
+  input_tokens: number | null;
+  output_tokens: number | null;
+  reasoning_tokens: number | null;
 }
 
 /** Dev-only extras on `data-timing` (enterprise-access `PERSONALIZED_SEARCH_DEBUG_OVERRIDES_ENABLED`). */
@@ -188,6 +198,8 @@ export interface TimingDebug {
   intent?: ModelCallDebug | null;
   compose?: ModelCallDebug | null;
   cost_usd: number | null;
+  /** Tokens the response cache saved this turn (summed over the calls that hit). */
+  tokens_saved?: TokensSaved | null;
 }
 
 export interface TimingData {

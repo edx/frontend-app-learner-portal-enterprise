@@ -17,12 +17,18 @@ export interface BenchmarkRow {
   composeOutputTokens: number | null;
   reasoningTokens: number | null;
   costUsd: number | null;
+  /** The response cache per call: 'hit', 'miss', or null when the server sent nothing. */
+  intentCache: string | null;
+  composeCache: string | null;
+  savedInputTokens: number | null;
+  savedOutputTokens: number | null;
   candidates: number | null;
   droppedLines: number | null;
 }
 
 export const NUMERIC_COLUMNS = [
   'intentMs', 'retrievalMs', 'firstTextMs', 'firstSectionMs', 'completeMs', 'composeOutputTokens', 'costUsd',
+  'savedOutputTokens',
 ] as const;
 
 export type NumericColumn = typeof NUMERIC_COLUMNS[number];
@@ -48,6 +54,10 @@ export const toBenchmarkRows = (turns: AssistantTurn[]): BenchmarkRow[] => turns
       composeOutputTokens: debug?.compose?.output_tokens ?? null,
       reasoningTokens: debug?.compose?.reasoning_tokens ?? null,
       costUsd: debug?.cost_usd ?? null,
+      intentCache: debug?.intent?.cache ?? null,
+      composeCache: debug?.compose?.cache ?? null,
+      savedInputTokens: debug?.tokens_saved?.input_tokens ?? null,
+      savedOutputTokens: debug?.tokens_saved?.output_tokens ?? null,
       candidates: debug?.candidates ?? null,
       droppedLines: timing?.dropped_lines ?? null,
     };

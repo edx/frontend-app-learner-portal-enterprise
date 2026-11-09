@@ -132,6 +132,59 @@ describe('LearningPagePane', () => {
     });
   });
 
+  describe('response cache marks (debug mode)', () => {
+    const cachedTurns = () => {
+      const { turns } = runTurns(['normal_turn.sse']);
+      const [first] = turns;
+      const call = {
+        model: 'gpt-5.4-mini',
+        effort: 'low',
+        input_tokens: 0,
+        cached_input_tokens: 0,
+        output_tokens: 0,
+        reasoning_tokens: 0,
+        elapsed_ms: 0,
+        first_token_ms: 0,
+        cost_usd: 0,
+        cache: 'hit' as const,
+      };
+      return [{
+        ...first,
+        timing: {
+          ...(first.timing ?? {
+            backend: 'openai',
+            model_intent: 'gpt-4.1-mini',
+            model_compose: 'gpt-5.4-mini',
+            intent_ms: 0,
+            retrieval_ms: 0,
+            first_text_ms: 0,
+            first_section_ms: 0,
+            complete_ms: 0,
+            dropped_lines: 0,
+          }),
+          debug: {
+            candidates: 8,
+            followup_attribute: 'type',
+            catalog: null,
+            cost_usd: 0,
+            compose: call,
+            tokens_saved: { input_tokens: 4511, output_tokens: 1257, reasoning_tokens: 250 },
+          },
+        },
+      }];
+    };
+
+    it('marks replayed results and the tokens saved, only in debug mode', () => {
+      const { container, unmount } = renderPane(cachedTurns(), { showCacheMarks: true });
+      expect(screen.getByTestId('personalized-search-from-cache')).toHaveTextContent('From cache · saved 1,257 output tokens');
+      expect(container.querySelectorAll('.personalized-search__block--cached').length).toBeGreaterThan(0);
+      unmount();
+      const plain = renderPane(cachedTurns());
+      expect(screen.queryByTestId('personalized-search-from-cache')).not.toBeInTheDocument();
+      expect(plain.container.querySelector('.personalized-search__block--cached')).toBeNull();
+    });
+  });
+
   it('shows the empty page before any turn has a page', () => {
     renderPane([]);
     expect(screen.getByText('Your results will show here. Tell me what you want to learn.')).toBeInTheDocument();

@@ -34,7 +34,9 @@ const formatMs = (value: number | null) => (value === null ? '–' : `${(value /
 const formatCost = (value: number | null) => (value === null ? '–' : `$${value.toFixed(4)}`);
 const formatCell = (column: NumericColumn, value: number | null) => {
   if (column === 'costUsd') { return formatCost(value); }
-  if (column === 'composeOutputTokens') { return value === null ? '–' : String(value); }
+  if (column === 'composeOutputTokens' || column === 'savedOutputTokens') {
+    return value === null ? '–' : value.toLocaleString('en-US');
+  }
   return formatMs(value);
 };
 
@@ -46,7 +48,13 @@ const COLUMN_LABELS: Record<NumericColumn, string> = {
   completeMs: 'Page done',
   composeOutputTokens: 'Out tokens',
   costUsd: 'Cost',
+  savedOutputTokens: 'Saved out',
 };
+
+/** "intent hit · compose miss" from a row's cache columns, or a dash when the server sent none. */
+const cacheLabel = (row: BenchmarkRow) => (row.intentCache || row.composeCache
+  ? `intent ${row.intentCache ?? '–'} · compose ${row.composeCache ?? '–'}`
+  : '–');
 
 /** What each step's model does, for the info hover next to its picker. */
 export const STEP_INFO = {
@@ -178,6 +186,7 @@ const DebugPanel = ({
                     <th scope="col">#</th>
                     <th scope="col">Message</th>
                     <th scope="col">Models (intent / compose)</th>
+                    <th scope="col">Cache</th>
                     {NUMERIC_COLUMNS.map((column) => <th key={column} scope="col">{COLUMN_LABELS[column]}</th>)}
                     <th scope="col">Dropped</th>
                   </tr>
@@ -192,6 +201,9 @@ const DebugPanel = ({
                           ? `${row.intentModel ?? '–'} / ${row.composeModel ?? '–'}${row.composeEffort ? ` (${row.composeEffort})` : ''}`
                           : <Badge variant="danger">{row.status}</Badge>}
                       </td>
+                      <td title={row.savedInputTokens ? `Saved ${row.savedInputTokens.toLocaleString('en-US')} input tokens` : undefined}>
+                        {cacheLabel(row)}
+                      </td>
                       {NUMERIC_COLUMNS.map((column) => <td key={column}>{formatCell(column, row[column])}</td>)}
                       <td>{row.droppedLines ?? '–'}</td>
                     </tr>
@@ -200,7 +212,7 @@ const DebugPanel = ({
                 {done.length > 1 && (
                   <tfoot>
                     <tr>
-                      <th scope="row" colSpan={3}>{`Median of ${done.length} finished turns`}</th>
+                      <th scope="row" colSpan={4}>{`Median of ${done.length} finished turns`}</th>
                       {NUMERIC_COLUMNS.map((column) => (
                         <td key={column}>{formatCell(column, median(done, column))}</td>
                       ))}

@@ -271,6 +271,27 @@ html[data-personalized-search-results] {
   overflow-anchor: none;
 }
 
+// Debug mode: results replayed from the response cache.
+.personalized-search__block--cached {
+  position: relative;
+  outline: 2px dashed #f0cc00;
+  outline-offset: 4px;
+
+  &::before {
+    content: "Cached";
+    position: absolute;
+    top: -.75rem;
+    right: .5rem;
+    z-index: 4;
+    padding: 0 .375rem;
+    border-radius: .25rem;
+    background: #f0cc00;
+    color: #000;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+}
+
 // A button inside a card sits above the card's full-card link.
 .personalized-search__card-control {
   position: relative;

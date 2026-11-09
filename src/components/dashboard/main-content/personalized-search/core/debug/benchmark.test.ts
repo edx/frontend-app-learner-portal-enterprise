@@ -63,6 +63,23 @@ describe('benchmark rows', () => {
     expect(rows[1]).toEqual(expect.objectContaining({ status: 'error', completeMs: null, costUsd: null }));
   });
 
+  it('carries the response cache per call and the tokens it saved', () => {
+    const hit = timing();
+    hit.debug = {
+      ...hit.debug!,
+      intent: { ...hit.debug!.compose!, model: 'gpt-4.1-mini', cache: 'hit' },
+      compose: { ...hit.debug!.compose!, output_tokens: 0, cache: 'hit' },
+      tokens_saved: { input_tokens: 4511, output_tokens: 1257, reasoning_tokens: 250 },
+    };
+    const [cached, plain] = toBenchmarkRows([turn('done', hit), turn('done', timing())]);
+    expect(cached).toEqual(expect.objectContaining({
+      intentCache: 'hit', composeCache: 'hit', savedInputTokens: 4511, savedOutputTokens: 1257, composeOutputTokens: 0,
+    }));
+    expect(plain).toEqual(expect.objectContaining({
+      intentCache: null, composeCache: null, savedInputTokens: null, savedOutputTokens: null,
+    }));
+  });
+
   it('medians ignore missing values', () => {
     const rows = toBenchmarkRows([
       turn('done', timing({ complete_ms: 6000 })), turn('done', timing({ complete_ms: 9000 })),

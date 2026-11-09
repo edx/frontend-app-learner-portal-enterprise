@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
 import {
-  Alert, Icon, Stack, Toast,
+  Alert, Badge, Icon, Stack, Toast,
 } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -47,12 +47,14 @@ export interface LearningPagePaneProps {
   /** Usage events (KD-12). */
   onOpenItem?: (item: ItemCard) => void;
   onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
+  /** Debug mode (`?debug=true`): mark results replayed from the response cache and the tokens saved. */
+  showCacheMarks?: boolean;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
   onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain,
-  registry = defaultBlockRegistry,
+  showCacheMarks = false, registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
@@ -115,7 +117,14 @@ const LearningPagePane = ({
   // The latest turn's caveat shows even when that turn has no results of its own (the previous ones stay).
   const latest = turns[turns.length - 1];
   const caveat = (latest?.status === 'done' ? latest.blocks : blocks).find(({ block }) => block.type === 'caveat');
-  const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
+  // Debug only: blocks the response cache replayed (the compose call was a hit) get a dashed "Cached" mark.
+  const cacheDebug = showCacheMarks ? pageTurn?.timing?.debug : undefined;
+  const cached = cacheDebug?.compose?.cache === 'hit';
+  const savedOutput = cacheDebug?.tokens_saved?.output_tokens;
+  const blockClass = classNames('personalized-search__block', {
+    'personalized-search__block--enter': !reducedMotion,
+    'personalized-search__block--cached': cached,
+  });
 
   return (
     <section
@@ -139,6 +148,11 @@ const LearningPagePane = ({
       </Toast>
       {caveat && (
         <div className="mb-4" data-block-id={caveat.id}>{renderBlock(caveat.block, ctx, registry)}</div>
+      )}
+      {cached && (
+        <Badge variant="warning" className="mb-3" data-testid="personalized-search-from-cache">
+          {savedOutput ? `From cache · saved ${savedOutput.toLocaleString('en-US')} output tokens` : 'From cache'}
+        </Badge>
       )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>

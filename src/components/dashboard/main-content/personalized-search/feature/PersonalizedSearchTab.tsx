@@ -80,6 +80,7 @@ const PersonalizedSearchTab = ({
   const forYou = (
     <LearningPagePane
       turns={controller.turns}
+      showCacheMarks={controller.debugEnabled}
       registry={registry}
       viewedTurnId={controller.viewedTurnId}
       pageFocusRequest={controller.pageFocusRequest}
