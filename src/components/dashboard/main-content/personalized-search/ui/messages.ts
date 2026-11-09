@@ -141,6 +141,11 @@ const messages = defineMessages({
     defaultMessage: 'A suggested order',
     description: 'Heading of the suggested learning order on the learning page.',
   },
+  disclaimer: {
+    id: 'learner.personalizedSearch.chat.disclaimer',
+    defaultMessage: 'AI recommendations may not be perfect. Results come from your organization\'s catalog.',
+    description: 'Note under the Personalized Search message box.',
+  },
   stop: {
     id: 'learner.personalizedSearch.chat.stop',
     defaultMessage: 'Stop',

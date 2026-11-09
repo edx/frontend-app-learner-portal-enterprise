@@ -8,7 +8,7 @@ import type { AssistantMessageProps } from './AssistantMessage';
 
 export interface MessageListProps extends Pick<
 AssistantMessageProps,
-'busy' | 'onSend' | 'onViewPage' | 'onShowLastRecommendations' | 'onRetry'
+'busy' | 'onViewPage' | 'onShowLastRecommendations' | 'onRetry'
 > {
   turns: AssistantTurn[];
 }
@@ -20,7 +20,7 @@ const MessageList = ({ turns, ...handlers }: MessageListProps) => {
       {turns.map((turn, index) => (
         <li key={turn.localId}>
           {turn.userMessage && (
-            <div className="personalized-search__user bg-light-300 rounded px-3 py-2 mb-2 ml-4">
+            <div className="personalized-search__user bg-light-300 rounded px-3 py-2 mb-3 ml-auto">
               <span className="sr-only">{intl.formatMessage(messages.you)}</span>
               <p className="mb-0">{turn.userMessage}</p>
             </div>

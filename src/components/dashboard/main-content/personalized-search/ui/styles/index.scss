@@ -72,6 +72,12 @@
   }
 }
 
+// Chat look: gray learner bubbles on the right; unbubbled assistant text after a sparkle.
+.personalized-search__user {
+  width: fit-content;
+  max-width: 85%;
+}
+
 // Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
 .personalized-search__debug-table {
   max-width: 100%;
