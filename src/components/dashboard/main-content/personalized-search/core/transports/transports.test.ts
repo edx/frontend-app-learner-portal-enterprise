@@ -72,6 +72,16 @@ describe('FixtureChatTransport', () => {
     expect(received).toHaveLength(3);
   });
 
+  it('stops during a delay when aborted, without yielding or throwing', async () => {
+    jest.useFakeTimers();
+    const controller = new AbortController();
+    const transport = new FixtureChatTransport({ partDelayMs: 1000, pickFixture: () => 'normal_turn.sse' });
+    const done = collect(transport.send({ request, signal: controller.signal }));
+    await Promise.resolve();
+    controller.abort();
+    expect(await done).toEqual([]);
+  });
+
   it('picks the off-topic golden for adversarial-looking messages', () => {
     expect(defaultPickFixture("What's the weather in Boston tomorrow?")).toBe('off_topic_turn.sse');
     expect(defaultPickFixture('I want to lead a team')).toBe('normal_turn.sse');
@@ -118,5 +128,30 @@ describe('BufferedChatTransport', () => {
     const error = await collect(new BufferedChatTransport(bufferedOptions).send({ request })).catch((e) => e);
     expect(error).toBeInstanceOf(TransportError);
     expect(error).toEqual(expect.objectContaining({ status, code }));
+  });
+
+  it('ends quietly when the request is cancelled', async () => {
+    axiosMock.onPost(TURNS_URL).reply(() => Promise.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })));
+    expect(await collect(new BufferedChatTransport(bufferedOptions).send({ request }))).toEqual([]);
+  });
+
+  it('stops yielding once aborted', async () => {
+    const controller = new AbortController();
+    const parts = parseSseText(readGolden('normal_turn.sse'));
+    axiosMock.onPost(TURNS_URL).reply(200, { parts });
+    const received: Part[] = [];
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const part of new BufferedChatTransport(bufferedOptions).send({ request, signal: controller.signal })) {
+      received.push(part);
+      controller.abort();
+    }
+    expect(received).toHaveLength(1);
+  });
+
+  it('rethrows a network error that has no HTTP response', async () => {
+    axiosMock.onPost(TURNS_URL).networkError();
+    const error = await collect(new BufferedChatTransport(bufferedOptions).send({ request })).catch((e) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(TransportError);
   });
 });
