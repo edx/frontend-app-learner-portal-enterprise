@@ -41,11 +41,14 @@ export interface LearningPagePaneProps {
   onClearNotice?: () => void;
   /** Sends a chat message for the learner (More like this). */
   onAsk?: (message: string) => void;
+  /** Usage events (KD-12). */
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
-  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
@@ -66,7 +69,10 @@ const LearningPagePane = ({
     onAsk,
     topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
     profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock]);
+    onOpenItem,
+    onExplain,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
+    onOpenItem, onExplain]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }

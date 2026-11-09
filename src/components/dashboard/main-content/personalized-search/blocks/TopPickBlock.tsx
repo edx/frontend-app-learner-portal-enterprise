@@ -24,6 +24,7 @@ const TopPickBlock = ({
           links={ctx.links}
           saved={ctx.savedIds?.has(item.item_id) ?? false}
           onToggleSave={ctx.onToggleSave}
+          onOpen={ctx.onOpenItem}
         />
       </div>
       <div className="personalized-search__top-pick-details flex-grow-1">

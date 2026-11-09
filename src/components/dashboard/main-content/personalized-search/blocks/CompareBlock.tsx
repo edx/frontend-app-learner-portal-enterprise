@@ -28,6 +28,7 @@ const CompareBlock = ({ options, ctx }: CompareProps & { ctx: BlockRenderContext
               saved={ctx.savedIds?.has(item.item_id) ?? false}
               onToggleSave={ctx.onToggleSave}
               isTopPick={ctx.topPickId === item.item_id}
+              onOpen={ctx.onOpenItem}
             />
           </Col>
         ))}

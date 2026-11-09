@@ -22,6 +22,8 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
   searchQuery?: string;
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
  */
 const ItemSectionBlock = ({
   dek, items, reserve, total, item_type: itemType, links, savedIds, dismissedIds, onToggleSave, onDismiss,
-  searchQuery,
+  searchQuery, onOpenItem, onExplain,
 }: ItemSectionBlockProps) => {
   const intl = useIntl();
   const pool = [...items, ...(reserve ?? [])];
@@ -59,6 +61,8 @@ const ItemSectionBlock = ({
             onToggleSave={onToggleSave}
             onDismiss={onDismiss}
             orientation={visible.length === 1 ? 'horizontal' : 'vertical'}
+            onOpen={onOpenItem}
+            onExplain={(opened) => onExplain?.('tile', opened)}
           />
         ))}
       </CardGrid>

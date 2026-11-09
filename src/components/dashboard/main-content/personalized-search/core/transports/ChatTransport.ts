@@ -6,6 +6,8 @@ export interface TurnRequest {
   /** null starts a new session. */
   sessionUuid: string | null;
   message: string;
+  /** The first message after reopening a past search (usage events, KD-12). */
+  resumedFromHistory?: boolean;
 }
 
 export interface SendTurnOptions {
@@ -43,8 +45,11 @@ export const getTurnsUrl = (enterpriseAccessBaseUrl: string) => (
   `${enterpriseAccessBaseUrl}/api/v1/personalized-search/turns/`
 );
 
-export const toTurnRequestBody = ({ enterpriseCustomerUuid, sessionUuid, message }: TurnRequest) => ({
+export const toTurnRequestBody = ({
+  enterpriseCustomerUuid, sessionUuid, message, resumedFromHistory,
+}: TurnRequest) => ({
   enterprise_customer_uuid: enterpriseCustomerUuid,
   session_uuid: sessionUuid,
   message,
+  ...(resumedFromHistory ? { resumed_from_history: true } : {}),
 });

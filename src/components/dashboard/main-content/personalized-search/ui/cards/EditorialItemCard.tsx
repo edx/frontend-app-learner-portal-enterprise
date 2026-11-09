@@ -17,7 +17,7 @@ export interface ItemLinks {
   getItemHref: (item: ItemCard) => string;
   /** Optional: the host's full search for a type, for "See all (n)". */
   getSeeAllHref?: (itemType: ItemCard['item_type'], query: string) => string;
-  LinkComponent: ComponentType<{ to: string; className?: string; children: ReactNode }>;
+  LinkComponent: ComponentType<{ to: string; className?: string; onClick?: () => void; children: ReactNode }>;
 }
 
 /** The accent family: certificates, Executive Education, other programs, or courses. */
@@ -79,6 +79,9 @@ export interface EditorialItemCardProps {
   orientation?: 'vertical' | 'horizontal';
   /** Extra content under the meta line, such as a status badge. */
   footer?: ReactNode;
+  /** Usage events: the card was opened, or its "Why this?" was expanded. */
+  onOpen?: (item: ItemCard) => void;
+  onExplain?: (item: ItemCard) => void;
 }
 
 /**
@@ -87,7 +90,7 @@ export interface EditorialItemCardProps {
  * link; the bookmark and the actions menu sit above it. Server-hydrated (KD-5); every field renders as text.
  */
 const EditorialItemCard = ({
-  item, links, saved = false, onToggleSave, onDismiss, orientation = 'vertical', footer,
+  item, links, saved = false, onToggleSave, onDismiss, orientation = 'vertical', footer, onOpen, onExplain,
 }: EditorialItemCardProps) => {
   const intl = useIntl();
   const typeLabel = useTypeLabel(item);
@@ -119,7 +122,7 @@ const EditorialItemCard = ({
         <p className="x-small text-gray-700 mb-1">{typeLabel}</p>
         <h4 className="h5 mb-1 personalized-search__card-title">
           {/* stretched-link makes the whole card one link; the actions sit above it. */}
-          <links.LinkComponent to={links.getItemHref(item)} className="stretched-link">
+          <links.LinkComponent to={links.getItemHref(item)} className="stretched-link" onClick={() => onOpen?.(item)}>
             {item.title}
           </links.LinkComponent>
         </h4>
@@ -135,6 +138,7 @@ const EditorialItemCard = ({
             styling="basic"
             className="personalized-search__why mt-2"
             title={<span className="small">{intl.formatMessage(messages.whyThis)}</span>}
+            onToggle={(isOpen: boolean) => { if (isOpen) { onExplain?.(item); } }}
           >
             <p className="small mb-0">{item.why}</p>
           </Collapsible>

@@ -16,11 +16,12 @@ export interface CompactItemCardProps {
   saved?: boolean;
   onToggleSave?: (item: ItemCard) => void;
   isTopPick?: boolean;
+  onOpen?: (item: ItemCard) => void;
 }
 
 /** The mini card in "Compare top options": type, title, time and a bookmark only (wireframe D2). */
 const CompactItemCard = ({
-  item, links, saved = false, onToggleSave, isTopPick = false,
+  item, links, saved = false, onToggleSave, isTopPick = false, onOpen,
 }: CompactItemCardProps) => {
   const intl = useIntl();
   const typeLabel = useTypeLabel(item);
@@ -37,7 +38,9 @@ const CompactItemCard = ({
       <Card.Section>
         <p className="x-small text-gray-700 mb-1">{typeLabel}</p>
         <p className="h5 mb-2">
-          <links.LinkComponent to={links.getItemHref(item)} className="stretched-link">{item.title}</links.LinkComponent>
+          <links.LinkComponent to={links.getItemHref(item)} className="stretched-link" onClick={() => onOpen?.(item)}>
+            {item.title}
+          </links.LinkComponent>
         </p>
         {time.length > 0 && <p className="x-small mb-1">{time.join(' · ')}</p>}
         {item.status === 'new' && (

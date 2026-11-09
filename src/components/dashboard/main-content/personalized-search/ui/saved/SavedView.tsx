@@ -11,10 +11,13 @@ export interface SavedViewProps {
   items: ItemCard[];
   links: ItemLinks;
   onToggleSave: (item: ItemCard) => void;
+  onOpen?: (item: ItemCard) => void;
 }
 
 /** The Saved tab: the learner's saved items in this enterprise, from their saved snapshots (REQ-009). */
-const SavedView = ({ items, links, onToggleSave }: SavedViewProps) => {
+const SavedView = ({
+  items, links, onToggleSave, onOpen,
+}: SavedViewProps) => {
   const intl = useIntl();
   if (items.length === 0) {
     return (
@@ -33,6 +36,7 @@ const SavedView = ({ items, links, onToggleSave }: SavedViewProps) => {
           links={links}
           saved
           onToggleSave={onToggleSave}
+          onOpen={onOpen}
         />
       ))}
     </CardGrid>

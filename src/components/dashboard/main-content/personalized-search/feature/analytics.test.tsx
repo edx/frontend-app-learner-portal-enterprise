@@ -11,6 +11,7 @@ import { PERSONALIZED_SEARCH_EVENTS } from '../../../../../eventTracking';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import { useEnterpriseCustomer } from '../../../../app/data';
+import { expectFlat } from './analyticsTestUtils';
 
 jest.mock('@2uinc/frontend-enterprise-utils', () => ({
   ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
@@ -24,17 +25,6 @@ jest.mock('../../../../app/data', () => ({
   ...jest.requireActual('../../../../app/data'),
   useEnterpriseCustomer: jest.fn(),
 }));
-
-/** Every payload must be flat: primitives or arrays of primitives (the warehouse stores them as is). */
-export const expectFlat = (properties: Record<string, unknown>) => {
-  Object.entries(properties).forEach(([key, value]) => {
-    const values = Array.isArray(value) ? value : [value];
-    values.forEach((v) => {
-      expect([null, 'string', 'number', 'boolean']).toContain(v === null ? null : typeof v);
-    });
-    expect(key).not.toMatch(/(^|_)(count|total|rate|cost|age)(_|$)/);
-  });
-};
 
 describe('Personalized Search usage events: port and adapter', () => {
   beforeEach(() => {

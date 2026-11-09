@@ -14,6 +14,9 @@ export type TrackAction =
   | 'saved_tab_opened'
   | 'history_opened';
 
+/** How a message was sent: typed, a starter chip, a follow-up chip, or a result's More like this. */
+export type PromptSource = 'typed' | 'starter_chip' | 'followup_chip' | 'more_like_this';
+
 /** Flat values only, so the warehouse can store and join them. */
 export type TrackValue = string | number | boolean | null | Array<string | number | boolean | null>;
 export type TrackProperties = Record<string, TrackValue>;
