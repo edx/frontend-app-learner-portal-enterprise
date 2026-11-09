@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useMediaQuery } from '@openedx/paragon';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
 import type { ChatTransport, SendTurnOptions, TurnRequest } from '../../core/transports/ChatTransport';
@@ -158,5 +158,43 @@ describe('History panel (chunk 29)', () => {
     renderTab(new RecordingTransport());
     await user.click(screen.getByRole('button', { name: 'History' }));
     expect(await screen.findByText("We couldn't load your past searches. Try again.")).toBeInTheDocument();
+  });
+
+  describe('the conversation id in the URL', () => {
+    const LocationProbe = () => <span data-testid="search">{useLocation().search}</span>;
+    const renderAt = (path: string, transport: ChatTransport = new FixtureChatTransport({ partDelayMs: 0 })) => render(
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[path]}>
+          <PersonalizedSearchTab store={createPersonalizedSearchStore()} transport={transport} />
+          <LocationProbe />
+        </MemoryRouter>
+      </IntlProvider>,
+    );
+    const params = () => new URLSearchParams(screen.getByTestId('search').textContent ?? '');
+
+    it('adds ?session=<conversation id> after the first message and removes it on New chat', async () => {
+      const user = userEvent.setup();
+      renderAt('/test-enterprise?tab=personalized-search');
+      expect(params().get('session')).toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+      await waitFor(() => expect(params().get('session')).toBe('00000000-0000-0000-0000-0000000a11ce'));
+      expect(params().get('tab')).toBe('personalized-search');
+      await user.click(screen.getByRole('button', { name: 'New chat' }));
+      await waitFor(() => expect(params().get('session')).toBeNull());
+    });
+
+    it('arriving with ?session= (Back from a course page) reopens that conversation', async () => {
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`);
+      expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+      expect(screen.getByText('Prepare for a leadership role')).toBeInTheDocument();
+      expect(httpGet).toHaveBeenCalledWith(`http://ea.test/api/v1/personalized-search/sessions/${DETAIL.uuid}/`, expect.anything());
+      expect(params().get('session')).toBe(DETAIL.uuid);
+    });
+
+    it('drops an unknown conversation id from the URL and starts fresh', async () => {
+      renderAt('/test-enterprise?tab=personalized-search&session=11111111-2222-3333-4444-555555555555');
+      await waitFor(() => expect(params().get('session')).toBeNull());
+      expect(screen.getByText('Hi! What do you want to learn?')).toBeInTheDocument();
+    });
   });
 });
