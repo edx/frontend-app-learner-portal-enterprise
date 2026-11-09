@@ -2,6 +2,7 @@ import { BufferedChatTransport } from '../../core/transports/BufferedChatTranspo
 import type { ChatTransport } from '../../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import { SseChatTransport } from '../../core/transports/SseChatTransport';
+import type { DebugOverrides } from '../../core/transports/SseChatTransport';
 import { UnavailableChatTransport } from '../../core/transports/UnavailableChatTransport';
 import { getPersonalizedSearchApiBaseUrl } from './config';
 import { getPortalHttpClient } from './http';
@@ -13,7 +14,10 @@ const apiOptions = { getHttpClient: getPortalHttpClient, getBaseUrl: getPersonal
  * backend, `buffered` is the KD-4 fallback, `unavailable` behaves like a switched-off backend,
  * and anything else (the default) streams SSE from enterprise-access.
  */
-export const selectTransport = (setting: string | null | undefined): ChatTransport => {
+export const selectTransport = (
+  setting: string | null | undefined,
+  getDebugOverrides?: () => DebugOverrides | null,
+): ChatTransport => {
   switch (setting) {
     case 'fixture':
       return new FixtureChatTransport();
@@ -22,6 +26,6 @@ export const selectTransport = (setting: string | null | undefined): ChatTranspo
     case 'unavailable':
       return new UnavailableChatTransport();
     default:
-      return new SseChatTransport(apiOptions);
+      return new SseChatTransport({ ...apiOptions, getDebugOverrides });
   }
 };

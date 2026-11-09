@@ -47,6 +47,16 @@
   }
 }
 
+// Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
+.personalized-search__debug-table {
+  max-width: 100%;
+  overflow-x: auto;
+
+  table {
+    white-space: nowrap;
+  }
+}
+
 // Below 768 px: the Chat/Page toggle spans the width, one pane shows at a time (REQ-011).
 .personalized-search__pane-toggle {
   display: flex;
