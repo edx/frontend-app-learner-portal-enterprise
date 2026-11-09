@@ -122,7 +122,7 @@ describe('ChatPane', () => {
     expect(sent).toEqual(['Learn AI for my job']);
   });
 
-  it('"View page" on an earlier turn sets viewedTurnId to that turn', async () => {
+  it('updates one set of results in place: the latest results show and the chat has no per-turn links', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
     renderTab(transport);
@@ -132,12 +132,12 @@ describe('ChatPane', () => {
     await user.click(screen.getByText('1 to 3 months'));
     await waitForIdle();
 
-    const [first] = testStore.getState().stream.turns;
-    await user.click(screen.getAllByRole('button', { name: 'View results' })[0]);
-    expect(testStore.getState().viewedTurnId).toBe(first.localId);
+    const [, second] = testStore.getState().stream.turns;
+    expect(screen.queryByRole('button', { name: 'View results' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', second.localId);
   });
 
-  it('a text-only turn links back to the last recommendations and asks the page pane for focus', async () => {
+  it('a text-only turn keeps the previous results in view without a link', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse', 'no_match_turn.sse']);
     renderTab(transport);
@@ -149,10 +149,8 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
-    const focusBefore = testStore.getState().pageFocusRequest;
-    await user.click(screen.getByRole('button', { name: 'See your last recommendations' }));
-    expect(testStore.getState().viewedTurnId).toBe(first.localId);
-    expect(testStore.getState().pageFocusRequest).toBe(focusBefore + 1);
+    expect(screen.queryByRole('button', { name: 'See your last recommendations' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', first.localId);
   });
 
   it('disables Send for an empty or over-long message and keeps the draft', async () => {

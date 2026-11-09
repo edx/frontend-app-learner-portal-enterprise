@@ -326,6 +326,11 @@ const messages = defineMessages({
     defaultMessage: 'Not for me',
     description: 'Menu action that removes a card from the results.',
   },
+  updated: {
+    id: 'learner.personalizedSearch.results.updated',
+    defaultMessage: 'Updated',
+    description: 'Badge on a result that is new since the learner\'s last message.',
+  },
   whyThese: {
     id: 'learner.personalizedSearch.results.whyThese',
     defaultMessage: 'Why these?',

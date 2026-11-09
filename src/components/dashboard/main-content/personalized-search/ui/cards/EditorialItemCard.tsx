@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import classNames from 'classnames';
 import {
-  Button, Card, Collapsible, Dropdown, Icon,
+  Badge, Button, Card, Collapsible, Dropdown, Icon,
 } from '@openedx/paragon';
 import { Bookmark, BookmarkBorder, MoreVert } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -101,6 +101,7 @@ const EditorialItemCard = ({
         'personalized-search__card h-100',
         `personalized-search__card--${accentOf(item)}`,
         `personalized-search__card--${orientation}`,
+        { 'personalized-search__card--updated': item.status === 'new' },
       )}
       data-item-id={item.item_id}
     >
@@ -125,6 +126,9 @@ const EditorialItemCard = ({
         {item.partner_name && <p className="small text-gray-700 mb-2">{item.partner_name}</p>}
         {time.length > 0 && <p className="x-small mb-0">{time.join(' · ')}</p>}
         {detail.length > 0 && <p className="x-small text-gray-700 mb-0">{detail.join(', ')}</p>}
+        {item.status === 'new' && (
+          <Badge variant="info" className="mt-2">{intl.formatMessage(messages.updated)}</Badge>
+        )}
         {footer}
         {item.why && (
           <Collapsible

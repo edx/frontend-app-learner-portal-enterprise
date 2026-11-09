@@ -16,15 +16,13 @@ export interface ChatPaneProps {
   announcement: string;
   onDraftChange: (draft: string) => void;
   onSend: (message: string) => void;
-  onViewPage: (turnId: string) => void;
-  onShowLastRecommendations: (turnId: string) => void;
   onStop: () => void;
   onRetry: (turnId: string) => void;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onViewPage, onShowLastRecommendations, onStop, onRetry,
+  onDraftChange, onSend, onStop, onRetry,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -68,8 +66,6 @@ const ChatPane = ({
           <MessageList
             turns={turns}
             busy={busy}
-            onViewPage={onViewPage}
-            onShowLastRecommendations={onShowLastRecommendations}
             onRetry={onRetry}
           />
         )}

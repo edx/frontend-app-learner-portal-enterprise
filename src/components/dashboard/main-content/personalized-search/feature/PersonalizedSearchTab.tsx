@@ -66,8 +66,6 @@ const PersonalizedSearchTab = ({
       announcement={controller.announcement}
       onDraftChange={controller.setDraft}
       onSend={controller.send}
-      onViewPage={controller.viewPage}
-      onShowLastRecommendations={controller.showLastRecommendations}
       onStop={controller.stop}
       onRetry={controller.retry}
     />
