@@ -1,3 +1,5 @@
+import { ReadableStream as NodeReadableStream } from 'stream/web';
+
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 
 import {
@@ -89,5 +91,52 @@ describe('SseChatTransport', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const iterator = new SseChatTransport(options).send({ request: REQUEST })[Symbol.asyncIterator]();
     await expect(iterator.next()).rejects.toThrow('Failed to fetch');
+  });
+
+  it.each([
+    [409, { code: 'turn_in_progress' }, 'turn_in_progress'],
+    [503, { code: 42 }, null],
+    [500, null, null],
+  ])('throws a TransportError for HTTP %s with the code when the body has one', async (status, body, code) => {
+    fetchMock.mockResolvedValue({
+      ok: false, status, json: body === null ? () => Promise.reject(new SyntaxError('not json')) : async () => body,
+    });
+    const iterator = new SseChatTransport(options).send({ request: REQUEST })[Symbol.asyncIterator]();
+    const error = await iterator.next().catch((e) => e);
+    expect(error).toBeInstanceOf(TransportError);
+    expect(error).toEqual(expect.objectContaining({ status, code }));
+  });
+
+  it('sends an empty CSRF header when the token response has none', async () => {
+    httpGet.mockResolvedValue({ data: undefined });
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('normal_turn.sse')) });
+    await collect(new SseChatTransport(options).send({ request: REQUEST }));
+    expect(fetchMock.mock.calls[0][1].headers['X-CSRFToken']).toBe('');
+  });
+
+  it('fails when the response has no body', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: null });
+    const iterator = new SseChatTransport(options).send({ request: REQUEST })[Symbol.asyncIterator]();
+    await expect(iterator.next()).rejects.toThrow('has no body');
+  });
+
+  describe('when the stream fails after it starts', () => {
+    const failingBody = () => new NodeReadableStream<Uint8Array>({
+      start(controller) { controller.error(new Error('connection reset')); },
+    }) as unknown as ReadableStream<Uint8Array>;
+
+    it('rethrows the error', async () => {
+      fetchMock.mockResolvedValue({ ok: true, status: 200, body: failingBody() });
+      const iterator = new SseChatTransport(options).send({ request: REQUEST })[Symbol.asyncIterator]();
+      await expect(iterator.next()).rejects.toThrow('connection reset');
+    });
+
+    it('ends quietly when the turn was stopped', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      fetchMock.mockResolvedValue({ ok: true, status: 200, body: failingBody() });
+      const parts = await collect(new SseChatTransport(options).send({ request: REQUEST, signal: controller.signal }));
+      expect(parts).toEqual([]);
+    });
   });
 });
