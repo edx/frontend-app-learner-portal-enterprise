@@ -256,6 +256,20 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
         {
           "block": {
             "props": {
+              "chips": [
+                "Leadership",
+                "Introductory",
+              ],
+              "summary": "I picked these from your organization's catalog using what you told me: your goal, how you like to learn and the time you have.",
+            },
+            "type": "profile",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
               "dek": "Short, practical picks.",
               "label": "Your results",
               "title": "Lead with confidence",

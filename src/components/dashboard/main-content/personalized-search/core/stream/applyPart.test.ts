@@ -50,9 +50,9 @@ describe('applyPart', () => {
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
     expect(turn.text).toBe('I put a leadership certificate at the top.');
-    // profile isn't registered here, so it's dropped; the decision-guide blocks render in stream order.
+    // Blocks keep stream order; the profile comes first and is shown through the header's "Why these?".
     expect(turn.blocks.map((b) => b.block.type)).toEqual(
-      ['page_header', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
+      ['profile', 'page_header', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
     );
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');

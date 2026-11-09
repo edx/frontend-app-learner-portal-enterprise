@@ -19,3 +19,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 ## Decision guide
 
 `top_pick` renders the item's card (about 300px) beside a lighter details block: "Top pick", the one-sentence reason, the learner's preferences it meets as checks, "More like this" (sends "More like {title}" through `onAsk`) and "Not for me". `compare` renders "Compare top options": 2-3 compact cards (`CompactItemCard`), each under a "Best for …" h4, with the top pick tagged. `page_header` is the h2 headline plus the "About you" line. All three keep the turn readable when absent: older turns simply start with the header and the groups.
+
+## Why these?
+
+The `profile` block (what the AI knows about the learner, restated from the merged intent) isn't drawn on its own: the header shows a "Why these?" link that opens a read-only Paragon Popover on hover or focus (a click focuses it, so it stays open) and closes on Escape. It shows the plain-language basis and the preferences as chips. Without a profile there's no link. There is no edit-preferences control yet.

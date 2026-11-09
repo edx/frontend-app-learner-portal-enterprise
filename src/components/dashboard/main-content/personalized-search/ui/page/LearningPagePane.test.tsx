@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, within } from '@testing-library/react';
+import {
+  render, screen, waitFor, within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
@@ -304,6 +306,26 @@ describe('LearningPagePane', () => {
     const pickInCompare = within(compare).getByRole('link', { name: 'Program p-1' })
       .closest('.personalized-search__card') as HTMLElement;
     expect(within(pickInCompare).getByText('Top pick')).toBeInTheDocument();
+  });
+
+  it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {
+    const user = userEvent.setup();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns);
+    const trigger = screen.getByRole('button', { name: 'Why these?' });
+    await user.click(trigger);
+    const popover = await screen.findByRole('tooltip');
+    expect(within(popover).getByText(/I picked these from your organization's catalog/)).toBeInTheDocument();
+    expect(within(popover).getByText('Leadership')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('has no Why these? without a profile', () => {
+    renderPane(turnWithParts([{
+      type: 'data-block', id: 'blk_1', data: { v: 1, type: 'page_header', props: { title: 'T', dek: 'D', label: 'l' } },
+    }]));
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
   });
 
   it('hides a dismissed top pick and compared option', () => {
