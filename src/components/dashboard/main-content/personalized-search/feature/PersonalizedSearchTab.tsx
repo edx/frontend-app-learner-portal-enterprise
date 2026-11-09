@@ -11,6 +11,7 @@ import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
 import SavedView from '../ui/saved/SavedView';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
+import { useFitToViewport } from './useFitToViewport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 import type { PersonalizedSearchDeps } from './deps';
@@ -46,6 +47,8 @@ const PersonalizedSearchTab = ({
     isRenderableBlock: registry.isRenderable,
   }));
   const controller = usePersonalizedSearchController({ transport });
+  // The chat panel always ends at the bottom of the window, so the composer is a footer that stays in view.
+  const chatPanelRef = useFitToViewport<HTMLDivElement>(controller.isWide);
   const {
     isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
   } = controller;
@@ -161,7 +164,9 @@ const PersonalizedSearchTab = ({
       {isWide ? (
         <Row className="align-items-start">
           {/* The chat stays in view (sticky, its own scroll) while only the results scroll. */}
-          <Col md={5} lg={4} className="personalized-search__chat-col">{chat}</Col>
+          <Col md={5} lg={4} className="personalized-search__chat-col">
+            <div ref={chatPanelRef} className="personalized-search__chat-panel">{chat}</div>
+          </Col>
           <Col md={7} lg={8} className="personalized-search__page-col">{page}</Col>
         </Row>
       ) : (
