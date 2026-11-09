@@ -2,18 +2,19 @@ import {
   useCallback, useEffect, useMemo, useRef,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
+import { breakpoints, useMediaQuery } from '@openedx/paragon';
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
-import { isSendableMessage, previousPageTurnId } from '../core/selectors';
+import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { PersonalizedSearchDeps } from './deps';
 import { sendTurnWorkflow } from '../core/workflows';
-import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
+import type { MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
 export interface PersonalizedSearchControllerOptions {
   deps: PersonalizedSearchDeps;
@@ -47,6 +48,7 @@ export const createPersonalizedSearchController = ({
 
     const {
       stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
+      mobilePane, seenPageTurnId,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
@@ -54,7 +56,21 @@ export const createPersonalizedSearchController = ({
       draft: state.draft,
       unavailable: state.unavailable,
       announcement: state.announcement,
+      mobilePane: state.mobilePane,
+      seenPageTurnId: state.seenPageTurnId,
     })));
+
+    // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
+    const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
+    const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
+    const newestPicksTurnId = useMemo(() => latestPicksTurnId(stream.turns), [stream.turns]);
+    const pageOnScreen = isWide || mobilePane === 'page';
+    useEffect(() => {
+      if (pageOnScreen && newestPicksTurnId !== seenPageTurnId) {
+        storeApi.getState().setSeenPageTurnId(newestPicksTurnId);
+      }
+    }, [pageOnScreen, newestPicksTurnId, seenPageTurnId]);
+    const hasNewPicks = !pageOnScreen && newestPicksTurnId !== null && newestPicksTurnId !== seenPageTurnId;
 
     const busy = stream.activeTurnId !== null;
 
@@ -131,12 +147,19 @@ export const createPersonalizedSearchController = ({
     }, []);
 
     const viewPage = useCallback((turnId: string) => {
-      storeApi.getState().setViewedTurnId(turnId);
+      const store = storeApi.getState();
+      store.setViewedTurnId(turnId);
+      store.setMobilePane('page');
+    }, []);
+
+    const showPane = useCallback((pane: MobilePane) => {
+      storeApi.getState().setMobilePane(pane);
     }, []);
 
     const showLastRecommendations = useCallback((turnId: string) => {
       const store = storeApi.getState();
       store.setViewedTurnId(turnId);
+      store.setMobilePane('page');
       store.requestPageFocus();
     }, []);
 
@@ -164,6 +187,11 @@ export const createPersonalizedSearchController = ({
       newChat,
       viewPage,
       showLastRecommendations,
+      isWide,
+      reducedMotion,
+      mobilePane,
+      hasNewPicks,
+      showPane,
       setDraft,
     };
   };

@@ -71,13 +71,13 @@ describe('PersonalizedSearchTab', () => {
     expect(container.querySelector('.personalized-search__page-col')).toBeInTheDocument();
   });
 
-  it('stacks the chat above the page below 768 px', () => {
+  it('shows one pane at a time with a Chat/Page toggle below 768 px (chunk 32 replaced Phase 1 stacking)', () => {
     (useMediaQuery as jest.Mock).mockReturnValue(false);
     const { container } = renderTab();
-    expect(container.querySelector('[data-layout="stacked"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-layout="toggle"]')).toBeInTheDocument();
     expect(container.querySelector('.personalized-search__chat-col')).not.toBeInTheDocument();
     const regions = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
-    expect(regions).toEqual(['Chat', 'Your learning page']);
+    expect(regions).toEqual(['Chat']);
   });
 
   it('shows only the not-available alert when the backend reports the feature unavailable', () => {

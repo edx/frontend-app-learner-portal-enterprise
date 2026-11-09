@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Alert, breakpoints, Col, Row, Stack, useMediaQuery,
+  Alert, Badge, Button, ButtonGroup, Col, Row, Stack,
 } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -29,7 +29,7 @@ export interface PersonalizedSearchTabProps {
 
 /**
  * Personalized Search (Chat) tab: chat on one side, the AI-composed learning page on the
- * other (KD-1). Below 768 px, Phase 1 stacks the chat above the page.
+ * other (KD-1). Below 768 px one pane shows at a time, switched by a Chat/Page toggle (REQ-011).
  */
 const PersonalizedSearchTab = ({
   transport, deps, store, registry = defaultBlockRegistry,
@@ -41,8 +41,7 @@ const PersonalizedSearchTab = ({
     isRenderableBlock: registry.isRenderable,
   }));
   const controller = usePersonalizedSearchController({ transport });
-  const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
-  const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
+  const { isWide, reducedMotion, mobilePane } = controller;
 
   const chat = (
     <ChatPane
@@ -82,16 +81,41 @@ const PersonalizedSearchTab = ({
   }
 
   return (
-    <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'stacked'}>
+    <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
       {isWide ? (
         <Row>
           <Col md={5} className="personalized-search__chat-col">{chat}</Col>
           <Col md={7} className="personalized-search__page-col">{page}</Col>
         </Row>
       ) : (
-        <Stack gap={4}>
-          {chat}
-          {page}
+        <Stack gap={3}>
+          <ButtonGroup
+            className="personalized-search__pane-toggle"
+            aria-label={intl.formatMessage(messages.paneToggle)}
+          >
+            <Button
+              variant={mobilePane === 'chat' ? 'primary' : 'outline-primary'}
+              aria-pressed={mobilePane === 'chat'}
+              aria-controls="personalized-search-chat-pane"
+              onClick={() => controller.showPane('chat')}
+            >
+              {intl.formatMessage(messages.paneChat)}
+            </Button>
+            <Button
+              variant={mobilePane === 'page' ? 'primary' : 'outline-primary'}
+              aria-pressed={mobilePane === 'page'}
+              aria-controls="personalized-search-page-pane"
+              onClick={() => controller.showPane('page')}
+            >
+              {intl.formatMessage(messages.panePage)}
+              {controller.hasNewPicks && (
+                <Badge variant="info" className="ml-2">{intl.formatMessage(messages.newPicks)}</Badge>
+              )}
+            </Button>
+          </ButtonGroup>
+          {/* Both panes stay mounted so switching keeps the draft, scroll position and stream. */}
+          <div id="personalized-search-chat-pane" hidden={mobilePane !== 'chat'}>{chat}</div>
+          <div id="personalized-search-page-pane" hidden={mobilePane !== 'page'}>{page}</div>
         </Stack>
       )}
     </div>
