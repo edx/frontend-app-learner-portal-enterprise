@@ -47,21 +47,27 @@
   }
 }
 
-// Two panes (>= 768 px): the chat column is sticky and as tall as the viewport, its messages scroll
-// inside it and the composer stays pinned, so refining is always one click away. Only the results
-// scroll with the page.
+// Two panes (>= 768 px): the chat column is sticky and its panel is sized to the window space below
+// its top (useFitToViewport), so the messages scroll inside it and the composer is a footer that never
+// leaves view, before or after the page scrolls. Only the results scroll with the page.
 .personalized-search[data-layout="dual"] {
   .personalized-search__chat-col {
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: 1rem;
+    align-self: flex-start;
+  }
+
+  .personalized-search__chat-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .personalized-search__chat {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    padding-bottom: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .personalized-search__chat-scroll {
