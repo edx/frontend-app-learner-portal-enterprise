@@ -155,6 +155,22 @@ describe('ChatPane stop, errors and retry', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
+  it('Stop during the 409 wait cancels the resend and marks the turn Stopped', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const transport = new ScriptedTransport([{ error: new TransportError(409, 'turn_in_progress') }]);
+    renderTab(transport);
+    await sendMessage(user, 'Leading teams');
+    expect(transport.requests).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+    await act(async () => { await jest.advanceTimersByTimeAsync(TURN_IN_PROGRESS_RETRY_MS + 100); });
+
+    expect(transport.requests).toHaveLength(1);
+    expect(store().stream.turns[0]).toEqual(expect.objectContaining({ status: 'stopped', blocks: [] }));
+    expect(store().stream.activeTurnId).toBeNull();
+  });
+
   it('429 shows the slow-down message', async () => {
     const user = userEvent.setup();
     renderTab(new ScriptedTransport([{ error: new TransportError(429, null) }]));
