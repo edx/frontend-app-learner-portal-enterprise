@@ -5,6 +5,8 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import IntakePage from '../IntakePage';
 import type { IntakeFormValues } from '../IntakeQuestionsContainer';
 import messages from '../messages';
+import type { PathwaysFlowVariant } from '../../flowVariant';
+import { PathwaysActionBarProvider } from '../../action-bar';
 import { useEnterpriseCustomer } from '../../../../../../app/data';
 import { enterpriseCustomerFactory } from '../../../../../../app/data/services/data/__factories__';
 
@@ -15,9 +17,12 @@ jest.mock('../../../../../../app/data', () => ({
 
 const MockIntakePage = ({
   onSubmit = jest.fn(),
-}: { onSubmit?: (values: IntakeFormValues) => void; }) => (
+  flowVariant,
+}: { onSubmit?: (values: IntakeFormValues) => void; flowVariant?: PathwaysFlowVariant; }) => (
   <IntlProvider locale="en">
-    <IntakePage onSubmit={onSubmit} />
+    <PathwaysActionBarProvider>
+      <IntakePage onSubmit={onSubmit} flowVariant={flowVariant} />
+    </PathwaysActionBarProvider>
   </IntlProvider>
 );
 
@@ -36,5 +41,11 @@ describe('IntakePage', () => {
     expect(screen.getByTestId('intake-form')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: messages.heading.defaultMessage })).toBeInTheDocument();
     expect(screen.getByText(messages.beta.defaultMessage)).toBeInTheDocument();
+  });
+
+  it('forwards flowVariant so skills-mode copy surfaces on the submit action', () => {
+    render(<MockIntakePage flowVariant="skills" />);
+
+    expect(screen.getByRole('button', { name: messages.generateRecommendations.defaultMessage })).toBeInTheDocument();
   });
 });

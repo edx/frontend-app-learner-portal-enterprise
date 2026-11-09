@@ -10,6 +10,7 @@ import {
   usePathwaysSelectedCareerId,
   usePathwaysSelectedSkills,
   usePathwaysCourses,
+  usePathwayGenerationMode,
   useSelectedCareerMatch,
 } from '../state';
 import type { PathwaysSection } from '../state';
@@ -72,6 +73,7 @@ export const usePathwaysAnalytics = () => {
   const selectedSkills = usePathwaysSelectedSkills();
   const selectedCareerMatch = useSelectedCareerMatch();
   const pathwayCourses = usePathwaysCourses();
+  const pathwayGenerationMode = usePathwayGenerationMode();
 
   const commonContext = useMemo(() => {
     const hasLearnerProfile = learnerProfile !== null;
@@ -82,6 +84,7 @@ export const usePathwaysAnalytics = () => {
 
     return {
       pathwayStep,
+      pathwayMode: pathwayGenerationMode,
       pathwaysSchemaVersion: PATHWAYS_SCHEMA_VERSION,
       pathwaysJourneyStage: deriveJourneyStage({
         hasIntakeStarted: pathwayStep !== 'onboarding' || hasLearnerProfile,
@@ -101,7 +104,7 @@ export const usePathwaysAnalytics = () => {
     };
   }, [
     pathwayStep, learnerProfile, careerMatches, selectedCareerId, selectedSkills,
-    selectedCareerMatch, pathwayCourses,
+    selectedCareerMatch, pathwayCourses, pathwayGenerationMode,
   ]);
 
   const emit = useCallback((eventName: string, properties: Record<string, unknown>) => {

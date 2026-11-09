@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 
 import { usePathwaysStore } from '../state';
 import {
+  generateSkillsPathwayWorkflow,
   generatePathwayWorkflow,
   generateProfileWorkflow,
 } from '../workflows';
@@ -10,6 +11,7 @@ import { usePathwaysController } from './usePathwaysController';
 jest.mock('../workflows', () => ({
   generateProfileWorkflow: jest.fn().mockResolvedValue({ learnerProfile: null, careerMatches: [] }),
   generatePathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
+  generateSkillsPathwayWorkflow: jest.fn().mockResolvedValue({ courses: [] }),
 }));
 
 jest.mock('../../../../../app/data/hooks', () => ({
@@ -58,6 +60,62 @@ describe('usePathwaysController', () => {
 
     expect(generateProfileWorkflow).toHaveBeenCalledTimes(1);
     expect(generateProfileWorkflow).toHaveBeenCalledWith(stubLearnerIntent);
+  });
+
+  describe('generateSkillsPathway', () => {
+    it('delegates to generateSkillsPathwayWorkflow with the learner intent and resolved catalog scope, no enterprise UUID', async () => {
+      const { result } = renderHook(() => usePathwaysController());
+
+      await act(async () => {
+        await result.current.generateSkillsPathway(stubLearnerIntent);
+      });
+
+      expect(generateSkillsPathwayWorkflow).toHaveBeenCalledTimes(1);
+      expect(generateSkillsPathwayWorkflow).toHaveBeenCalledWith({
+        learnerIntent: stubLearnerIntent,
+        catalogScope: {
+          searchCatalogs: ['cat-1'],
+          catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' },
+        },
+      });
+    });
+
+    it('resolves an empty result cleanly without touching the store', async () => {
+      const { result } = renderHook(() => usePathwaysController());
+
+      const outcome = await act(async () => result.current.generateSkillsPathway(stubLearnerIntent));
+
+      expect(outcome).toEqual({ courses: [] });
+      expect(usePathwaysStore.getState().pathwayGenerationMode).toBeNull();
+    });
+
+    it('propagates a workflow rejection untouched with no store side effect', async () => {
+      const workflowError = new Error('Learning Intent unavailable');
+      jest.mocked(generateSkillsPathwayWorkflow).mockRejectedValueOnce(workflowError);
+      const { result } = renderHook(() => usePathwaysController());
+
+      await expect(
+        act(async () => {
+          await result.current.generateSkillsPathway(stubLearnerIntent);
+        }),
+      ).rejects.toThrow(workflowError);
+
+      const state = usePathwaysStore.getState();
+      expect(state.pathwayCourses).toEqual([]);
+      expect(state.pathwayGenerationMode).toBeNull();
+      expect(state.section).toBe('onboarding');
+    });
+
+    it('never calls generateProfileWorkflow or generatePathwayWorkflow', async () => {
+      const { result } = renderHook(() => usePathwaysController());
+
+      await act(async () => {
+        await result.current.generateSkillsPathway(stubLearnerIntent);
+      });
+
+      expect(generateProfileWorkflow).not.toHaveBeenCalled();
+      expect(generatePathwayWorkflow).not.toHaveBeenCalled();
+    });
   });
 
   it('delegates pathway generation to the workflow with the explicit request, selected career, and resolved catalog scope', async () => {

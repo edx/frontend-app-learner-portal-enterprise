@@ -17,10 +17,10 @@ export const PATHWAYS_STORAGE_VERSION = 1;
 
 /**
  * The durable subset of PathwaysState — deliberately excludes derived/transient
- * values: `pathwayInputFingerprint` is metadata about `pathwayCourses`, not excluded,
- * but loading/error state (transient) has no place here at all (see
- * hooks/usePathwaysRequestState.ts), and `progress` is derived from displayed courses
- * at render time, not an independent fact.
+ * values: `pathwayInputFingerprint` and `pathwayGenerationMode` are metadata about
+ * `pathwayCourses`, not excluded, but loading/error state (transient) has no place
+ * here at all (see hooks/usePathwaysRequestState.ts), and `progress` is derived from
+ * displayed courses at render time, not an independent fact.
  */
 export type PersistedPathwaysState = Pick<
 PathwaysState,
@@ -32,6 +32,7 @@ PathwaysState,
 | 'selectedSkills'
 | 'pathwayCourses'
 | 'pathwayInputFingerprint'
+| 'pathwayGenerationMode'
 >;
 
 export const partializePathwaysState = (state: PathwaysStore): PersistedPathwaysState => ({
@@ -45,6 +46,7 @@ export const partializePathwaysState = (state: PathwaysStore): PersistedPathways
   selectedSkills: state.selectedSkills,
   pathwayCourses: state.pathwayCourses,
   pathwayInputFingerprint: state.pathwayInputFingerprint,
+  pathwayGenerationMode: state.pathwayGenerationMode,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
