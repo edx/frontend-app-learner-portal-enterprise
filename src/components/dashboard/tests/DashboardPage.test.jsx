@@ -295,6 +295,16 @@ describe('<Dashboard />', () => {
     expect(screen.getByText(`Welcome, ${mockAuthenticatedUser.name.split(' ')[0]}!`)).toBeInTheDocument();
   });
 
+  it('keeps the welcome heading for screen readers only on the Personalized Search tab', async () => {
+    const user = userEvent.setup();
+    useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    const welcome = `Welcome, ${mockAuthenticatedUser.name.split(' ')[0]}!`;
+    expect(screen.getByRole('heading', { name: welcome })).not.toHaveClass('sr-only');
+    await user.click(screen.getByRole('tab', { name: /Personalized Search/ }));
+    expect(screen.getByRole('heading', { name: welcome })).toHaveClass('sr-only');
+  });
+
   it('does not render user first name if not available', () => {
     const mockAuthenticatedUserWithoutName = authenticatedUserFactory({ name: '' });
     const appState = {

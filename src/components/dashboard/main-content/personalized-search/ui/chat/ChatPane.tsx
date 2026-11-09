@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Button, Chip, Stack } from '@openedx/paragon';
+import { Chip, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -15,7 +15,6 @@ export interface ChatPaneProps {
   announcement: string;
   onDraftChange: (draft: string) => void;
   onSend: (message: string) => void;
-  onNewChat: () => void;
   onViewPage: (turnId: string) => void;
   onShowLastRecommendations: (turnId: string) => void;
   onStop: () => void;
@@ -24,7 +23,7 @@ export interface ChatPaneProps {
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onNewChat, onViewPage, onShowLastRecommendations, onStop, onRetry,
+  onDraftChange, onSend, onViewPage, onShowLastRecommendations, onStop, onRetry,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -40,33 +39,28 @@ const ChatPane = ({
 
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
-      {turns.length === 0 ? (
-        <div className="personalized-search__opening">
-          <div className="personalized-search__greeting mb-3">
-            <p className="h4 mb-1">{intl.formatMessage(messages.greeting)}</p>
-            <p className="mb-0 text-gray-700">{intl.formatMessage(messages.greetingDetail)}</p>
+      <div className="personalized-search__chat-scroll">
+        {turns.length === 0 ? (
+          <div className="personalized-search__opening">
+            <div className="personalized-search__greeting mb-3">
+              <p className="h4 mb-1">{intl.formatMessage(messages.greeting)}</p>
+              <p className="mb-0 text-gray-700">{intl.formatMessage(messages.greetingDetail)}</p>
+            </div>
+            <Stack direction="horizontal" gap={2} className="flex-wrap">
+              {openingChips.map((chip) => (
+                <Chip
+                  key={chip}
+                  disabled={busy}
+                  onClick={() => {
+                    if (!busy) { onSend(chip); }
+                  }}
+                >
+                  {chip}
+                </Chip>
+              ))}
+            </Stack>
           </div>
-          <Stack direction="horizontal" gap={2} className="flex-wrap">
-            {openingChips.map((chip) => (
-              <Chip
-                key={chip}
-                disabled={busy}
-                onClick={() => {
-                  if (!busy) { onSend(chip); }
-                }}
-              >
-                {chip}
-              </Chip>
-            ))}
-          </Stack>
-        </div>
-      ) : (
-        <>
-          <div className="d-flex justify-content-end mb-2">
-            <Button variant="outline-primary" size="sm" disabled={busy} onClick={onNewChat}>
-              {intl.formatMessage(messages.newChat)}
-            </Button>
-          </div>
+        ) : (
           <MessageList
             turns={turns}
             busy={busy}
@@ -75,8 +69,8 @@ const ChatPane = ({
             onShowLastRecommendations={onShowLastRecommendations}
             onRetry={onRetry}
           />
-        </>
-      )}
+        )}
+      </div>
       <Composer
         ref={composerRef}
         draft={draft}

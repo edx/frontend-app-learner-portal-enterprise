@@ -47,6 +47,31 @@
   }
 }
 
+// Two panes (>= 768 px): the chat column is sticky and as tall as the viewport, its messages scroll
+// inside it and the composer stays pinned, so refining is always one click away. Only the results
+// scroll with the page.
+.personalized-search[data-layout="dual"] {
+  .personalized-search__chat-col {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .personalized-search__chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 1rem;
+  }
+
+  .personalized-search__chat-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: .25rem;
+  }
+}
+
 // Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
 .personalized-search__debug-table {
   max-width: 100%;

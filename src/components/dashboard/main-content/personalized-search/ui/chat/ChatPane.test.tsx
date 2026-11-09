@@ -177,11 +177,16 @@ describe('ChatPane', () => {
   it('New chat resets to the opening state with no session', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse']);
-    renderTab(transport);
+    const { container } = renderTab(transport);
+    expect(screen.queryByRole('button', { name: 'New chat' })).not.toBeInTheDocument();
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
     expect(testStore.getState().stream.session.sessionUuid).not.toBeNull();
+    // New chat sits in the tab toolbar, outside the chat's own scrolling area.
+    const newChat = screen.getByRole('button', { name: 'New chat' });
+    expect(container.querySelector('.personalized-search__toolbar')).toContainElement(newChat);
+    expect(container.querySelector('.personalized-search__chat-scroll')).not.toContainElement(newChat);
 
     await user.click(screen.getByRole('button', { name: 'New chat' }));
     expect(testStore.getState().stream.session.sessionUuid).toBeNull();

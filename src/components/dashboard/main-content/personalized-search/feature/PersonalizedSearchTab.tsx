@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert, Badge, Button, ButtonGroup, Col, Row, Stack,
 } from '@openedx/paragon';
+import { Add } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import ChatPane from '../ui/chat/ChatPane';
@@ -58,7 +59,6 @@ const PersonalizedSearchTab = ({
       announcement={controller.announcement}
       onDraftChange={controller.setDraft}
       onSend={controller.send}
-      onNewChat={controller.newChat}
       onViewPage={controller.viewPage}
       onShowLastRecommendations={controller.showLastRecommendations}
       onStop={controller.stop}
@@ -114,9 +114,20 @@ const PersonalizedSearchTab = ({
           ? intl.formatMessage(messages.savedButton, { count: feedback.saved.length })
           : intl.formatMessage(messages.saved)}
       </Button>
-      <Button variant="outline-primary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
+      <Button variant="tertiary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
         {intl.formatMessage(messages.history)}
       </Button>
+      {controller.turns.length > 0 && (
+        <Button
+          variant="outline-primary"
+          size="sm"
+          iconBefore={Add}
+          disabled={controller.busy}
+          onClick={controller.newChat}
+        >
+          {intl.formatMessage(messages.newChat)}
+        </Button>
+      )}
     </Stack>
   );
   const overlays = (
@@ -148,9 +159,10 @@ const PersonalizedSearchTab = ({
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}
       {isWide ? (
-        <Row>
-          <Col md={5} className="personalized-search__chat-col">{chat}</Col>
-          <Col md={7} className="personalized-search__page-col">{page}</Col>
+        <Row className="align-items-start">
+          {/* The chat stays in view (sticky, its own scroll) while only the results scroll. */}
+          <Col md={5} lg={4} className="personalized-search__chat-col">{chat}</Col>
+          <Col md={7} lg={8} className="personalized-search__page-col">{page}</Col>
         </Row>
       ) : (
         <Stack gap={3}>
