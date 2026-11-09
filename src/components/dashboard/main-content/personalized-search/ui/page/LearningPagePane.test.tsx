@@ -79,6 +79,59 @@ describe('LearningPagePane', () => {
     });
   });
 
+  describe('new results bring the results column back to its top', () => {
+    const tree = (turns: AssistantTurn[], reducedMotion = false) => (
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[`/${SLUG}`]}>
+          <LearningPagePane
+            turns={turns}
+            viewedTurnId={null}
+            pageFocusRequest={0}
+            links={createPortalItemLinks(SLUG)}
+            reducedMotion={reducedMotion}
+          />
+        </MemoryRouter>
+      </IntlProvider>
+    );
+    const placePaneAt = (top: number) => jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ top } as DOMRect);
+    let scrollTo: jest.SpyInstance;
+    beforeEach(() => {
+      scrollTo = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+      Object.defineProperty(window, 'scrollY', { configurable: true, value: 1200 });
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+      Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    });
+
+    it('scrolls up when the learner is past the top, and not on mount', () => {
+      placePaneAt(-800);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
+      expect(scrollTo).not.toHaveBeenCalled();
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
+      expect(scrollTo).toHaveBeenCalledTimes(1);
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 800 - 16, behavior: 'smooth' });
+    });
+
+    it('turns off scroll anchoring while mounted, so growing results do not drag the view down', () => {
+      const { unmount } = render(tree(runTurns(['normal_turn.sse']).turns));
+      expect(document.documentElement).toHaveAttribute('data-personalized-search-results');
+      unmount();
+      expect(document.documentElement).not.toHaveAttribute('data-personalized-search-results');
+    });
+
+    it('stays put when the top is already in view, and jumps without animation for reduced motion', () => {
+      placePaneAt(120);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
+      expect(scrollTo).not.toHaveBeenCalled();
+      placePaneAt(-50);
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse', 'normal_turn.sse']).turns, true));
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 50 - 16, behavior: 'auto' });
+    });
+  });
+
   it('shows the empty page before any turn has a page', () => {
     renderPane([]);
     expect(screen.getByText('Your results will show here. Tell me what you want to learn.')).toBeInTheDocument();
