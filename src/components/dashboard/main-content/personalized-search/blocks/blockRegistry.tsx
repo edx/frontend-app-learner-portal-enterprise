@@ -19,7 +19,7 @@ export interface BlockRenderContext {
   onDismiss?: (item: ItemCard) => void;
 }
 
-/** How one block type renders, and where the learning page puts it. */
+/** How one block type renders, and where the results pane puts it. */
 export interface BlockDefinition<P = never> {
   render: (props: P, ctx: BlockRenderContext) => ReactElement | null;
   /** `top` blocks share the row above the rest (the page header, the plan); the others stack below. */
@@ -67,7 +67,7 @@ export interface BlockLayout {
 }
 
 /**
- * Block renderers for the learning page. Hosts can add or replace block types without forking the
+ * Block renderers for the results pane. Hosts can add or replace block types without forking the
  * feature: `createBlockRegistry().register('my_block', { render })`. The registry also validates
  * blocks for the stream reducer, so a block reaches the page only if something can render it.
  */

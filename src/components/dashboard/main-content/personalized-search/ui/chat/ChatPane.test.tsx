@@ -132,7 +132,7 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
-    await user.click(screen.getAllByRole('button', { name: 'View page' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'View results' })[0]);
     expect(testStore.getState().viewedTurnId).toBe(first.localId);
   });
 
@@ -204,7 +204,7 @@ describe('ChatPane', () => {
 
     const liveRegions = container.querySelectorAll('[aria-live="polite"]');
     expect(liveRegions).toHaveLength(1);
-    expect(liveRegions[0]).toHaveTextContent('New reply, 3 picks on your learning page');
+    expect(liveRegions[0]).toHaveTextContent('New reply, 3 picks in your results');
     await waitFor(() => expect(composer()).toHaveFocus());
   });
 });

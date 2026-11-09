@@ -79,7 +79,7 @@ describe('LearningPagePane', () => {
 
   it('shows the empty page before any turn has a page', () => {
     renderPane([]);
-    expect(screen.getByText("Your learning page is empty. Tell me what you want to learn and I'll build it.")).toBeInTheDocument();
+    expect(screen.getByText('Your results will show here. Tell me what you want to learn.')).toBeInTheDocument();
   });
 
   it('renders blocks one at a time as their parts arrive', () => {
@@ -220,7 +220,7 @@ describe('LearningPagePane', () => {
       type: 'data-block',
       id: 'blk_1',
       data: {
-        v: 1, type: 'page_header', props: { title: '<script>alert(1)</script>', dek: '<b>bold</b>', label: 'Your learning page' },
+        v: 1, type: 'page_header', props: { title: '<script>alert(1)</script>', dek: '<b>bold</b>', label: 'Your results' },
       },
     }]);
     const { container } = renderPane(turns);
@@ -296,6 +296,6 @@ describe('LearningPagePane', () => {
         </MemoryRouter>
       </IntlProvider>,
     );
-    expect(screen.getByRole('region', { name: 'Your learning page' })).toHaveFocus();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
   });
 });

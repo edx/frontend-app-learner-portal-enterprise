@@ -15,7 +15,7 @@ exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`
           "block": {
             "props": {
               "dek": "Matches from your organization’s catalog.",
-              "label": "Your learning page",
+              "label": "Your results",
               "title": "Results for “I want to get better at leading a team”",
             },
             "type": "page_header",
@@ -257,7 +257,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
           "block": {
             "props": {
               "dek": "Short, practical picks.",
-              "label": "Your learning page",
+              "label": "Your results",
               "title": "Lead with confidence",
             },
             "type": "page_header",
