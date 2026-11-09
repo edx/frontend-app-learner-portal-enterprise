@@ -161,6 +161,16 @@
 }
 
 .personalized-search__clamp-3 { -webkit-line-clamp: 3; }
+
+// "Best for …" sits just above its compare card in a two-line slot, so the cards line up.
+.personalized-search__compare-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.5em;
+  line-height: 1.25;
+}
 .personalized-search__clamp-1 { -webkit-line-clamp: 1; }
 
 // The bookmark and menu sit on the image, so they keep a white circle (IconButton is transparent).

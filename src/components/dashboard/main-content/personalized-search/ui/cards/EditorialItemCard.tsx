@@ -81,8 +81,6 @@ export interface EditorialItemCardProps {
   saved?: boolean;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
-  /** A short line above the type label, such as "Best for …" in Compare top options. */
-  eyebrow?: ReactNode;
   /** Extra content under the meta line, such as a status badge. */
   footer?: ReactNode;
   /** Usage events: the card was opened, or its "Why this?" was expanded. */
@@ -98,7 +96,7 @@ export interface EditorialItemCardProps {
  * sit above it. Server-hydrated (KD-5); every field renders as text.
  */
 const EditorialItemCard = ({
-  item, links, saved = false, onToggleSave, onDismiss, eyebrow, footer, onOpen, onExplain,
+  item, links, saved = false, onToggleSave, onDismiss, footer, onOpen, onExplain,
 }: EditorialItemCardProps) => {
   const intl = useIntl();
   const typeLabel = useTypeLabel(item);
@@ -125,7 +123,6 @@ const EditorialItemCard = ({
         />
       ) : <div className="personalized-search__card-image-placeholder bg-light-400" aria-hidden />}
       <Card.Section className="personalized-search__card-body d-flex flex-column">
-        {eyebrow && <p className="small font-weight-bold mb-2 personalized-search__card-eyebrow">{eyebrow}</p>}
         <p className="x-small text-gray-700 mb-1">{typeLabel}</p>
         <h4 className="h5 mb-1 personalized-search__card-title personalized-search__clamp-3">
           {/* stretched-link makes the whole card one link; the actions sit above it. */}
