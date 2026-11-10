@@ -30,6 +30,7 @@ const CompactItemCard = ({
       className={classNames(
         'personalized-search__card personalized-search__card--compact h-100',
         `personalized-search__card--${accentOf(item)}`,
+        { 'personalized-search__card--updated': item.status === 'new' },
       )}
       data-item-id={item.item_id}
     >
@@ -39,6 +40,9 @@ const CompactItemCard = ({
           <links.LinkComponent to={links.getItemHref(item)} className="stretched-link">{item.title}</links.LinkComponent>
         </p>
         {time.length > 0 && <p className="x-small mb-1">{time.join(' · ')}</p>}
+        {item.status === 'new' && (
+          <Badge variant="info" className="mr-2">{intl.formatMessage(messages.updated)}</Badge>
+        )}
         {isTopPick && (
           <Badge variant="light" className="text-danger-500">{intl.formatMessage(messages.topPick)}</Badge>
         )}

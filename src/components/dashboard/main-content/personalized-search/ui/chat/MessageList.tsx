@@ -1,14 +1,13 @@
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { previousPageTurnId } from '../../core/selectors';
 import type { AssistantTurn } from '../../core/stream/types';
 import AssistantMessage from './AssistantMessage';
 import type { AssistantMessageProps } from './AssistantMessage';
 
 export interface MessageListProps extends Pick<
 AssistantMessageProps,
-'busy' | 'onViewPage' | 'onShowLastRecommendations' | 'onRetry'
+'busy' | 'onRetry'
 > {
   turns: AssistantTurn[];
 }
@@ -28,7 +27,6 @@ const MessageList = ({ turns, ...handlers }: MessageListProps) => {
           <AssistantMessage
             turn={turn}
             isLatest={index === turns.length - 1}
-            previousPageTurnId={previousPageTurnId(turns, index)}
             {...handlers}
           />
         </li>
