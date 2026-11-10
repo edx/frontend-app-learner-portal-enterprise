@@ -5,6 +5,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from '../messages';
 import type { AssistantTurn } from '../../core/stream/types';
 import Composer from './Composer';
+import FollowUpChips from './FollowUpChips';
 import MessageList from './MessageList';
 
 export interface ChatPaneProps {
@@ -37,6 +38,9 @@ const ChatPane = ({
     wasBusy.current = busy;
   }, [busy]);
 
+  const latest = turns[turns.length - 1];
+  const chips = latest?.status === 'done' ? latest.followups?.suggestions ?? [] : [];
+
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
       <div className="personalized-search__chat-scroll">
@@ -64,13 +68,15 @@ const ChatPane = ({
           <MessageList
             turns={turns}
             busy={busy}
-            onSend={onSend}
             onViewPage={onViewPage}
             onShowLastRecommendations={onShowLastRecommendations}
             onRetry={onRetry}
           />
         )}
       </div>
+      {chips.length > 0 && (
+        <FollowUpChips suggestions={chips} disabled={busy} onSelect={onSend} />
+      )}
       <Composer
         ref={composerRef}
         draft={draft}
@@ -79,6 +85,7 @@ const ChatPane = ({
         onSend={onSend}
         onStop={onStop}
       />
+      <p className="x-small text-gray-500 mt-2 mb-0">{intl.formatMessage(messages.disclaimer)}</p>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
     </section>
   );

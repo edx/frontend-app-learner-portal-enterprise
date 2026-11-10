@@ -174,6 +174,23 @@ describe('ChatPane', () => {
     expect(sent).toEqual([]);
   });
 
+  it('keeps the follow-up question in the reply and its chips above the composer, with the disclaimer below', async () => {
+    const user = userEvent.setup();
+    const { transport } = scriptedTransport(['normal_turn.sse']);
+    const { container } = renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+
+    const messages = container.querySelector('.personalized-search__messages') as HTMLElement;
+    expect(within(messages).getByText('How much time can you give it?')).toBeInTheDocument();
+    expect(within(messages).queryByRole('button', { name: 'Under 4 weeks' })).not.toBeInTheDocument();
+    const chip = screen.getByRole('button', { name: 'Under 4 weeks' });
+    const form = container.querySelector('.personalized-search__composer') as HTMLElement;
+    // eslint-disable-next-line no-bitwise
+    expect(chip.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/Results come from your organization's catalog/)).toBeInTheDocument();
+  });
+
   it('New chat resets to the opening state with no session', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse']);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Alert, Badge, Button, ButtonGroup, Col, Row, Stack,
+  Alert, Badge, Button, ButtonGroup, Col, Row, Stack, Toast,
 } from '@openedx/paragon';
 import { Add } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -10,6 +10,7 @@ import DebugPanel from '../ui/debug/DebugPanel';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
 import SavedView from '../ui/saved/SavedView';
+import ResultsTabs from '../ui/page/ResultsTabs';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
 import { useFitToViewport } from './useFitToViewport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
@@ -52,6 +53,12 @@ const PersonalizedSearchTab = ({
   const {
     isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
   } = controller;
+  const [savedToast, setSavedToast] = useState(false);
+  const toggleSave = (item: Parameters<typeof controller.toggleSave>[0]) => {
+    const saving = !savedIds.has(item.item_id);
+    controller.toggleSave(item);
+    if (saving) { setSavedToast(true); }
+  };
 
   const chat = (
     <ChatPane
@@ -68,7 +75,7 @@ const PersonalizedSearchTab = ({
       onRetry={controller.retry}
     />
   );
-  const page = (
+  const forYou = (
     <LearningPagePane
       turns={controller.turns}
       registry={registry}
@@ -78,12 +85,21 @@ const PersonalizedSearchTab = ({
       reducedMotion={reducedMotion || controller.mode === 'past'}
       savedIds={savedIds}
       dismissedIds={dismissedIds}
-      onToggleSave={controller.toggleSave}
+      onToggleSave={toggleSave}
       onDismiss={controller.dismiss}
       undoItem={feedback.undo}
       onUndo={controller.undoDismiss}
       feedbackError={feedback.error}
       onClearNotice={controller.clearFeedbackNotice}
+    />
+  );
+  const page = (
+    <ResultsTabs
+      activeTab={controller.savedOpen ? 'saved' : 'for-you'}
+      savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
+      onSelect={(tab) => (tab === 'saved' ? controller.openSaved() : controller.closeSaved())}
+      forYou={forYou}
+      saved={<SavedView items={feedback.saved} links={controller.links} onToggleSave={controller.toggleSave} />}
     />
   );
 
@@ -112,11 +128,6 @@ const PersonalizedSearchTab = ({
 
   const toolbar = (
     <Stack direction="horizontal" gap={2} className="justify-content-end mb-2 personalized-search__toolbar">
-      <Button variant="outline-primary" size="sm" onClick={controller.openSaved}>
-        {controller.feedbackLoaded
-          ? intl.formatMessage(messages.savedButton, { count: feedback.saved.length })
-          : intl.formatMessage(messages.saved)}
-      </Button>
       <Button variant="tertiary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
         {intl.formatMessage(messages.history)}
       </Button>
@@ -142,14 +153,20 @@ const PersonalizedSearchTab = ({
       onOpenSession={controller.openSession}
     />
   );
-  const savedView = (
-    <SavedView
-      open={controller.savedOpen}
-      items={feedback.saved}
-      links={controller.links}
-      onClose={controller.closeSaved}
-      onToggleSave={controller.toggleSave}
-    />
+  const savedNotice = (
+    <Toast
+      show={savedToast}
+      onClose={() => setSavedToast(false)}
+      action={{
+        label: intl.formatMessage(messages.viewSaved),
+        onClick: () => {
+          setSavedToast(false);
+          controller.openSaved();
+        },
+      }}
+    >
+      {intl.formatMessage(messages.savedToast)}
+    </Toast>
   );
 
   return (
@@ -157,7 +174,7 @@ const PersonalizedSearchTab = ({
       {debugPanel}
       {toolbar}
       {overlays}
-      {savedView}
+      {savedNotice}
       {controller.mode === 'past' && controller.pastSessionCreated && (
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}

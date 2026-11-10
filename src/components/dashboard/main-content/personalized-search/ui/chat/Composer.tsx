@@ -1,5 +1,8 @@
 import { forwardRef, KeyboardEvent } from 'react';
-import { Button, Form } from '@openedx/paragon';
+import {
+  Button, Form, Icon, Stack,
+} from '@openedx/paragon';
+import { Send } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -34,33 +37,37 @@ const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
 
   return (
     <Form
-      className="personalized-search__composer mt-3"
+      className="personalized-search__composer mt-2"
       onSubmit={(event) => {
         event.preventDefault();
         submit();
       }}
     >
-      <Form.Group controlId="personalized-search-composer" isInvalid={tooLong} className="mb-2">
-        <Form.Label className="sr-only">{intl.formatMessage(messages.composerLabel)}</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={2}
-          ref={ref}
-          value={draft}
-          disabled={disabled}
-          placeholder={intl.formatMessage(messages.composerPlaceholder)}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onDraftChange(event.target.value)}
-          onKeyDown={onKeyDown}
-        />
-        {tooLong && (
-          <Form.Control.Feedback type="invalid">{intl.formatMessage(messages.messageTooLong)}</Form.Control.Feedback>
+      <Stack direction="horizontal" gap={2} className="align-items-start">
+        <Form.Group controlId="personalized-search-composer" isInvalid={tooLong} className="mb-0 flex-grow-1">
+          <Form.Label className="sr-only">{intl.formatMessage(messages.composerLabel)}</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={2}
+            ref={ref}
+            value={draft}
+            disabled={disabled}
+            placeholder={intl.formatMessage(messages.composerPlaceholder)}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onDraftChange(event.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          {tooLong && (
+            <Form.Control.Feedback type="invalid">{intl.formatMessage(messages.messageTooLong)}</Form.Control.Feedback>
+          )}
+        </Form.Group>
+        {disabled ? (
+          <Button variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
+        ) : (
+          <Button type="submit" disabled={!canSend} aria-label={intl.formatMessage(messages.send)}>
+            <Icon src={Send} />
+          </Button>
         )}
-      </Form.Group>
-      {disabled ? (
-        <Button variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
-      ) : (
-        <Button type="submit" disabled={!canSend}>{intl.formatMessage(messages.send)}</Button>
-      )}
+      </Stack>
     </Form>
   );
 });
