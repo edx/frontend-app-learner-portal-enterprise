@@ -182,13 +182,28 @@ describe('LearningPagePane', () => {
       expect(blockTypes(container)).toHaveLength(1);
     });
 
-    it('renders the finished turn in stream order, with the suggested order last and no placeholders', () => {
+    it('renders the finished turn in stream order, with the suggested order in the header row and no placeholders', () => {
       const { container } = renderPane(runTurns(['normal_turn.sse']).turns);
       expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
       const order = Array.from(container.querySelectorAll('.personalized-search__page-header, .personalized-search__top-pick, '
         + '.personalized-search__compare, .personalized-search__more-options, .personalized-search__plan'))
         .map((el) => el.className.match(/personalized-search__(page-header|top-pick|compare|more-options|plan)/)?.[1]);
-      expect(order).toEqual(['page-header', 'top-pick', 'compare', 'more-options', 'plan']);
+      // The plan sits in the header row's top-right corner, though it streams last.
+      expect(order).toEqual(['page-header', 'plan', 'top-pick', 'compare', 'more-options']);
+      expect(container.querySelector('.personalized-search__page-top .personalized-search__plan')).not.toBeNull();
+      expect(container.querySelector('[data-skeleton="plan"]')).toBeNull();
+    });
+
+    it('holds the header row corner for the plan while the turn streams, and closes it without one', () => {
+      const streaming = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block'
+        && (p as { data: { type: string } }).data.type === 'compare')));
+      const { container, unmount } = renderPane(streaming);
+      expect(container.querySelector('.personalized-search__page-top [data-skeleton="plan"]')).not.toBeNull();
+      unmount();
+      const noPlan = turnWithParts(goldenParts('normal_turn.sse').filter((p) => !(p.type === 'data-block'
+        && (p as { data: { type: string } }).data.type === 'plan')));
+      const done = renderPane(noPlan);
+      expect(done.container.querySelector('[data-skeleton="plan"], .personalized-search__plan')).toBeNull();
     });
   });
 
@@ -439,6 +454,17 @@ describe('LearningPagePane', () => {
     expect(within(popover).getByText(/The best fit for your goal comes first/)).toBeInTheDocument();
     expect(within(popover).getByText('Start with the basics, then build to the full certificate.')).toBeInTheDocument();
     expect(onExplain).toHaveBeenCalledWith('order');
+  });
+
+  it('hides Why these? when the final profile has no chips (nothing the results reflect)', () => {
+    const block = (id: string, type: string, props: object) => ({ type: 'data-block', id, data: { v: 1, type, props } });
+    renderPane(turnWithParts([
+      block('h', 'page_header', { title: 'Lead with confidence', dek: '', label: 'Your results' }),
+      block('p', 'profile', { summary: 'S', chips: ['Leadership'] }),
+      block('p', 'profile', { summary: 'S', chips: [] }),
+    ] as Part[]));
+    expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
   });
 
   it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {

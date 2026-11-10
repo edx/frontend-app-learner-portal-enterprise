@@ -20,10 +20,16 @@ export interface AssistantMessageProps {
   /** The learner's thumbs on this reply; omitted (with onRate) where rating isn't available. */
   rating?: 1 | -1 | null;
   onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
+  /**
+   * Going back to earlier results: 'view' offers "View these results" (an earlier reply with results),
+   * 'showing' marks the reply whose earlier results are on screen, undefined shows nothing.
+   */
+  results?: 'view' | 'showing';
+  onViewResults?: (turnId: string) => void;
 }
 
 const AssistantMessage = ({
-  turn, isLatest, busy, onRetry, rating = null, onRate,
+  turn, isLatest, busy, onRetry, rating = null, onRate, results, onViewResults,
 }: AssistantMessageProps) => {
   const intl = useIntl();
   const isStreaming = turn.status === 'streaming';
@@ -62,6 +68,20 @@ const AssistantMessage = ({
         {turn.text && <p className="mb-1 personalized-search__reply">{turn.text}</p>}
         {isDone && turn.followups?.question && (
           <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
+        )}
+        {isDone && results === 'view' && onViewResults && (
+          <Button
+            variant="link"
+            size="inline"
+            className="personalized-search__view-results small mt-1"
+            disabled={busy}
+            onClick={() => onViewResults(turn.localId)}
+          >
+            {intl.formatMessage(messages.viewTheseResults)}
+          </Button>
+        )}
+        {isDone && results === 'showing' && (
+          <p className="small text-gray-700 mb-0 mt-1">{intl.formatMessage(messages.showingTheseResults)}</p>
         )}
         {isDone && onRate && turn.sequence && (
           <Stack direction="horizontal" gap={1} className="mt-1 personalized-search__thumbs">

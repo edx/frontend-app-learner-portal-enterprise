@@ -326,6 +326,26 @@ const messages = defineMessages({
     defaultMessage: 'Close',
     description: 'Closes a panel.',
   },
+  viewTheseResults: {
+    id: 'learner.personalizedSearch.chat.viewTheseResults',
+    defaultMessage: 'View these results',
+    description: 'Link under an earlier reply that shows the results it produced.',
+  },
+  showingTheseResults: {
+    id: 'learner.personalizedSearch.chat.showingTheseResults',
+    defaultMessage: 'Showing these results',
+    description: 'Shown under the earlier reply whose results are on screen.',
+  },
+  earlierResults: {
+    id: 'learner.personalizedSearch.page.earlierResults',
+    defaultMessage: 'Earlier results for “{message}”',
+    description: 'Banner over the results pane while the learner looks at an earlier reply\'s results.',
+  },
+  backToLatest: {
+    id: 'learner.personalizedSearch.page.backToLatest',
+    defaultMessage: 'Back to latest results',
+    description: 'Returns the results pane to the newest results.',
+  },
   loadingResults: {
     id: 'learner.personalizedSearch.page.loadingResults',
     defaultMessage: 'Loading your results',

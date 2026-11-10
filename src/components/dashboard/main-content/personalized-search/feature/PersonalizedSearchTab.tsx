@@ -74,6 +74,8 @@ const PersonalizedSearchTab = ({
       onRetry={controller.retry}
       ratings={controller.ratings}
       onRate={controller.rateTurn}
+      viewedTurnId={controller.viewedTurnId}
+      onViewResults={controller.viewPage}
     />
   );
   const forYou = (
@@ -81,6 +83,7 @@ const PersonalizedSearchTab = ({
       turns={controller.turns}
       registry={registry}
       viewedTurnId={controller.viewedTurnId}
+      onBackToLatest={controller.showLatestResults}
       pageFocusRequest={controller.pageFocusRequest}
       links={controller.links}
       reducedMotion={reducedMotion || controller.mode === 'past'}

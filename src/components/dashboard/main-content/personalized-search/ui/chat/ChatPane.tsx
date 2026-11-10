@@ -23,11 +23,14 @@ export interface ChatPaneProps {
   onRetry: (turnId: string) => void;
   ratings?: Record<string, 1 | -1 | null>;
   onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
+  /** Going back to an earlier reply's results. */
+  viewedTurnId?: string | null;
+  onViewResults?: (turnId: string) => void;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onStop, onRetry, ratings, onRate,
+  onDraftChange, onSend, onStop, onRetry, ratings, onRate, viewedTurnId, onViewResults,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -91,6 +94,8 @@ const ChatPane = ({
             onRetry={onRetry}
             ratings={ratings}
             onRate={onRate}
+            viewedTurnId={viewedTurnId}
+            onViewResults={onViewResults}
           />
         )}
       </div>

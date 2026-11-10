@@ -28,7 +28,7 @@ const PageHeaderBlock = ({
       {label && <p className="sr-only">{label}</p>}
       <div className="d-flex align-items-start justify-content-between">
         <h2 className="mb-2 mr-3">{title}</h2>
-        {profile && (
+        {profile && profile.chips.length > 0 && (
           <OverlayTrigger
             // Hover or focus opens it (a click focuses the button, so it stays open); Esc closes it.
             trigger={['hover', 'focus']}

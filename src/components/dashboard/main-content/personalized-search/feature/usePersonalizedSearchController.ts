@@ -275,6 +275,8 @@ export const createPersonalizedSearchController = ({
       store.setViewedTurnId(turnId);
       store.setMobilePane('page');
     }, []);
+    /** Leaves an earlier reply's results for the newest ones. */
+    const showLatestResults = useCallback(() => storeApi.getState().setViewedTurnId(null), []);
 
     // Saved and dismissed items (REQ-009), loaded once, lazily: when the page first has picks to mark
     // or hide, or when the Saved view opens, so the opening state makes no network request.
@@ -500,6 +502,7 @@ export const createPersonalizedSearchController = ({
       retry,
       newChat,
       viewPage,
+      showLatestResults,
       showLastRecommendations,
       isWide,
       reducedMotion,

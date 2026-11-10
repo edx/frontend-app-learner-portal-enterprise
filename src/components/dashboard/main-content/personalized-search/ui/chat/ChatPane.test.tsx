@@ -137,6 +137,25 @@ describe('ChatPane', () => {
     jest.restoreAllMocks();
   });
 
+  it('goes back to an earlier reply\'s results and returns to the latest', async () => {
+    const user = userEvent.setup();
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    // Only earlier replies offer a way back; the newest results are already showing.
+    expect(screen.queryByRole('button', { name: 'View these results' })).not.toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+    await waitForIdle();
+
+    await user.click(screen.getByRole('button', { name: 'View these results' }));
+    expect(screen.getByText('Earlier results for “Build data skills”')).toBeInTheDocument();
+    expect(screen.getByText('Showing these results')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
+    expect(screen.queryByText(/Earlier results for/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View these results' })).toBeInTheDocument();
+  });
+
   it('chips are keyboard operable', async () => {
     const user = userEvent.setup();
     const { transport, sent } = scriptedTransport(['normal_turn.sse']);
