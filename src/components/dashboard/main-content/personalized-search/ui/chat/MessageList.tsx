@@ -1,19 +1,19 @@
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { previousPageTurnId } from '../../core/selectors';
 import type { AssistantTurn } from '../../core/stream/types';
 import AssistantMessage from './AssistantMessage';
 import type { AssistantMessageProps } from './AssistantMessage';
 
 export interface MessageListProps extends Pick<
 AssistantMessageProps,
-'busy' | 'onViewPage' | 'onShowLastRecommendations' | 'onRetry'
+'busy' | 'onRetry' | 'onRate'
 > {
   turns: AssistantTurn[];
+  ratings?: Record<string, 1 | -1 | null>;
 }
 
-const MessageList = ({ turns, ...handlers }: MessageListProps) => {
+const MessageList = ({ turns, ratings, ...handlers }: MessageListProps) => {
   const intl = useIntl();
   return (
     <ol className="list-unstyled mb-0 personalized-search__messages">
@@ -28,7 +28,7 @@ const MessageList = ({ turns, ...handlers }: MessageListProps) => {
           <AssistantMessage
             turn={turn}
             isLatest={index === turns.length - 1}
-            previousPageTurnId={previousPageTurnId(turns, index)}
+            rating={ratings?.[turn.localId] ?? null}
             {...handlers}
           />
         </li>

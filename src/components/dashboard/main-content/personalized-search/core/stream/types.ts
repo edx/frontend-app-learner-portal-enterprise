@@ -5,6 +5,8 @@
  * Only `stream/` knows the protocol. Everything above it consumes `ChatStreamState`.
  */
 
+import type { AnalyticsContext } from '../analytics';
+
 export type ItemType = 'course' | 'executive_education' | 'program';
 
 export type StatusStep = 'understanding' | 'searching' | 'writing';
@@ -98,17 +100,52 @@ export interface PlanProps {
   steps: PlanStep[];
 }
 
+/** A warning that the results can't meet a goal the learner stated (additive in v1, KD-11). */
+export interface CaveatProps {
+  title: string;
+  body: string;
+}
+
+/** What the AI knows about the learner, for "Why these?" (additive in v1, KD-11). */
+export interface ProfileProps {
+  summary: string;
+  chips: string[];
+}
+
+/** The one item to start with (additive in v1, KD-11). */
+export interface TopPickProps {
+  item: ItemCard;
+  reason: string;
+  checks: string[];
+}
+
+export interface CompareOption {
+  best_for: string;
+  item: ItemCard;
+}
+
+/** 2-3 options with what each is best for (additive in v1, KD-11). */
+export interface CompareProps {
+  options: CompareOption[];
+}
+
 export type Block =
   | { v: 1; type: 'page_header'; props: PageHeaderProps }
   | { v: 1; type: 'item_section'; props: ItemSectionProps }
   | { v: 1; type: 'insight'; props: InsightProps }
-  | { v: 1; type: 'plan'; props: PlanProps };
+  | { v: 1; type: 'plan'; props: PlanProps }
+  | { v: 1; type: 'top_pick'; props: TopPickProps }
+  | { v: 1; type: 'compare'; props: CompareProps }
+  | { v: 1; type: 'profile'; props: ProfileProps }
+  | { v: 1; type: 'caveat'; props: CaveatProps };
 
 export type BlockType = Block['type'];
 
 export const BLOCK_CATALOG_VERSION = 1;
 
-export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = ['page_header', 'item_section', 'insight', 'plan'];
+export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = [
+  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare', 'profile', 'caveat',
+];
 
 // ---- Parts ----
 
@@ -172,7 +209,8 @@ export type Part =
   | { type: 'data-status'; data: { step: StatusStep }; transient?: boolean }
   | { type: 'data-block'; id: string; data: Block }
   | { type: 'data-followups'; id: string; data: FollowupsData }
-  | { type: 'data-timing'; id: string; data: TimingData; transient?: boolean };
+  | { type: 'data-timing'; id: string; data: TimingData; transient?: boolean }
+  | { type: 'data-analytics'; id: string; data: AnalyticsContext };
 
 export type PartType = Part['type'];
 
@@ -190,6 +228,10 @@ export interface AssistantTurn {
   localId: string;
   /** `turn_<ChatTurn.uuid>` from the `start` part; null until it arrives. */
   messageId: string | null;
+  /** The turn's sequence in its session, from `data-session`; null until it arrives. */
+  sequence: number | null;
+  /** The server's join keys for this turn's usage events (`data-analytics`); null until they arrive. */
+  analytics: AnalyticsContext | null;
   userMessage: string | null;
   status: TurnStatus;
   step: StatusStep | null;

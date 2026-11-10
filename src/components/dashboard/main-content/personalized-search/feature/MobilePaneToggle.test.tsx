@@ -131,20 +131,7 @@ describe('Personalized Search mobile chat/page toggle (chunk 32)', () => {
     expect(screen.queryByText('New picks')).not.toBeInTheDocument();
   });
 
-  it('"View page" switches to the page pane showing that turn\'s page', async () => {
-    const user = userEvent.setup();
-    renderTab(new ScriptedTransport([{ fixture: 'normal_turn.sse' }]));
-    await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
-    await waitForIdle();
-
-    await user.click(within(chatPane()).getByRole('button', { name: 'View results' }));
-    expect(pagePane()).toBeVisible();
-    expect(chatPane()).not.toBeVisible();
-    expect(store().viewedTurnId).toBe(store().stream.turns[0].localId);
-    expect(within(pagePane()).getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
-  });
-
-  it('"See your last recommendations" on a text-only turn switches to the page pane with the last page', async () => {
+  it('the Results toggle shows the latest results, and a text-only turn keeps the previous ones', async () => {
     const user = userEvent.setup();
     renderTab(new ScriptedTransport([{ fixture: 'normal_turn.sse' }, { fixture: 'no_match_turn.sse' }]));
     await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
@@ -153,7 +140,9 @@ describe('Personalized Search mobile chat/page toggle (chunk 32)', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }));
     await waitForIdle();
 
-    await user.click(within(chatPane()).getByRole('button', { name: 'See your last recommendations' }));
+    expect(within(chatPane()).queryByRole('button', { name: /View results|See your last recommendations/ }))
+      .not.toBeInTheDocument();
+    await user.click(pageToggle());
     expect(pagePane()).toBeVisible();
     expect(within(pagePane()).getByRole('heading', { name: 'Lead with confidence' })).toBeInTheDocument();
   });

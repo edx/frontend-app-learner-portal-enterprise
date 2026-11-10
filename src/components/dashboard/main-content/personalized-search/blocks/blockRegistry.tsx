@@ -1,12 +1,17 @@
 import type { ReactElement } from 'react';
 
 import { BLOCK_CATALOG_VERSION } from '../core/stream/types';
-import type { Block, ItemCard, PageBlock } from '../core/stream/types';
+import type {
+  Block, ItemCard, PageBlock, ProfileProps,
+} from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 import InsightBlock from './InsightBlock';
 import ItemSectionBlock from './ItemSectionBlock';
 import PageHeaderBlock from './PageHeaderBlock';
 import PlanBlock from './PlanBlock';
+import TopPickBlock from './TopPickBlock';
+import CompareBlock from './CompareBlock';
+import CaveatBlock from './CaveatBlock';
 
 export interface BlockRenderContext {
   /** How item cards link to course and program pages (supplied by the host). */
@@ -19,6 +24,15 @@ export interface BlockRenderContext {
   onDismiss?: (item: ItemCard) => void;
   /** The learner's message for this turn, for "See all (n)" links to the host's search. */
   searchQuery?: string;
+  /** Sends a chat message for the learner (More like this). */
+  onAsk?: (message: string) => void;
+  /** The turn's top pick, so other blocks can tag it. */
+  topPickId?: string;
+  /** What the AI knows about the learner, shown by the header's "Why these?". */
+  profile?: ProfileProps;
+  /** Usage events: a card was opened, or an explanation was expanded (a card's or the set's). */
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -37,7 +51,9 @@ type CatalogBlocks = {
 /** Block catalog v1 (KD-5): `type -> Paragon component`. */
 export const catalogBlocks: CatalogBlocks = {
   page_header: {
-    render: (props) => <PageHeaderBlock {...props} />,
+    render: (props, ctx) => (
+      <PageHeaderBlock {...props} profile={ctx.profile} onOpenWhy={() => ctx.onExplain?.('set')} />
+    ),
     slot: 'top',
     slotClassName: 'personalized-search__header-col mr-4 mb-3',
   },
@@ -51,10 +67,17 @@ export const catalogBlocks: CatalogBlocks = {
         onToggleSave={ctx.onToggleSave}
         onDismiss={ctx.onDismiss}
         searchQuery={ctx.searchQuery}
+        onOpenItem={ctx.onOpenItem}
+        onExplain={ctx.onExplain}
       />
     ),
   },
   insight: { render: (props) => <InsightBlock {...props} /> },
+  top_pick: { render: (props, ctx) => <TopPickBlock {...props} ctx={ctx} /> },
+  // Rendered by the header's "Why these?" popover, not on its own.
+  profile: { render: () => null },
+  caveat: { render: (props) => <CaveatBlock {...props} /> },
+  compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
     render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
     slot: 'top',

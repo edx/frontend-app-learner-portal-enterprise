@@ -32,8 +32,25 @@ export const PATHWAYS_EVENTS = {
   CONTROL_INTERACTED: `${PATHWAYS_PREFIX}.control.interacted`,
 };
 
+const PERSONALIZED_SEARCH_PREFIX = `${PROJECT_NAME}.personalized_search`;
+
+/** Personalized Search usage events (tech spec KD-12); keys are the feature's action names. */
+export const PERSONALIZED_SEARCH_EVENTS = {
+  tab_viewed: `${PERSONALIZED_SEARCH_PREFIX}.tab.tab_viewed`,
+  prompt_submitted: `${PERSONALIZED_SEARCH_PREFIX}.chat.prompt_submitted`,
+  new_chat_started: `${PERSONALIZED_SEARCH_PREFIX}.chat.new_chat_started`,
+  results_rendered: `${PERSONALIZED_SEARCH_PREFIX}.results.results_rendered`,
+  result_clicked: `${PERSONALIZED_SEARCH_PREFIX}.results.result_clicked`,
+  item_save_toggled: `${PERSONALIZED_SEARCH_PREFIX}.results.item_save_toggled`,
+  item_dismissed: `${PERSONALIZED_SEARCH_PREFIX}.results.item_dismissed`,
+  explanation_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.explanation_opened`,
+  saved_tab_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.saved_tab_opened`,
+  history_opened: `${PERSONALIZED_SEARCH_PREFIX}.history.history_opened`,
+} as const;
+
 const EVENT_NAMES = {
   PATHWAYS: PATHWAYS_EVENTS,
+  PERSONALIZED_SEARCH: PERSONALIZED_SEARCH_EVENTS,
 };
 
 export default EVENT_NAMES;

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
 import {
-  Alert, Col, Icon, Row, Stack, Toast,
+  Alert, Icon, Stack, Toast,
 } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -39,11 +39,16 @@ export interface LearningPagePaneProps {
   onUndo?: () => void;
   feedbackError?: boolean;
   onClearNotice?: () => void;
+  /** Sends a chat message for the learner (More like this). */
+  onAsk?: (message: string) => void;
+  /** Usage events (KD-12). */
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
-  onDismiss, undoItem, onUndo, feedbackError, onClearNotice,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
@@ -51,18 +56,36 @@ const LearningPagePane = ({
   const pageTurn = selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const searchQuery = pageTurn?.userMessage ?? undefined;
+  const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
+  const profileBlock = blocks.find(({ block }) => block.type === 'profile')?.block;
   const ctx = useMemo(() => ({
-    links, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery]);
+    links,
+    itemTitles: itemTitlesOf(blocks),
+    savedIds,
+    dismissedIds,
+    onToggleSave,
+    onDismiss,
+    searchQuery,
+    onAsk,
+    topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
+    profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
+    onOpenItem,
+    onExplain,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
+    onOpenItem, onExplain]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
   }, [pageFocusRequest]);
 
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
-  // Sections are grouped under "More options", two groups per row (wireframe D2).
+  // Sections are grouped under "More options", one group per row so every card has the same width.
   const groups = body.filter(({ block }) => block.type === 'item_section');
-  const others = body.filter(({ block }) => block.type !== 'item_section');
+  // The profile renders inside the header's "Why these?", not as a block of its own; caveats lead the pane.
+  const others = body.filter(({ block }) => !['item_section', 'profile', 'caveat'].includes(block.type));
+  // The latest turn's caveat shows even when that turn has no results of its own (the previous ones stay).
+  const latest = turns[turns.length - 1];
+  const caveat = (latest?.status === 'done' ? latest.blocks : blocks).find(({ block }) => block.type === 'caveat');
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (
@@ -85,6 +108,9 @@ const LearningPagePane = ({
       >
         {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
       </Toast>
+      {caveat && (
+        <div className="mb-4" data-block-id={caveat.id}>{renderBlock(caveat.block, ctx, registry)}</div>
+      )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
@@ -113,13 +139,13 @@ const LearningPagePane = ({
                 <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
                 {intl.formatMessage(messages.moreOptions)}
               </p>
-              <Row>
+              <Stack gap={4}>
                 {groups.map(({ id, block }) => (
-                  <Col key={id} md={6} className={classNames(blockClass, 'mb-4')} data-block-id={id}>
+                  <div key={id} className={blockClass} data-block-id={id}>
                     {renderBlock(block, ctx, registry)}
-                  </Col>
+                  </div>
                 ))}
-              </Row>
+              </Stack>
             </div>
           )}
         </Stack>

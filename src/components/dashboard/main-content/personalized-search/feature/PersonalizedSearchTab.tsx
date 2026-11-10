@@ -69,10 +69,10 @@ const PersonalizedSearchTab = ({
       announcement={controller.announcement}
       onDraftChange={controller.setDraft}
       onSend={controller.send}
-      onViewPage={controller.viewPage}
-      onShowLastRecommendations={controller.showLastRecommendations}
       onStop={controller.stop}
       onRetry={controller.retry}
+      ratings={controller.ratings}
+      onRate={controller.rateTurn}
     />
   );
   const forYou = (
@@ -91,6 +91,9 @@ const PersonalizedSearchTab = ({
       onUndo={controller.undoDismiss}
       feedbackError={feedback.error}
       onClearNotice={controller.clearFeedbackNotice}
+      onAsk={controller.busy ? undefined : (message: string) => controller.send(message, 'more_like_this')}
+      onOpenItem={controller.openItem}
+      onExplain={controller.explain}
     />
   );
   const page = (
@@ -99,7 +102,14 @@ const PersonalizedSearchTab = ({
       savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
       onSelect={(tab) => (tab === 'saved' ? controller.openSaved() : controller.closeSaved())}
       forYou={forYou}
-      saved={<SavedView items={feedback.saved} links={controller.links} onToggleSave={controller.toggleSave} />}
+      saved={(
+        <SavedView
+          items={feedback.saved}
+          links={controller.links}
+          onToggleSave={controller.toggleSave}
+          onOpen={(item) => controller.openItem(item, 'saved_tab')}
+        />
+      )}
     />
   );
 

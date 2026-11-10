@@ -127,6 +127,63 @@
   }
 }
 
+// Results update in place: a card new since the last message gets an "Updated" badge and a brief glow.
+.personalized-search__card--updated {
+  animation: personalized-search-updated-glow 1.6s ease-out 1;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes personalized-search-updated-glow {
+  from { box-shadow: 0 0 0 .25rem rgba(3, 199, 232, .55); }
+  to { box-shadow: 0 0 0 0 rgba(3, 199, 232, 0); }
+}
+
+// Every result card has the same parts in the same place: a missing image keeps the image cap's space,
+// the title clamps to three lines and the partner to one, and "Why this?" sits at the bottom.
+.personalized-search__card-image-placeholder {
+  height: 8.75rem;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.personalized-search__card-body {
+  flex: 1 1 auto;
+}
+
+.personalized-search__clamp-3,
+.personalized-search__clamp-1 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.personalized-search__clamp-3 { -webkit-line-clamp: 3; }
+
+// "Best for …" sits just above its compare card in a two-line slot, so the cards line up.
+.personalized-search__compare-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.5em;
+  line-height: 1.25;
+}
+.personalized-search__clamp-1 { -webkit-line-clamp: 1; }
+
+// The bookmark and menu sit on the image, so they keep a white circle (IconButton is transparent).
+.personalized-search__card .btn-icon.personalized-search__card-action {
+  background-color: #fff;
+  box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, .2);
+
+  &:hover,
+  &:focus {
+    background-color: #f2f0ef;
+  }
+}
+
 // Saved tab empty state (wireframe D2b).
 .personalized-search__saved-empty {
   max-width: 40rem;

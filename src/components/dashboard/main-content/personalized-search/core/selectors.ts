@@ -11,10 +11,16 @@ export const isSendableMessage = (draft: string) => {
   return message.length > 0 && message.length <= MAX_MESSAGE_LENGTH;
 };
 
+/** Blocks that annotate results rather than make them: a turn with only these has no page of its own. */
+const ANNOTATIONS = new Set(['caveat', 'profile']);
+
+/** Whether a turn has results to show (any block other than a caveat or the profile). */
+export const hasPage = (turn: AssistantTurn): boolean => turn.blocks.some(({ block }) => !ANNOTATIONS.has(block.type));
+
 /** Latest turn before `index` that has a page. */
 export const previousPageTurnId = (turns: AssistantTurn[], index: number): string | null => {
   for (let i = index - 1; i >= 0; i -= 1) {
-    if (turns[i].blocks.length > 0) { return turns[i].localId; }
+    if (hasPage(turns[i])) { return turns[i].localId; }
   }
   return null;
 };
@@ -34,10 +40,10 @@ export const latestPicksTurnId = (turns: AssistantTurn[]): string | null => {
 export const selectPageTurn = (turns: AssistantTurn[], viewedTurnId: string | null): AssistantTurn | null => {
   if (viewedTurnId) {
     const viewed = turns.find((turn) => turn.localId === viewedTurnId);
-    if (viewed && viewed.blocks.length > 0) { return viewed; }
+    if (viewed && hasPage(viewed)) { return viewed; }
   }
   for (let i = turns.length - 1; i >= 0; i -= 1) {
-    if (turns[i].blocks.length > 0) { return turns[i]; }
+    if (hasPage(turns[i])) { return turns[i]; }
   }
   return null;
 };

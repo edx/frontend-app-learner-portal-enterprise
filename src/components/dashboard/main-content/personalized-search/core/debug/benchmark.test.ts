@@ -34,6 +34,8 @@ const timing = (overrides: Partial<TimingData> = {}): TimingData => ({
 const turn = (status: AssistantTurn['status'], t: TimingData | null, userMessage = 'Lead a team'): AssistantTurn => ({
   localId: Math.random().toString(),
   messageId: null,
+  sequence: null,
+  analytics: null,
   userMessage,
   status,
   step: null,

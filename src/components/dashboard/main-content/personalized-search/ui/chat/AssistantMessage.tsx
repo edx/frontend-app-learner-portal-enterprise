@@ -1,5 +1,9 @@
-import { Alert, Button, Icon } from '@openedx/paragon';
-import { AutoAwesome } from '@openedx/paragon/icons';
+import {
+  Alert, Button, Icon, Stack,
+} from '@openedx/paragon';
+import {
+  AutoAwesome, ThumbDown, ThumbDownOffAlt, ThumbUp, ThumbUpOffAlt,
+} from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -12,20 +16,18 @@ export interface AssistantMessageProps {
   /** Only the latest turn's chips are interactive. */
   isLatest: boolean;
   busy: boolean;
-  /** For a text-only turn: the earlier turn whose page "See your last recommendations" shows. */
-  previousPageTurnId: string | null;
-  onViewPage: (turnId: string) => void;
-  onShowLastRecommendations: (turnId: string) => void;
   onRetry: (turnId: string) => void;
+  /** The learner's thumbs on this reply; omitted (with onRate) where rating isn't available. */
+  rating?: 1 | -1 | null;
+  onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
 }
 
 const AssistantMessage = ({
-  turn, isLatest, busy, previousPageTurnId, onViewPage, onShowLastRecommendations, onRetry,
+  turn, isLatest, busy, onRetry, rating = null, onRate,
 }: AssistantMessageProps) => {
   const intl = useIntl();
   const isStreaming = turn.status === 'streaming';
   const isDone = turn.status === 'done';
-  const hasPage = turn.blocks.length > 0;
 
   if (turn.status === 'error') {
     const { message, asAlert, canRetry } = presentTurnError(turn.error);
@@ -58,23 +60,30 @@ const AssistantMessage = ({
         )}
         {/* Rendered as plain text: model output never becomes HTML. */}
         {turn.text && <p className="mb-1 personalized-search__reply">{turn.text}</p>}
-        {isDone && hasPage && (
-          <Button variant="link" size="inline" className="p-0" onClick={() => onViewPage(turn.localId)}>
-            {intl.formatMessage(messages.viewPage)}
-          </Button>
-        )}
-        {isDone && !hasPage && previousPageTurnId && (
-          <Button
-            variant="link"
-            size="inline"
-            className="p-0"
-            onClick={() => onShowLastRecommendations(previousPageTurnId)}
-          >
-            {intl.formatMessage(messages.seeLastRecommendations)}
-          </Button>
-        )}
         {isDone && turn.followups?.question && (
           <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
+        )}
+        {isDone && onRate && turn.sequence && (
+          <Stack direction="horizontal" gap={1} className="mt-1 personalized-search__thumbs">
+            <Button
+              variant="tertiary"
+              size="sm"
+              aria-pressed={rating === 1}
+              aria-label={intl.formatMessage(messages.helpful)}
+              onClick={() => onRate(turn, 1)}
+            >
+              <Icon src={rating === 1 ? ThumbUp : ThumbUpOffAlt} size="sm" />
+            </Button>
+            <Button
+              variant="tertiary"
+              size="sm"
+              aria-pressed={rating === -1}
+              aria-label={intl.formatMessage(messages.notHelpful)}
+              onClick={() => onRate(turn, -1)}
+            >
+              <Icon src={rating === -1 ? ThumbDown : ThumbDownOffAlt} size="sm" />
+            </Button>
+          </Stack>
         )}
       </div>
     </div>

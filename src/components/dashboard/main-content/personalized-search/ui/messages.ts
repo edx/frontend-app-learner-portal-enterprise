@@ -326,6 +326,56 @@ const messages = defineMessages({
     defaultMessage: 'Not for me',
     description: 'Menu action that removes a card from the results.',
   },
+  helpful: {
+    id: 'learner.personalizedSearch.chat.helpful',
+    defaultMessage: 'Helpful',
+    description: 'Thumbs up on an assistant reply.',
+  },
+  notHelpful: {
+    id: 'learner.personalizedSearch.chat.notHelpful',
+    defaultMessage: 'Not helpful',
+    description: 'Thumbs down on an assistant reply.',
+  },
+  updated: {
+    id: 'learner.personalizedSearch.results.updated',
+    defaultMessage: 'Updated',
+    description: 'Badge on a result that is new since the learner\'s last message.',
+  },
+  whyThese: {
+    id: 'learner.personalizedSearch.results.whyThese',
+    defaultMessage: 'Why these?',
+    description: 'Opens what the AI knows about the learner and how it picked the results.',
+  },
+  topPick: {
+    id: 'learner.personalizedSearch.results.topPick',
+    defaultMessage: 'Top pick',
+    description: 'Heading of the item to start with, and a tag on it elsewhere.',
+  },
+  moreLikeThis: {
+    id: 'learner.personalizedSearch.results.moreLikeThis',
+    defaultMessage: 'More like this',
+    description: 'Asks the assistant for similar items.',
+  },
+  moreLikeThisMessage: {
+    id: 'learner.personalizedSearch.results.moreLikeThisMessage',
+    defaultMessage: 'More like {title}',
+    description: 'The chat message sent by More like this.',
+  },
+  compareTopOptions: {
+    id: 'learner.personalizedSearch.results.compareTopOptions',
+    defaultMessage: 'Compare top options',
+    description: 'Eyebrow above the comparison of 2-3 options.',
+  },
+  bestFor: {
+    id: 'learner.personalizedSearch.results.bestFor',
+    defaultMessage: 'Best for {bestFor}',
+    description: 'What a compared option is best for.',
+  },
+  notForMeItem: {
+    id: 'learner.personalizedSearch.results.notForMeItem',
+    defaultMessage: 'Not for me: {title}',
+    description: 'Accessible name of the Not for me button on the top pick.',
+  },
   moreOptions: {
     id: 'learner.personalizedSearch.results.moreOptions',
     defaultMessage: 'More options',

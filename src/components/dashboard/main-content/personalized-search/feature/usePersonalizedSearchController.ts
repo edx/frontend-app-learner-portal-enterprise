@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useMemo, useRef,
+  useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { breakpoints, useMediaQuery } from '@openedx/paragon';
@@ -8,20 +8,27 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
-import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../core/selectors';
+import {
+  hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId,
+} from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
-import type { ItemCard } from '../core/stream/types';
+import type { AssistantTurn, ItemCard } from '../core/stream/types';
+import { joinKeysOf } from '../core/analytics';
+import type { PromptSource, TrackAction, TrackProperties } from '../core/analytics';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
 import type { BenchmarkRow } from '../core/debug/benchmark';
+import { reconcileDebugSettings } from '../core/debug/reconcileDebugSettings';
 import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
 import {
   itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
 } from '../core/workflows';
 import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+
+export type TurnRating = 1 | -1 | null;
 
 /** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
 export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
@@ -59,6 +66,7 @@ export const createPersonalizedSearchController = ({
     const intl = useIntl();
     const enterpriseCustomer = deps.useEnterpriseContext();
     const enterpriseCustomerUuid = enterpriseCustomer.uuid;
+    const [sessionParam, setSessionParam] = deps.useSessionParam();
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
     const debugEnabled = deps.debug.useDebugRequested();
@@ -126,7 +134,13 @@ export const createPersonalizedSearchController = ({
         return;
       }
       deps.debug.fetchDebugConfig(enterpriseCustomerUuid)
-        .then((config) => storeApi.getState().setDebugConfig(config))
+        .then((config) => {
+          const store = storeApi.getState();
+          store.setDebugConfig(config);
+          // Saved choices the server no longer offers fall back to its defaults (see reconcileDebugSettings).
+          const stale = config ? reconcileDebugSettings(store.debugSettings, config) : {};
+          if (Object.keys(stale).length) { store.setDebugSettings(stale); }
+        })
         .catch((e) => {
           deps.logError(e);
           storeApi.getState().setDebugConfig(null, intl.formatMessage(messages.debugMenuError));
@@ -145,7 +159,41 @@ export const createPersonalizedSearchController = ({
     // Abort an in-flight turn when the tab unmounts.
     useEffect(() => () => abortRef.current?.abort(), []);
 
-    const send = useCallback(async (rawMessage: string) => {
+    /**
+     * Sends a usage event with the turn's join keys (or the latest turn's), the enterprise and the
+     * viewport. Properties are raw facts; nothing is counted or derived here (KD-12).
+     */
+    const track = useCallback((action: TrackAction, properties: TrackProperties = {}, turn?: AssistantTurn) => {
+      if (!enterpriseCustomerUuid) { return; }
+      const { turns } = storeApi.getState().stream;
+      const context = turn?.analytics ?? [...turns].reverse().find((t) => t.analytics)?.analytics;
+      try {
+        deps.trackEvent(action, {
+          ...joinKeysOf(context),
+          enterprise_customer_uuid: enterpriseCustomerUuid,
+          viewport: isWide ? 'desktop' : 'mobile',
+          ...properties,
+        });
+      } catch (e) {
+        deps.logError(e);
+      }
+    }, [enterpriseCustomerUuid, isWide]);
+    const trackedTabView = useRef(false);
+    useEffect(() => {
+      if (trackedTabView.current || !enterpriseCustomerUuid) { return; }
+      trackedTabView.current = true;
+      track('tab_viewed', { entry_point: deps.getEntryPoint() });
+    }, [enterpriseCustomerUuid, track]);
+
+    /** The raw facts that identify an item event: the card's key and where the server placed it. */
+    const itemFacts = (item: ItemCard, fallbackSection: string | null = null): TrackProperties => ({
+      item_key: item.item_id,
+      item_type: item.item_type,
+      item_section: item.section ?? fallbackSection,
+      item_position: item.position ?? null,
+    });
+
+    const send = useCallback(async (rawMessage: string, source: PromptSource = 'typed', chipLabel?: string) => {
       const store = storeApi.getState();
       const message = rawMessage.trim();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId || !isSendableMessage(message)) {
@@ -155,7 +203,12 @@ export const createPersonalizedSearchController = ({
       abortRef.current = controller;
       const localId = uuidv4();
       // Sending from a reopened session continues it (same session uuid), now live.
-      if (store.mode === 'past') { store.setMode('live'); }
+      const resumedFromHistory = store.mode === 'past';
+      if (resumedFromHistory) { store.setMode('live'); }
+      // Fixed starter-chip copy only; follow-up chips are model-written and typed text is the learner's.
+      track('prompt_submitted', {
+        prompt_source: source, chip_label: source === 'starter_chip' ? chipLabel ?? message : null,
+      });
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -166,6 +219,7 @@ export const createPersonalizedSearchController = ({
           enterpriseCustomerUuid,
           sessionUuid: store.stream.session.sessionUuid,
           message,
+          ...(resumedFromHistory ? { resumedFromHistory } : {}),
         },
         localId,
         signal: controller.signal,
@@ -177,6 +231,8 @@ export const createPersonalizedSearchController = ({
       const after = storeApi.getState();
       if (result.outcome === 'done') {
         after.setAnnouncement(intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }));
+        const finished = after.stream.turns.find((t) => t.localId === localId);
+        if (finished && hasPage(finished)) { track('results_rendered', {}, finished); }
       } else if (result.outcome === 'stopped') {
         // The stopped turn's blocks were discarded, so show the page from before it.
         const { turns } = after.stream;
@@ -189,7 +245,7 @@ export const createPersonalizedSearchController = ({
       } else if (result.status === 400) {
         after.setDraft(message);
       }
-    }, [enterpriseCustomerUuid, intl, transport]);
+    }, [enterpriseCustomerUuid, intl, transport, track]);
 
     const stop = useCallback(() => {
       abortRef.current?.abort();
@@ -205,9 +261,11 @@ export const createPersonalizedSearchController = ({
     }, [send]);
 
     const newChat = useCallback(() => {
+      track('new_chat_started'); // with the join keys of the chat being left
       abortRef.current?.abort();
       storeApi.getState().reset();
-    }, []);
+      setSessionParam(null);
+    }, [track, setSessionParam]);
 
     const viewPage = useCallback((turnId: string) => {
       const store = storeApi.getState();
@@ -241,13 +299,52 @@ export const createPersonalizedSearchController = ({
 
     const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
     const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
-    const toggleSave = useCallback((item: ItemCard) => runFeedback({ type: 'toggleSave', item }), [runFeedback]);
-    const dismiss = useCallback((item: ItemCard) => runFeedback({ type: 'dismiss', item }), [runFeedback]);
-    const undoDismiss = useCallback(() => runFeedback({ type: 'undoDismiss' }), [runFeedback]);
+    const toggleSave = useCallback((item: ItemCard) => {
+      track('item_save_toggled', { ...itemFacts(item, 'saved_tab'), saved: !savedIds.has(item.item_id) });
+      return runFeedback({ type: 'toggleSave', item });
+    }, [runFeedback, savedIds, track]);
+    const dismiss = useCallback((item: ItemCard) => {
+      track('item_dismissed', { ...itemFacts(item), dismissed: true });
+      return runFeedback({ type: 'dismiss', item });
+    }, [runFeedback, track]);
+    const undoDismiss = useCallback(() => {
+      const { undo } = storeApi.getState().feedback;
+      if (undo) { track('item_dismissed', { ...itemFacts(undo), dismissed: false }); }
+      return runFeedback({ type: 'undoDismiss' });
+    }, [runFeedback, track]);
+    const openItem = useCallback((item: ItemCard, fallbackSection: string | null = null) => {
+      track('result_clicked', itemFacts(item, fallbackSection));
+    }, [track]);
+    const explain = useCallback((scope: 'tile' | 'set', item?: ItemCard) => {
+      track('explanation_opened', { scope, item_key: item?.item_id ?? null });
+    }, [track]);
     const clearFeedbackNotice = useCallback(() => {
       storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
     }, []);
-    const openSaved = useCallback(() => storeApi.getState().setSavedOpen(true), []);
+    // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
+    const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
+    const [ratingUnavailable, setRatingUnavailable] = useState(false);
+    const rateTurn = useCallback(async (turn: AssistantTurn, rating: 1 | -1) => {
+      const { sessionUuid } = storeApi.getState().stream.session;
+      if (!enterpriseCustomerUuid || !sessionUuid || !turn.sequence) { return; }
+      const previous = ratings[turn.localId] ?? null;
+      const next = previous === rating ? null : rating;
+      setRatings((current) => ({ ...current, [turn.localId]: next }));
+      try {
+        await deps.feedbackApi.rateTurn(enterpriseCustomerUuid, sessionUuid, turn.sequence, next);
+      } catch (e) {
+        setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        if ((e as { response?: { status?: number } })?.response?.status === 404) {
+          setRatingUnavailable(true);
+        } else {
+          deps.logError(e);
+        }
+      }
+    }, [enterpriseCustomerUuid, ratings]);
+    const openSaved = useCallback(() => {
+      track('saved_tab_opened');
+      storeApi.getState().setSavedOpen(true);
+    }, [track]);
     const closeSaved = useCallback(() => storeApi.getState().setSavedOpen(false), []);
 
     const loadHistoryPage = useCallback(async (page: number) => {
@@ -269,9 +366,10 @@ export const createPersonalizedSearchController = ({
     }, [enterpriseCustomerUuid]);
 
     const openHistory = useCallback(() => {
+      track('history_opened');
       storeApi.getState().setHistory({ open: true });
       loadHistoryPage(1);
-    }, [loadHistoryPage]);
+    }, [loadHistoryPage, track]);
 
     const closeHistory = useCallback(() => {
       storeApi.getState().setHistory({ open: false });
@@ -282,7 +380,7 @@ export const createPersonalizedSearchController = ({
     }, [loadHistoryPage]);
 
     /** Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. */
-    const openSession = useCallback(async (sessionUuid: string) => {
+    const openSession = useCallback(async (sessionUuid: string, { restoring = false } = {}) => {
       const store = storeApi.getState();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
       try {
@@ -299,9 +397,30 @@ export const createPersonalizedSearchController = ({
         after.setHistory({ open: false });
       } catch (e) {
         deps.logError(e);
-        storeApi.getState().setHistory({ error: true });
+        if (restoring) {
+          setSessionParam(null); // the URL named a conversation that's gone or not this learner's
+        } else {
+          storeApi.getState().setHistory({ error: true });
+        }
       }
-    }, [enterpriseCustomerUuid]);
+    }, [enterpriseCustomerUuid, setSessionParam]);
+
+    // The conversation id lives in the URL (?session=), so Back and Forward return to it. On arriving with
+    // one, reopen it once; after that, keep the URL in step with the conversation shown.
+    const restoredSession = useRef(false);
+    useEffect(() => {
+      if (restoredSession.current || !enterpriseCustomerUuid) { return; }
+      restoredSession.current = true;
+      if (sessionParam && storeApi.getState().stream.session.sessionUuid !== sessionParam) {
+        openSession(sessionParam, { restoring: true });
+      }
+    }, [enterpriseCustomerUuid, sessionParam, openSession]);
+    const shownSessionUuid = stream.session.sessionUuid;
+    useEffect(() => {
+      if (restoredSession.current && shownSessionUuid && shownSessionUuid !== sessionParam) {
+        setSessionParam(shownSessionUuid);
+      }
+    }, [shownSessionUuid]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const showPane = useCallback((pane: MobilePane) => {
       storeApi.getState().setMobilePane(pane);
@@ -337,6 +456,11 @@ export const createPersonalizedSearchController = ({
     }, [intl]);
 
     return {
+      track,
+      openItem,
+      explain,
+      ratings,
+      rateTurn: ratingUnavailable ? undefined : rateTurn,
       enterpriseCustomerUuid,
       enterpriseSlug,
       links,

@@ -162,4 +162,34 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     expect(await screen.findByText("We couldn't save that change. Try again.")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
   });
+
+  describe('thumbs on replies', () => {
+    const RATE_URL = (session: string) => `http://ea.test/api/v1/personalized-search/sessions/${session}/turns/1/feedback/`;
+
+    it('rates a reply, toggles it off, and sends the rating for that turn', async () => {
+      const user = userEvent.setup();
+      await renderWithPage(user);
+      const session = store().stream.session.sessionUuid as string;
+      const up = screen.getByRole('button', { name: 'Helpful' });
+      await user.click(up);
+      expect(up).toHaveAttribute('aria-pressed', 'true');
+      expect(http.post).toHaveBeenLastCalledWith(RATE_URL(session), { enterprise_customer_uuid: 'ent-uuid', rating: 1 });
+      await user.click(up);
+      await waitFor(() => expect(up).toHaveAttribute('aria-pressed', 'false'));
+      expect(http.post).toHaveBeenLastCalledWith(RATE_URL(session), { enterprise_customer_uuid: 'ent-uuid', rating: null });
+      await user.click(screen.getByRole('button', { name: 'Not helpful' }));
+      expect(screen.getByRole('button', { name: 'Not helpful' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('reverts when the call fails, and hides the thumbs when the server has no rating endpoint', async () => {
+      const user = userEvent.setup();
+      await renderWithPage(user);
+      http.post.mockRejectedValueOnce(new Error('down'));
+      await user.click(screen.getByRole('button', { name: 'Helpful' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Helpful' })).toHaveAttribute('aria-pressed', 'false'));
+      http.post.mockRejectedValueOnce(Object.assign(new Error('missing'), { response: { status: 404 } }));
+      await user.click(screen.getByRole('button', { name: 'Helpful' }));
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Helpful' })).not.toBeInTheDocument());
+    });
+  });
 });

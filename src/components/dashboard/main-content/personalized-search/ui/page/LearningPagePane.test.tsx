@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, screen, within } from '@testing-library/react';
+import {
+  render, screen, waitFor, within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { mergeConfig } from '@edx/frontend-platform';
@@ -104,7 +106,8 @@ describe('LearningPagePane', () => {
       const count = container.querySelectorAll('[data-block-id]').length;
       if (counts[counts.length - 1] !== count) { counts.push(count); }
     });
-    expect(counts).toEqual([0, 1, 2, 3, 4, 5]);
+    // page_header, top_pick, compare, two sections, insight, plan: each appears as its part arrives.
+    expect(counts).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(screen.getByText('A suggested order')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Start with people skills' })).toBeInTheDocument();
   });
@@ -211,8 +214,8 @@ describe('LearningPagePane', () => {
     await user.click(within(courseCard).getByRole('button', { name: 'Why this?' }));
     expect(within(courseCard).getByText('Because it fits.')).toBeInTheDocument();
     expect(courseCard.querySelector('img')).toBeInTheDocument();
-    // A single card in its row lays out horizontally.
-    expect(courseCard).toHaveClass('personalized-search__card--horizontal');
+    // Every card has the same layout, alone in its group or not.
+    expect(courseCard).not.toHaveClass('personalized-search__card--horizontal');
 
     const programCard = screen.getByRole('link', { name: 'A program' }).closest('.personalized-search__card') as HTMLElement;
     expect(within(programCard).getByText('Professional Certificate')).toBeInTheDocument();
@@ -281,7 +284,100 @@ describe('LearningPagePane', () => {
     expect(screen.getByText('~5 hrs/week')).toBeInTheDocument();
   });
 
-  it('groups sections under More options with the type, See all (n), one line and two cards', () => {
+  it('leads with the top pick and a Best for comparison from the golden turn', async () => {
+    const user = userEvent.setup();
+    const onAsk = jest.fn();
+    const onDismiss = jest.fn();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { onAsk, onDismiss });
+    expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    const topPick = screen.getByRole('heading', { name: 'Top pick' }).closest('section') as HTMLElement;
+    expect(within(topPick).getByText('Because you want to lead a team and earn a credential.')).toBeInTheDocument();
+    expect(within(topPick).getByText('Certificate')).toBeInTheDocument();
+    await user.click(within(topPick).getByRole('button', { name: 'More like this' }));
+    expect(onAsk).toHaveBeenCalledWith('More like Program p-1');
+    await user.click(within(topPick).getByRole('button', { name: 'Not for me: Program p-1' }));
+    expect(onDismiss).toHaveBeenCalledWith(expect.objectContaining({ item_id: 'p-1' }));
+
+    const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
+    // Each "Best for" label sits just above its card, outside it.
+    expect(within(compare).getAllByRole('heading', { level: 4 }).filter((h) => !h.closest('.personalized-search__card'))
+      .map((h) => h.textContent)).toEqual([
+      'Best for a recognized credential', 'Best for an executive-level perspective', 'Best for a quick start',
+    ]);
+    const option = within(compare).getByText('Best for a quick start').closest('.personalized-search__compare-option');
+    expect(option?.querySelector('.personalized-search__card')).toBeInTheDocument();
+    // The same card as the rest of the results: image and the Not for me menu.
+    const pickInCompare = within(compare).getByRole('link', { name: 'Program p-1' })
+      .closest('.personalized-search__card') as HTMLElement;
+    expect(within(pickInCompare).getByText('Top pick')).toBeInTheDocument();
+    expect(pickInCompare.querySelector('img.pgn__card-image-cap')).toBeInTheDocument();
+    expect(within(pickInCompare).getByRole('button', { name: 'More options for Program p-1' })).toBeInTheDocument();
+  });
+
+  it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {
+    const user = userEvent.setup();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns);
+    const trigger = screen.getByRole('button', { name: 'Why these?' });
+    await user.click(trigger);
+    const popover = await screen.findByRole('tooltip');
+    expect(within(popover).getByText(/I picked these from your organization's catalog/)).toBeInTheDocument();
+    expect(within(popover).getByText('Leadership')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('has no Why these? without a profile', () => {
+    renderPane(turnWithParts([{
+      type: 'data-block', id: 'blk_1', data: { v: 1, type: 'page_header', props: { title: 'T', dek: 'D', label: 'l' } },
+    }]));
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+  });
+
+  it('shows the latest caveat above the previous results when that turn found nothing', () => {
+    const { turns } = runTurns(['normal_turn.sse', 'no_match_turn.sse']);
+    const { container } = renderPane(turns);
+    const caveat = container.querySelector('.personalized-search__caveat') as HTMLElement;
+    expect(within(caveat).getByText('No matching courses')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    const firstBlock = container.querySelector('[data-block-id]');
+    expect(firstBlock).toContainElement(caveat);
+  });
+
+  it('marks cards new since the last message as Updated', () => {
+    const turns = turnWithParts([{
+      type: 'data-block',
+      id: 'blk_1',
+      data: {
+        v: 1,
+        type: 'item_section',
+        props: {
+          item_type: 'course',
+          label: 'Courses',
+          dek: '',
+          fallback: false,
+          items: [card({ item_id: 'old', title: 'Old' }), card({ item_id: 'new', title: 'New', status: 'new' })],
+        },
+      },
+    }]);
+    renderPane(turns);
+    const newCard = screen.getByRole('link', { name: 'New' }).closest('.personalized-search__card') as HTMLElement;
+    const oldCard = screen.getByRole('link', { name: 'Old' }).closest('.personalized-search__card') as HTMLElement;
+    expect(within(newCard).getByText('Updated')).toBeInTheDocument();
+    expect(newCard).toHaveClass('personalized-search__card--updated');
+    expect(within(oldCard).queryByText('Updated')).not.toBeInTheDocument();
+  });
+
+  it('hides a dismissed top pick and compared option', () => {
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { dismissedIds: new Set(['p-1']) });
+    expect(screen.queryByRole('heading', { name: 'Top pick' })).not.toBeInTheDocument();
+    const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
+    expect(within(compare).queryByRole('link', { name: 'Program p-1' })).not.toBeInTheDocument();
+  });
+
+  it('groups sections under More options with the type, See all (n), one line and up to three cards', () => {
     const turns = turnWithParts([{
       type: 'data-block',
       id: 'blk_1',
@@ -306,7 +402,8 @@ describe('LearningPagePane', () => {
     expect(screen.getByText('Focused, single-topic learning.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See all (7)' }))
       .toHaveAttribute('href', `/${SLUG}/search?q=m&content_type=course`);
-    expect(screen.getAllByRole('link', { name: /One|Two|Three|Four/ }).map((l) => l.textContent)).toEqual(['One', 'Two']);
+    expect(screen.getAllByRole('link', { name: /One|Two|Three|Four/ }).map((l) => l.textContent))
+      .toEqual(['One', 'Two', 'Three']);
   });
 
   it('fills a removed card with the next item, then the reserve, and drops See all without a total', () => {
@@ -343,17 +440,23 @@ describe('LearningPagePane', () => {
     renderPane(turns);
     const links = screen.getAllByRole('link');
     expect(links.map((l) => l.textContent)).toEqual([
+      'Program p-1',
+      'Program p-1',
+      'Course Yale+E1',
+      'Course edX+C3',
       'Course edX+C1',
       'Course edX+C2',
+      'Course edX+C4',
       'Program p-2',
     ]);
-    // Each card's link comes first; its Why this? toggle follows it.
-    for (let i = 0; i < links.length; i += 1) {
-      links[i].focus();
+    // Links come in reading order, and Tab reaches each one (cards add their own controls between them).
+    const reached = new Set<Element>();
+    for (let i = 0; i < 40 && reached.size < new Set(links).size; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await user.tab();
-      expect(links[i].closest('.personalized-search__card')).toContainElement(document.activeElement as HTMLElement);
+      if (links.includes(document.activeElement as HTMLElement)) { reached.add(document.activeElement as Element); }
     }
+    expect(reached.size).toBe(new Set(links).size);
     links[links.length - 1].focus();
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-2`);

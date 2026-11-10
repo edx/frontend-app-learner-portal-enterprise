@@ -13,13 +13,13 @@ To refresh after the goldens change:
 A contract change updates both repos' copies in the same pair of PRs.
 
 <!-- hashes:start -->
-Source: enterprise-access@04282d55
+Source: enterprise-access@c294063e
 
 | File | sha256 |
 | --- | --- |
-| `normal_turn.sse` | `0030d3dad7c36280e02ca1ed5352d277ebbcc52e6e00bed902bfc9c661051f46` |
-| `off_topic_turn.sse` | `f23759021815a1b63a7fee80aeb4d05dc80e84d505629bd6db63c2297418ff8d` |
-| `no_match_turn.sse` | `f0bb804b609eecbe2207edf5b4e6d0e60ab17c5134a32c74daa558ba43ed3eb1` |
+| `normal_turn.sse` | `121ce09b2d788830dc4f9e527bad3a773de76e4b4d50ea3e0541bf687d69ba95` |
+| `off_topic_turn.sse` | `24dd87d76b8f97a42b7ebc7e3f762a535e0ed90afc336666e7d340b84406e688` |
+| `no_match_turn.sse` | `3aa48513343081bb922989fb868ee4cfd8cc1e78cbc51ae70f857be995c133b5` |
 | `degraded_turn.sse` | `8477170185e0e9d76e7c422008814c4833d2c5ac750968925e4d0306edcc9ae9` |
-| `error_turn.sse` | `7bb46ec6421e3fecd298b6a433094b84b12371c6fdd5c2adbe5d3b133584c384` |
+| `error_turn.sse` | `695771270777a534a51f0d8c0057d4fcd2eb23e8973ec13f96d5bf9d115d32ef` |
 <!-- hashes:end -->

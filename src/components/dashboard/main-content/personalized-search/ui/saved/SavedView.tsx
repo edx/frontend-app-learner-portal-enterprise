@@ -3,7 +3,7 @@ import { BookmarkBorder } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import EditorialItemCard from '../cards/EditorialItemCard';
+import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../cards/EditorialItemCard';
 import type { ItemLinks } from '../cards/EditorialItemCard';
 import type { ItemCard } from '../../core/stream/types';
 
@@ -11,10 +11,13 @@ export interface SavedViewProps {
   items: ItemCard[];
   links: ItemLinks;
   onToggleSave: (item: ItemCard) => void;
+  onOpen?: (item: ItemCard) => void;
 }
 
 /** The Saved tab: the learner's saved items in this enterprise, from their saved snapshots (REQ-009). */
-const SavedView = ({ items, links, onToggleSave }: SavedViewProps) => {
+const SavedView = ({
+  items, links, onToggleSave, onOpen,
+}: SavedViewProps) => {
   const intl = useIntl();
   if (items.length === 0) {
     return (
@@ -25,7 +28,7 @@ const SavedView = ({ items, links, onToggleSave }: SavedViewProps) => {
     );
   }
   return (
-    <CardGrid columnSizes={{ xs: 12, md: 6, xl: 4 }}>
+    <CardGrid columnSizes={RESULT_COLUMN_SIZES}>
       {items.map((item) => (
         <EditorialItemCard
           key={item.item_id}
@@ -33,6 +36,7 @@ const SavedView = ({ items, links, onToggleSave }: SavedViewProps) => {
           links={links}
           saved
           onToggleSave={onToggleSave}
+          onOpen={onOpen}
         />
       ))}
     </CardGrid>

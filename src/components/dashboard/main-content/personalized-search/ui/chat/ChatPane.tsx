@@ -4,6 +4,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
 import type { AssistantTurn } from '../../core/stream/types';
+import type { PromptSource } from '../../core/analytics';
 import Composer from './Composer';
 import FollowUpChips from './FollowUpChips';
 import MessageList from './MessageList';
@@ -15,16 +16,17 @@ export interface ChatPaneProps {
   draft: string;
   announcement: string;
   onDraftChange: (draft: string) => void;
-  onSend: (message: string) => void;
-  onViewPage: (turnId: string) => void;
-  onShowLastRecommendations: (turnId: string) => void;
+  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed starter chip. */
+  onSend: (message: string, source?: PromptSource, chipLabel?: string) => void;
   onStop: () => void;
   onRetry: (turnId: string) => void;
+  ratings?: Record<string, 1 | -1 | null>;
+  onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onViewPage, onShowLastRecommendations, onStop, onRetry,
+  onDraftChange, onSend, onStop, onRetry, ratings, onRate,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -56,7 +58,7 @@ const ChatPane = ({
                   key={chip}
                   disabled={busy}
                   onClick={() => {
-                    if (!busy) { onSend(chip); }
+                    if (!busy) { onSend(chip, 'starter_chip', chip); }
                   }}
                 >
                   {chip}
@@ -68,21 +70,21 @@ const ChatPane = ({
           <MessageList
             turns={turns}
             busy={busy}
-            onViewPage={onViewPage}
-            onShowLastRecommendations={onShowLastRecommendations}
             onRetry={onRetry}
+            ratings={ratings}
+            onRate={onRate}
           />
         )}
       </div>
       {chips.length > 0 && (
-        <FollowUpChips suggestions={chips} disabled={busy} onSelect={onSend} />
+        <FollowUpChips suggestions={chips} disabled={busy} onSelect={(chip) => onSend(chip, 'followup_chip')} />
       )}
       <Composer
         ref={composerRef}
         draft={draft}
         disabled={busy}
         onDraftChange={onDraftChange}
-        onSend={onSend}
+        onSend={(message) => onSend(message, 'typed')}
         onStop={onStop}
       />
       <p className="x-small text-gray-500 mt-2 mb-0">{intl.formatMessage(messages.disclaimer)}</p>

@@ -50,16 +50,18 @@ describe('applyPart', () => {
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
     expect(turn.text).toBe('I put a leadership certificate at the top.');
-    // Block types added after catalog v1's first four (profile, top_pick, compare) are dropped until registered.
-    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
+    // Blocks keep stream order; the profile comes first and is shown through the header's "Why these?".
+    expect(turn.blocks.map((b) => b.block.type)).toEqual(
+      ['profile', 'page_header', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
+    );
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();
   });
 
-  it('off-topic and no-match turns have no page blocks', () => {
+  it('off-topic and no-match turns have no results (a no-match turn may carry a caveat)', () => {
     expect(reduceGolden('off_topic_turn.sse').turns[0].blocks).toEqual([]);
-    expect(reduceGolden('no_match_turn.sse').turns[0].blocks).toEqual([]);
+    expect(reduceGolden('no_match_turn.sse').turns[0].blocks.map((b) => b.block.type)).toEqual(['caveat']);
     expect(reduceGolden('off_topic_turn.sse').turns[0].followups?.attribute).toBe('open');
   });
 
