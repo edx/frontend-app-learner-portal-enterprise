@@ -54,6 +54,7 @@ const LearningPagePane = ({
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const searchQuery = pageTurn?.userMessage ?? undefined;
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
+  const profileBlock = blocks.find(({ block }) => block.type === 'profile')?.block;
   const ctx = useMemo(() => ({
     links,
     itemTitles: itemTitlesOf(blocks),
@@ -64,7 +65,8 @@ const LearningPagePane = ({
     searchQuery,
     onAsk,
     topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId]);
+    profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
@@ -73,7 +75,8 @@ const LearningPagePane = ({
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
   // Sections are grouped under "More options", two groups per row (wireframe D2).
   const groups = body.filter(({ block }) => block.type === 'item_section');
-  const others = body.filter(({ block }) => block.type !== 'item_section');
+  // The profile renders inside the header's "Why these?", not as a block of its own.
+  const others = body.filter(({ block }) => block.type !== 'item_section' && block.type !== 'profile');
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (

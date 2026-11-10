@@ -98,6 +98,12 @@ export interface PlanProps {
   steps: PlanStep[];
 }
 
+/** What the AI knows about the learner, for "Why these?" (additive in v1, KD-11). */
+export interface ProfileProps {
+  summary: string;
+  chips: string[];
+}
+
 /** The one item to start with (additive in v1, KD-11). */
 export interface TopPickProps {
   item: ItemCard;
@@ -121,14 +127,15 @@ export type Block =
   | { v: 1; type: 'insight'; props: InsightProps }
   | { v: 1; type: 'plan'; props: PlanProps }
   | { v: 1; type: 'top_pick'; props: TopPickProps }
-  | { v: 1; type: 'compare'; props: CompareProps };
+  | { v: 1; type: 'compare'; props: CompareProps }
+  | { v: 1; type: 'profile'; props: ProfileProps };
 
 export type BlockType = Block['type'];
 
 export const BLOCK_CATALOG_VERSION = 1;
 
 export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = [
-  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare',
+  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare', 'profile',
 ];
 
 // ---- Parts ----

@@ -1,7 +1,9 @@
 import type { ReactElement } from 'react';
 
 import { BLOCK_CATALOG_VERSION } from '../core/stream/types';
-import type { Block, ItemCard, PageBlock } from '../core/stream/types';
+import type {
+  Block, ItemCard, PageBlock, ProfileProps,
+} from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 import InsightBlock from './InsightBlock';
 import ItemSectionBlock from './ItemSectionBlock';
@@ -25,6 +27,8 @@ export interface BlockRenderContext {
   onAsk?: (message: string) => void;
   /** The turn's top pick, so other blocks can tag it. */
   topPickId?: string;
+  /** What the AI knows about the learner, shown by the header's "Why these?". */
+  profile?: ProfileProps;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -43,7 +47,7 @@ type CatalogBlocks = {
 /** Block catalog v1 (KD-5): `type -> Paragon component`. */
 export const catalogBlocks: CatalogBlocks = {
   page_header: {
-    render: (props) => <PageHeaderBlock {...props} />,
+    render: (props, ctx) => <PageHeaderBlock {...props} profile={ctx.profile} />,
     slot: 'top',
     slotClassName: 'personalized-search__header-col mr-4 mb-3',
   },
@@ -62,6 +66,8 @@ export const catalogBlocks: CatalogBlocks = {
   },
   insight: { render: (props) => <InsightBlock {...props} /> },
   top_pick: { render: (props, ctx) => <TopPickBlock {...props} ctx={ctx} /> },
+  // Rendered by the header's "Why these?" popover, not on its own.
+  profile: { render: () => null },
   compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
     render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,

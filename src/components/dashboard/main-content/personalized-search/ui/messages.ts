@@ -326,6 +326,11 @@ const messages = defineMessages({
     defaultMessage: 'Not for me',
     description: 'Menu action that removes a card from the results.',
   },
+  whyThese: {
+    id: 'learner.personalizedSearch.results.whyThese',
+    defaultMessage: 'Why these?',
+    description: 'Opens what the AI knows about the learner and how it picked the results.',
+  },
   topPick: {
     id: 'learner.personalizedSearch.results.topPick',
     defaultMessage: 'Top pick',
