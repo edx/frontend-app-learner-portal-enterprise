@@ -1,76 +1,48 @@
 import { useLayoutEffect, useRef } from 'react';
 
-/** Space kept above and below the panel, in px; also the sticky top. */
+/** Space kept below the panes, in px. */
 export const VIEWPORT_GAP = 16;
-/** The panel never gets shorter than this, so the composer stays usable in a short window. */
+/** The panes never get shorter than this, so the composer stays usable in a short window. */
 export const MIN_PANEL_HEIGHT = 240;
 
-export interface FitInput {
-  viewportHeight: number;
-  /** The panel's top in the viewport now (it moves while the page scrolls, then sticks). */
-  panelTop: number;
-  /** Where the panel starts with the page at the top, in the viewport. */
-  restingTop: number;
-  /** The height of the content beside the panel (the results); Infinity when there's none to bound it. */
-  contentHeight: number;
-}
+/**
+ * The panes' height: the window space below where they start with the page at the top. It doesn't
+ * depend on the scroll position, so scrolling can never change the page's height.
+ */
+export const fitHeight = ({ viewportHeight, restingTop }: { viewportHeight: number; restingTop: number }) => (
+  Math.max(viewportHeight - Math.max(restingTop, 0) - VIEWPORT_GAP, MIN_PANEL_HEIGHT)
+);
 
 /**
- * The panel's height: the viewport space below its top edge, so the composer stays in view whether the
- * page is at the top or scrolled. It never exceeds the taller of the content beside it and the space
- * it has with the page at the top. Both are independent of the scroll position, so the panel can't
- * make the page taller as the learner scrolls (which left blank space under the footer when the
- * results were shorter than the window).
+ * Sizes the chat and results panes (wide layout) to the window, like the search page: each pane
+ * scrolls inside itself. Re-fitted when the window resizes or the content above the panes changes
+ * (the debug panel, a "Past search" banner).
  */
-export const fitHeight = ({
-  viewportHeight, panelTop, restingTop, contentHeight,
-}: FitInput): number => {
-  const visible = viewportHeight - Math.max(panelTop, VIEWPORT_GAP) - VIEWPORT_GAP;
-  const atRest = viewportHeight - Math.max(restingTop, VIEWPORT_GAP) - VIEWPORT_GAP;
-  return Math.max(Math.min(visible, Math.max(contentHeight, atRest)), MIN_PANEL_HEIGHT);
-};
-
-/**
- * Keeps a sticky panel's height fitted to the viewport (see ``fitHeight``). ``contentRef`` is the
- * element beside it; the panel is re-fitted when it changes size.
- */
-export const useFitToViewport = <T extends HTMLElement>(
-  enabled: boolean,
-  contentRef?: { current: HTMLElement | null },
-) => {
+export const useFitToViewport = <T extends HTMLElement>(enabled: boolean) => {
   const ref = useRef<T>(null);
   useLayoutEffect(() => {
     const element = ref.current;
     if (!enabled || !element) { return undefined; }
-    // The row the panel sits in doesn't stick, so its top tells where the panel starts at rest.
-    const row = element.parentElement?.parentElement ?? null;
     let frame = 0;
     const fit = () => {
       frame = 0;
-      const rowTop = row ? row.getBoundingClientRect().top + window.scrollY : element.getBoundingClientRect().top;
-      element.style.height = `${fitHeight({
-        viewportHeight: window.innerHeight,
-        panelTop: element.getBoundingClientRect().top,
-        restingTop: rowTop,
-        contentHeight: contentRef?.current ? contentRef.current.offsetHeight : Number.POSITIVE_INFINITY,
-      })}px`;
+      const restingTop = element.getBoundingClientRect().top + window.scrollY;
+      element.style.height = `${fitHeight({ viewportHeight: window.innerHeight, restingTop })}px`;
     };
     const schedule = () => {
       if (!frame) { frame = window.requestAnimationFrame(fit); }
     };
     fit();
-    window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
-    const observer = typeof ResizeObserver === 'undefined' || !contentRef?.current
-      ? null : new ResizeObserver(schedule);
-    if (observer && contentRef?.current) { observer.observe(contentRef.current); }
+    const above = element.parentElement;
+    const observer = typeof ResizeObserver === 'undefined' || !above ? null : new ResizeObserver(schedule);
+    if (observer && above) { observer.observe(above); }
     return () => {
-      window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       observer?.disconnect();
       window.cancelAnimationFrame(frame);
       element.style.height = '';
     };
-  }, [enabled, contentRef]);
+  }, [enabled]);
   return ref;
 };

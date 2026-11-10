@@ -51,10 +51,22 @@
 // its top (useFitToViewport), so the messages scroll inside it and the composer is a footer that never
 // leaves view, before or after the page scrolls. Only the results scroll with the page.
 .personalized-search[data-layout="dual"] {
-  .personalized-search__chat-col {
-    position: sticky;
-    top: 1rem;
-    align-self: flex-start;
+  // Wide layout: both panes fit the window (useFitToViewport) and scroll inside themselves.
+  .personalized-search__panes {
+    min-height: 0;
+  }
+
+  // Both scroll containers are positioned, so they clip and scroll their absolutely positioned
+  // children too (screen-reader labels in every message and card). Unpositioned, each label sat at
+  // its place deep in the scrolled content and stretched the page: blank space below the footer
+  // grew with every turn.
+  .personalized-search__results-scroll {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    // Results update in place; anchoring would hold the old scroll spot as new blocks stream in.
+    overflow-anchor: none;
+    padding-bottom: 1rem;
   }
 
   .personalized-search__chat-panel {
@@ -71,10 +83,17 @@
   }
 
   .personalized-search__chat-scroll {
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-right: .25rem;
+    scrollbar-gutter: stable;
+
+    // While a turn streams, the conversation is held at its newest message.
+    &--locked {
+      overflow-y: hidden;
+    }
   }
 }
 
@@ -263,6 +282,18 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+
+// Results update in place above the learner's position; scroll anchoring would pin the footer and
+// drag the view down as they grow, away from the results' top (see LearningPagePane).
+html[data-personalized-search-results] {
+  overflow-anchor: none;
+}
+
+// A button inside a card sits above the card's full-card link.
+.personalized-search__card-control {
+  position: relative;
+  z-index: 2;
 }
 
 // Saved tab empty state (wireframe D2b).

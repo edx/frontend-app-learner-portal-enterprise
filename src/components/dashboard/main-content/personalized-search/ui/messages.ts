@@ -156,6 +156,26 @@ const messages = defineMessages({
     defaultMessage: 'Suggested',
     description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
   },
+  excludedTab: {
+    id: 'learner.personalizedSearch.results.tab.excluded',
+    defaultMessage: 'Excluded ({count})',
+    description: 'The results tab listing items the learner marked "Not for me", with how many there are.',
+  },
+  excludedIntro: {
+    id: 'learner.personalizedSearch.results.excluded.intro',
+    defaultMessage: 'You marked these "Not for me", so they are left out of your results. Include one again to let it back in.',
+    description: 'Explains the Excluded tab above the excluded items.',
+  },
+  includeAgain: {
+    id: 'learner.personalizedSearch.results.excluded.includeAgain',
+    defaultMessage: 'Include again',
+    description: 'Button on an excluded item that lets it back into results.',
+  },
+  includeAgainItem: {
+    id: 'learner.personalizedSearch.results.excluded.includeAgainItem',
+    defaultMessage: 'Include {title} in results again',
+    description: 'Accessible label for the Include again button on an excluded item.',
+  },
   forYouTab: {
     id: 'learner.personalizedSearch.results.tab.forYou',
     defaultMessage: 'For you',
@@ -305,6 +325,11 @@ const messages = defineMessages({
     id: 'learner.personalizedSearch.close',
     defaultMessage: 'Close',
     description: 'Closes a panel.',
+  },
+  loadingResults: {
+    id: 'learner.personalizedSearch.page.loadingResults',
+    defaultMessage: 'Loading your results',
+    description: 'Screen reader text while results stream in behind placeholders.',
   },
   loading: {
     id: 'learner.personalizedSearch.loading',

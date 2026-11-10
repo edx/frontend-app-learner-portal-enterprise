@@ -45,6 +45,7 @@ export const PERSONALIZED_SEARCH_EVENTS = {
   item_dismissed: `${PERSONALIZED_SEARCH_PREFIX}.results.item_dismissed`,
   explanation_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.explanation_opened`,
   saved_tab_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.saved_tab_opened`,
+  excluded_tab_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.excluded_tab_opened`,
   history_opened: `${PERSONALIZED_SEARCH_PREFIX}.history.history_opened`,
 } as const;
 

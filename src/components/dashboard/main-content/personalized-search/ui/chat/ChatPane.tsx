@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import classNames from 'classnames';
 import { Chip, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -40,6 +41,17 @@ const ChatPane = ({
     wasBusy.current = busy;
   }, [busy]);
 
+  // From send (Enter or a chip) until the turn finishes, the conversation snaps to its newest message
+  // and stays there: scrolling is locked so the streaming reply stays in view. One last snap when the
+  // turn finishes shows its follow-up question.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const wasStreaming = useRef(busy);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && (busy || wasStreaming.current)) { el.scrollTop = el.scrollHeight; }
+    wasStreaming.current = busy;
+  }, [busy, turns]);
+
   const latest = turns[turns.length - 1];
   const followups = latest?.status === 'done' ? latest.followups : null;
   const chips = followups?.suggestions ?? [];
@@ -47,7 +59,11 @@ const ChatPane = ({
 
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
-      <div className="personalized-search__chat-scroll">
+      <div
+        ref={scrollRef}
+        className={classNames('personalized-search__chat-scroll', { 'personalized-search__chat-scroll--locked': busy })}
+        data-testid="chat-scroll"
+      >
         {turns.length === 0 ? (
           <div className="personalized-search__opening">
             <div className="personalized-search__greeting mb-3">

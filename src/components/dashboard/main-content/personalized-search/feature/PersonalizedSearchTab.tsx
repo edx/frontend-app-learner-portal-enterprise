@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert, Badge, Button, ButtonGroup, Col, Row, Stack, Toast,
 } from '@openedx/paragon';
@@ -10,6 +10,7 @@ import DebugPanel from '../ui/debug/DebugPanel';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
 import SavedView from '../ui/saved/SavedView';
+import ExcludedView from '../ui/saved/ExcludedView';
 import ResultsTabs from '../ui/page/ResultsTabs';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
 import { useFitToViewport } from './useFitToViewport';
@@ -49,8 +50,7 @@ const PersonalizedSearchTab = ({
   }));
   const controller = usePersonalizedSearchController({ transport });
   // The chat panel always ends at the bottom of the window, so the composer is a footer that stays in view.
-  const resultsColRef = useRef<HTMLDivElement>(null);
-  const chatPanelRef = useFitToViewport<HTMLDivElement>(controller.isWide, resultsColRef);
+  const panesRef = useFitToViewport<HTMLDivElement>(controller.isWide);
   const {
     isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
   } = controller;
@@ -99,10 +99,24 @@ const PersonalizedSearchTab = ({
   );
   const page = (
     <ResultsTabs
-      activeTab={controller.savedOpen ? 'saved' : 'for-you'}
+      activeTab={(controller.savedOpen && 'saved') || (controller.excludedOpen && 'excluded') || 'for-you'}
       savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
-      onSelect={(tab) => (tab === 'saved' ? controller.openSaved() : controller.closeSaved())}
+      excludedCount={feedback.dismissed.length}
+      showExcluded={controller.excludedTabShown}
+      onSelect={(tab) => {
+        if (tab === 'saved') { controller.openSaved(); } else if (tab === 'excluded') {
+          controller.openExcluded();
+        } else { controller.closeSaved(); }
+      }}
       forYou={forYou}
+      excluded={(
+        <ExcludedView
+          items={feedback.dismissed}
+          links={controller.links}
+          onRestore={controller.restore}
+          onOpen={(item) => controller.openItem(item, 'excluded_tab')}
+        />
+      )}
       saved={(
         <SavedView
           items={feedback.saved}
@@ -191,15 +205,17 @@ const PersonalizedSearchTab = ({
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}
       {isWide ? (
-        <Row className="align-items-start">
-          {/* The chat stays in view (sticky, its own scroll) while only the results scroll. */}
-          <Col md={5} lg={4} className="personalized-search__chat-col">
-            <div ref={chatPanelRef} className="personalized-search__chat-panel">{chat}</div>
-          </Col>
-          <Col md={7} lg={8} className="personalized-search__page-col">
-            <div ref={resultsColRef}>{page}</div>
-          </Col>
-        </Row>
+        // Both panes fit the window and scroll inside themselves, like the search page.
+        <div ref={panesRef} className="personalized-search__panes">
+          <Row className="h-100">
+            <Col md={5} lg={4} className="personalized-search__chat-col h-100">
+              <div className="personalized-search__chat-panel h-100">{chat}</div>
+            </Col>
+            <Col md={7} lg={8} className="personalized-search__page-col personalized-search__results-scroll h-100">
+              {page}
+            </Col>
+          </Row>
+        </div>
       ) : (
         <Stack gap={3}>
           <ButtonGroup

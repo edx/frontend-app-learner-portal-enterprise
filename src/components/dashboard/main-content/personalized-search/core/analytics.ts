@@ -12,6 +12,7 @@ export type TrackAction =
   | 'explanation_opened'
   | 'new_chat_started'
   | 'saved_tab_opened'
+  | 'excluded_tab_opened'
   | 'history_opened';
 
 /**
