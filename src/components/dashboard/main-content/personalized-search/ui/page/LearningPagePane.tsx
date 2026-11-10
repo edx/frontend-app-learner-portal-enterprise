@@ -14,8 +14,6 @@ import ResultsSkeleton from './ResultsSkeleton';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
 
-/** Set on <html> while the pane is mounted; the stylesheet turns scroll anchoring off for it. */
-
 const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fromEntries(
   blocks.flatMap(({ block }) => (block.type === 'item_section'
     ? block.props.items.map((item) => [item.item_id, item.title])
@@ -92,8 +90,9 @@ const LearningPagePane = ({
   // New results start at the top: the results pane scrolls back to its top when another turn's results
   // (or their placeholders) take over, including a search reopened from History or an earlier turn
   // chosen in the chat. In the wide layout the pane is its own scroll container; on phones the page
-  // scrolls, so it brings the pane's top into view (its scroll-margin keeps a gap). Not on mount, so a
-  // search restored from the URL, or returning to the tab, doesn't jump. (Scroll anchoring is off for
+  // scrolls, so it brings the pane's top into view (its scroll-margin keeps a gap). Not on mount, so
+  // returning to the tab doesn't jump; a search restored from the URL arrives after mount but finds the
+  // pane already at its top, so nothing scrolls. (Scroll anchoring is off for
   // the page by a CSS rule while the pane is in it, so growing results don't drag the view down.)
   const shownTurnId = pageTurn?.localId ?? null;
   const lastShownTurnId = useRef(shownTurnId);
