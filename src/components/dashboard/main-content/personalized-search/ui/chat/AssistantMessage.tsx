@@ -9,6 +9,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from '../messages';
 import type { AssistantTurn } from '../../core/stream/types';
 import StatusLine from './StatusLine';
+import { renderInlineBold } from './inlineBold';
 import { presentTurnError } from './turnErrors';
 
 export interface AssistantMessageProps {
@@ -64,8 +65,8 @@ const AssistantMessage = ({
         {turn.status === 'stopped' && (
           <p className="small text-gray-700 font-italic mb-1">{intl.formatMessage(messages.stopped)}</p>
         )}
-        {/* Rendered as plain text: model output never becomes HTML. */}
-        {turn.text && <p className="mb-1 personalized-search__reply">{turn.text}</p>}
+        {/* Plain text with **bold** as <strong> elements: model output never becomes HTML. */}
+        {turn.text && <p className="mb-1 personalized-search__reply">{renderInlineBold(turn.text)}</p>}
         {isDone && turn.followups?.question && (
           <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
         )}
