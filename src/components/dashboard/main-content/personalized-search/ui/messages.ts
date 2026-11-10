@@ -326,6 +326,11 @@ const messages = defineMessages({
     defaultMessage: 'Close',
     description: 'Closes a panel.',
   },
+  loadingResults: {
+    id: 'learner.personalizedSearch.page.loadingResults',
+    defaultMessage: 'Loading your results',
+    description: 'Screen reader text while results stream in behind placeholders.',
+  },
   loading: {
     id: 'learner.personalizedSearch.loading',
     defaultMessage: 'Loading',

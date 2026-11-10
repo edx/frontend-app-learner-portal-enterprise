@@ -179,7 +179,8 @@ const EditorialItemCard = ({
                 alt={intl.formatMessage(messages.moreActions, { title: item.title })}
               />
               {/* Right-aligned under the toggle, so the menu stays over its own card. */}
-              <Dropdown.Menu alignRight>
+              {/* Fixed, so the results pane's scroll container can't clip the menu. */}
+              <Dropdown.Menu alignRight popperConfig={{ strategy: 'fixed' }}>
                 <Dropdown.Item as="button" onClick={() => onDismiss(item)}>
                   {intl.formatMessage(messages.notForMe)}
                 </Dropdown.Item>

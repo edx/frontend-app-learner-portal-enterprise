@@ -122,6 +122,21 @@ describe('ChatPane', () => {
     expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
   });
 
+  it('snaps the conversation to the newest message and locks scrolling until the turn finishes', async () => {
+    const user = userEvent.setup();
+    jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(800);
+    const { transport } = scriptedTransport(['normal_turn.sse'], 30);
+    renderTab(transport);
+    const scroll = screen.getByTestId('chat-scroll');
+    await user.click(screen.getByText('Build data skills'));
+    await waitFor(() => expect(scroll).toHaveClass('personalized-search__chat-scroll--locked'));
+    expect(scroll.scrollTop).toBe(800);
+    await waitForIdle();
+    expect(scroll).not.toHaveClass('personalized-search__chat-scroll--locked');
+    expect(scroll.scrollTop).toBe(800);
+    jest.restoreAllMocks();
+  });
+
   it('chips are keyboard operable', async () => {
     const user = userEvent.setup();
     const { transport, sent } = scriptedTransport(['normal_turn.sse']);
