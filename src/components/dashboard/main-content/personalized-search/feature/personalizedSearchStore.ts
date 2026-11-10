@@ -38,7 +38,6 @@ export interface PersonalizedSearchState {
   stream: ChatStreamState;
   /** Turn whose page the page pane shows; null means the latest turn with a page. */
   viewedTurnId: string | null;
-  /** Incremented to ask the page pane to take focus ("See your last recommendations"). */
   /** Composer text; kept in the store so a rejected message can be restored. */
   draft: string;
   /** Set when the backend says the feature is off or the learner has no access (403/404). */

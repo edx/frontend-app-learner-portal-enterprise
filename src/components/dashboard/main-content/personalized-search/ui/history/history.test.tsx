@@ -207,6 +207,26 @@ describe('History panel (chunk 29)', () => {
     ]);
   });
 
+  it('shows the session opened last when an earlier one answers first', async () => {
+    const user = userEvent.setup();
+    const listing = httpGet.getMockImplementation() as (...args: unknown[]) => unknown;
+    const held: Record<string, (value: { data: SessionDetail }) => void> = {};
+    httpGet.mockImplementation((url: string, options: unknown) => {
+      const [, uuid] = url.match(/\/sessions\/([^/]+)\/$/) ?? [];
+      return uuid ? new Promise((resolve) => { held[uuid] = resolve; }) : listing(url, options);
+    });
+    renderTab(new RecordingTransport());
+    await user.click(screen.getByRole('button', { name: 'History' }));
+    const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+    await user.click(await within(panel).findByRole('button', { name: /^Becoming a team lead/ }));
+    await user.click(within(panel).getByRole('button', { name: /^Search 1 Oct/ }));
+    held[DETAIL.uuid]({ data: DETAIL });
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(testStore.getState().stream.session.sessionUuid).toBeNull();
+    held['s-1']({ data: { ...DETAIL, uuid: 's-1', title: 'Search 1' } });
+    await waitFor(() => expect(testStore.getState().stream.session.sessionUuid).toBe('s-1'));
+  });
+
   it('shows an error when history fails to load', async () => {
     const user = userEvent.setup();
     httpGet.mockRejectedValue(new Error('down'));

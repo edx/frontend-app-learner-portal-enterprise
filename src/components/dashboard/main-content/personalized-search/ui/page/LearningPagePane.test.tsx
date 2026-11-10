@@ -561,6 +561,12 @@ describe('LearningPagePane', () => {
     expect(screen.getByText('Only partly covered')).toBeInTheDocument();
   });
 
+  it('hides a caveat-only latest reply while the learner views an earlier reply they picked', () => {
+    const { turns } = runTurns(['normal_turn.sse', 'normal_turn.sse', 'no_match_turn.sse']);
+    renderPane(turns, { viewedTurnId: 'turn-1' });
+    expect(screen.queryByText('No matching courses')).not.toBeInTheDocument();
+  });
+
   it('marks cards new since the last message as Updated', () => {
     const turns = turnWithParts([{
       type: 'data-block',

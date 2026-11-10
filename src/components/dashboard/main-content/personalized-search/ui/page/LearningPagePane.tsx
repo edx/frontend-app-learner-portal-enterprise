@@ -23,7 +23,6 @@ const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fro
 export interface LearningPagePaneProps {
   turns: AssistantTurn[];
   viewedTurnId: string | null;
-  /** Each increment moves focus to the pane. */
   /** How item cards link to course and program pages (supplied by the host). */
   links: ItemLinks;
   /** Block renderers; Block catalog v1 by default. */
@@ -126,6 +125,7 @@ const LearningPagePane = ({
   // A caveat from the latest finished turn shows above the previous results when that turn has none of its
   // own; while the learner views an earlier reply, only that reply's caveat (in its blocks) shows.
   const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn && !hasPage(latest)
+    && pageTurn === selectPageTurn(turns, null)
     ? latest.blocks.find(({ block }) => block.type === 'caveat') : undefined;
   const loading = !!pageTurn && pageTurn.status === 'streaming';
   const has = (type: string) => blocks.some(({ block }) => block.type === type);

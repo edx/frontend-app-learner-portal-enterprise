@@ -339,17 +339,22 @@ export const createPersonalizedSearchController = ({
     // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
     const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
     const [ratingUnavailable, setRatingUnavailable] = useState(false);
+    const rateRequests = useRef<Record<string, number>>({});
     const rateTurn = useCallback(async (turn: AssistantTurn, rating: 1 | -1) => {
       const { sessionUuid } = storeApi.getState().stream.session;
       if (!enterpriseCustomerUuid || !sessionUuid || !turn.sequence) { return; }
       const previous = ratings[turn.localId] ?? null;
       const next = previous === rating ? null : rating;
+      const request = (rateRequests.current[turn.localId] ?? 0) + 1;
+      rateRequests.current[turn.localId] = request;
       setRatings((current) => ({ ...current, [turn.localId]: next }));
       try {
         await deps.feedbackApi.rateTurn(enterpriseCustomerUuid, sessionUuid, turn.sequence, next);
       } catch (e) {
-        // Revert only if nothing newer was chosen meanwhile, so a slow failure can't undo a later rating.
-        setRatings((current) => (current[turn.localId] === next ? { ...current, [turn.localId]: previous } : current));
+        // Revert only the latest click on this reply, so a slow failure can't undo a later rating.
+        if (rateRequests.current[turn.localId] === request) {
+          setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        }
         if ((e as { response?: { status?: number } })?.response?.status === 404) {
           setRatingUnavailable(true);
         } else {
