@@ -30,6 +30,12 @@ export type EntryPoint = 'nav_tab' | 'deep_link' | 'pathways_redirect' | 'skills
 /** Which explanation the learner opened: a card's, the result set's, or the suggested order's. */
 export type ExplainScope = 'tile' | 'set' | 'order';
 
+/**
+ * The results tab an item event happened on, when it isn't For you. It replaces the card's section and
+ * position: a saved or excluded card keeps the ones it had when it was saved or excluded.
+ */
+export type ItemSurface = 'saved_tab' | 'excluded_tab';
+
 /** Flat values only, so the warehouse can store and join them. */
 export type TrackValue = string | number | boolean | null | Array<string | number | boolean | null>;
 export type TrackProperties = Record<string, TrackValue>;

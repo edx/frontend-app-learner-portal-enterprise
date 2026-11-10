@@ -153,6 +153,14 @@ describe('History panel (chunk 29)', () => {
     expect(transport.requests[0].locale).toBe('en');
     expect(screen.queryByText(/^Past search/)).not.toBeInTheDocument();
     expect(testStore.getState().stream.turns).toHaveLength(2);
+
+    // Only the first message after reopening says the search was resumed.
+    expect(transport.requests[0].resumedFromHistory).toBe(true);
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something else');
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(transport.requests[1].message).toBe('Something else');
+    expect(transport.requests[1].resumedFromHistory).toBeUndefined();
   });
 
   it('lays out like the Xpert sidebar: day dividers, title then time and picks, the open one current', async () => {

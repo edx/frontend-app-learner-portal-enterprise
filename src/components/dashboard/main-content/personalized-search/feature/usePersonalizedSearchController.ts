@@ -16,7 +16,7 @@ import type { BlockValidator } from '../core/stream/applyPart';
 import type { AssistantTurn, ItemCard } from '../core/stream/types';
 import { joinKeysOf } from '../core/analytics';
 import type {
-  ExplainScope, PromptSource, TrackAction, TrackProperties,
+  ExplainScope, ItemSurface, PromptSource, TrackAction, TrackProperties,
 } from '../core/analytics';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
@@ -190,13 +190,19 @@ export const createPersonalizedSearchController = ({
       track('tab_viewed', { entry_point: deps.getEntryPoint() });
     }, [enterpriseCustomerUuid, track]);
 
-    /** The raw facts that identify an item event: the card's key and where the server placed it. */
-    const itemFacts = (item: ItemCard, fallbackSection: string | null = null): TrackProperties => ({
+    /**
+     * The raw facts that identify an item event: the card's key and where the server placed it, or the
+     * Saved or Excluded tab it was acted on there.
+     */
+    const itemFacts = (item: ItemCard, surface?: ItemSurface): TrackProperties => ({
       item_key: item.item_id,
       item_type: item.item_type,
-      item_section: item.section ?? fallbackSection,
-      item_position: item.position ?? null,
+      item_section: surface ?? item.section ?? null,
+      item_position: surface ? null : (item.position ?? null),
     });
+
+    // How each message was sent, so Retry resends it with the same source.
+    const promptSources = useRef<Record<string, { source: PromptSource; chipLabel?: string }>>({});
 
     /** Back to For you from the Saved or Excluded tab. */
     const closeSaved = useCallback(() => {
@@ -213,6 +219,7 @@ export const createPersonalizedSearchController = ({
       const controller = new AbortController();
       abortRef.current = controller;
       const localId = uuidv4();
+      promptSources.current[localId] = { source, chipLabel };
       // Sending from a reopened session continues it (same session uuid), now live.
       const resumedFromHistory = store.mode === 'past';
       if (resumedFromHistory) { store.setMode('live'); }
@@ -270,7 +277,8 @@ export const createPersonalizedSearchController = ({
       const failed = store.stream.turns.find((t) => t.localId === turnId);
       if (!failed?.userMessage || store.stream.activeTurnId) { return; }
       store.setStream((current) => removeTurn(current, turnId));
-      send(failed.userMessage);
+      const { source, chipLabel } = promptSources.current[turnId] ?? {};
+      send(failed.userMessage, source, chipLabel);
     }, [send]);
 
     const newChat = useCallback(() => {
@@ -316,8 +324,8 @@ export const createPersonalizedSearchController = ({
 
     const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
     const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
-    const toggleSave = useCallback((item: ItemCard) => {
-      track('item_save_toggled', { ...itemFacts(item, 'saved_tab'), saved: !savedIds.has(item.item_id) });
+    const toggleSave = useCallback((item: ItemCard, surface?: ItemSurface) => {
+      track('item_save_toggled', { ...itemFacts(item, surface), saved: !savedIds.has(item.item_id) });
       return runFeedback({ type: 'toggleSave', item });
     }, [runFeedback, savedIds, track]);
     const dismiss = useCallback((item: ItemCard) => {
@@ -340,8 +348,8 @@ export const createPersonalizedSearchController = ({
       if (feedback.dismissed.length > 0 && !excludedTabShown) { storeApi.getState().showExcludedTab(); }
       if (feedback.dismissed.length === 0 && excludedOpen) { storeApi.getState().setExcludedOpen(false); }
     }, [feedback.dismissed.length, excludedTabShown, excludedOpen]);
-    const openItem = useCallback((item: ItemCard, fallbackSection: string | null = null) => {
-      track('result_clicked', itemFacts(item, fallbackSection));
+    const openItem = useCallback((item: ItemCard, surface?: ItemSurface) => {
+      track('result_clicked', itemFacts(item, surface));
     }, [track]);
     const explain = useCallback((scope: ExplainScope, item?: ItemCard) => {
       track('explanation_opened', { scope, item_key: item?.item_id ?? null });

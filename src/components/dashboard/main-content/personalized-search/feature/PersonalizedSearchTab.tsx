@@ -131,7 +131,7 @@ const PersonalizedSearchTab = ({
           <SavedView
             items={feedback.saved}
             links={controller.links}
-            onToggleSave={controller.toggleSave}
+            onToggleSave={(item) => controller.toggleSave(item, 'saved_tab')}
             onOpen={(item) => controller.openItem(item, 'saved_tab')}
           />
         )}
