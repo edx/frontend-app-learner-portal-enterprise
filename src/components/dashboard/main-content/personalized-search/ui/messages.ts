@@ -499,12 +499,7 @@ const messages = defineMessages({
   savedButton: {
     id: 'learner.personalizedSearch.saved.button',
     defaultMessage: 'Saved ({count})',
-    description: 'Opens the Saved view; count is the number of saved items.',
-  },
-  savedTitle: {
-    id: 'learner.personalizedSearch.saved.title',
-    defaultMessage: 'Saved items',
-    description: 'Heading of the Saved view.',
+    description: 'Label of the Saved results tab; count is the number of saved items.',
   },
   savedEmpty: {
     id: 'learner.personalizedSearch.saved.empty',

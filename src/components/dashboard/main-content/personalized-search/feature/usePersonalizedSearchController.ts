@@ -115,11 +115,13 @@ export const createPersonalizedSearchController = ({
     const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
     const newestPicksTurnId = useMemo(() => latestPicksTurnId(stream.turns), [stream.turns]);
     const pageOnScreen = isWide || mobilePane === 'page';
+    // The results count as seen only while For you shows them, not under the Saved or Excluded tab.
+    const forYouOnScreen = pageOnScreen && !savedOpen && !excludedOpen;
     useEffect(() => {
-      if (pageOnScreen && newestPicksTurnId !== seenPageTurnId) {
+      if (forYouOnScreen && newestPicksTurnId !== seenPageTurnId) {
         storeApi.getState().setSeenPageTurnId(newestPicksTurnId);
       }
-    }, [pageOnScreen, newestPicksTurnId, seenPageTurnId]);
+    }, [forYouOnScreen, newestPicksTurnId, seenPageTurnId]);
     const hasNewPicks = !pageOnScreen && newestPicksTurnId !== null && newestPicksTurnId !== seenPageTurnId;
 
     let transport = configuredTransport;
@@ -194,6 +196,12 @@ export const createPersonalizedSearchController = ({
       item_position: item.position ?? null,
     });
 
+    /** Back to For you from the Saved or Excluded tab. */
+    const closeSaved = useCallback(() => {
+      storeApi.getState().setSavedOpen(false);
+      storeApi.getState().setExcludedOpen(false);
+    }, []);
+
     const send = useCallback(async (rawMessage: string, source: PromptSource = 'typed', chipLabel?: string) => {
       const store = storeApi.getState();
       const message = rawMessage.trim();
@@ -213,6 +221,7 @@ export const createPersonalizedSearchController = ({
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
+      closeSaved(); // new results show in For you
 
       const result = await sendTurnWorkflow({
         transport,
@@ -247,7 +256,7 @@ export const createPersonalizedSearchController = ({
       } else if (result.status === 400) {
         after.setDraft(message);
       }
-    }, [enterpriseCustomerUuid, intl, transport, track]);
+    }, [enterpriseCustomerUuid, intl, transport, track, closeSaved]);
 
     const stop = useCallback(() => {
       abortRef.current?.abort();
@@ -273,7 +282,8 @@ export const createPersonalizedSearchController = ({
       const store = storeApi.getState();
       store.setViewedTurnId(turnId);
       store.setMobilePane('page');
-    }, []);
+      closeSaved();
+    }, [closeSaved]);
     /** Leaves an earlier reply's results for the newest ones. */
     const showLatestResults = useCallback(() => storeApi.getState().setViewedTurnId(null), []);
 
@@ -288,10 +298,11 @@ export const createPersonalizedSearchController = ({
       }).catch((e) => deps.logError(e));
     }, [enterpriseCustomerUuid, newestPicksTurnId, savedOpen]);
 
+    /** Resolves to whether the server took the change (a failure is reverted and shown). */
     const runFeedback = useCallback(async (action: FeedbackAction) => {
-      if (!enterpriseCustomerUuid) { return; }
+      if (!enterpriseCustomerUuid) { return false; }
       const { sessionUuid } = storeApi.getState().stream.session;
-      await itemFeedbackWorkflow(action, {
+      return itemFeedbackWorkflow(action, {
         api: {
           add: (kind, item) => deps.feedbackApi.addFeedback(enterpriseCustomerUuid, kind, item, sessionUuid),
           remove: (kind, itemId) => deps.feedbackApi.removeFeedback(enterpriseCustomerUuid, kind, itemId),
@@ -366,10 +377,6 @@ export const createPersonalizedSearchController = ({
       track('saved_tab_opened');
       storeApi.getState().setSavedOpen(true);
     }, [track]);
-    const closeSaved = useCallback(() => {
-      storeApi.getState().setSavedOpen(false);
-      storeApi.getState().setExcludedOpen(false);
-    }, []);
     const openExcluded = useCallback(() => {
       track('excluded_tab_opened');
       storeApi.getState().setExcludedOpen(true);

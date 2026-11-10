@@ -138,6 +138,64 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     expect(screen.getByRole('tab', { name: 'Saved (2)' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('unsaving from For you shows no "Saved" toast', async () => {
+    const user = userEvent.setup();
+    http.get.mockImplementation(async (_url: string, { params }: { params: { kind: string } }) => ({
+      data: {
+        results: params.kind === 'saved'
+          ? [{ item_id: 'edX+C1', kind: 'saved', card_snapshot: { ...SAVED_SNAPSHOT, item_id: 'edX+C1' } }]
+          : [],
+      },
+    }));
+    await renderWithPage(user);
+    await user.click(await screen.findByRole('button', { name: 'Remove Course edX+C1 from saved' }));
+    await waitFor(() => expect(http.delete).toHaveBeenCalled());
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(screen.queryByRole('button', { name: 'View saved' })).not.toBeInTheDocument();
+  });
+
+  it('a save that fails shows the error, not the "Saved" toast', async () => {
+    const user = userEvent.setup();
+    await renderWithPage(user);
+    await screen.findByRole('tab', { name: 'Saved (1)' });
+    http.post.mockRejectedValueOnce(new Error('down'));
+    await user.click(screen.getByRole('button', { name: 'Save Course edX+C1' }));
+    expect(await screen.findByText("We couldn't save that change. Try again.")).toBeInTheDocument();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(screen.queryByRole('button', { name: 'View saved' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Course edX+C1' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('a failed unsave on the Saved tab shows the error above the tabs', async () => {
+    const user = userEvent.setup();
+    await renderWithPage(user);
+    await user.click(await screen.findByRole('tab', { name: 'Saved (1)' }));
+    http.delete.mockRejectedValueOnce(new Error('down'));
+    const view = screen.getByRole('tabpanel', { name: 'Saved (1)' });
+    await user.click(within(view).getByRole('button', { name: 'Remove Saved earlier from saved' }));
+    const error = await screen.findByText("We couldn't save that change. Try again.");
+    expect(error.closest('[role="tabpanel"]')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Saved (1)' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('new results, or an earlier reply\'s, go back from the Saved tab to For you', async () => {
+    const user = userEvent.setup();
+    await renderWithPage(user);
+    const forYouTab = () => screen.getByRole('tab', { name: 'For you' });
+    await user.click(await screen.findByRole('tab', { name: 'Saved (1)' }));
+    expect(forYouTab()).toHaveAttribute('aria-selected', 'false');
+
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter');
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    expect(forYouTab()).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(store().stream.activeTurnId).toBeNull());
+
+    await user.click(screen.getByRole('tab', { name: 'Saved (1)' }));
+    await user.click(screen.getByRole('button', { name: 'View these results' }));
+    expect(forYouTab()).toHaveAttribute('aria-selected', 'true');
+    expect(store().viewedTurnId).toBe(store().stream.turns[0].localId);
+  });
+
   it('Not interested hides the card with Undo, by keyboard', async () => {
     const user = userEvent.setup();
     await renderWithPage(user);

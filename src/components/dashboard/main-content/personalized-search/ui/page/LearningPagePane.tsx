@@ -36,6 +36,7 @@ export interface LearningPagePaneProps {
   /** The card just hidden by Not interested, offered for Undo. */
   undoItem?: ItemCard | null;
   onUndo?: () => void;
+  /** A failed change hides the Undo notice; its Alert sits above the results tabs. */
   feedbackError?: boolean;
   onClearNotice?: () => void;
   /** Sends a chat message for the learner (More like this). */
@@ -144,11 +145,6 @@ const LearningPagePane = ({
       aria-label={intl.formatMessage(messages.pagePaneLabel)}
       data-turn-id={pageTurn?.localId}
     >
-      {feedbackError && (
-        <Alert variant="danger" dismissible onClose={onClearNotice} className="mb-3">
-          {intl.formatMessage(messages.feedbackError)}
-        </Alert>
-      )}
       <Toast
         show={!!undoItem && !feedbackError}
         onClose={() => onClearNotice?.()}
