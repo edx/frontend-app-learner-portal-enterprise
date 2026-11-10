@@ -6,6 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
 import { MemoryRouter } from 'react-router-dom';
+import { AutoAwesome } from '@openedx/paragon/icons';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
@@ -250,11 +251,14 @@ describe('useDashboardTabs', () => {
       ]);
     });
 
-    it('has a Beta badge in its title', () => {
+    it('has the sparkle icon before its name and a Beta badge after it', () => {
       enablePersonalizedSearch();
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
-      expect(tab.props.title.props.children[1].props.children).toBe('Beta');
+      const [icon, name, badge] = tab.props.title.props.children;
+      expect(icon.props.src).toBe(AutoAwesome);
+      expect(name).toBe('Personalized Search');
+      expect(badge.props.children).toBe('Beta');
     });
 
     it('is absent when its flag is off, even with the Learner Pathways operator flag on', () => {
