@@ -84,12 +84,12 @@ const messages = defineMessages({
   viewPage: {
     id: 'learner.personalizedSearch.chat.viewPage',
     defaultMessage: 'View results',
-    description: 'Link on a chat reply that shows that turn\'s learning page.',
+    description: 'Link on a chat reply that shows that turn\'s results.',
   },
   seeLastRecommendations: {
     id: 'learner.personalizedSearch.chat.seeLastRecommendations',
     defaultMessage: 'See your last recommendations',
-    description: 'Link on a text-only reply that shows the previous learning page.',
+    description: 'Link on a text-only reply that shows the previous results.',
   },
   newReplyAnnouncement: {
     id: 'learner.personalizedSearch.chat.newReplyAnnouncement',
@@ -139,7 +139,7 @@ const messages = defineMessages({
   planTitle: {
     id: 'learner.personalizedSearch.page.plan.title',
     defaultMessage: 'A suggested order',
-    description: 'Heading of the suggested learning order on the learning page.',
+    description: 'Heading of the suggested learning order in the results.',
   },
   planInfoTitle: {
     id: 'learner.personalizedSearch.page.plan.infoTitle',
@@ -239,12 +239,12 @@ const messages = defineMessages({
   pagePaneLabel: {
     id: 'learner.personalizedSearch.page.label',
     defaultMessage: 'Your results',
-    description: 'Accessible label for the Personalized Search learning page pane.',
+    description: 'Accessible label for the Personalized Search results pane.',
   },
   emptyPage: {
     id: 'learner.personalizedSearch.page.empty',
     defaultMessage: 'Your results will show here. Tell me what you want to learn.',
-    description: 'Shown in the learning page pane before the first turn.',
+    description: 'Shown in the results pane before the first turn.',
   },
   paneToggle: {
     id: 'learner.personalizedSearch.paneToggle.label',
@@ -259,12 +259,12 @@ const messages = defineMessages({
   panePage: {
     id: 'learner.personalizedSearch.paneToggle.page',
     defaultMessage: 'Results',
-    description: 'Toggle button that shows the learning page pane on small screens.',
+    description: 'Toggle button that shows the results pane on small screens.',
   },
   newPicks: {
     id: 'learner.personalizedSearch.paneToggle.newPicks',
     defaultMessage: 'New picks',
-    description: 'Badge on the Page toggle when the learning page has picks the learner has not seen yet.',
+    description: 'Badge on the Page toggle when the results have picks the learner has not seen yet.',
   },
   history: {
     id: 'learner.personalizedSearch.history.button',

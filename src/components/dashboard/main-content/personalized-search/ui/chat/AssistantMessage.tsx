@@ -66,7 +66,7 @@ const AssistantMessage = ({
           <p className="small text-gray-700 font-italic mb-1">{intl.formatMessage(messages.stopped)}</p>
         )}
         {/* Plain text with **bold** as <strong> elements: model output never becomes HTML. */}
-        {turn.text && <p className="mb-1 personalized-search__reply">{renderInlineBold(turn.text)}</p>}
+        {turn.text && <p className="mb-1 personalized-search__reply">{renderInlineBold(turn.text, { partial: !isDone })}</p>}
         {isDone && turn.followups?.question && (
           <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
         )}
