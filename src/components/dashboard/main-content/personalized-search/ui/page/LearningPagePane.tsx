@@ -7,7 +7,7 @@ import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { selectPageTurn } from '../../core/selectors';
+import { hasPage, selectPageTurn } from '../../core/selectors';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
 import ResultsSkeleton from './ResultsSkeleton';
@@ -24,7 +24,6 @@ export interface LearningPagePaneProps {
   turns: AssistantTurn[];
   viewedTurnId: string | null;
   /** Each increment moves focus to the pane. */
-  pageFocusRequest: number;
   /** How item cards link to course and program pages (supplied by the host). */
   links: ItemLinks;
   /** Block renderers; Block catalog v1 by default. */
@@ -50,7 +49,7 @@ export interface LearningPagePaneProps {
 }
 
 const LearningPagePane = ({
-  turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
+  turns, viewedTurnId, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
   onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain, onBackToLatest,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
@@ -82,10 +81,6 @@ const LearningPagePane = ({
     onExplain,
   }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
     onOpenItem, onExplain]);
-
-  useEffect(() => {
-    if (pageFocusRequest > 0) { paneRef.current?.focus(); }
-  }, [pageFocusRequest]);
 
   // New results start at the top: the results pane scrolls back to its top when another turn's results
   // (or their placeholders) take over, including a search reopened from History or an earlier turn
@@ -128,8 +123,9 @@ const LearningPagePane = ({
     });
     return out;
   }, [blocks]);
-  // A caveat from the latest finished turn shows above the previous results when that turn has none.
-  const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn
+  // A caveat from the latest finished turn shows above the previous results when that turn has none of its
+  // own; while the learner views an earlier reply, only that reply's caveat (in its blocks) shows.
+  const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn && !hasPage(latest)
     ? latest.blocks.find(({ block }) => block.type === 'caveat') : undefined;
   const loading = !!pageTurn && pageTurn.status === 'streaming';
   const has = (type: string) => blocks.some(({ block }) => block.type === type);

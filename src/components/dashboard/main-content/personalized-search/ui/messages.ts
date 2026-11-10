@@ -81,16 +81,6 @@ const messages = defineMessages({
     defaultMessage: 'Updating your results…',
     description: 'Status line while the assistant writes the reply and page.',
   },
-  viewPage: {
-    id: 'learner.personalizedSearch.chat.viewPage',
-    defaultMessage: 'View results',
-    description: 'Link on a chat reply that shows that turn\'s results.',
-  },
-  seeLastRecommendations: {
-    id: 'learner.personalizedSearch.chat.seeLastRecommendations',
-    defaultMessage: 'See your last recommendations',
-    description: 'Link on a text-only reply that shows the previous results.',
-  },
   newReplyAnnouncement: {
     id: 'learner.personalizedSearch.chat.newReplyAnnouncement',
     defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} in your results',
