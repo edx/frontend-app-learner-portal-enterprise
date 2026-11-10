@@ -41,6 +41,9 @@ export interface ItemFacts {
   pacing_type?: string | null;
   program_type?: string | null;
   course_count?: number | null;
+  /** Hours per week from the advertised run's effort range (optional, additive in v1). */
+  hours_per_week_min?: number | null;
+  hours_per_week_max?: number | null;
 }
 
 export interface ItemCard {

@@ -296,6 +296,36 @@ const messages = defineMessages({
     defaultMessage: 'Remove {title} from saved',
     description: 'Accessible label for unsaving an item.',
   },
+  course: {
+    id: 'learner.personalizedSearch.page.card.course',
+    defaultMessage: 'Course',
+    description: 'Type label on a course card.',
+  },
+  hours: {
+    id: 'learner.personalizedSearch.page.card.hours',
+    defaultMessage: '~{count} hrs/week',
+    description: 'Hours per week on a card.',
+  },
+  hoursRange: {
+    id: 'learner.personalizedSearch.page.card.hoursRange',
+    defaultMessage: '{min}–{max} hrs/week',
+    description: 'A range of hours per week on a card.',
+  },
+  whyThis: {
+    id: 'learner.personalizedSearch.page.card.whyThis',
+    defaultMessage: 'Why this?',
+    description: 'Opens the short reason a card was recommended.',
+  },
+  moreActions: {
+    id: 'learner.personalizedSearch.page.card.moreActions',
+    defaultMessage: 'More options for {title}',
+    description: 'Label of the actions menu on a card.',
+  },
+  notForMe: {
+    id: 'learner.personalizedSearch.page.card.notForMe',
+    defaultMessage: 'Not for me',
+    description: 'Menu action that removes a card from the results.',
+  },
   notInterested: {
     id: 'learner.personalizedSearch.feedback.notInterested',
     defaultMessage: 'Not interested',
@@ -308,7 +338,7 @@ const messages = defineMessages({
   },
   hiddenItem: {
     id: 'learner.personalizedSearch.feedback.hidden',
-    defaultMessage: 'Hidden {title}. You won\'t see it in later recommendations.',
+    defaultMessage: 'Removed {title}. You won\'t see it in later recommendations.',
     description: 'Notice after Not interested, with an Undo action.',
   },
   undo: {

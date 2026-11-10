@@ -134,7 +134,8 @@ describe('LearningPagePane', () => {
     expect(renderBlock({ v: 1, type: 'toString', props: {} }, ctx)).toBeNull();
   });
 
-  it('renders course, exec ed and program cards with facts, why, fit badges and links', () => {
+  it('renders course, exec ed and program cards with the type, time, one reason behind Why this?, and links', async () => {
+    const user = userEvent.setup();
     const turns = turnWithParts([
       {
         type: 'data-block',
@@ -202,15 +203,21 @@ describe('LearningPagePane', () => {
 
     const courseCard = screen.getByRole('link', { name: 'A course' }).closest('.personalized-search__card') as HTMLElement;
     expect(within(courseCard).getByText('edX')).toBeInTheDocument();
-    expect(within(courseCard).getByText('Introductory · 4 weeks · Self-paced')).toBeInTheDocument();
-    expect(within(courseCard).getByText('Why this fits you')).toBeInTheDocument();
+    expect(within(courseCard).getByText('Course')).toBeInTheDocument();
+    expect(within(courseCard).getByText('4 weeks')).toBeInTheDocument();
+    expect(within(courseCard).getByText('Self-paced, Introductory')).toBeInTheDocument();
+    expect(within(courseCard).queryByText('Fit tag')).not.toBeInTheDocument();
+    expect(within(courseCard).queryByText('Because it fits.')).not.toBeInTheDocument();
+    await user.click(within(courseCard).getByRole('button', { name: 'Why this?' }));
     expect(within(courseCard).getByText('Because it fits.')).toBeInTheDocument();
-    expect(within(courseCard).getByText('Fit tag')).toBeInTheDocument();
     expect(courseCard.querySelector('img')).toBeInTheDocument();
+    // A single card in its row lays out horizontally.
+    expect(courseCard).toHaveClass('personalized-search__card--horizontal');
 
     const programCard = screen.getByRole('link', { name: 'A program' }).closest('.personalized-search__card') as HTMLElement;
-    expect(within(programCard).getByText('Program')).toBeInTheDocument();
-    expect(within(programCard).getByText(/Professional Certificate · Intermediate · 3 courses/)).toBeInTheDocument();
+    expect(within(programCard).getByText('Professional Certificate')).toBeInTheDocument();
+    expect(within(programCard).getByText('3 courses')).toBeInTheDocument();
+    expect(programCard).toHaveClass('personalized-search__card--certificate');
     const execCard = screen.getByRole('link', { name: 'An exec ed course' }).closest('.personalized-search__card') as HTMLElement;
     expect(within(execCard).getByText('Executive Education')).toBeInTheDocument();
   });
@@ -230,10 +237,10 @@ describe('LearningPagePane', () => {
     expect(container.querySelector('b')).toBeNull();
   });
 
-  it('degraded and fallback cards have no "Why this fits you" area or fit badges', () => {
+  it('degraded and fallback cards have no Why this? toggle', () => {
     const { turns } = runTurns(['degraded_turn.sse']);
     renderPane(turns);
-    expect(screen.queryByText('Why this fits you')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Why this?' })).not.toBeInTheDocument();
 
     const fallback = turnWithParts([{
       type: 'data-block',
@@ -247,8 +254,31 @@ describe('LearningPagePane', () => {
       },
     }]);
     renderPane(fallback);
-    expect(screen.queryByText('Why this fits you')).not.toBeInTheDocument();
-    expect(screen.queryByText('Fit tag')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Why this?' })).not.toBeInTheDocument();
+  });
+
+  it('shows hours per week when the card has them', () => {
+    const turns = turnWithParts([{
+      type: 'data-block',
+      id: 'blk_1',
+      data: {
+        v: 1,
+        type: 'item_section',
+        props: {
+          item_type: 'course',
+          label: 'Courses · 2 picks',
+          dek: '',
+          fallback: false,
+          items: [
+            card({ facts: { weeks_to_complete: 6, hours_per_week_min: 3, hours_per_week_max: 4 } }),
+            card({ item_id: 'edX+X2', title: 'Another', facts: { hours_per_week_min: 5, hours_per_week_max: 5 } }),
+          ],
+        },
+      },
+    }]);
+    renderPane(turns);
+    expect(screen.getByText('3–4 hrs/week · 6 weeks')).toBeInTheDocument();
+    expect(screen.getByText('~5 hrs/week')).toBeInTheDocument();
   });
 
   it('card links are reachable by Tab in reading order and open with Enter', async () => {
@@ -261,11 +291,14 @@ describe('LearningPagePane', () => {
       'Course edX+C2',
       'Program p-1',
     ]);
+    // Each card's link comes first; its Why this? toggle follows it.
     for (let i = 0; i < links.length; i += 1) {
+      links[i].focus();
       // eslint-disable-next-line no-await-in-loop
       await user.tab();
-      expect(links[i]).toHaveFocus();
+      expect(links[i].closest('.personalized-search__card')).toContainElement(document.activeElement as HTMLElement);
     }
+    links[links.length - 1].focus();
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-1`);
   });

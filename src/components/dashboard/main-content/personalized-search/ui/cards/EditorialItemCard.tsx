@@ -1,7 +1,9 @@
 import type { ComponentType, ReactNode } from 'react';
+import classNames from 'classnames';
 import {
-  Badge, Button, Card, Stack,
+  Button, Card, Collapsible, Dropdown, Icon,
 } from '@openedx/paragon';
+import { Bookmark, BookmarkBorder, MoreVert } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -13,55 +15,93 @@ import type { ItemCard } from '../../core/stream/types';
  */
 export interface ItemLinks {
   getItemHref: (item: ItemCard) => string;
-  LinkComponent: ComponentType<{ to: string; children: ReactNode }>;
+  LinkComponent: ComponentType<{ to: string; className?: string; children: ReactNode }>;
 }
 
-const useFacts = (item: ItemCard): string[] => {
+/** The accent family: certificates, Executive Education, other programs, or courses. */
+export const accentOf = (item: ItemCard): string => {
+  if (item.item_type === 'program') {
+    return /certificate/i.test(item.facts?.program_type ?? '') ? 'certificate' : 'program';
+  }
+  return item.item_type;
+};
+
+/** "Professional Certificate", "Executive Education" or "Course": the header and label always name the type. */
+const useTypeLabel = (item: ItemCard): string => {
+  const intl = useIntl();
+  if (item.item_type === 'program') {
+    return item.facts?.program_type || intl.formatMessage(messages.program);
+  }
+  return intl.formatMessage(item.item_type === 'executive_education' ? messages.executiveEducation : messages.course);
+};
+
+/** Time first (hours per week and length), since time is often the learner's main constraint. */
+const useMeta = (item: ItemCard): { time: string[]; detail: string[] } => {
   const intl = useIntl();
   const {
-    level_type: level,
+    hours_per_week_min: minHours,
+    hours_per_week_max: maxHours,
     weeks_to_complete: weeks,
     pacing_type: pacing,
-    program_type: programType,
+    level_type: level,
     course_count: courseCount,
   } = item.facts ?? {};
-  const facts: Array<string | null | undefined> = [
-    programType,
-    level,
+  let hours: string | null = null;
+  if (minHours && maxHours && minHours !== maxHours) {
+    hours = intl.formatMessage(messages.hoursRange, { min: minHours, max: maxHours });
+  } else if (minHours || maxHours) {
+    hours = intl.formatMessage(messages.hours, { count: (minHours || maxHours) as number });
+  }
+  const time = [
+    hours,
     weeks ? intl.formatMessage(messages.weeks, { count: weeks }) : null,
     courseCount ? intl.formatMessage(messages.courseCount, { count: courseCount }) : null,
+  ];
+  const detail = [
     pacing === 'self_paced' ? intl.formatMessage(messages.selfPaced) : null,
     pacing === 'instructor_paced' ? intl.formatMessage(messages.instructorPaced) : null,
+    level || null,
   ];
-  return facts.filter((fact): fact is string => !!fact);
+  const present = (values: Array<string | null>) => values.filter((value): value is string => !!value);
+  return { time: present(time), detail: present(detail) };
 };
 
 export interface EditorialItemCardProps {
   item: ItemCard;
   links: ItemLinks;
-  /** Save / Not interested (REQ-009); omitted where the card is read-only. */
+  /** Save / Not for me (REQ-009); omitted where the card is read-only. */
   saved?: boolean;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
+  /** Horizontal when a row has a single card, so the row doesn't look oddly spaced. */
+  orientation?: 'vertical' | 'horizontal';
+  /** Extra content under the meta line, such as a status badge. */
+  footer?: ReactNode;
 }
 
 /**
- * Recommendation card with the prototype's "Why this fits you" and fit badges. Server-hydrated
- * from the Algolia hit (KD-5); every field renders as text.
+ * The edx.org-style result card (wireframe D2): a 4px accent per content type, the type label, title,
+ * partner, hours per week and length, and one short reason behind "Why this?". The whole card is one
+ * link; the bookmark and the actions menu sit above it. Server-hydrated (KD-5); every field renders as text.
  */
 const EditorialItemCard = ({
-  item, links, saved = false, onToggleSave, onDismiss,
+  item, links, saved = false, onToggleSave, onDismiss, orientation = 'vertical', footer,
 }: EditorialItemCardProps) => {
   const intl = useIntl();
-  const facts = useFacts(item);
-  const typeBadge = {
-    course: null,
-    executive_education: intl.formatMessage(messages.executiveEducation),
-    program: intl.formatMessage(messages.program),
-  }[item.item_type];
+  const typeLabel = useTypeLabel(item);
+  const { time, detail } = useMeta(item);
+  const hasActions = !!(onToggleSave || onDismiss);
 
   return (
-    <Card className="personalized-search__card h-100" data-item-id={item.item_id}>
+    <Card
+      orientation={orientation}
+      className={classNames(
+        'personalized-search__card h-100',
+        `personalized-search__card--${accentOf(item)}`,
+        `personalized-search__card--${orientation}`,
+      )}
+      data-item-id={item.item_id}
+    >
       {item.image_url && (
         <Card.ImageCap
           src={item.image_url}
@@ -72,53 +112,62 @@ const EditorialItemCard = ({
             : undefined}
         />
       )}
-      <Card.Header
-        title={<links.LinkComponent to={links.getItemHref(item)}>{item.title}</links.LinkComponent>}
-        subtitle={item.partner_name ?? undefined}
-      />
-      <Card.Section>
-        {(typeBadge || facts.length > 0) && (
-          <p className="small text-gray-700 mb-2">
-            {typeBadge && <Badge variant="dark" className="mr-2">{typeBadge}</Badge>}
-            {facts.join(' · ')}
-          </p>
-        )}
+      <Card.Section className="personalized-search__card-body">
+        <p className="x-small text-gray-700 mb-1">{typeLabel}</p>
+        <h4 className="h5 mb-1 personalized-search__card-title">
+          {/* stretched-link makes the whole card one link; the actions sit above it. */}
+          <links.LinkComponent to={links.getItemHref(item)} className="stretched-link">
+            {item.title}
+          </links.LinkComponent>
+        </h4>
+        {item.partner_name && <p className="small text-gray-700 mb-2">{item.partner_name}</p>}
+        {time.length > 0 && <p className="x-small mb-0">{time.join(' · ')}</p>}
+        {detail.length > 0 && <p className="x-small text-gray-700 mb-0">{detail.join(', ')}</p>}
+        {footer}
         {item.why && (
-          <div className="personalized-search__why">
-            <p className="small font-weight-bold mb-1">{intl.formatMessage(messages.whyThisFits)}</p>
-            <p className="mb-2">{item.why}</p>
-            {item.fit.length > 0 && (
-              <Stack direction="horizontal" gap={2} className="flex-wrap">
-                {item.fit.map((tag) => <Badge key={tag} variant="light">{tag}</Badge>)}
-              </Stack>
-            )}
-          </div>
+          <Collapsible
+            styling="basic"
+            className="personalized-search__why mt-2"
+            title={<span className="small">{intl.formatMessage(messages.whyThis)}</span>}
+          >
+            <p className="small mb-0">{item.why}</p>
+          </Collapsible>
         )}
       </Card.Section>
-      {(onToggleSave || onDismiss) && (
-        <Card.Footer className="justify-content-start">
+      {hasActions && (
+        <div className="personalized-search__card-actions">
           {onToggleSave && (
             <Button
-              variant={saved ? 'primary' : 'outline-primary'}
+              variant="light"
               size="sm"
+              className="personalized-search__card-action rounded-circle"
               aria-pressed={saved}
               aria-label={intl.formatMessage(saved ? messages.unsaveItem : messages.saveItem, { title: item.title })}
               onClick={() => onToggleSave(item)}
             >
-              {intl.formatMessage(saved ? messages.saved : messages.save)}
+              <Icon src={saved ? Bookmark : BookmarkBorder} size="sm" />
             </Button>
           )}
           {onDismiss && (
-            <Button
-              variant="tertiary"
-              size="sm"
-              aria-label={intl.formatMessage(messages.notInterestedItem, { title: item.title })}
-              onClick={() => onDismiss(item)}
-            >
-              {intl.formatMessage(messages.notInterested)}
-            </Button>
+            <Dropdown>
+              <Dropdown.Toggle
+                id={`personalized-search-actions-${item.item_id}`}
+                as={Button}
+                variant="light"
+                size="sm"
+                className="personalized-search__card-action rounded-circle"
+                aria-label={intl.formatMessage(messages.moreActions, { title: item.title })}
+              >
+                <Icon src={MoreVert} size="sm" />
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item as="button" onClick={() => onDismiss(item)}>
+                  {intl.formatMessage(messages.notForMe)}
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
           )}
-        </Card.Footer>
+        </div>
       )}
     </Card>
   );

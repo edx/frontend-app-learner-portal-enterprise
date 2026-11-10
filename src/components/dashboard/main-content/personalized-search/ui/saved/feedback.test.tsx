@@ -139,12 +139,12 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
   it('Not interested hides the card with Undo, by keyboard', async () => {
     const user = userEvent.setup();
     await renderWithPage(user);
-    const dismiss = screen.getByRole('button', { name: 'Not interested in Course edX+C1' });
-    dismiss.focus();
+    screen.getByRole('button', { name: 'More options for Course edX+C1' }).focus();
     await user.keyboard('{Enter}');
+    await user.click(await screen.findByRole('button', { name: 'Not for me' }));
     expect(screen.queryByRole('link', { name: 'Course edX+C1' })).not.toBeInTheDocument();
     expect(http.post).toHaveBeenCalledWith(URL, expect.objectContaining({ item_id: 'edX+C1', kind: 'not_interested' }));
-    expect(screen.getByText(/Hidden Course edX\+C1/)).toBeInTheDocument();
+    expect(screen.getByText(/Removed Course edX\+C1/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
@@ -157,7 +157,8 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     const user = userEvent.setup();
     http.post.mockRejectedValue(new Error('down'));
     await renderWithPage(user);
-    await user.click(screen.getByRole('button', { name: 'Not interested in Course edX+C1' }));
+    await user.click(screen.getByRole('button', { name: 'More options for Course edX+C1' }));
+    await user.click(await screen.findByRole('button', { name: 'Not for me' }));
     expect(await screen.findByText("We couldn't save that change. Try again.")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
   });

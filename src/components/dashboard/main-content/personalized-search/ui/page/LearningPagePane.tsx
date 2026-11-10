@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import { Alert, Button, Stack } from '@openedx/paragon';
+import { Alert, Stack, Toast } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -71,17 +71,13 @@ const LearningPagePane = ({
           {intl.formatMessage(messages.feedbackError)}
         </Alert>
       )}
-      {undoItem && !feedbackError && (
-        <Alert
-          variant="light"
-          className="mb-3"
-          actions={[<Button key="undo" size="sm" onClick={onUndo}>{intl.formatMessage(messages.undo)}</Button>]}
-          dismissible
-          onClose={onClearNotice}
-        >
-          {intl.formatMessage(messages.hiddenItem, { title: undoItem.title })}
-        </Alert>
-      )}
+      <Toast
+        show={!!undoItem && !feedbackError}
+        onClose={() => onClearNotice?.()}
+        action={{ label: intl.formatMessage(messages.undo), onClick: () => onUndo?.() }}
+      >
+        {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
+      </Toast>
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
