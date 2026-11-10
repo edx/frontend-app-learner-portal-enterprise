@@ -13,7 +13,7 @@ To refresh after the goldens change:
 A contract change updates both repos' copies in the same pair of PRs.
 
 <!-- hashes:start -->
-Source: enterprise-access@3de9acde
+Source: enterprise-access@3de9acde (`degraded_turn.sse` is provisional and hand-written; `error_turn.sse` is a copy of `model_failed_turn.sse`)
 
 | File | sha256 |
 | --- | --- |

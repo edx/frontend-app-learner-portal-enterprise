@@ -36,7 +36,7 @@ This POC is an **internal demo**. It shows that a streaming chat, beside an edit
 | S-2 | Dual-pane UI: chat pane + editorial learning page (KD-1) | Replaces UX-01 layout | 1 |
 | S-3 | Dynamic UI generation: the AI response sets the learning page's title, intro, sections, cards and follow-ups, within a fixed, server-validated block catalog (KD-5) | Prototype `curatePrompt`; R-08, R-15 | 1 |
 | S-4 | Ranking via Algolia through the existing pathways retrieval and rerank code, extended to **courses, Executive Education and programs** the learner's enterprise catalog contains, and scoped to that enterprise | R-06, R-07, R-11–R-13 (without ontology) | 1 |
-| S-5 | No item repeated within a session (`shown_item_ids` per conversation) | R-18 | 1 |
+| S-5 | No item the learner dismissed is shown again in the session ("Not for me"); earlier results may repeat, flagged `status: new` when new to the conversation (KD-11, amended from "no item repeated") | R-18 | 1 |
 | S-6 | Save / Not interested on cards, with a Saved view | Prototype, Figma A4/A4b (not in PRD) | 2 |
 | S-7 | Session history: list, reopen and continue past chats, stored in enterprise-access (KD-7) | R-33–R-36 (subset) | 2 |
 | S-8 | Mobile layout: chat/page toggle under 768 px | Figma M1–M2; NFR-05 (subset) | 2 |
@@ -176,7 +176,7 @@ Priorities: **P0** = Phase 1, the demo cut line. **P1** = Phase 2. Acceptance cr
 | REQ-ID | Requirement | Type | Priority | Source | Acceptance criteria |
 | --- | --- | --- | --- | --- | --- |
 | REQ-001 | Each AI turn's reply text streams token by token, followed by the turn's page blocks | Functional | P0 | S-1; R-05, R-08, NFR-01 | Reply text appears progressively, not all at once. While a turn is processing, the composer is disabled and a status line shows the current step (UX-03). The learner can stop a turn mid-stream: it shows as "Stopped", its partial blocks are discarded, and nothing is saved |
-| REQ-002 | A dual-pane layout with chat on one side and the AI-composed learning page on the other | Functional | P0 | S-2; KD-1 | At ≥ 768 px both panes are visible. The page pane shows the latest turn's page. Earlier turns' pages stay reachable from their chat message ("View page") |
+| REQ-002 | A dual-pane layout with chat on one side and the AI-composed results on the other | Functional | P0 | S-2; KD-1 | At ≥ 768 px both panes are visible. The page pane shows the latest turn's page. Earlier turns' pages stay reachable from their chat message ("View these results") |
 | REQ-003 | The learning page is composed by the AI each turn from the block catalog v1 only | Functional | P0 | S-3; R-08, R-15; prototype `curatePrompt` | Every rendered block passed server-side validation. Unknown block types or versions don't render. No LLM-authored HTML reaches the DOM. Blocks appear one at a time as they're validated |
 | REQ-004 | Candidates come from an enterprise-scoped Algolia search over courses, Executive Education and programs, then are ranked by the LLM. Only ids present in that search response can be displayed | Functional | P0 | S-4; R-06, R-07, R-11–R-13 (no ontology) | 0 displayed items missing from that turn's search response (guardrail). Up to 5 items per turn and up to 3 per type section. A turn with no qualifying items is text-only plus a clarifying question (R-07), never padded |
 | REQ-005 | Each message is turned into a structured intent (skills, roles, level, constraints) merged with earlier turns. Raw text is never the only query | Functional | P0 | R-05, R-09 | The intent JSON is stored on the turn. A follow-up such as "something shorter" narrows the previous intent rather than replacing it. Career-advancement goals broaden to adjacent roles (R-09) |
@@ -373,8 +373,8 @@ Drawn with the KD-10 boundaries, so which dependencies stay out of the core is v
 - **Estimated output: about 600–750 tokens** for a full turn. The Phase 0 spike measures real throughput (KD-9).
 
 **Server-side validation and hydration (KD-5):**
-- `item_id` must be in the turn's candidate set, not in `shown_item_ids`, and not already emitted in this turn. Otherwise it's dropped. A section left empty is dropped.
-- At most **one section per `item_type`**, **3 items per section** and **5 items per turn** (R-07). The excess is truncated in emitted order.
+- `item_id` must be in the turn's candidate set, not dismissed ("Not for me"), and not already emitted in this turn. Otherwise it's dropped. A section left empty is dropped. (Since KD-11, items shown in earlier turns may appear again.)
+- At most **one section per `item_type`**, **3 items per section** and **12 items per turn** across the top pick, compare and sections (KD-11; was 5, R-07). The excess is truncated in emitted order.
 - Fields over their caps are truncated (text) or dropped (lists).
 - `plan` steps must reference items already emitted on the page.
 - **Missing follow-up:** if no valid `followup` line arrives, the server emits `data-followups` with a template question for the chosen attribute (e.g. level: "What level are you aiming for?") and default chips for it. `session_title` then falls back to the first prompt.
@@ -481,7 +481,7 @@ Reuse points in enterprise-access (all *[Specified]*):
 
 - Program sub-requests are omitted when `item_types` excludes `program`. Course sub-requests are omitted when it excludes both `course` and `executive_education`.
 - Each sub-request uses `hitsPerPage` 30 for courses and 15 for programs, `distinct: true` (the index is sharded per content item and collapses on `aggregation_key`), and an `attributesToRetrieve` card list: `key, aggregation_key, content_type, learning_type, course_type, title, subtitle, short_description, level_type, partners, authoring_organizations, card_image_url, original_image_url, banner_image_url, skill_names, advertised_course_run, type, course_keys, language`.
-- The `NOT` clauses come from `shown_item_ids` plus not-interested ids. Stored ids aren't typed, so **every excluded id goes into both clause sets**: `NOT key:"<id>"` on course sub-requests and `NOT aggregation_key:"program:<id>"` on program sub-requests. A non-matching clause is harmless.
+- The `NOT` clauses come from the not-interested ("Not for me") ids; since KD-11, items shown in earlier turns are not excluded. Stored ids aren't typed, so **every excluded id goes into both clause sets**: `NOT key:"<id>"` on course sub-requests and `NOT aggregation_key:"program:<id>"` on program sub-requests. A non-matching clause is harmless.
 - Every Algolia call has a per-call timeout of `min(2 s, deadline − elapsed)`, passed through algoliasearch 3.0.0's request options (**new work**: `SearchClient.create` today uses library defaults, `algolia_client.py:178`). A timeout maps to `AlgoliaSearchError` → `error: retrieval_failed`.
 - *[Specified, stage catalog index, 2026-10-27]* Facts from the stage catalog index, read with a search-only key:
   - Exec ed records are `content_type:course` with `learning_type:"Executive Education"` (exact casing) and `course_type: executive-education-2u`. All are `language: English`, so the English filter drops none.
@@ -544,7 +544,7 @@ All new code lives under `src/components/dashboard/main-content/personalized-sea
 | `workflows/` (`sendTurnWorkflow.ts`, `reopenSessionWorkflow.ts`, `itemFeedbackWorkflow.ts`, `types.ts`) | workflows (hook-free) | Typed input and result. For example, `sendTurn({transport, store, request})` iterates `transport.send()` and dispatches each part to the store |
 | `stream/` (`parseSse.ts`, `applyPart.ts`, `types.ts`) | protocol adapter | `parseSse(ReadableStream) → AsyncIterable<Part>`; `applyPart(state, part) → state` is pure. These are the only files that know the protocol |
 | `services/` (`ChatTransport.ts` interface, `SseChatTransport.ts`, `BufferedChatTransport.ts`, `FixtureChatTransport.ts`, `sessionsRepository.ts`, `feedbackRepository.ts`) | ports and adapters | SSE: refresh the JWT, get the CSRF token, `fetch` POST with `credentials:'include'` and an `AbortController` (Current State). Buffered: the same request with `?mode=buffered`, yielding the returned `parts` (KD-4 fallback). Fixture: replays the `.sse` golden files with configurable delays. Repositories use `getAuthenticatedHttpClient()` |
-| `state/personalizedSearchStore.ts` | zustand | `{sessionUuid, turns[], activeTurnId, viewedTurnId, status, savedIds, mode: 'live' \| 'past', mobilePane, hasNewPicks}` (`viewedTurnId` drives "View page"; the last two are Phase 2 mobile state); setters only; **not** persisted to localStorage (the server is the record) |
+| `state/personalizedSearchStore.ts` | zustand | `{sessionUuid, turns[], activeTurnId, viewedTurnId, status, savedIds, mode: 'live' \| 'past', mobilePane, hasNewPicks}` (`viewedTurnId` drives "View these results"; the last two are Phase 2 mobile state); setters only; **not** persisted to localStorage (the server is the record) |
 | `messages.ts` | i18n | `defineMessages`, ids `learner.personalizedSearch.*` |
 
 Transport selection: `getConfig().PERSONALIZED_SEARCH_TRANSPORT` is `fixture` (local development and demos without a backend), `buffered` (KD-4 fallback), or unset for SSE. It's a new optional env var.
@@ -680,7 +680,7 @@ sequenceDiagram
 
 ### Event / Message Contracts
 
-No queues. Besides the SSE stream (see Stream contract), the feature sends Segment usage events (KD-12), joined downstream on `conversation_id`, `turn_id` and `item_key`. The event dictionary lives in enterprise-access (`docs/references/personalized_search_events.md`).
+No queues. Besides the SSE stream (see Stream contract), the feature sends Segment usage events (KD-12), joined downstream on `conversation_id` (the session `uuid` sent to the browser, never the server-only `upstream_conversation_id`), `turn_id` and `item_key`. The event dictionary lives in enterprise-access (`docs/references/personalized_search_events.md`).
 
 ## Non-Functional Design
 
@@ -710,7 +710,7 @@ No queues. Besides the SSE stream (see Stream contract), the feature sends Segme
 | Authorization | **New** `PERSONALIZED_SEARCH_LEARNER_PERMISSION` built from `_has_implicit_access_to_role(_, enterprise_customer_uuid, LEARNER_PATHWAYS_LEARNER_ROLE)` plus an explicit-assignment twin (`ea/apps/core/rules.py:12-35`), resolved with `fn=get_or_fetch_enterprise_uuid_for_bff_request` (`ea/apps/api/utils.py:84-92`), which reads the query param or the body. `get_enterprise_uuid_from_request_data` (`:36-49`) reads only the body, so it would fail on GET. It is scoped to the requested enterprise (Risk 7). The explicit twin matches only an assignment for exactly the requested enterprise: all-enterprise assignments (`*` context, `applies_to_all_contexts`) do **not** grant this learner permission. Every session and feedback query also filters on `lms_user_id` | Tests: a learner of enterprise A asking for enterprise B → 403; learner X reading learner Y's session → 404 |
 | Data at rest | Enterprise-access DB (stage). Prompts and replies stored per KD-7. No secrets stored | `make pii_check` passes with the new annotations |
 | Data in transit | HTTPS throughout. Secured Algolia key and model API keys stay server-side; the browser never sees Algolia, the LLM, Xpert or upstream conversation ids | Code review: the stream contract carries no keys or upstream ids |
-| Input validation | `message` 1–500 characters (R-04); uuids validated. The user text is passed to the LLM as delimited data, and the intent prompt instructs the model to treat it as data (REQ-008). The model's output is never rendered as HTML: text renders as plain text, and blocks pass through KD-5 validation | Adversarial prompt list in tests; a "block with an `<script>` title renders as text" test |
+| Input validation | `message` 1–500 characters (R-04); uuids validated. The user text is passed to the LLM as delimited data, and the intent prompt instructs the model to treat it as data (REQ-008). The model's output is never rendered as HTML: text renders as plain text (a `**bold**` title becomes a React `<strong>` element, never HTML), and blocks pass through KD-5 validation | Adversarial prompt list in tests; a "block with an `<script>` title renders as text" test |
 | PII handling | First enterprise-access tables storing learner-written text (`first_prompt`, `user_message`, `parts`). PII annotations; no prompt text in logs (log ids, lengths and timings only); retention deferred | Log review in the Phase 1 demo dry run |
 
 ### Accessibility Impact
@@ -860,7 +860,7 @@ explains why, so nothing falls through silently.*
 | REQ-001 | KD-3, KD-4, KD-9, Stream contract, Turn pipeline step 4, Abort |
 | REQ-002 | KD-1, KD-6, Frontend module map |
 | REQ-003 | KD-5, KD-9 (block order), Block catalog v1, Compose contract, Block registry |
-| REQ-004 | Retrieval, KD-5 validator (5/3 caps, candidate-set ids) |
+| REQ-004 | Retrieval, KD-5 validator (12 per turn / 3 per section caps, candidate-set ids) |
 | REQ-005 | Intent contract (merge), `ChatSession.merged_intent` |
 | REQ-006 | Follow-up attribute (Retrieval), `data-followups`, `asked_attributes` |
 | REQ-007 | Not-interested ids in the Algolia `NOT` clauses and the validator; card `status` (KD-11) |
@@ -876,7 +876,7 @@ explains why, so nothing falls through silently.*
 | REQ-017 | KD-12 |
 
 **REQs covered:** REQ-001 through REQ-017
-**REQs unaddressed:** none. REQ-014 departs from PRD NFR-05 and REQ-002 from the PRD layout; the Eng Lead accepted both for the POC (OQ-3, closed).
+**REQs unaddressed:** none. REQ-014 departs from PRD NFR-05 and REQ-002 from the PRD layout; the Eng Lead accepted both for the POC (OQ-3, closed). REQ-007 (amended 2026-11-09, KD-11) relaxes the PRD's "no item repeated within a session" (R-18, S-5) to "no dismissed item comes back"; results update in place.
 
 ## Results pane design (KD-11)
 
