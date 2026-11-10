@@ -59,9 +59,9 @@ describe('applyPart', () => {
     expect(state.activeTurnId).toBeNull();
   });
 
-  it('off-topic and no-match turns have no page blocks', () => {
+  it('off-topic and no-match turns have no results (a no-match turn may carry a caveat)', () => {
     expect(reduceGolden('off_topic_turn.sse').turns[0].blocks).toEqual([]);
-    expect(reduceGolden('no_match_turn.sse').turns[0].blocks).toEqual([]);
+    expect(reduceGolden('no_match_turn.sse').turns[0].blocks.map((b) => b.block.type)).toEqual(['caveat']);
     expect(reduceGolden('off_topic_turn.sse').turns[0].followups?.attribute).toBe('open');
   });
 

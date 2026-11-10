@@ -23,3 +23,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 ## Why these?
 
 The `profile` block (what the AI knows about the learner, restated from the merged intent) isn't drawn on its own: the header shows a "Why these?" link that opens a read-only Paragon Popover on hover or focus (a click focuses it, so it stays open) and closes on Escape. It shows the plain-language basis and the preferences as chips. Without a profile there's no link. There is no edit-preferences control yet.
+
+## Caveat
+
+A `caveat` block renders as a warning `Alert` at the top of For you. The latest finished turn's caveat shows even when that turn found nothing, above the previous results that stay in place. Turns with only a caveat or the profile don't count as having results (`hasPage`), so they don't replace what's shown.

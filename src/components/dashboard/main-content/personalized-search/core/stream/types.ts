@@ -98,6 +98,12 @@ export interface PlanProps {
   steps: PlanStep[];
 }
 
+/** A warning that the results can't meet a goal the learner stated (additive in v1, KD-11). */
+export interface CaveatProps {
+  title: string;
+  body: string;
+}
+
 /** What the AI knows about the learner, for "Why these?" (additive in v1, KD-11). */
 export interface ProfileProps {
   summary: string;
@@ -128,14 +134,15 @@ export type Block =
   | { v: 1; type: 'plan'; props: PlanProps }
   | { v: 1; type: 'top_pick'; props: TopPickProps }
   | { v: 1; type: 'compare'; props: CompareProps }
-  | { v: 1; type: 'profile'; props: ProfileProps };
+  | { v: 1; type: 'profile'; props: ProfileProps }
+  | { v: 1; type: 'caveat'; props: CaveatProps };
 
 export type BlockType = Block['type'];
 
 export const BLOCK_CATALOG_VERSION = 1;
 
 export const KNOWN_BLOCK_TYPES: ReadonlyArray<BlockType> = [
-  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare', 'profile',
+  'page_header', 'item_section', 'insight', 'plan', 'top_pick', 'compare', 'profile', 'caveat',
 ];
 
 // ---- Parts ----

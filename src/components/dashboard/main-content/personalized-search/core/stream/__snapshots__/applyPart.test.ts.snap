@@ -209,7 +209,19 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
   },
   "turns": [
     {
-      "blocks": [],
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "body": "Your catalog has nothing on this topic yet.",
+              "title": "No matching courses",
+            },
+            "type": "caveat",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+      ],
       "error": null,
       "followups": {
         "attribute": "open",

@@ -1,8 +1,8 @@
-import { previousPageTurnId, selectPageTurn } from './selectors';
+import { hasPage, previousPageTurnId, selectPageTurn } from './selectors';
 import type { AssistantTurn } from './stream/types';
 
 const turn = (localId: string, blocks: number): AssistantTurn => (
-  { localId, blocks: Array.from({ length: blocks }, (_, i) => ({ id: `${localId}-${i}` })) } as unknown as AssistantTurn
+  { localId, blocks: Array.from({ length: blocks }, (_, i) => ({ id: `${localId}-${i}`, block: { type: 'item_section' } })) } as unknown as AssistantTurn
 );
 
 describe('selectPageTurn', () => {
@@ -29,5 +29,16 @@ describe('previousPageTurnId', () => {
     const turns = [turn('t1', 1), turn('t2', 0), turn('t3', 1)];
     expect(previousPageTurnId(turns, 2)).toBe('t1');
     expect(previousPageTurnId(turns, 0)).toBeNull();
+  });
+});
+
+describe('hasPage', () => {
+  it('ignores turns that only carry a caveat or the profile', () => {
+    const only = (...types: string[]) => ({
+      localId: 'x', blocks: types.map((type, i) => ({ id: `b${i}`, block: { type } })),
+    }) as unknown as AssistantTurn;
+    expect(hasPage(only('caveat', 'profile'))).toBe(false);
+    expect(hasPage(only('caveat', 'item_section'))).toBe(true);
+    expect(hasPage(only())).toBe(false);
   });
 });

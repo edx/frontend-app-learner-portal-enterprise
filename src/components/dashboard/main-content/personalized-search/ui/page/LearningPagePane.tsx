@@ -75,8 +75,11 @@ const LearningPagePane = ({
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
   // Sections are grouped under "More options", two groups per row (wireframe D2).
   const groups = body.filter(({ block }) => block.type === 'item_section');
-  // The profile renders inside the header's "Why these?", not as a block of its own.
-  const others = body.filter(({ block }) => block.type !== 'item_section' && block.type !== 'profile');
+  // The profile renders inside the header's "Why these?", not as a block of its own; caveats lead the pane.
+  const others = body.filter(({ block }) => !['item_section', 'profile', 'caveat'].includes(block.type));
+  // The latest turn's caveat shows even when that turn has no results of its own (the previous ones stay).
+  const latest = turns[turns.length - 1];
+  const caveat = (latest?.status === 'done' ? latest.blocks : blocks).find(({ block }) => block.type === 'caveat');
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (
@@ -99,6 +102,9 @@ const LearningPagePane = ({
       >
         {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
       </Toast>
+      {caveat && (
+        <div className="mb-4" data-block-id={caveat.id}>{renderBlock(caveat.block, ctx, registry)}</div>
+      )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (

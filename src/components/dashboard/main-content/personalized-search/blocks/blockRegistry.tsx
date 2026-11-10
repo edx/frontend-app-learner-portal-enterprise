@@ -11,6 +11,7 @@ import PageHeaderBlock from './PageHeaderBlock';
 import PlanBlock from './PlanBlock';
 import TopPickBlock from './TopPickBlock';
 import CompareBlock from './CompareBlock';
+import CaveatBlock from './CaveatBlock';
 
 export interface BlockRenderContext {
   /** How item cards link to course and program pages (supplied by the host). */
@@ -68,6 +69,7 @@ export const catalogBlocks: CatalogBlocks = {
   top_pick: { render: (props, ctx) => <TopPickBlock {...props} ctx={ctx} /> },
   // Rendered by the header's "Why these?" popover, not on its own.
   profile: { render: () => null },
+  caveat: { render: (props) => <CaveatBlock {...props} /> },
   compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
     render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
