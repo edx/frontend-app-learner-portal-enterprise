@@ -21,6 +21,12 @@ export type TrackAction =
  */
 export type PromptSource = 'typed' | 'starter_chip' | 'followup_chip' | 'suggested_chip' | 'more_like_this';
 
+/**
+ * How the learner reached the tab (`tab_viewed`). The redirect values are reserved for the Pathways and
+ * skills-quiz redirects to the tab, which don't exist yet.
+ */
+export type EntryPoint = 'nav_tab' | 'deep_link' | 'pathways_redirect' | 'skills_quiz_redirect';
+
 /** Flat values only, so the warehouse can store and join them. */
 export type TrackValue = string | number | boolean | null | Array<string | number | boolean | null>;
 export type TrackProperties = Record<string, TrackValue>;
