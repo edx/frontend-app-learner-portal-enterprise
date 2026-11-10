@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert, Badge, Button, ButtonGroup, Col, Row, Stack, Toast,
 } from '@openedx/paragon';
@@ -49,7 +49,8 @@ const PersonalizedSearchTab = ({
   }));
   const controller = usePersonalizedSearchController({ transport });
   // The chat panel always ends at the bottom of the window, so the composer is a footer that stays in view.
-  const chatPanelRef = useFitToViewport<HTMLDivElement>(controller.isWide);
+  const resultsColRef = useRef<HTMLDivElement>(null);
+  const chatPanelRef = useFitToViewport<HTMLDivElement>(controller.isWide, resultsColRef);
   const {
     isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
   } = controller;
@@ -195,7 +196,9 @@ const PersonalizedSearchTab = ({
           <Col md={5} lg={4} className="personalized-search__chat-col">
             <div ref={chatPanelRef} className="personalized-search__chat-panel">{chat}</div>
           </Col>
-          <Col md={7} lg={8} className="personalized-search__page-col">{page}</Col>
+          <Col md={7} lg={8} className="personalized-search__page-col">
+            <div ref={resultsColRef}>{page}</div>
+          </Col>
         </Row>
       ) : (
         <Stack gap={3}>
