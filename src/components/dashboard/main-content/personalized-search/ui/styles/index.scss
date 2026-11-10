@@ -47,6 +47,37 @@
   }
 }
 
+// Two panes (>= 768 px): the chat column is sticky and its panel is sized to the window space below
+// its top (useFitToViewport), so the messages scroll inside it and the composer is a footer that never
+// leaves view, before or after the page scrolls. Only the results scroll with the page.
+.personalized-search[data-layout="dual"] {
+  .personalized-search__chat-col {
+    position: sticky;
+    top: 1rem;
+    align-self: flex-start;
+  }
+
+  .personalized-search__chat-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .personalized-search__chat {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .personalized-search__chat-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: .25rem;
+  }
+}
+
 // Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
 .personalized-search__debug-table {
   max-width: 100%;

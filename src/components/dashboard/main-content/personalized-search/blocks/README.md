@@ -1,6 +1,6 @@
 # blocks
 
-The learning page's block registry. `defaultBlockRegistry` renders Block catalog v1 (`page_header`, `item_section`, `insight`, `plan`). To add a block type:
+The results pane's block registry. `defaultBlockRegistry` renders Block catalog v1 (`page_header`, `item_section`, `insight`, `plan`). To add a block type:
 
 ```tsx
 const registry = defaultBlockRegistry.register('my_block', {

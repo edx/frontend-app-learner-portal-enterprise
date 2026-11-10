@@ -8,7 +8,7 @@ const messages = defineMessages({
   },
   greetingDetail: {
     id: 'learner.personalizedSearch.chat.greetingDetail',
-    defaultMessage: 'I search your organization\'s catalog and build you a learning page.',
+    defaultMessage: 'I search your organization\'s catalog and show you results to compare.',
     description: 'Second line of the opening greeting in the Personalized Search chat pane.',
   },
   chipLeadership: {
@@ -78,12 +78,12 @@ const messages = defineMessages({
   },
   statusWriting: {
     id: 'learner.personalizedSearch.chat.status.writing',
-    defaultMessage: 'Writing your learning page…',
+    defaultMessage: 'Updating your results…',
     description: 'Status line while the assistant writes the reply and page.',
   },
   viewPage: {
     id: 'learner.personalizedSearch.chat.viewPage',
-    defaultMessage: 'View page',
+    defaultMessage: 'View results',
     description: 'Link on a chat reply that shows that turn\'s learning page.',
   },
   seeLastRecommendations: {
@@ -93,7 +93,7 @@ const messages = defineMessages({
   },
   newReplyAnnouncement: {
     id: 'learner.personalizedSearch.chat.newReplyAnnouncement',
-    defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} on your learning page',
+    defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} in your results',
     description: 'Screen-reader announcement when a Personalized Search reply finishes.',
   },
   whyThisFits: {
@@ -173,7 +173,7 @@ const messages = defineMessages({
   },
   errorGeneric: {
     id: 'learner.personalizedSearch.error.generic',
-    defaultMessage: 'Something went wrong building your page. Try again.',
+    defaultMessage: 'Something went wrong updating your results. Try again.',
     description: 'Shown when a reply fails while it is being written.',
   },
   chatPaneLabel: {
@@ -183,17 +183,17 @@ const messages = defineMessages({
   },
   pagePaneLabel: {
     id: 'learner.personalizedSearch.page.label',
-    defaultMessage: 'Your learning page',
+    defaultMessage: 'Your results',
     description: 'Accessible label for the Personalized Search learning page pane.',
   },
   emptyPage: {
     id: 'learner.personalizedSearch.page.empty',
-    defaultMessage: 'Your learning page is empty. Tell me what you want to learn and I\'ll build it.',
+    defaultMessage: 'Your results will show here. Tell me what you want to learn.',
     description: 'Shown in the learning page pane before the first turn.',
   },
   paneToggle: {
     id: 'learner.personalizedSearch.paneToggle.label',
-    defaultMessage: 'Show the chat or your learning page',
+    defaultMessage: 'Show the chat or your results',
     description: 'Accessible label for the chat/page toggle shown below 768 px.',
   },
   paneChat: {
@@ -203,7 +203,7 @@ const messages = defineMessages({
   },
   panePage: {
     id: 'learner.personalizedSearch.paneToggle.page',
-    defaultMessage: 'Page',
+    defaultMessage: 'Results',
     description: 'Toggle button that shows the learning page pane on small screens.',
   },
   newPicks: {

@@ -8,6 +8,7 @@ import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { IntegrationWarningModal } from '../integration-warning-modal';
 import SubscriptionExpirationModal from './SubscriptionExpirationModal';
 import { useDashboardTabs } from './data';
+import { DASHBOARD_PERSONALIZED_SEARCH_TAB } from './data/constants';
 import { SESSION_STORAGE_KEY_LICENSE_ACTIVATION_MESSAGE, useEnterpriseCustomer, useSubscriptions } from '../app/data';
 import BudgetExpiryNotification from '../budget-expiry-notification';
 import CustomSubscriptionExpirationModal from '../custom-expired-subscription-modal';
@@ -49,7 +50,8 @@ const DashboardPage = () => {
     <Container size="lg" className="py-4">
       <Helmet title={PAGE_TITLE} />
       <BudgetExpiryNotification />
-      <h2 className="h1 mb-4">
+      {/* Personalized Search uses the full height for chat and results, so its welcome is screen-reader only. */}
+      <h2 className={activeTab === DASHBOARD_PERSONALIZED_SEARCH_TAB ? 'sr-only' : 'h1 mb-4'}>
         {userFirstName
           ? intl.formatMessage(
             {
