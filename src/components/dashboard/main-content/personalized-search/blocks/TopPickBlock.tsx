@@ -1,15 +1,18 @@
-import { Button, Icon, Stack } from '@openedx/paragon';
+import {
+  Button, Col, Icon, Row, Stack,
+} from '@openedx/paragon';
 import { Add, AutoAwesome, CheckCircle } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../ui/messages';
 import type { TopPickProps } from '../core/stream/types';
-import EditorialItemCard from '../ui/cards/EditorialItemCard';
+import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { BlockRenderContext } from './blockRegistry';
 
 /**
  * The top pick (wireframe D2): the item's card beside a lighter details block with the reason, the
- * learner's preferences it meets, and More like this / Not for me.
+ * learner's preferences it meets, and More like this / Not for me. The card takes one result column, so
+ * it is the same width as the cards below it; the details fill the rest of the row (below it on phones).
  */
 const TopPickBlock = ({
   item, reason, checks, ctx,
@@ -17,8 +20,8 @@ const TopPickBlock = ({
   const intl = useIntl();
   if (ctx.dismissedIds?.has(item.item_id)) { return null; }
   return (
-    <section className="personalized-search__top-pick bg-light-300 d-flex flex-wrap rounded p-3">
-      <div className="personalized-search__top-pick-card mr-md-4 mb-3 mb-md-0">
+    <Row as="section" className="personalized-search__top-pick bg-light-300 rounded mx-0 py-3">
+      <Col {...RESULT_COLUMN_SIZES} className="mb-3 mb-md-0">
         <EditorialItemCard
           item={{ ...item, why: null }}
           links={ctx.links}
@@ -26,8 +29,8 @@ const TopPickBlock = ({
           onToggleSave={ctx.onToggleSave}
           onOpen={ctx.onOpenItem}
         />
-      </div>
-      <div className="personalized-search__top-pick-details flex-grow-1">
+      </Col>
+      <Col xs={12} md={6} xl={8}>
         <h3 className="h4 text-danger-500 d-flex align-items-center mb-2">
           <Icon src={AutoAwesome} size="sm" className="mr-2" />
           {intl.formatMessage(messages.topPick)}
@@ -65,8 +68,8 @@ const TopPickBlock = ({
             </Button>
           )}
         </Stack>
-      </div>
-    </section>
+      </Col>
+    </Row>
   );
 };
 
