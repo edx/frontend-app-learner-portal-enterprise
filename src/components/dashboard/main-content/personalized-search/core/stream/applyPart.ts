@@ -19,6 +19,7 @@ export const getInitialChatStreamState = (): ChatStreamState => ({
 const newTurn = (localId: string, userMessage: string | null): AssistantTurn => ({
   localId,
   messageId: null,
+  sequence: null,
   userMessage,
   status: 'streaming',
   step: null,
@@ -106,7 +107,7 @@ export const applyPart = (
   }
 
   if (part.type === 'data-session') {
-    return {
+    const withSession = {
       ...state,
       session: {
         sessionUuid: part.data.session_uuid,
@@ -115,6 +116,10 @@ export const applyPart = (
         title: part.data.title ?? state.session.title,
       },
     };
+    // The active turn learns its sequence too, so it can be rated later.
+    return state.activeTurnId
+      ? updateTurn(withSession, state.activeTurnId, (turn) => ({ ...turn, sequence: part.data.turn_sequence }))
+      : withSession;
   }
 
   const { activeTurnId } = state;

@@ -326,6 +326,16 @@ const messages = defineMessages({
     defaultMessage: 'Not for me',
     description: 'Menu action that removes a card from the results.',
   },
+  helpful: {
+    id: 'learner.personalizedSearch.chat.helpful',
+    defaultMessage: 'Helpful',
+    description: 'Thumbs up on an assistant reply.',
+  },
+  notHelpful: {
+    id: 'learner.personalizedSearch.chat.notHelpful',
+    defaultMessage: 'Not helpful',
+    description: 'Thumbs down on an assistant reply.',
+  },
   updated: {
     id: 'learner.personalizedSearch.results.updated',
     defaultMessage: 'Updated',
