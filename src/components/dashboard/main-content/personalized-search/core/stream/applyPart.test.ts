@@ -1,6 +1,7 @@
 import {
   applyPart, applyParts, beginTurn, endActiveTurn, getInitialChatStreamState,
 } from './applyPart';
+import { KNOWN_BLOCK_TYPES } from './types';
 import { parseSseText } from './parseSse';
 import {
   deepFreeze, GOLDEN_FILES, GoldenFile, readGolden,
@@ -25,7 +26,9 @@ describe('applyPart', () => {
       let state = deepFreeze(startedState());
       goldenParts(file).forEach((part) => {
         const next = applyPart(state, part);
-        if (part.type !== 'text-start' && part.type !== 'text-end') {
+        // Block types this client doesn't render are dropped by design, so state is unchanged for them.
+        const ignored = part.type === 'data-block' && !KNOWN_BLOCK_TYPES.includes(part.data.type);
+        if (part.type !== 'text-start' && part.type !== 'text-end' && !ignored) {
           expect(next).not.toBe(state);
         }
         state = deepFreeze(next);
@@ -46,7 +49,8 @@ describe('applyPart', () => {
     const [turn] = state.turns;
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
-    expect(turn.text).toBe('Here are picks for leading a team.');
+    expect(turn.text).toBe('I put a leadership certificate at the top.');
+    // Block types added after catalog v1's first four (profile, top_pick, compare) are dropped until registered.
     expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
@@ -102,7 +106,9 @@ describe('applyPart', () => {
   });
 
   it('endActiveTurn marks the turn stopped and discards its blocks', () => {
-    const midway = applyParts(startedState(), goldenParts('normal_turn.sse').slice(0, 15));
+    const parts = goldenParts('normal_turn.sse');
+    const firstSection = parts.findIndex((p) => p.type === 'data-block' && p.data.type === 'item_section');
+    const midway = applyParts(startedState(), parts.slice(0, firstSection + 1));
     expect(midway.turns[0].blocks.length).toBeGreaterThan(0);
     const stopped = endActiveTurn(midway, { status: 'stopped' });
     expect(stopped.turns[0]).toEqual(expect.objectContaining({ status: 'stopped', blocks: [], step: null }));

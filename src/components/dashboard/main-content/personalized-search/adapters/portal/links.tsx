@@ -21,4 +21,8 @@ const PortalLink = ({ to, className, children }: { to: string; className?: strin
 export const createPortalItemLinks = (enterpriseSlug: string): ItemLinks => ({
   getItemHref: (item) => getPortalItemHref(item, enterpriseSlug),
   LinkComponent: PortalLink,
+  getSeeAllHref: (itemType, query) => {
+    const contentType = itemType === 'program' ? 'program' : 'course';
+    return `/${enterpriseSlug}/search?q=${encodeURIComponent(query)}&content_type=${contentType}`;
+  },
 });

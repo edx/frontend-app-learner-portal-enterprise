@@ -191,7 +191,7 @@ exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] =
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
       "status": "error",
       "step": null,
-      "text": "Here are picks for leading a team.",
+      "text": "I put a leadership certificate at the top.",
       "timing": null,
       "userMessage": "I want to get better at leading a team",
     },
@@ -227,7 +227,7 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
       "text": "Nothing in your catalog covers underwater basket weaving.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 1600,
+        "complete_ms": 2300,
         "dropped_lines": 0,
         "first_section_ms": null,
         "first_text_ms": 400,
@@ -263,7 +263,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "page_header",
             "v": 1,
           },
-          "id": "blk_1",
+          "id": "blk_2",
         },
         {
           "block": {
@@ -274,6 +274,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
               "items": [
                 {
                   "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
                     "level_type": "Introductory",
                     "pacing_type": "self_paced",
                     "weeks_to_complete": 4,
@@ -297,6 +299,8 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                 },
                 {
                   "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
                     "level_type": "Intermediate",
                     "pacing_type": "self_paced",
                     "weeks_to_complete": 8,
@@ -319,11 +323,35 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                 },
               ],
               "label": "Courses · 2 picks",
+              "reserve": [
+                {
+                  "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 12,
+                  },
+                  "fit": [],
+                  "image_url": "https://img/edX+C4.png",
+                  "item_id": "edX+C4",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+C4",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": "https://logo/edx.png",
+                  "partner_name": "edX",
+                  "title": "Course edX+C4",
+                  "why": null,
+                },
+              ],
             },
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_2",
+          "id": "blk_5",
         },
         {
           "block": {
@@ -341,16 +369,16 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   "fit": [
                     "Certificate",
                   ],
-                  "image_url": "https://img/p-1.png",
-                  "item_id": "p-1",
+                  "image_url": "https://img/p-2.png",
+                  "item_id": "p-2",
                   "item_type": "program",
                   "link": {
                     "kind": "program",
-                    "program_uuid": "p-1",
+                    "program_uuid": "p-2",
                   },
                   "partner_logo_url": "https://logo/mit.png",
                   "partner_name": "MITx",
-                  "title": "Program p-1",
+                  "title": "Program p-2",
                   "why": "A full certificate.",
                 },
               ],
@@ -359,7 +387,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_3",
+          "id": "blk_6",
         },
         {
           "block": {
@@ -370,7 +398,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "insight",
             "v": 1,
           },
-          "id": "blk_4",
+          "id": "blk_7",
         },
         {
           "block": {
@@ -389,7 +417,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "plan",
             "v": 1,
           },
-          "id": "blk_5",
+          "id": "blk_8",
         },
       ],
       "error": null,
@@ -406,12 +434,12 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
       "status": "done",
       "step": null,
-      "text": "Here are picks for leading a team.",
+      "text": "I put a leadership certificate at the top.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 6600,
+        "complete_ms": 9150,
         "dropped_lines": 0,
-        "first_section_ms": 3000,
+        "first_section_ms": 5500,
         "first_text_ms": 400,
         "intent_ms": 100,
         "model_compose": "gpt-5.4-mini",

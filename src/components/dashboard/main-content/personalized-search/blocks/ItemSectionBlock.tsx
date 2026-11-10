@@ -1,8 +1,19 @@
 import { CardGrid } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 
+import messages from '../ui/messages';
 import type { ItemCard, ItemSectionProps } from '../core/stream/types';
 import EditorialItemCard from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
+
+/** Cards shown per group (wireframe D2: exactly two); the rest fill a removed card. */
+export const CARDS_PER_GROUP = 2;
+
+const SECTION_NAMES = {
+  course: messages.sectionCourse,
+  executive_education: messages.sectionExecutiveEducation,
+  program: messages.sectionProgram,
+};
 
 export interface ItemSectionBlockProps extends ItemSectionProps {
   links: ItemLinks;
@@ -10,17 +21,33 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   dismissedIds?: ReadonlySet<string>;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
+  searchQuery?: string;
 }
 
+/**
+ * One "More options" group: the type as an h3, "See all (n)" when the catalog total is known, one
+ * explanation line, and two cards. A removed card is replaced by the next item or reserve card.
+ */
 const ItemSectionBlock = ({
-  label, dek, items, item_type: itemType, links, savedIds, dismissedIds, onToggleSave, onDismiss,
+  dek, items, reserve, total, item_type: itemType, links, savedIds, dismissedIds, onToggleSave, onDismiss,
+  searchQuery,
 }: ItemSectionBlockProps) => {
-  // Not interested hides the card (REQ-009); a section with nothing left disappears.
-  const visible = dismissedIds ? items.filter((item) => !dismissedIds.has(item.item_id)) : items;
+  const intl = useIntl();
+  const pool = [...items, ...(reserve ?? [])];
+  const visible = (dismissedIds ? pool.filter((item) => !dismissedIds.has(item.item_id)) : pool)
+    .slice(0, CARDS_PER_GROUP);
   if (visible.length === 0) { return null; }
+  const seeAllHref = total && links.getSeeAllHref && searchQuery ? links.getSeeAllHref(itemType, searchQuery) : null;
   return (
     <section className="personalized-search__section" data-item-type={itemType}>
-      <h3 className="h4 mb-1">{label}</h3>
+      <div className="d-flex align-items-baseline justify-content-between">
+        <h3 className="h3 mb-1">{intl.formatMessage(SECTION_NAMES[itemType])}</h3>
+        {seeAllHref && (
+          <links.LinkComponent to={seeAllHref}>
+            {intl.formatMessage(messages.seeAll, { count: total })}
+          </links.LinkComponent>
+        )}
+      </div>
       {dek && <p className="text-gray-700 mb-3">{dek}</p>}
       <CardGrid columnSizes={visible.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
         {visible.map((item) => (

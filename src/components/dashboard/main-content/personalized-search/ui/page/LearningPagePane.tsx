@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import { Alert, Stack, Toast } from '@openedx/paragon';
+import {
+  Alert, Col, Icon, Row, Stack, Toast,
+} from '@openedx/paragon';
+import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
@@ -47,15 +50,19 @@ const LearningPagePane = ({
   const paneRef = useRef<HTMLElement>(null);
   const pageTurn = selectPageTurn(turns, viewedTurnId);
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
+  const searchQuery = pageTurn?.userMessage ?? undefined;
   const ctx = useMemo(() => ({
-    links, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss]);
+    links, itemTitles: itemTitlesOf(blocks), savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
   }, [pageFocusRequest]);
 
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
+  // Sections are grouped under "More options", two groups per row (wireframe D2).
+  const groups = body.filter(({ block }) => block.type === 'item_section');
+  const others = body.filter(({ block }) => block.type !== 'item_section');
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (
@@ -95,11 +102,26 @@ const LearningPagePane = ({
               ))}
             </div>
           )}
-          {body.map(({ id, block }) => (
+          {others.map(({ id, block }) => (
             <div key={id} className={blockClass} data-block-id={id}>
               {renderBlock(block, ctx, registry)}
             </div>
           ))}
+          {groups.length > 0 && (
+            <div className="personalized-search__more-options">
+              <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
+                <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
+                {intl.formatMessage(messages.moreOptions)}
+              </p>
+              <Row>
+                {groups.map(({ id, block }) => (
+                  <Col key={id} md={6} className={classNames(blockClass, 'mb-4')} data-block-id={id}>
+                    {renderBlock(block, ctx, registry)}
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          )}
         </Stack>
       )}
     </section>
