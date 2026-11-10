@@ -1,17 +1,29 @@
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
-import { useAcademies, useCanViewAcademies, useEnterpriseCustomer } from '../../../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAcademies,
+  useCanViewAcademies,
+  useEnterpriseCustomer,
+} from '../../../app/data';
 
-const FindACourseNavLink = ({ enterpriseSlug, className }) => (
-  <NavLink to={`/${enterpriseSlug}/search`} className={className}>
-    <FormattedMessage
-      id="enterprise.dashboard.nav.find.course.title"
-      defaultMessage="Find a Course"
-      description="Find a course link in site header navigation."
-    />
-  </NavLink>
-);
+const FindACourseNavLink = ({ enterpriseSlug, className }) => {
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  // "Find a Course" will be disabled for specific TAG GDPT enterprise customers (ENT-12375).
+  if (isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+    return null;
+  }
+  return (
+    <NavLink to={`/${enterpriseSlug}/search`} className={className}>
+      <FormattedMessage
+        id="enterprise.dashboard.nav.find.course.title"
+        defaultMessage="Find a Course"
+        description="Find a course link in site header navigation."
+      />
+    </NavLink>
+  );
+};
 
 FindACourseNavLink.propTypes = {
   enterpriseSlug: PropTypes.string.isRequired,

@@ -21,6 +21,7 @@ import { features } from '../../../config';
 import CourseMaterialsButton from '../CourseMaterialsButton';
 import {
   isArchived,
+  isFindACourseDisabledForEnterpriseCustomer,
   useCourseMetadata,
   useEnterpriseCustomer,
   useEnterpriseCustomerContainsContentSuspense,
@@ -47,12 +48,14 @@ const CourseHeader = () => {
     }),
     [courseMetadata, enterpriseCustomer.enablePrograms],
   );
-  const routeLinks = [
-    {
+  const routeLinks = [];
+  // "Find a Course" may be disabled for specific enterprise customers (ENT-12375).
+  if (!isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+    routeLinks.push({
       label: 'Find a Course',
       to: `/${enterpriseCustomer.slug}/search`,
-    },
-  ];
+    });
+  }
   if (location.state?.parentRoute) {
     routeLinks.push(location.state.parentRoute);
   }
@@ -68,7 +71,7 @@ const CourseHeader = () => {
       <Container size="lg">
         <Row className="py-4">
           <Col xs={12} lg={7}>
-            {(!enterpriseCustomer.disableSearch && !isAssignmentsOnlyLearner) && (
+            {(!enterpriseCustomer.disableSearch && !isAssignmentsOnlyLearner && routeLinks.length > 0) && (
               <div className="small mb-4">
                 <Breadcrumb
                   links={routeLinks}

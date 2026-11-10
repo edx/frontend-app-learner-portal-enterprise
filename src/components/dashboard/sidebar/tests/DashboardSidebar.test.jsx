@@ -467,6 +467,51 @@ describe('<DashboardSidebar />', () => {
     const catalogAccessButton = screen.queryByText(CATALOG_ACCESS_CARD_BUTTON_TEXT);
     expect(catalogAccessButton).toBeFalsy();
   });
+  test('Find a course button is rendered when user has subsidy and FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER is another customer', () => {
+    useHasAvailableSubsidiesOrRequests.mockReturnValue(useMockHasAvailableSubsidyOrRequests({
+      mockHasActivatedCurrentLicenseOrLicenseRequest: true,
+    }));
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: '11111111-1111-1111-1111-111111111111',
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.getByRole('link', { name: CATALOG_ACCESS_CARD_BUTTON_TEXT })).toHaveAttribute(
+      'href',
+      `/${mockEnterpriseCustomer.slug}/search`,
+    );
+  });
+  test('Find a course button is not rendered when "Find a Course" is disabled for the customer', () => {
+    useHasAvailableSubsidiesOrRequests.mockReturnValue(useMockHasAvailableSubsidyOrRequests({
+      mockHasActivatedCurrentLicenseOrLicenseRequest: true,
+    }));
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.queryByText(CATALOG_ACCESS_CARD_BUTTON_TEXT)).not.toBeInTheDocument();
+    expect(screen.queryByText('Go to Academy')).not.toBeInTheDocument();
+  });
+  test('Go to Academy button is still rendered when "Find a Course" is disabled for a one-academy customer', () => {
+    const oneAcademyEnterpriseCustomer = enterpriseCustomerFactory({ enable_one_academy: true });
+    const [academy] = academiesFactory(1);
+    useHasAvailableSubsidiesOrRequests.mockReturnValue(useMockHasAvailableSubsidyOrRequests({
+      mockHasActivatedCurrentLicenseOrLicenseRequest: true,
+    }));
+    useEnterpriseCustomer.mockReturnValue({ data: oneAcademyEnterpriseCustomer });
+    useAcademies.mockReturnValue({ data: [academy] });
+    getConfig.mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://support.url',
+      FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: oneAcademyEnterpriseCustomer.uuid,
+    });
+    renderWithRouter(<DashboardSidebarWithContext />);
+    expect(screen.getByRole('link', { name: 'Go to Academy' })).toHaveAttribute(
+      'href',
+      `/${oneAcademyEnterpriseCustomer.slug}/academies/${academy.uuid}`,
+    );
+    expect(screen.queryByText(CATALOG_ACCESS_CARD_BUTTON_TEXT)).not.toBeInTheDocument();
+  });
 
   test('Need help sidebar block is always rendered', () => {
     renderWithRouter(<DashboardSidebarWithContext />);

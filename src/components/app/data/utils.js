@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { NIL as NIL_UUID } from 'uuid';
 import { logError } from '@edx/frontend-platform/logging';
 import { getConfig } from '@edx/frontend-platform/config';
 import { getLocale } from '@edx/frontend-platform/i18n';
@@ -1378,4 +1379,21 @@ export function canViewAcademies({
     subscriptionLicense,
     browseAndRequestConfiguration,
   });
+}
+
+/**
+ * Whether "Find a Course" entry points should be hidden for the given enterprise customer, per the
+ * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER config value (a single customer UUID, or
+ * the nil UUID as a wildcard for every customer). Case-insensitive. See
+ * docs/features/disable-find-a-course.md (ENT-12375).
+ *
+ * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
+ * @returns {boolean} - True if "Find a Course" entry points should be hidden.
+ */
+export function isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid) {
+  const disabledUuid = getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER?.toLowerCase();
+  if (!disabledUuid) {
+    return false;
+  }
+  return disabledUuid === NIL_UUID || disabledUuid === enterpriseCustomerUuid?.toLowerCase();
 }

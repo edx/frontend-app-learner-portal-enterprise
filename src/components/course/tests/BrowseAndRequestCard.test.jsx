@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useMediaQuery } from '@openedx/paragon';
 import useBFF from '../../app/data/hooks/useBFF';
+import { isFindACourseDisabledForEnterpriseCustomer } from '../../app/data';
 import BrowseAndRequestCard from '../BrowseAndRequestAlert';
 
 jest.mock('../../app/data/hooks/useBFF');
@@ -15,12 +16,14 @@ jest.mock('@openedx/paragon', () => {
 });
 jest.mock('../../app/data', () => ({
   queryDefaultEmptyFallback: jest.fn().mockReturnValue({}),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
 }));
 
 describe('BrowseAndRequestCard', () => {
   const mockData = {
     hasBnrEnabledPolicy: true,
     enterpriseCustomer: {
+      uuid: 'test-enterprise-uuid',
       slug: 'test-enterprise',
     },
   };
@@ -28,6 +31,7 @@ describe('BrowseAndRequestCard', () => {
   beforeEach(() => {
     useMediaQuery.mockReturnValue(false); // default to desktop view
     useBFF.mockReturnValue({ data: mockData });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -60,6 +64,16 @@ describe('BrowseAndRequestCard', () => {
     renderComponent();
 
     expect(screen.queryByText('Start your learning journey')).toBeNull();
+  });
+
+  it('does not render the card when "Find a course" is disabled for the enterprise customer', () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+
+    renderComponent();
+
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith('test-enterprise-uuid');
+    expect(screen.queryByText('Start your learning journey')).toBeNull();
+    expect(screen.queryByText('Find a course')).toBeNull();
   });
 
   it('does not render after dismiss button is clicked', () => {

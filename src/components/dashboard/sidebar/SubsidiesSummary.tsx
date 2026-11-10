@@ -17,6 +17,7 @@ import {
   useHasAvailableSubsidiesOrRequests,
   useIsAssignmentsOnlyLearner,
   useCouponCodes,
+  isFindACourseDisabledForEnterpriseCustomer,
 } from '../../app/data';
 import { COURSE_STATUSES } from '../../../constants';
 import { getStatusMetadata } from '../data/utils';
@@ -37,6 +38,10 @@ const SearchCoursesCta = ({
     return null;
   }
   const ctaLinkDestination = isOneAcademy && academies[0]?.uuid ? `academies/${academies[0]?.uuid}` : 'search';
+  // Only the "Find a course" (search) destination may be disabled; "Go to Academy" stays (ENT-12375).
+  if (ctaLinkDestination === 'search' && isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+    return null;
+  }
 
   return (
     <Card.Section>
