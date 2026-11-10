@@ -27,6 +27,9 @@ export type PromptSource = 'typed' | 'starter_chip' | 'followup_chip' | 'suggest
  */
 export type EntryPoint = 'nav_tab' | 'deep_link' | 'pathways_redirect' | 'skills_quiz_redirect';
 
+/** Which explanation the learner opened: a card's, the result set's, or the suggested order's. */
+export type ExplainScope = 'tile' | 'set' | 'order';
+
 /** Flat values only, so the warehouse can store and join them. */
 export type TrackValue = string | number | boolean | null | Array<string | number | boolean | null>;
 export type TrackProperties = Record<string, TrackValue>;

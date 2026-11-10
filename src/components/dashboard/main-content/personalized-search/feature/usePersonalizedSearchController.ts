@@ -15,7 +15,9 @@ import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { AssistantTurn, ItemCard } from '../core/stream/types';
 import { joinKeysOf } from '../core/analytics';
-import type { PromptSource, TrackAction, TrackProperties } from '../core/analytics';
+import type {
+  ExplainScope, PromptSource, TrackAction, TrackProperties,
+} from '../core/analytics';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
@@ -341,7 +343,7 @@ export const createPersonalizedSearchController = ({
     const openItem = useCallback((item: ItemCard, fallbackSection: string | null = null) => {
       track('result_clicked', itemFacts(item, fallbackSection));
     }, [track]);
-    const explain = useCallback((scope: 'tile' | 'set' | 'order', item?: ItemCard) => {
+    const explain = useCallback((scope: ExplainScope, item?: ItemCard) => {
       track('explanation_opened', { scope, item_key: item?.item_id ?? null });
     }, [track]);
     const clearFeedbackNotice = useCallback(() => {

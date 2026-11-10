@@ -144,7 +144,7 @@ const messages = defineMessages({
   suggestedChip: {
     id: 'learner.personalizedSearch.chat.suggestedChip',
     defaultMessage: 'Suggested',
-    description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
+    description: 'Screen reader label after the text of a chip the AI suggested for this conversation (marked by a sparkle).',
   },
   excludedTab: {
     id: 'learner.personalizedSearch.results.tab.excluded',
