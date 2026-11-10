@@ -13,6 +13,9 @@ import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
 
+/** Set on <html> while the pane is mounted; the stylesheet turns scroll anchoring off for it. */
+export const SCROLL_ANCHOR_OFF = 'data-personalized-search-results';
+
 const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fromEntries(
   blocks.flatMap(({ block }) => (block.type === 'item_section'
     ? block.props.items.map((item) => [item.item_id, item.title])
@@ -77,6 +80,32 @@ const LearningPagePane = ({
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
   }, [pageFocusRequest]);
+
+  // Results update in place, above wherever the learner is. The browser's scroll anchoring would pin
+  // the content at the bottom of the window (the footer) and scroll down as the new results grow,
+  // dragging the view away from their top, so it's off while the pane is mounted.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute(SCROLL_ANCHOR_OFF, '');
+    return () => root.removeAttribute(SCROLL_ANCHOR_OFF);
+  }, []);
+
+  // New results (a turn's first block) bring the results column back to its top when the learner has
+  // scrolled past it; the page scrolls the results, so a refinement would otherwise land off screen.
+  // Not on mount, so reopening a search or returning to the tab doesn't jump.
+  const shownTurnId = pageTurn?.localId ?? null;
+  const lastShownTurnId = useRef(shownTurnId);
+  useEffect(() => {
+    if (shownTurnId === lastShownTurnId.current) { return; }
+    lastShownTurnId.current = shownTurnId;
+    const pane = paneRef.current;
+    const column = (pane?.closest('.personalized-search__page-col') as HTMLElement | null) ?? pane;
+    if (!shownTurnId || !column) { return; }
+    const { top } = column.getBoundingClientRect();
+    if (top < 0) {
+      window.scrollTo({ top: Math.max(top + window.scrollY - 16, 0), behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
+  }, [shownTurnId, reducedMotion]);
 
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
   // Sections are grouped under "More options", one group per row so every card has the same width.

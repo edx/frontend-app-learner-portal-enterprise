@@ -265,6 +265,12 @@
   overflow: hidden;
 }
 
+// Results update in place above the learner's position; scroll anchoring would pin the footer and
+// drag the view down as they grow, away from the results' top (see LearningPagePane).
+html[data-personalized-search-results] {
+  overflow-anchor: none;
+}
+
 // A button inside a card sits above the card's full-card link.
 .personalized-search__card-control {
   position: relative;
