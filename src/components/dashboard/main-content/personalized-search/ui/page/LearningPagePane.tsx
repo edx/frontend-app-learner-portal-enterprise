@@ -14,9 +14,6 @@ import ResultsSkeleton from './ResultsSkeleton';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
 
-/** Set on <html> while the pane is mounted; the stylesheet turns scroll anchoring off for it. */
-export const SCROLL_ANCHOR_OFF = 'data-personalized-search-results';
-
 const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fromEntries(
   blocks.flatMap(({ block }) => (block.type === 'item_section'
     ? block.props.items.map((item) => [item.item_id, item.title])
@@ -90,19 +87,13 @@ const LearningPagePane = ({
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
   }, [pageFocusRequest]);
 
-  // Results update in place, above wherever the learner is. The browser's scroll anchoring would pin
-  // the content at the bottom of the window (the footer) and scroll down as the new results grow,
-  // dragging the view away from their top, so it's off while the pane is mounted.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute(SCROLL_ANCHOR_OFF, '');
-    return () => root.removeAttribute(SCROLL_ANCHOR_OFF);
-  }, []);
-
   // New results start at the top: the results pane scrolls back to its top when another turn's results
-  // (or their placeholders) take over. In the wide layout the pane is its own scroll container; on
-  // phones the page scrolls, so it scrolls the page back to the pane. Not on mount, so reopening a
-  // search or returning to the tab doesn't jump.
+  // (or their placeholders) take over, including a search reopened from History or an earlier turn
+  // chosen in the chat. In the wide layout the pane is its own scroll container; on phones the page
+  // scrolls, so it brings the pane's top into view (its scroll-margin keeps a gap). Not on mount, so
+  // returning to the tab doesn't jump; a search restored from the URL arrives after mount but finds the
+  // pane already at its top, so nothing scrolls. (Scroll anchoring is off for
+  // the page by a CSS rule while the pane is in it, so growing results don't drag the view down.)
   const shownTurnId = pageTurn?.localId ?? null;
   const lastShownTurnId = useRef(shownTurnId);
   useEffect(() => {
@@ -115,9 +106,8 @@ const LearningPagePane = ({
       if (scroller.scrollTop > 0) { scroller.scrollTop = 0; }
       return;
     }
-    const { top } = pane.getBoundingClientRect();
-    if (top < 0) {
-      window.scrollTo({ top: Math.max(top + window.scrollY - 16, 0), behavior: reducedMotion ? 'auto' : 'smooth' });
+    if (pane.getBoundingClientRect().top < 0) {
+      pane.scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
     }
   }, [shownTurnId, reducedMotion]);
 
