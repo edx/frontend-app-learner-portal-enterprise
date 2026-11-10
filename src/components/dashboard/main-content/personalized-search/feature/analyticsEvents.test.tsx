@@ -179,6 +179,24 @@ describe('Personalized Search usage events: what the client sends', () => {
       item_key: 'edX+C2', item_section: 'saved_tab', item_position: null, saved: false,
     }));
   });
+
+  it('opening the Excluded tab is reported once, and Include again sends dismissed: false', async () => {
+    const user = userEvent.setup();
+    await sendStarter(user);
+    await user.click(screen.getByRole('button', { name: 'More options for Course edX+C1' }));
+    await user.click(await screen.findByRole('button', { name: 'Not for me' }));
+    expect(named('excluded_tab_opened')).toHaveLength(0);
+
+    await user.click(screen.getByRole('tab', { name: /Excluded/ }));
+    expect(named('excluded_tab_opened')).toHaveLength(1);
+    const excludedTab = screen.getByRole('tabpanel', { name: /Excluded/ });
+    await user.click(within(excludedTab).getByRole('button', { name: 'Include again: Course edX+C1' }));
+    expect(named('item_dismissed')).toEqual([
+      expect.objectContaining({ item_key: 'edX+C1', dismissed: true }),
+      expect.objectContaining({ item_key: 'edX+C1', dismissed: false }),
+    ]);
+    expect(named('excluded_tab_opened')).toHaveLength(1);
+  });
 });
 
 describe('the turn request', () => {

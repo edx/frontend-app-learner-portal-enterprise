@@ -13,13 +13,13 @@ To refresh after the goldens change:
 A contract change updates both repos' copies in the same pair of PRs.
 
 <!-- hashes:start -->
-Source: enterprise-access@3de9acde (`degraded_turn.sse` is provisional and hand-written; `error_turn.sse` is a copy of `model_failed_turn.sse`)
+Source: enterprise-access@5dcf8f2c (`degraded_turn.sse` is provisional and hand-written; `error_turn.sse` is a copy of `model_failed_turn.sse`)
 
 | File | sha256 |
 | --- | --- |
-| `normal_turn.sse` | `ff04efee6cd400ac6d4fbc94d9d7de7345378dd3bc06f1778efcba0a99777d91` |
+| `normal_turn.sse` | `deb808070a686595dd64a8c8fa5502f904d5e0a85aed9b8a832506e35fa8d1e8` |
 | `off_topic_turn.sse` | `24dd87d76b8f97a42b7ebc7e3f762a535e0ed90afc336666e7d340b84406e688` |
 | `no_match_turn.sse` | `415da87198a996511826f6000ae712f2388d27ad785a0db4c4af542ccc236371` |
 | `degraded_turn.sse` | `8477170185e0e9d76e7c422008814c4833d2c5ac750968925e4d0306edcc9ae9` |
-| `error_turn.sse` | `f1a37f62010f0852be26470418bca425e09921bdb28ee6b8973bd3ca536232dc` |
+| `error_turn.sse` | `06a72f6e2b39e6fa8effaab793db9adc9737f2307fad049aabda3c33899a7de1` |
 <!-- hashes:end -->

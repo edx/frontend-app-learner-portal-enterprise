@@ -163,7 +163,7 @@ const messages = defineMessages({
   },
   includeAgainItem: {
     id: 'learner.personalizedSearch.results.excluded.includeAgainItem',
-    defaultMessage: 'Include {title} in results again',
+    defaultMessage: 'Include again: {title}',
     description: 'Accessible label for the Include again button on an excluded item.',
   },
   forYouTab: {

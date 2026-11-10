@@ -231,7 +231,7 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
       await user.click(screen.getByRole('tab', { name: 'Excluded (1)' }));
       const view = screen.getByRole('tabpanel', { name: 'Excluded (1)' });
       expect(within(view).getByRole('link', { name: 'Course edX+C1' })).toBeInTheDocument();
-      await user.click(within(view).getByRole('button', { name: 'Include Course edX+C1 in results again' }));
+      await user.click(within(view).getByRole('button', { name: 'Include again: Course edX+C1' }));
       expect(http.delete).toHaveBeenCalledWith(URL, {
         params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'not_interested' },
       });
@@ -254,6 +254,33 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
       await renderWithPage(user);
       await user.click(await screen.findByRole('tab', { name: 'Excluded (1)' }));
       expect(screen.getByRole('link', { name: 'Excluded earlier' })).toBeInTheDocument();
+    });
+
+    it('Include again on another item keeps the Undo offer; on the Undo item it clears it', async () => {
+      const user = userEvent.setup();
+      http.get.mockImplementation(async (_url: string, { params }: { params: { kind: string } }) => ({
+        data: {
+          results: params.kind === 'not_interested'
+            ? [{ item_id: 'edX+GONE', kind: 'not_interested', card_snapshot: { ...SAVED_SNAPSHOT, item_id: 'edX+GONE', title: 'Excluded earlier' } }]
+            : [],
+        },
+      }));
+      await renderWithPage(user);
+      await screen.findByRole('tab', { name: 'Excluded (1)' });
+
+      await user.click(screen.getByRole('button', { name: 'More options for Course edX+C1' }));
+      await user.click(await screen.findByRole('button', { name: 'Not for me' }));
+      await user.click(screen.getByRole('tab', { name: 'Excluded (2)' }));
+      await user.click(screen.getByRole('button', { name: 'Include again: Excluded earlier' }));
+      expect(http.delete).toHaveBeenCalledWith(URL, {
+        params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+GONE', kind: 'not_interested' },
+      });
+      expect(store().feedback.undo?.item_id).toBe('edX+C1');
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Include again: Course edX+C1' }));
+      expect(store().feedback.undo).toBeNull();
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument());
     });
   });
 
