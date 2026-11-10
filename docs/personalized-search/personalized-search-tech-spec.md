@@ -539,7 +539,7 @@ All new code lives under `src/components/dashboard/main-content/personalized-sea
 | `chat/` (`ChatPane`, `MessageList`, `AssistantMessage`, `Composer`, `FollowUpChips`, `StatusLine`) | presentational | Props only; `Form.Control as="textarea"`, `Chip`, `Skeleton`, `Alert` |
 | `page/` (`LearningPagePane`, `PageHeaderBlock`, `InsightBlock`, `ItemSectionBlock`, `PlanBlock`, `EditorialItemCard`) | presentational | Props only |
 | `page/blockRegistry.ts` | registry | `{page_header: PageHeaderBlock, …}`; `renderBlock(block)` returns `null` for an unknown `type` or `v` |
-| `history/` (`HistoryPanel`, `PastSearchBanner`), `saved/SavedView` | presentational (Phase 2) | `Sheet` for history at all widths |
+| `history/` (`HistoryPanel`, `PastSearchBanner`), `saved/SavedView` | presentational (Phase 2) | `Sheet` for history at all widths, laid out like the Xpert chat sidebar (title bar with an icon close button, day dividers, one row per conversation, the open one marked current) |
 | `hooks/usePersonalizedSearchController.ts` | controller | The only place hooks or context are resolved: `useEnterpriseCustomer`, `useIntl`, `getAuthService`. Exposes `send`, `stop`, `retry`, `newChat`, `openSession`, `toggleSave`, `dismiss` |
 | `workflows/` (`sendTurnWorkflow.ts`, `reopenSessionWorkflow.ts`, `itemFeedbackWorkflow.ts`, `types.ts`) | workflows (hook-free) | Typed input and result. For example, `sendTurn({transport, store, request})` iterates `transport.send()` and dispatches each part to the store |
 | `stream/` (`parseSse.ts`, `applyPart.ts`, `types.ts`) | protocol adapter | `parseSse(ReadableStream) → AsyncIterable<Part>`; `applyPart(state, part) → state` is pure. These are the only files that know the protocol |

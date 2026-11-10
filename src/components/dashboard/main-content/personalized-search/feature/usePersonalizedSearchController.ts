@@ -88,7 +88,7 @@ export const createPersonalizedSearchController = ({
     const {
       stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
       mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
-      feedback, savedOpen, feedbackLoaded,
+      feedback, savedOpen, excludedOpen, excludedTabShown, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
@@ -103,6 +103,8 @@ export const createPersonalizedSearchController = ({
       history: state.history,
       feedback: state.feedback,
       savedOpen: state.savedOpen,
+      excludedOpen: state.excludedOpen,
+      excludedTabShown: state.excludedTabShown,
       feedbackLoaded: state.feedbackLoaded,
       debugSettings: state.debugSettings,
       debugConfig: state.debugConfig,
@@ -205,10 +207,10 @@ export const createPersonalizedSearchController = ({
       // Sending from a reopened session continues it (same session uuid), now live.
       const resumedFromHistory = store.mode === 'past';
       if (resumedFromHistory) { store.setMode('live'); }
-      // Fixed starter-chip copy only; follow-up chips are model-written and typed text is the learner's.
-      track('prompt_submitted', {
-        prompt_source: source, chip_label: source === 'starter_chip' ? chipLabel ?? message : null,
-      });
+      // Fixed chip copy only (starter and follow-up chips); suggested chips are model-written and typed
+      // text is the learner's.
+      const fixedChip = source === 'starter_chip' || source === 'followup_chip';
+      track('prompt_submitted', { prompt_source: source, chip_label: fixedChip ? chipLabel ?? message : null });
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -220,6 +222,7 @@ export const createPersonalizedSearchController = ({
           sessionUuid: store.stream.session.sessionUuid,
           message,
           ...(resumedFromHistory ? { resumedFromHistory } : {}),
+          ...(deps.getContentLocale ? { locale: deps.getContentLocale() } : {}),
         },
         localId,
         signal: controller.signal,
@@ -312,10 +315,21 @@ export const createPersonalizedSearchController = ({
       if (undo) { track('item_dismissed', { ...itemFacts(undo), dismissed: false }); }
       return runFeedback({ type: 'undoDismiss' });
     }, [runFeedback, track]);
+    /** Include a dismissed item in results again, from the Excluded tab. */
+    const restore = useCallback((item: ItemCard) => {
+      track('item_dismissed', { ...itemFacts(item, 'excluded_tab'), dismissed: false });
+      return runFeedback({ type: 'restore', item });
+    }, [runFeedback, track]);
+    // The Excluded tab appears once the learner has any excluded item and stays (disabled) when the last
+    // is restored; a reload with none hides it. Leaving it empty returns to For you.
+    useEffect(() => {
+      if (feedback.dismissed.length > 0 && !excludedTabShown) { storeApi.getState().showExcludedTab(); }
+      if (feedback.dismissed.length === 0 && excludedOpen) { storeApi.getState().setExcludedOpen(false); }
+    }, [feedback.dismissed.length, excludedTabShown, excludedOpen]);
     const openItem = useCallback((item: ItemCard, fallbackSection: string | null = null) => {
       track('result_clicked', itemFacts(item, fallbackSection));
     }, [track]);
-    const explain = useCallback((scope: 'tile' | 'set', item?: ItemCard) => {
+    const explain = useCallback((scope: 'tile' | 'set' | 'order', item?: ItemCard) => {
       track('explanation_opened', { scope, item_key: item?.item_id ?? null });
     }, [track]);
     const clearFeedbackNotice = useCallback(() => {
@@ -345,7 +359,14 @@ export const createPersonalizedSearchController = ({
       track('saved_tab_opened');
       storeApi.getState().setSavedOpen(true);
     }, [track]);
-    const closeSaved = useCallback(() => storeApi.getState().setSavedOpen(false), []);
+    const closeSaved = useCallback(() => {
+      storeApi.getState().setSavedOpen(false);
+      storeApi.getState().setExcludedOpen(false);
+    }, []);
+    const openExcluded = useCallback(() => {
+      track('excluded_tab_opened');
+      storeApi.getState().setExcludedOpen(true);
+    }, [track]);
 
     const loadHistoryPage = useCallback(async (page: number) => {
       const store = storeApi.getState();
@@ -497,9 +518,13 @@ export const createPersonalizedSearchController = ({
       savedIds,
       dismissedIds,
       savedOpen,
+      excludedOpen,
+      excludedTabShown,
       toggleSave,
       dismiss,
       undoDismiss,
+      restore,
+      openExcluded,
       clearFeedbackNotice,
       openSaved,
       closeSaved,

@@ -32,7 +32,7 @@ export interface BlockRenderContext {
   profile?: ProfileProps;
   /** Usage events: a card was opened, or an explanation was expanded (a card's or the set's). */
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -79,9 +79,10 @@ export const catalogBlocks: CatalogBlocks = {
   caveat: { render: (props) => <CaveatBlock {...props} /> },
   compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
-    render: (props, ctx) => <PlanBlock {...props} itemTitles={ctx.itemTitles} />,
-    slot: 'top',
-    slotClassName: 'personalized-search__plan-col mb-3',
+    // Rendered where it arrives, last: the plan can only name items already on the page.
+    render: (props, ctx) => (
+      <PlanBlock {...props} itemTitles={ctx.itemTitles} onOpenWhy={() => ctx.onExplain?.('order')} />
+    ),
   },
 };
 

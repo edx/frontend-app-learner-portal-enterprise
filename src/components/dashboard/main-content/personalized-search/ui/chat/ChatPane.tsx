@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import classNames from 'classnames';
 import { Chip, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -16,7 +17,7 @@ export interface ChatPaneProps {
   draft: string;
   announcement: string;
   onDraftChange: (draft: string) => void;
-  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed starter chip. */
+  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed chip. */
   onSend: (message: string, source?: PromptSource, chipLabel?: string) => void;
   onStop: () => void;
   onRetry: (turnId: string) => void;
@@ -40,12 +41,29 @@ const ChatPane = ({
     wasBusy.current = busy;
   }, [busy]);
 
+  // From send (Enter or a chip) until the turn finishes, the conversation snaps to its newest message
+  // and stays there: scrolling is locked so the streaming reply stays in view. One last snap when the
+  // turn finishes shows its follow-up question.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const wasStreaming = useRef(busy);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && (busy || wasStreaming.current)) { el.scrollTop = el.scrollHeight; }
+    wasStreaming.current = busy;
+  }, [busy, turns]);
+
   const latest = turns[turns.length - 1];
-  const chips = latest?.status === 'done' ? latest.followups?.suggestions ?? [] : [];
+  const followups = latest?.status === 'done' ? latest.followups : null;
+  const chips = followups?.suggestions ?? [];
+  const ideas = followups?.ideas ?? [];
 
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
-      <div className="personalized-search__chat-scroll">
+      <div
+        ref={scrollRef}
+        className={classNames('personalized-search__chat-scroll', { 'personalized-search__chat-scroll--locked': busy })}
+        data-testid="chat-scroll"
+      >
         {turns.length === 0 ? (
           <div className="personalized-search__opening">
             <div className="personalized-search__greeting mb-3">
@@ -76,8 +94,14 @@ const ChatPane = ({
           />
         )}
       </div>
-      {chips.length > 0 && (
-        <FollowUpChips suggestions={chips} disabled={busy} onSelect={(chip) => onSend(chip, 'followup_chip')} />
+      {(chips.length > 0 || ideas.length > 0) && (
+        <FollowUpChips
+          suggestions={chips}
+          ideas={ideas}
+          disabled={busy}
+          onSelect={(chip) => onSend(chip, 'followup_chip', chip)}
+          onSelectIdea={(idea) => onSend(idea, 'suggested_chip')}
+        />
       )}
       <Composer
         ref={composerRef}

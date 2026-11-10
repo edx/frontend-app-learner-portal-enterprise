@@ -51,10 +51,22 @@
 // its top (useFitToViewport), so the messages scroll inside it and the composer is a footer that never
 // leaves view, before or after the page scrolls. Only the results scroll with the page.
 .personalized-search[data-layout="dual"] {
-  .personalized-search__chat-col {
-    position: sticky;
-    top: 1rem;
-    align-self: flex-start;
+  // Wide layout: both panes fit the window (useFitToViewport) and scroll inside themselves.
+  .personalized-search__panes {
+    min-height: 0;
+  }
+
+  // Both scroll containers are positioned, so they clip and scroll their absolutely positioned
+  // children too (screen-reader labels in every message and card). Unpositioned, each label sat at
+  // its place deep in the scrolled content and stretched the page: blank space below the footer
+  // grew with every turn.
+  .personalized-search__results-scroll {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    // Results update in place; anchoring would hold the old scroll spot as new blocks stream in.
+    overflow-anchor: none;
+    padding-bottom: 1rem;
   }
 
   .personalized-search__chat-panel {
@@ -71,10 +83,17 @@
   }
 
   .personalized-search__chat-scroll {
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-right: .25rem;
+    scrollbar-gutter: stable;
+
+    // While a turn streams, the conversation is held at its newest message.
+    &--locked {
+      overflow-y: hidden;
+    }
   }
 }
 
@@ -84,12 +103,14 @@
   max-width: 85%;
 }
 
-// Result cards (wireframe D2): a 4px top accent per content type, one link per card that lifts on
-// hover, a 3px focus outline, and the bookmark and actions menu above the card's link.
+// Result cards (wireframe D2): a 4px top accent per content type, one link per card with a hover
+// shadow, a 3px outline when its link has keyboard focus, and the bookmark and actions menu above the
+// link. No hover transform: a transform puts each card on its own layer, so the next card painted over
+// the open "Not for me" menu, and the card moving under the pointer made the menu jump.
 .personalized-search__card {
   position: relative;
   border-top: 4px solid #2d494e;
-  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+  transition: box-shadow 120ms ease-out;
 
   &--certificate { border-top-color: #03c7e8; }
   &--program { border-top-color: #f0cc00; }
@@ -97,11 +118,21 @@
   &--course { border-top-color: #2d494e; }
 
   &:hover {
-    transform: translateY(-2px);
     box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .15);
   }
 
-  &:focus-within {
+  // A card with an open menu (or focus inside it) sits above its neighbours.
+  &:focus-within,
+  &:has(.dropdown-menu.show) {
+    z-index: 3;
+  }
+
+  // One short item: no need for Paragon's 18rem minimum, which hung past the card's edge.
+  .dropdown-menu {
+    min-width: 10rem;
+  }
+
+  &:has(.stretched-link:focus-visible) {
     outline: 3px solid currentColor;
     outline-offset: 2px;
   }
@@ -122,8 +153,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-
-    &:hover { transform: none; }
   }
 }
 
@@ -182,6 +211,89 @@
   &:focus {
     background-color: #f2f0ef;
   }
+}
+
+// History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on
+// each side, and one row per conversation that highlights on hover and marks the open one.
+// Paragon's side Sheet is 272px with padding and takes no className, so size the one holding history.
+.pgn__sheet-component:has(.personalized-search__history) {
+  width: 100%;
+  max-width: 25rem;
+  padding: 0;
+  box-shadow: 0 0 1rem 0 rgba(0, 0, 0, .15), 0 0 .625rem 0 rgba(0, 0, 0, .15);
+
+  .pgn__sheet-content { height: 100%; }
+}
+
+.personalized-search__history-header {
+  min-height: 3rem;
+  padding: .5rem .75rem .5rem 1.5rem;
+  border-bottom: 1px solid #d7d3d1;
+}
+
+.personalized-search__history-list {
+  overflow-y: auto;
+}
+
+.personalized-search__history-divider {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1 1;
+    border-bottom: 1px solid #d7d3d1;
+  }
+
+  &::before { margin-right: .625rem; }
+  &::after { margin-left: .625rem; }
+}
+
+.personalized-search__history-item {
+  display: block;
+  width: 100%;
+  padding: .625rem 1.5rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  color: inherit;
+  text-align: left;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background-color: #f2f0ef;
+  }
+
+  &:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: -3px;
+  }
+
+  &--current {
+    border-left-color: #00262b;
+    background-color: #f2f0ef;
+  }
+}
+
+.personalized-search__clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+// Results update in place above the learner's position; scroll anchoring would pin the footer and
+// drag the view down as they grow, away from the results' top (see LearningPagePane).
+html[data-personalized-search-results] {
+  overflow-anchor: none;
+}
+
+// A button inside a card sits above the card's full-card link.
+.personalized-search__card-control {
+  position: relative;
+  z-index: 2;
 }
 
 // Saved tab empty state (wireframe D2b).

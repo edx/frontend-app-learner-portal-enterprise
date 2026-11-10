@@ -98,6 +98,8 @@ export interface PlanStep {
 
 export interface PlanProps {
   steps: PlanStep[];
+  /** One sentence on why the steps are in this order (additive in v1). */
+  why?: string;
 }
 
 /** A warning that the results can't meet a goal the learner stated (additive in v1, KD-11). */
@@ -158,7 +160,10 @@ export interface SessionData {
 export interface FollowupsData {
   question: string;
   attribute: FollowUpAttribute;
+  /** The fixed chips that narrow the follow-up attribute (empty for "open" when there are ideas). */
   suggestions: string[];
+  /** Up to three model-written chips for this conversation (additive in v1). */
+  ideas?: string[];
 }
 
 /** Token and timing detail for one model call; sent only when enterprise-access debug is on. */

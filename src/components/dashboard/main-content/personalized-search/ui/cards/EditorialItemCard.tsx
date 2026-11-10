@@ -178,7 +178,9 @@ const EditorialItemCard = ({
                 className="personalized-search__card-action"
                 alt={intl.formatMessage(messages.moreActions, { title: item.title })}
               />
-              <Dropdown.Menu>
+              {/* Right-aligned under the toggle, so the menu stays over its own card. */}
+              {/* Fixed, so the results pane's scroll container can't clip the menu. */}
+              <Dropdown.Menu alignRight popperConfig={{ strategy: 'fixed' }}>
                 <Dropdown.Item as="button" onClick={() => onDismiss(item)}>
                   {intl.formatMessage(messages.notForMe)}
                 </Dropdown.Item>

@@ -79,6 +79,119 @@ describe('LearningPagePane', () => {
     });
   });
 
+  describe('new results bring the results column back to its top', () => {
+    const tree = (turns: AssistantTurn[], reducedMotion = false) => (
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[`/${SLUG}`]}>
+          <LearningPagePane
+            turns={turns}
+            viewedTurnId={null}
+            pageFocusRequest={0}
+            links={createPortalItemLinks(SLUG)}
+            reducedMotion={reducedMotion}
+          />
+        </MemoryRouter>
+      </IntlProvider>
+    );
+    const placePaneAt = (top: number) => jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ top } as DOMRect);
+    let scrollTo: jest.SpyInstance;
+    beforeEach(() => {
+      scrollTo = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+      Object.defineProperty(window, 'scrollY', { configurable: true, value: 1200 });
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+      Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    });
+
+    it('scrolls up when the learner is past the top, and not on mount', () => {
+      placePaneAt(-800);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
+      expect(scrollTo).not.toHaveBeenCalled();
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
+      expect(scrollTo).toHaveBeenCalledTimes(1);
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 800 - 16, behavior: 'smooth' });
+    });
+
+    it('turns off scroll anchoring while mounted, so growing results do not drag the view down', () => {
+      const { unmount } = render(tree(runTurns(['normal_turn.sse']).turns));
+      expect(document.documentElement).toHaveAttribute('data-personalized-search-results');
+      unmount();
+      expect(document.documentElement).not.toHaveAttribute('data-personalized-search-results');
+    });
+
+    it('stays put when the top is already in view, and jumps without animation for reduced motion', () => {
+      placePaneAt(120);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
+      expect(scrollTo).not.toHaveBeenCalled();
+      placePaneAt(-50);
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse', 'normal_turn.sse']).turns, true));
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 50 - 16, behavior: 'auto' });
+    });
+  });
+
+  describe('loading: placeholders, then blocks top to bottom', () => {
+    /** The first turn done, then a second turn with only `upTo` of its parts streamed. */
+    const secondTurnUpTo = (upTo: (parts: Part[]) => Part[]) => {
+      const done = applyParts(
+        beginTurn(getInitialChatStreamState(), { localId: 'turn-1', userMessage: 'first' }),
+        goldenParts('normal_turn.sse'),
+      );
+      const next = beginTurn(done, { localId: 'turn-2', userMessage: 'second' });
+      return applyParts(next, upTo(goldenParts('normal_turn.sse'))).turns;
+    };
+    const blockTypes = (container: HTMLElement) => Array.from(container.querySelectorAll('[data-block-id]'))
+      .map((el) => el.getAttribute('data-block-id'));
+
+    it('keeps the previous results while the message is being understood (an off-topic turn never replaces them)', () => {
+      const turns = secondTurnUpTo((parts) => parts.filter((p) => p.type === 'start' || p.type.startsWith('data-session')
+        || (p.type === 'data-status' && (p as { data: { step: string } }).data.step === 'understanding')));
+      renderPane(turns);
+      expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    });
+
+    it('shows placeholders once searching, fills them top to bottom, and drops them when done', () => {
+      const searching = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'text-start')));
+      const { rerender, container } = renderPane(searching);
+      const skeleton = screen.getByTestId('results-skeleton');
+      expect(Array.from(skeleton.querySelectorAll('[data-skeleton]')).map((el) => el.getAttribute('data-skeleton')))
+        .toEqual(['header', 'top-pick', 'cards']);
+      expect(container.querySelector('[data-block-id]')).toBeNull(); // the old results are gone
+
+      const headerOnly = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block'
+        && (p as { data: { type: string } }).data.type === 'top_pick')));
+      rerender(
+        <IntlProvider locale="en">
+          <MemoryRouter initialEntries={[`/${SLUG}`]}>
+            <LearningPagePane
+              turns={headerOnly}
+              viewedTurnId={null}
+              pageFocusRequest={0}
+              links={createPortalItemLinks(SLUG)}
+              reducedMotion={false}
+            />
+          </MemoryRouter>
+        </IntlProvider>,
+      );
+      expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+      expect(Array.from(screen.getByTestId('results-skeleton').querySelectorAll('[data-skeleton]'))
+        .map((el) => el.getAttribute('data-skeleton'))).toEqual(['top-pick', 'cards']);
+      expect(blockTypes(container)).toHaveLength(1);
+    });
+
+    it('renders the finished turn in stream order, with the suggested order last and no placeholders', () => {
+      const { container } = renderPane(runTurns(['normal_turn.sse']).turns);
+      expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
+      const order = Array.from(container.querySelectorAll('.personalized-search__page-header, .personalized-search__top-pick, '
+        + '.personalized-search__compare, .personalized-search__more-options, .personalized-search__plan'))
+        .map((el) => el.className.match(/personalized-search__(page-header|top-pick|compare|more-options|plan)/)?.[1]);
+      expect(order).toEqual(['page-header', 'top-pick', 'compare', 'more-options', 'plan']);
+    });
+  });
+
   it('shows the empty page before any turn has a page', () => {
     renderPane([]);
     expect(screen.getByText('Your results will show here. Tell me what you want to learn.')).toBeInTheDocument();
@@ -313,6 +426,19 @@ describe('LearningPagePane', () => {
     expect(within(pickInCompare).getByText('Top pick')).toBeInTheDocument();
     expect(pickInCompare.querySelector('img.pgn__card-image-cap')).toBeInTheDocument();
     expect(within(pickInCompare).getByRole('button', { name: 'More options for Program p-1' })).toBeInTheDocument();
+  });
+
+  it('explains how the suggested order was picked and why, from an info button', async () => {
+    const user = userEvent.setup();
+    const onExplain = jest.fn();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { onExplain });
+    const plan = screen.getByRole('heading', { name: 'A suggested order' }).closest('aside') as HTMLElement;
+    await user.hover(within(plan).getByRole('button', { name: 'How this order was picked' }));
+    const popover = await screen.findByRole('tooltip');
+    expect(within(popover).getByText(/The best fit for your goal comes first/)).toBeInTheDocument();
+    expect(within(popover).getByText('Start with the basics, then build to the full certificate.')).toBeInTheDocument();
+    expect(onExplain).toHaveBeenCalledWith('order');
   });
 
   it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {

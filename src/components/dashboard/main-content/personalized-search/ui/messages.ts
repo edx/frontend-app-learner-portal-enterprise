@@ -141,6 +141,41 @@ const messages = defineMessages({
     defaultMessage: 'A suggested order',
     description: 'Heading of the suggested learning order on the learning page.',
   },
+  planInfoTitle: {
+    id: 'learner.personalizedSearch.page.plan.infoTitle',
+    defaultMessage: 'How this order was picked',
+    description: 'Info button and popover title explaining the suggested learning order.',
+  },
+  planInfoBody: {
+    id: 'learner.personalizedSearch.page.plan.infoBody',
+    defaultMessage: 'These steps come from your results. The best fit for your goal comes first, and each step builds on the one before: foundations before advanced, shorter before longer.',
+    description: 'Explains how the steps of the suggested learning order were chosen and ordered.',
+  },
+  suggestedChip: {
+    id: 'learner.personalizedSearch.chat.suggestedChip',
+    defaultMessage: 'Suggested',
+    description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
+  },
+  excludedTab: {
+    id: 'learner.personalizedSearch.results.tab.excluded',
+    defaultMessage: 'Excluded ({count})',
+    description: 'The results tab listing items the learner marked "Not for me", with how many there are.',
+  },
+  excludedIntro: {
+    id: 'learner.personalizedSearch.results.excluded.intro',
+    defaultMessage: 'You marked these "Not for me", so they are left out of your results. Include one again to let it back in.',
+    description: 'Explains the Excluded tab above the excluded items.',
+  },
+  includeAgain: {
+    id: 'learner.personalizedSearch.results.excluded.includeAgain',
+    defaultMessage: 'Include again',
+    description: 'Button on an excluded item that lets it back into results.',
+  },
+  includeAgainItem: {
+    id: 'learner.personalizedSearch.results.excluded.includeAgainItem',
+    defaultMessage: 'Include {title} in results again',
+    description: 'Accessible label for the Include again button on an excluded item.',
+  },
   forYouTab: {
     id: 'learner.personalizedSearch.results.tab.forYou',
     defaultMessage: 'For you',
@@ -261,6 +296,26 @@ const messages = defineMessages({
     defaultMessage: '{count, plural, one {# pick} other {# picks}}',
     description: 'How many items a past session recommended.',
   },
+  historyToday: {
+    id: 'learner.personalizedSearch.history.today',
+    defaultMessage: 'Today',
+    description: 'History panel divider over the conversations from today.',
+  },
+  historyYesterday: {
+    id: 'learner.personalizedSearch.history.yesterday',
+    defaultMessage: 'Yesterday',
+    description: 'History panel divider over the conversations from yesterday.',
+  },
+  historyPreviousWeek: {
+    id: 'learner.personalizedSearch.history.previousWeek',
+    defaultMessage: 'Previous 7 days',
+    description: 'History panel divider over the conversations from the last week.',
+  },
+  historyOlder: {
+    id: 'learner.personalizedSearch.history.older',
+    defaultMessage: 'Older',
+    description: 'History panel divider over conversations more than a week old.',
+  },
   pastSearch: {
     id: 'learner.personalizedSearch.history.pastSearch',
     defaultMessage: 'Past search · {date}. Send a message to continue it.',
@@ -270,6 +325,11 @@ const messages = defineMessages({
     id: 'learner.personalizedSearch.close',
     defaultMessage: 'Close',
     description: 'Closes a panel.',
+  },
+  loadingResults: {
+    id: 'learner.personalizedSearch.page.loadingResults',
+    defaultMessage: 'Loading your results',
+    description: 'Screen reader text while results stream in behind placeholders.',
   },
   loading: {
     id: 'learner.personalizedSearch.loading',

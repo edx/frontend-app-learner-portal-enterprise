@@ -191,11 +191,15 @@ exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] =
       "error": "model_failed",
       "followups": {
         "attribute": "type",
-        "question": "How much time can you give it?",
+        "ideas": [
+          "Giving feedback to my team",
+          "Leading remote teams",
+        ],
+        "question": "Do you want courses, executive education or a program?",
         "suggestions": [
-          "Under 4 weeks",
-          "1 to 3 months",
           "Courses",
+          "Executive education",
+          "Programs",
         ],
       },
       "localId": "local-1",
@@ -246,12 +250,12 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
       "error": null,
       "followups": {
         "attribute": "open",
-        "question": "Is there another skill you want?",
-        "suggestions": [
-          "Data",
-          "AI",
-          "Prepare for a leadership role",
+        "ideas": [
+          "Data skills",
+          "AI for my job",
         ],
+        "question": "Is there another skill you want?",
+        "suggestions": [],
       },
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
@@ -261,7 +265,7 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
       "text": "Nothing in your catalog covers underwater basket weaving.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 2300,
+        "complete_ms": 2400,
         "dropped_lines": 0,
         "first_section_ms": null,
         "first_text_ms": 400,
@@ -299,20 +303,6 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
         {
           "block": {
             "props": {
-              "chips": [
-                "Leadership",
-                "Introductory",
-              ],
-              "summary": "I picked these from your organization's catalog using what you told me: your goal, how you like to learn and the time you have.",
-            },
-            "type": "profile",
-            "v": 1,
-          },
-          "id": "blk_1",
-        },
-        {
-          "block": {
-            "props": {
               "dek": "Short, practical picks.",
               "label": "Your results",
               "title": "Lead with confidence",
@@ -320,7 +310,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "page_header",
             "v": 1,
           },
-          "id": "blk_2",
+          "id": "blk_1",
         },
         {
           "block": {
@@ -355,7 +345,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "top_pick",
             "v": 1,
           },
-          "id": "blk_3",
+          "id": "blk_2",
         },
         {
           "block": {
@@ -444,7 +434,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "compare",
             "v": 1,
           },
-          "id": "blk_4",
+          "id": "blk_3",
         },
         {
           "block": {
@@ -536,7 +526,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_5",
+          "id": "blk_4",
         },
         {
           "block": {
@@ -574,7 +564,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_6",
+          "id": "blk_5",
         },
         {
           "block": {
@@ -585,7 +575,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "insight",
             "v": 1,
           },
-          "id": "blk_7",
+          "id": "blk_6",
         },
         {
           "block": {
@@ -600,8 +590,23 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   "note": "Then",
                 },
               ],
+              "why": "Start with the basics, then build to the full certificate.",
             },
             "type": "plan",
+            "v": 1,
+          },
+          "id": "blk_7",
+        },
+        {
+          "block": {
+            "props": {
+              "chips": [
+                "Leadership",
+                "Introductory",
+              ],
+              "summary": "I picked these from your organization's catalog using what you told me: your goal, how you like to learn and the time you have.",
+            },
+            "type": "profile",
             "v": 1,
           },
           "id": "blk_8",
@@ -610,11 +615,15 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
       "error": null,
       "followups": {
         "attribute": "type",
-        "question": "How much time can you give it?",
+        "ideas": [
+          "Giving feedback to my team",
+          "Leading remote teams",
+        ],
+        "question": "Do you want courses, executive education or a program?",
         "suggestions": [
-          "Under 4 weeks",
-          "1 to 3 months",
           "Courses",
+          "Executive education",
+          "Programs",
         ],
       },
       "localId": "local-1",
@@ -625,7 +634,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
       "text": "I put a leadership certificate at the top.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 9150,
+        "complete_ms": 9900,
         "dropped_lines": 0,
         "first_section_ms": 5500,
         "first_text_ms": 400,
