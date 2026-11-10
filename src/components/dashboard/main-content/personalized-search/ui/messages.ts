@@ -144,7 +144,7 @@ const messages = defineMessages({
   suggestedChip: {
     id: 'learner.personalizedSearch.chat.suggestedChip',
     defaultMessage: 'Suggested',
-    description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
+    description: 'Screen reader label after the text of a chip the AI suggested for this conversation (marked by a sparkle).',
   },
   excludedTab: {
     id: 'learner.personalizedSearch.results.tab.excluded',
@@ -163,7 +163,7 @@ const messages = defineMessages({
   },
   includeAgainItem: {
     id: 'learner.personalizedSearch.results.excluded.includeAgainItem',
-    defaultMessage: 'Include {title} in results again',
+    defaultMessage: 'Include again: {title}',
     description: 'Accessible label for the Include again button on an excluded item.',
   },
   forYouTab: {
@@ -499,12 +499,7 @@ const messages = defineMessages({
   savedButton: {
     id: 'learner.personalizedSearch.saved.button',
     defaultMessage: 'Saved ({count})',
-    description: 'Opens the Saved view; count is the number of saved items.',
-  },
-  savedTitle: {
-    id: 'learner.personalizedSearch.saved.title',
-    defaultMessage: 'Saved items',
-    description: 'Heading of the Saved view.',
+    description: 'Label of the Saved results tab; count is the number of saved items.',
   },
   savedEmpty: {
     id: 'learner.personalizedSearch.saved.empty',

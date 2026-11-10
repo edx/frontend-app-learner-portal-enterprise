@@ -14,7 +14,7 @@ import { presentTurnError } from './turnErrors';
 
 export interface AssistantMessageProps {
   turn: AssistantTurn;
-  /** Only the latest turn's chips are interactive. */
+  /** Only the latest turn offers Retry. */
   isLatest: boolean;
   busy: boolean;
   onRetry: (turnId: string) => void;

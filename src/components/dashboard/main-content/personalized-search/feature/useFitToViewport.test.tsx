@@ -32,6 +32,18 @@ describe('useFitToViewport', () => {
     expect(screen.getByTestId('panes')).toHaveStyle(`height: ${1100 - 300 - VIEWPORT_GAP}px`);
   });
 
+  it('fits an element that remounts while enabled', () => {
+    placeAt(300);
+    const Remounting = ({ shown }: { shown: boolean }) => {
+      const ref = useFitToViewport<HTMLDivElement>(true);
+      return <div>{shown && <div ref={ref} data-testid="panes" />}</div>;
+    };
+    const { rerender } = render(<Remounting shown />);
+    rerender(<Remounting shown={false} />);
+    rerender(<Remounting shown />);
+    expect(screen.getByTestId('panes')).toHaveStyle(`height: ${900 - 300 - VIEWPORT_GAP}px`);
+  });
+
   it('fitHeight: independent of scrolling, with a usable minimum', () => {
     // Scrolled 200px: the panes' top is at 100 in the viewport, 300 in the page; the height is the same.
     expect(fitHeight({ viewportHeight: 900, restingTop: 100 + 200 }))

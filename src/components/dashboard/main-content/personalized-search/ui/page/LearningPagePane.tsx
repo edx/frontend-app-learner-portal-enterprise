@@ -8,6 +8,7 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
 import { hasPage, selectPageTurn } from '../../core/selectors';
+import type { ExplainScope } from '../../core/analytics';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
 import ResultsSkeleton from './ResultsSkeleton';
@@ -36,13 +37,14 @@ export interface LearningPagePaneProps {
   /** The card just hidden by Not interested, offered for Undo. */
   undoItem?: ItemCard | null;
   onUndo?: () => void;
+  /** A failed change hides the Undo notice; its Alert sits above the results tabs. */
   feedbackError?: boolean;
   onClearNotice?: () => void;
   /** Sends a chat message for the learner (More like this). */
   onAsk?: (message: string) => void;
   /** Usage events (KD-12). */
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
+  onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
   /** Leaves an earlier reply's results (the "Earlier results" banner) for the newest ones. */
   onBackToLatest?: () => void;
 }
@@ -144,11 +146,6 @@ const LearningPagePane = ({
       aria-label={intl.formatMessage(messages.pagePaneLabel)}
       data-turn-id={pageTurn?.localId}
     >
-      {feedbackError && (
-        <Alert variant="danger" dismissible onClose={onClearNotice} className="mb-3">
-          {intl.formatMessage(messages.feedbackError)}
-        </Alert>
-      )}
       <Toast
         show={!!undoItem && !feedbackError}
         onClose={() => onClearNotice?.()}

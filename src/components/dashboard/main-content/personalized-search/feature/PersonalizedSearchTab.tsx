@@ -57,8 +57,9 @@ const PersonalizedSearchTab = ({
   const [savedToast, setSavedToast] = useState(false);
   const toggleSave = (item: Parameters<typeof controller.toggleSave>[0]) => {
     const saving = !savedIds.has(item.item_id);
-    controller.toggleSave(item);
-    if (saving) { setSavedToast(true); }
+    controller.toggleSave(item).then((ok) => {
+      if (saving && ok) { setSavedToast(true); }
+    });
   };
 
   const chat = (
@@ -100,34 +101,42 @@ const PersonalizedSearchTab = ({
     />
   );
   const page = (
-    <ResultsTabs
-      activeTab={(controller.savedOpen && 'saved') || (controller.excludedOpen && 'excluded') || 'for-you'}
-      savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
-      excludedCount={feedback.dismissed.length}
-      showExcluded={controller.excludedTabShown}
-      onSelect={(tab) => {
-        if (tab === 'saved') { controller.openSaved(); } else if (tab === 'excluded') {
-          controller.openExcluded();
-        } else { controller.closeSaved(); }
-      }}
-      forYou={forYou}
-      excluded={(
-        <ExcludedView
-          items={feedback.dismissed}
-          links={controller.links}
-          onRestore={controller.restore}
-          onOpen={(item) => controller.openItem(item, 'excluded_tab')}
-        />
+    <>
+      {/* Above the tabs, so a failed change on any tab is shown. */}
+      {feedback.error && (
+        <Alert variant="danger" dismissible onClose={controller.clearFeedbackNotice} className="mb-3">
+          {intl.formatMessage(messages.feedbackError)}
+        </Alert>
       )}
-      saved={(
-        <SavedView
-          items={feedback.saved}
-          links={controller.links}
-          onToggleSave={controller.toggleSave}
-          onOpen={(item) => controller.openItem(item, 'saved_tab')}
-        />
-      )}
-    />
+      <ResultsTabs
+        activeTab={(controller.savedOpen && 'saved') || (controller.excludedOpen && 'excluded') || 'for-you'}
+        savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
+        excludedCount={feedback.dismissed.length}
+        showExcluded={controller.excludedTabShown}
+        onSelect={(tab) => {
+          if (tab === 'saved') { controller.openSaved(); } else if (tab === 'excluded') {
+            controller.openExcluded();
+          } else { controller.closeSaved(); }
+        }}
+        forYou={forYou}
+        excluded={(
+          <ExcludedView
+            items={feedback.dismissed}
+            links={controller.links}
+            onRestore={controller.restore}
+            onOpen={(item) => controller.openItem(item, 'excluded_tab')}
+          />
+        )}
+        saved={(
+          <SavedView
+            items={feedback.saved}
+            links={controller.links}
+            onToggleSave={(item) => controller.toggleSave(item, 'saved_tab')}
+            onOpen={(item) => controller.openItem(item, 'saved_tab')}
+          />
+        )}
+      />
+    </>
   );
 
   const debugPanel = controller.debugEnabled && (

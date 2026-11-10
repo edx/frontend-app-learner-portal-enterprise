@@ -114,9 +114,8 @@ describe('ChatPane', () => {
     await user.click(await waitFor(() => followUpChip('Programs')));
     await waitForIdle();
     // The AI's chips follow the fixed ones and carry a sparkle.
-    const idea = screen.getByText('Giving feedback to my team').closest('.pgn__chip') as HTMLElement;
+    const idea = screen.getByRole('button', { name: /Giving feedback to my team.*Suggested/ });
     expect(idea).toHaveClass('personalized-search__idea-chip');
-    expect(idea.querySelector('svg')).toBeInTheDocument();
     await user.click(screen.getByText('Giving feedback to my team'));
     await waitForIdle();
     expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
@@ -194,6 +193,8 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
+    // With no fixed chips, the AI's ideas are the only chips.
+    expect(followUpChip('Data skills')).toHaveClass('personalized-search__idea-chip');
     expect(screen.queryByRole('button', { name: 'See your last recommendations' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', first.localId);
   });

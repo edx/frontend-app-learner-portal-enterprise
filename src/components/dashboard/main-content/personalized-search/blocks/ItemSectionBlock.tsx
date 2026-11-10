@@ -2,6 +2,7 @@ import { CardGrid } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../ui/messages';
+import type { ExplainScope } from '../core/analytics';
 import type { ItemCard, ItemSectionProps } from '../core/stream/types';
 import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
@@ -23,7 +24,7 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   onDismiss?: (item: ItemCard) => void;
   searchQuery?: string;
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
+  onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
 }
 
 /**

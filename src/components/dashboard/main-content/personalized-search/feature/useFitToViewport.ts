@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 /** Space kept below the panes, in px. */
 export const VIEWPORT_GAP = 16;
@@ -16,12 +16,12 @@ export const fitHeight = ({ viewportHeight, restingTop }: { viewportHeight: numb
 /**
  * Sizes the chat and results panes (wide layout) to the window, like the search page: each pane
  * scrolls inside itself. Re-fitted when the window resizes or the content above the panes changes
- * (the debug panel, a "Past search" banner).
+ * (the debug panel, a "Past search" banner). Returns a callback ref, so a remounted element (the tab
+ * coming back after "not available") is fitted too.
  */
 export const useFitToViewport = <T extends HTMLElement>(enabled: boolean) => {
-  const ref = useRef<T>(null);
+  const [element, setElement] = useState<T | null>(null);
   useLayoutEffect(() => {
-    const element = ref.current;
     if (!enabled || !element) { return undefined; }
     let frame = 0;
     const fit = () => {
@@ -43,6 +43,6 @@ export const useFitToViewport = <T extends HTMLElement>(enabled: boolean) => {
       window.cancelAnimationFrame(frame);
       element.style.height = '';
     };
-  }, [enabled]);
-  return ref;
+  }, [enabled, element]);
+  return setElement;
 };

@@ -5,7 +5,7 @@ import { mergeConfig } from '@edx/frontend-platform';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
@@ -291,6 +291,20 @@ describe('useDashboardTabs', () => {
         'edx.ui.enterprise.learner_portal.personalized_search_tab.page_visit',
         expect.objectContaining({ tab: DASHBOARD_PERSONALIZED_SEARCH_TAB }),
       );
+    });
+
+    it('marks a tab chosen here with navigation state, so the tab can tell it from a deep link', () => {
+      enablePersonalizedSearch();
+      const { result } = renderHook(
+        () => ({ ...useDashboardTabs(), location: useLocation() }),
+        { wrapper: createWrapper([`/?tab=${DASHBOARD_COURSES_TAB}`]) },
+      );
+      expect(result.current.location.state).toBeNull();
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      });
+      expect(result.current.location.search).toBe(`?tab=${DASHBOARD_PERSONALIZED_SEARCH_TAB}`);
+      expect(result.current.location.state).toEqual({ dashboardTabSource: 'nav_tab' });
     });
   });
 

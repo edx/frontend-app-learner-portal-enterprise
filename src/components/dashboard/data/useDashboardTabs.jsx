@@ -148,11 +148,12 @@ const useDashboardTabs = () => {
       return;
     }
 
+    // The navigation state tells a tab it was chosen here rather than reached by a link (?tab=).
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', tabName);
       return next;
-    });
+    }, { state: { dashboardTabSource: 'nav_tab' } });
   }, [activeTab, setSearchParams, tabState]);
 
   useEffect(() => {
