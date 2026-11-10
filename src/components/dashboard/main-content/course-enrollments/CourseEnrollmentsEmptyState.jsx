@@ -3,10 +3,17 @@ import { Icon } from '@openedx/paragon';
 import { MenuBook } from '@openedx/paragon/icons';
 import { Link } from 'react-router-dom';
 
-import { useEnterpriseCustomer } from '../../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer } from '../../../app/data';
 
 const CourseEnrollmentsEmptyState = () => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  const exploringCoursesText = (
+    <FormattedMessage
+      id="enterprise.dashboard.tab.courses.no.courses.registered.explore.link"
+      defaultMessage="exploring courses"
+      description="Inline link text within the default My Courses empty-state body sentence."
+    />
+  );
 
   return (
     <div className="d-flex flex-column align-items-center text-center py-4 w-50 mx-auto">
@@ -24,15 +31,10 @@ const CourseEnrollmentsEmptyState = () => {
           defaultMessage="Once you enroll in a course, it will appear here. Start by {exploringCoursesLink} or building your personalized pathway above."
           description="Body for the default My Courses empty state, with an inline link to course search."
           values={{
-            exploringCoursesLink: (
-              <Link to={`/${enterpriseCustomer.slug}/search`}>
-                <FormattedMessage
-                  id="enterprise.dashboard.tab.courses.no.courses.registered.explore.link"
-                  defaultMessage="exploring courses"
-                  description="Inline link text within the default My Courses empty-state body sentence."
-                />
-              </Link>
-            ),
+            // Rendered as plain text when course search is disabled for the customer (ENT-12375).
+            exploringCoursesLink: isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)
+              ? exploringCoursesText
+              : <Link to={`/${enterpriseCustomer.slug}/search`}>{exploringCoursesText}</Link>,
           }}
         />
       </p>

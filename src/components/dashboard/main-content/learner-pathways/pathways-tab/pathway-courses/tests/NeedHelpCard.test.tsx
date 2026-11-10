@@ -132,4 +132,15 @@ describe('NeedHelpCard', () => {
       );
     });
   });
+
+  it('renders the course search text without a link when "Find a Course" is disabled for the customer', () => {
+    (getConfig as jest.Mock).mockReturnValue({
+      LEARNER_SUPPORT_URL: 'https://enterprise-support.edx.org/s/',
+      FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+    });
+    renderComponent();
+    expect(screen.queryByRole('link', { name: 'course search' })).not.toBeInTheDocument();
+    expect(screen.getByText(/course search/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /edX Help Center/ })).toBeInTheDocument();
+  });
 });

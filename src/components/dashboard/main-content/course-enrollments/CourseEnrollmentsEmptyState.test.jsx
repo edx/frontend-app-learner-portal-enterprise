@@ -6,6 +6,7 @@ import { NIL as NIL_UUID } from 'uuid';
 
 import CourseEnrollmentsEmptyStateContainer from './CourseEnrollmentsEmptyStateContainer';
 import {
+  isFindACourseDisabledForEnterpriseCustomer,
   useAcademies,
   useCanOnlyViewHighlights,
   useCanViewAcademies,
@@ -18,6 +19,7 @@ import { renderWithRouter } from '../../../../utils/tests';
 
 jest.mock('../../../app/data', () => ({
   ...jest.requireActual('../../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useAcademies: jest.fn(),
   useCanViewAcademies: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
@@ -55,6 +57,7 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: false } });
     useCanOnlyViewHighlights.mockReturnValue({ data: false });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
     mockGroupAssociationsAlert();
   });
 
@@ -130,6 +133,40 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
     expect(findCourseButton).toHaveAttribute('href', '/test-enterprise/search');
   });
 
+  it('renders the legacy empty state without the Find a course button when "Find a Course" is disabled for the customer', () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+
+    renderComponent();
+
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+    expect(screen.getByText(/Getting started with edX is easy/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Find a course' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Recommend courses for me' })).toBeInTheDocument();
+  });
+
+  it('renders the new group assignment alert with a Find a course action', () => {
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: true } });
+    mockGroupAssociationsAlert({ showNewGroupAssociationAlert: true });
+
+    renderComponent();
+
+    expect(screen.getByText('You have new courses to browse')).toBeInTheDocument();
+    // One "Find a course" link in the alert, one in the legacy empty state.
+    expect(screen.getAllByRole('link', { name: 'Find a course' })).toHaveLength(2);
+  });
+
+  it('renders the new group assignment alert without the Find a course action when "Find a Course" is disabled for the customer', () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseGroupsV1: true } });
+    mockGroupAssociationsAlert({ showNewGroupAssociationAlert: true });
+
+    renderComponent();
+
+    expect(screen.getByText('You have new courses to browse')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Find a course' })).not.toBeInTheDocument();
+  });
+
   it('renders the redesigned generic empty state with no Find a course button and no course recommendations when Learner Pathways is enabled', () => {
     mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
@@ -143,5 +180,17 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
 
     const exploreLink = screen.getByRole('link', { name: 'exploring courses' });
     expect(exploreLink).toHaveAttribute('href', '/test-enterprise/search');
+  });
+
+  it('renders "exploring courses" as plain text when Learner Pathways is enabled and "Find a Course" is disabled', () => {
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+
+    renderComponent();
+
+    expect(screen.getByText(/Once you enroll in a course/)).toBeInTheDocument();
+    expect(screen.getByText(/exploring courses/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'exploring courses' })).not.toBeInTheDocument();
   });
 });

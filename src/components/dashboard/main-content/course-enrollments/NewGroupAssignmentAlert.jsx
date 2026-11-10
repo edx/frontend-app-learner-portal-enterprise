@@ -3,18 +3,21 @@ import { Link } from 'react-router-dom';
 import { Alert, Button } from '@openedx/paragon';
 import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 
+import { isFindACourseDisabledForEnterpriseCustomer } from '../../../app/data';
+
 const NewGroupAssignmentAlert = ({
   showAlert,
   enterpriseCustomer,
   onClose,
 }) => {
   const intl = useIntl();
+  const isFindACourseDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer?.uuid);
   return (
     <Alert
       variant="info"
       show={showAlert}
       dismissible
-      actions={[
+      actions={isFindACourseDisabled ? [] : [
         <Button
           as={Link}
           className="text-nowrap"
@@ -57,6 +60,7 @@ NewGroupAssignmentAlert.propTypes = {
   onClose: PropTypes.func,
   showAlert: PropTypes.bool,
   enterpriseCustomer: PropTypes.shape({
+    uuid: PropTypes.string,
     name: PropTypes.string,
   }),
 };

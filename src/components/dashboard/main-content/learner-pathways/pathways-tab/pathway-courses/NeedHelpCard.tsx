@@ -4,7 +4,7 @@ import { Card, Hyperlink, MailtoLink } from '@openedx/paragon';
 import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform/config';
 
-import { useEnterpriseCustomer } from '../../../../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer } from '../../../../../app/data';
 import { getContactEmail } from '../../../../../../utils/common';
 import { usePathwaysAnalytics } from '../hooks';
 import messages from './messages';
@@ -20,6 +20,7 @@ const NeedHelpCard = () => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { trackControlInteracted } = usePathwaysAnalytics();
   const courseSearchUrl = `/${enterpriseCustomer?.slug}/search`;
+  const isCourseSearchDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer?.uuid);
   const contactEmail = getContactEmail(enterpriseCustomer);
   const helpCenterUrl = getConfig().LEARNER_SUPPORT_URL;
 
@@ -44,7 +45,9 @@ const NeedHelpCard = () => {
             /* eslint-disable react/no-unstable-nested-components */
             values={{
               searchLink: (chunks: ReactNode) => (
-                <Link to={courseSearchUrl} onClick={trackNeedHelpClick('course_search')}>{chunks}</Link>
+                isCourseSearchDisabled
+                  ? chunks
+                  : <Link to={courseSearchUrl} onClick={trackNeedHelpClick('course_search')}>{chunks}</Link>
               ),
               adminLink: (chunks: ReactNode) => (
                 contactEmail

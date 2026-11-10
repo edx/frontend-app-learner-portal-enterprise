@@ -1,5 +1,6 @@
 import { NIL as NIL_UUID } from 'uuid';
 
+import { matchesEnterpriseCustomerConfigUuid } from '../../app/data/utils';
 import { ASSIGNMENTS_EXPIRING_WARNING_LOCALSTORAGE_KEY, BUDGET_STATUSES } from './constants';
 
 /**
@@ -73,7 +74,9 @@ export function isLearnerPathwaysEnabledForEnterpriseCustomer(enterpriseCustomer
  * @returns {Boolean} - Returns true if the feature is enabled for this customer.
  */
 export function isPathwayMessageEnabledForEnterpriseCustomer(enterpriseCustomerUuid, allowedEnterpriseCustomerUuid) {
-  if (!allowedEnterpriseCustomerUuid) {
+  // Runtime config (LMS MFE config API) is not normalized by index.tsx, so a misconfigured
+  // non-string value (e.g. a YAML boolean or number) must not reach `.includes()` below.
+  if (typeof allowedEnterpriseCustomerUuid !== 'string' || !allowedEnterpriseCustomerUuid) {
     return false;
   }
   if (allowedEnterpriseCustomerUuid.includes(',')) {
@@ -83,8 +86,7 @@ export function isPathwayMessageEnabledForEnterpriseCustomer(enterpriseCustomerU
       + 'UUID, not a comma-separated list — this value will not match any customer.',
     );
   }
-  const normalizedAllowedUuid = allowedEnterpriseCustomerUuid.toLowerCase();
-  return normalizedAllowedUuid === NIL_UUID || normalizedAllowedUuid === enterpriseCustomerUuid?.toLowerCase();
+  return matchesEnterpriseCustomerConfigUuid(allowedEnterpriseCustomerUuid, enterpriseCustomerUuid);
 }
 
 //  Utility function to check the budget status

@@ -2,12 +2,17 @@ import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import { Button } from '@openedx/paragon';
 import { Link } from 'react-router-dom';
 
-import { useCanOnlyViewHighlights, useEnterpriseCustomer } from '../../../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useCanOnlyViewHighlights,
+  useEnterpriseCustomer,
+} from '../../../app/data';
 import CourseRecommendations from '../CourseRecommendations';
 
 const LegacyCourseEnrollmentsEmptyState = () => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { data: canOnlyViewHighlightSets } = useCanOnlyViewHighlights();
+  const isFindACourseDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
 
   return (
     <>
@@ -18,18 +23,22 @@ const LegacyCourseEnrollmentsEmptyState = () => {
           description="Default message shown to a learner on enterprise dashboard."
         />
       </p>
-      <Button
-        as={Link}
-        to={`/${enterpriseCustomer.slug}/search`}
-        className="btn-brand-primary d-block d-md-inline-block"
-      >
-        <FormattedMessage
-          id="enterprise.dashboard.tab.courses.find.course"
-          defaultMessage="Find a course"
-          description="Label for Find a course button on enterprise dashboard's courses tab."
-        />
-      </Button>
-      <br />
+      {!isFindACourseDisabled && (
+        <>
+          <Button
+            as={Link}
+            to={`/${enterpriseCustomer.slug}/search`}
+            className="btn-brand-primary d-block d-md-inline-block"
+          >
+            <FormattedMessage
+              id="enterprise.dashboard.tab.courses.find.course"
+              defaultMessage="Find a course"
+              description="Label for Find a course button on enterprise dashboard's courses tab."
+            />
+          </Button>
+          <br />
+        </>
+      )}
       {canOnlyViewHighlightSets === false && <CourseRecommendations />}
     </>
   );

@@ -75,6 +75,9 @@ initialize({
         FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: (
           process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER?.trim() || null
         ),
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: (
+          process.env.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER?.trim() || null
+        ),
         // These fields are to support access to prod catalog metadata in stage
         ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE: process.env.ALGOLIA_STAGE_SEARCH_API_KEY_OVERRIDE || null,
         ALGOLIA_STAGE_APP_ID_OVERRIDE: process.env.ALGOLIA_STAGE_APP_ID_OVERRIDE || null,
