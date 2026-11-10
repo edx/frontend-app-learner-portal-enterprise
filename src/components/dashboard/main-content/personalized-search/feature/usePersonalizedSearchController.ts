@@ -12,6 +12,8 @@ import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../cor
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { AssistantTurn, ItemCard } from '../core/stream/types';
+import { joinKeysOf } from '../core/analytics';
+import type { TrackAction, TrackProperties } from '../core/analytics';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { DebugOverrides } from '../core/transports/SseChatTransport';
@@ -249,6 +251,32 @@ export const createPersonalizedSearchController = ({
     const clearFeedbackNotice = useCallback(() => {
       storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
     }, []);
+    /**
+     * Sends a usage event with the turn's join keys (or the latest turn's), the enterprise and the
+     * viewport. Properties are raw facts; nothing is counted or derived here (KD-12).
+     */
+    const track = useCallback((action: TrackAction, properties: TrackProperties = {}, turn?: AssistantTurn) => {
+      if (!enterpriseCustomerUuid) { return; }
+      const { turns } = storeApi.getState().stream;
+      const context = turn?.analytics ?? [...turns].reverse().find((t) => t.analytics)?.analytics;
+      try {
+        deps.trackEvent(action, {
+          ...joinKeysOf(context),
+          enterprise_customer_uuid: enterpriseCustomerUuid,
+          viewport: isWide ? 'desktop' : 'mobile',
+          ...properties,
+        });
+      } catch (e) {
+        deps.logError(e);
+      }
+    }, [enterpriseCustomerUuid, isWide]);
+    const trackedTabView = useRef(false);
+    useEffect(() => {
+      if (trackedTabView.current || !enterpriseCustomerUuid) { return; }
+      trackedTabView.current = true;
+      track('tab_viewed', { entry_point: deps.getEntryPoint() });
+    }, [enterpriseCustomerUuid, track]);
+
     // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
     const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
     const [ratingUnavailable, setRatingUnavailable] = useState(false);
@@ -359,6 +387,7 @@ export const createPersonalizedSearchController = ({
     }, [intl]);
 
     return {
+      track,
       ratings,
       rateTurn: ratingUnavailable ? undefined : rateTurn,
       enterpriseCustomerUuid,

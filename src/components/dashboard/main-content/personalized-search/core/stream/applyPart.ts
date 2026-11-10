@@ -20,6 +20,7 @@ const newTurn = (localId: string, userMessage: string | null): AssistantTurn => 
   localId,
   messageId: null,
   sequence: null,
+  analytics: null,
   userMessage,
   status: 'streaming',
   step: null,
@@ -148,6 +149,8 @@ export const applyPart = (
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, followups: part.data }));
     case 'data-timing':
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, timing: part.data }));
+    case 'data-analytics':
+      return updateTurn(state, activeTurnId, (turn) => ({ ...turn, analytics: part.data }));
     case 'error':
       return {
         ...updateTurn(state, activeTurnId, (turn) => ({
