@@ -84,7 +84,6 @@ const PersonalizedSearchTab = ({
       registry={registry}
       viewedTurnId={controller.viewedTurnId}
       onBackToLatest={controller.showLatestResults}
-      pageFocusRequest={controller.pageFocusRequest}
       links={controller.links}
       reducedMotion={reducedMotion || controller.mode === 'past'}
       savedIds={savedIds}

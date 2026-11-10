@@ -211,6 +211,12 @@
   &:focus {
     background-color: #f2f0ef;
   }
+
+  // A visible keyboard focus ring (WCAG 2.4.7): this rule replaces Paragon's own focus styling.
+  &:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
 }
 
 // History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on

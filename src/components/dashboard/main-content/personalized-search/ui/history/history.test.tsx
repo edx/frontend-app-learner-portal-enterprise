@@ -207,6 +207,26 @@ describe('History panel (chunk 29)', () => {
     ]);
   });
 
+  it('shows the session opened last when an earlier one answers first', async () => {
+    const user = userEvent.setup();
+    const listing = httpGet.getMockImplementation() as (...args: unknown[]) => unknown;
+    const held: Record<string, (value: { data: SessionDetail }) => void> = {};
+    httpGet.mockImplementation((url: string, options: unknown) => {
+      const [, uuid] = url.match(/\/sessions\/([^/]+)\/$/) ?? [];
+      return uuid ? new Promise((resolve) => { held[uuid] = resolve; }) : listing(url, options);
+    });
+    renderTab(new RecordingTransport());
+    await user.click(screen.getByRole('button', { name: 'History' }));
+    const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+    await user.click(await within(panel).findByRole('button', { name: /^Becoming a team lead/ }));
+    await user.click(within(panel).getByRole('button', { name: /^Search 1 Oct/ }));
+    held[DETAIL.uuid]({ data: DETAIL });
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(testStore.getState().stream.session.sessionUuid).toBeNull();
+    held['s-1']({ data: { ...DETAIL, uuid: 's-1', title: 'Search 1' } });
+    await waitFor(() => expect(testStore.getState().stream.session.sessionUuid).toBe('s-1'));
+  });
+
   it('shows an error when history fails to load', async () => {
     const user = userEvent.setup();
     httpGet.mockRejectedValue(new Error('down'));
@@ -217,10 +237,14 @@ describe('History panel (chunk 29)', () => {
 
   describe('the conversation id in the URL', () => {
     const LocationProbe = () => <span data-testid="search">{useLocation().search}</span>;
-    const renderAt = (path: string, transport: ChatTransport = new FixtureChatTransport({ partDelayMs: 0 })) => render(
+    const renderAt = (
+      path: string,
+      transport: ChatTransport = new FixtureChatTransport({ partDelayMs: 0 }),
+      store = createPersonalizedSearchStore(),
+    ) => render(
       <IntlProvider locale="en">
         <MemoryRouter initialEntries={[path]}>
-          <PersonalizedSearchTab store={createPersonalizedSearchStore()} transport={transport} />
+          <PersonalizedSearchTab store={store} transport={transport} />
           <LocationProbe />
         </MemoryRouter>
       </IntlProvider>,
@@ -250,6 +274,40 @@ describe('History panel (chunk 29)', () => {
       renderAt('/test-enterprise?tab=personalized-search&session=11111111-2222-3333-4444-555555555555');
       await waitFor(() => expect(params().get('session')).toBeNull());
       expect(screen.getByText('Hi! What do you want to learn?')).toBeInTheDocument();
+    });
+
+    it('ignores a session value that isn\'t a UUID: no request is made with it', async () => {
+      renderAt('/test-enterprise?tab=personalized-search&session=..%2F..%2Fv1%2Fother%3Fa%3D1');
+      expect(screen.getByText('Hi! What do you want to learn?')).toBeInTheDocument();
+      expect(httpGet).not.toHaveBeenCalled(); // a restore would have requested it on mount
+      expect(screen.queryByText(/Past search/)).not.toBeInTheDocument();
+    });
+
+    it('shows the learner\'s rating on a reopened reply', async () => {
+      httpGet.mockImplementation(async (url: string) => (url.endsWith(`/sessions/${DETAIL.uuid}/`)
+        ? { data: { ...DETAIL, turns: [{ ...DETAIL.turns[0], rating: 1 }] } }
+        : { data: { count: 0, next: null, results: [] } }));
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`);
+      expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Helpful' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Not helpful' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('keeps a conversation the learner started while the one in the URL was still loading', async () => {
+      const user = userEvent.setup();
+      let resolveDetail: (value: { data: SessionDetail }) => void = () => {};
+      httpGet.mockImplementation((url: string) => (url.endsWith(`/sessions/${DETAIL.uuid}/`)
+        ? new Promise((resolve) => { resolveDetail = resolve; })
+        : Promise.resolve({ data: { count: 0, next: null, results: [] } })));
+      const store = createPersonalizedSearchStore();
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, undefined, store);
+      await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+      await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+      const started = store.getState().stream.session.sessionUuid;
+      resolveDetail({ data: DETAIL });
+      await waitFor(() => expect(params().get('session')).toBe(started));
+      expect(screen.queryByText(/Past search/)).not.toBeInTheDocument();
+      expect(store.getState().stream.session.sessionUuid).toBe(started);
     });
   });
 });

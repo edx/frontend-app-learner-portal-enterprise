@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  render, screen, waitFor, within,
+  fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -34,7 +34,6 @@ const renderPane = (turns: AssistantTurn[], props: PaneProps = {}) => render(
       <LearningPagePane
         turns={turns}
         viewedTurnId={null}
-        pageFocusRequest={0}
         links={createPortalItemLinks(SLUG)}
         reducedMotion={false}
         {...props}
@@ -86,7 +85,6 @@ describe('LearningPagePane', () => {
           <LearningPagePane
             turns={turns}
             viewedTurnId={viewedTurnId}
-            pageFocusRequest={0}
             links={createPortalItemLinks(SLUG)}
             reducedMotion={reducedMotion}
           />
@@ -197,7 +195,6 @@ describe('LearningPagePane', () => {
             <LearningPagePane
               turns={headerOnly}
               viewedTurnId={null}
-              pageFocusRequest={0}
               links={createPortalItemLinks(SLUG)}
               reducedMotion={false}
             />
@@ -252,7 +249,6 @@ describe('LearningPagePane', () => {
             <LearningPagePane
               turns={state.turns}
               viewedTurnId={null}
-              pageFocusRequest={0}
               links={createPortalItemLinks(SLUG)}
               reducedMotion={false}
             />
@@ -504,7 +500,21 @@ describe('LearningPagePane', () => {
     const popover = await screen.findByRole('tooltip');
     expect(within(popover).getByText(/I picked these from your organization's catalog/)).toBeInTheDocument();
     expect(within(popover).getByText('Leadership')).toBeInTheDocument();
-    await user.keyboard('{Escape}');
+    // rootClose listens for keyup with keyCode 27, which browsers set and user-event doesn't.
+    fireEvent.keyUp(document, { key: 'Escape', keyCode: 27 });
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('keeps Why these? open when the pointer leaves, and closes it on an outside click', async () => {
+    const user = userEvent.setup();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns);
+    const trigger = screen.getByRole('button', { name: 'Why these?' });
+    await user.click(trigger);
+    expect(await screen.findByRole('tooltip')).toBeInTheDocument();
+    await user.unhover(trigger);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    await user.click(document.body);
     await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
   });
 
@@ -523,6 +533,38 @@ describe('LearningPagePane', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
     const firstBlock = container.querySelector('[data-block-id]');
     expect(firstBlock).toContainElement(caveat);
+  });
+
+  it('keeps the latest caveat with its own page while an earlier reply is viewed', () => {
+    const caveat: Part = {
+      type: 'data-block', id: 'blk_cav', data: { v: 1, type: 'caveat', props: { title: 'Only partly covered', body: 'b' } },
+    };
+    const parts = goldenParts('normal_turn.sse');
+    const finish = parts.findIndex(({ type }) => type === 'finish');
+    const latestParts = [...parts.slice(0, finish), caveat, ...parts.slice(finish)];
+    const first = applyParts(beginTurn(getInitialChatStreamState(), { localId: 'turn-1', userMessage: 'm1' }), parts);
+    const { turns } = applyParts(beginTurn(first, { localId: 'turn-2', userMessage: 'm2' }), latestParts);
+    const { rerender } = renderPane(turns, { viewedTurnId: 'turn-1' });
+    expect(screen.queryByText('Only partly covered')).not.toBeInTheDocument();
+    rerender(
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[`/${SLUG}`]}>
+          <LearningPagePane
+            turns={turns}
+            viewedTurnId={null}
+            links={createPortalItemLinks(SLUG)}
+            reducedMotion={false}
+          />
+        </MemoryRouter>
+      </IntlProvider>,
+    );
+    expect(screen.getByText('Only partly covered')).toBeInTheDocument();
+  });
+
+  it('hides a caveat-only latest reply while the learner views an earlier reply they picked', () => {
+    const { turns } = runTurns(['normal_turn.sse', 'normal_turn.sse', 'no_match_turn.sse']);
+    renderPane(turns, { viewedTurnId: 'turn-1' });
+    expect(screen.queryByText('No matching courses')).not.toBeInTheDocument();
   });
 
   it('marks cards new since the last message as Updated', () => {
@@ -650,24 +692,5 @@ describe('LearningPagePane', () => {
     const reduced = renderPane(turns, { reducedMotion: true });
     expect(reduced.container.querySelectorAll('.personalized-search__block--enter')).toHaveLength(0);
     expect(reduced.container.querySelectorAll('.personalized-search__block').length).toBeGreaterThan(0);
-  });
-
-  it('takes focus when the chat asks for it', () => {
-    const { turns } = runTurns(['normal_turn.sse']);
-    const { rerender } = renderPane(turns, { pageFocusRequest: 0 });
-    rerender(
-      <IntlProvider locale="en">
-        <MemoryRouter>
-          <LearningPagePane
-            turns={turns}
-            viewedTurnId={null}
-            pageFocusRequest={1}
-            links={createPortalItemLinks(SLUG)}
-            reducedMotion
-          />
-        </MemoryRouter>
-      </IntlProvider>,
-    );
-    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
   });
 });

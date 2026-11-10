@@ -86,13 +86,12 @@ export const createPersonalizedSearchController = ({
     const abortRef = useRef<AbortController | null>(null);
 
     const {
-      stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
+      stream, viewedTurnId, draft, unavailable, announcement,
       mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
       feedback, savedOpen, excludedOpen, excludedTabShown, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
-      pageFocusRequest: state.pageFocusRequest,
       draft: state.draft,
       unavailable: state.unavailable,
       announcement: state.announcement,
@@ -340,16 +339,22 @@ export const createPersonalizedSearchController = ({
     // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
     const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
     const [ratingUnavailable, setRatingUnavailable] = useState(false);
+    const rateRequests = useRef<Record<string, number>>({});
     const rateTurn = useCallback(async (turn: AssistantTurn, rating: 1 | -1) => {
       const { sessionUuid } = storeApi.getState().stream.session;
       if (!enterpriseCustomerUuid || !sessionUuid || !turn.sequence) { return; }
       const previous = ratings[turn.localId] ?? null;
       const next = previous === rating ? null : rating;
+      const request = (rateRequests.current[turn.localId] ?? 0) + 1;
+      rateRequests.current[turn.localId] = request;
       setRatings((current) => ({ ...current, [turn.localId]: next }));
       try {
         await deps.feedbackApi.rateTurn(enterpriseCustomerUuid, sessionUuid, turn.sequence, next);
       } catch (e) {
-        setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        // Revert only the latest click on this reply, so a slow failure can't undo a later rating.
+        if (rateRequests.current[turn.localId] === request) {
+          setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        }
         if ((e as { response?: { status?: number } })?.response?.status === 404) {
           setRatingUnavailable(true);
         } else {
@@ -402,10 +407,18 @@ export const createPersonalizedSearchController = ({
       loadHistoryPage(storeApi.getState().history.page + 1);
     }, [loadHistoryPage]);
 
-    /** Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. */
+    /**
+     * Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. A
+     * response that arrives after the learner moved on (sent a message, started a new chat, or opened
+     * another session) is dropped.
+     */
+    const openRequest = useRef(0);
     const openSession = useCallback(async (sessionUuid: string, { restoring = false } = {}) => {
       const store = storeApi.getState();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
+      openRequest.current += 1;
+      const request = openRequest.current;
+      const isStale = () => request !== openRequest.current || storeApi.getState().stream !== store.stream;
       try {
         const reopened = await openSessionWorkflow(
           deps.sessionsApi,
@@ -413,13 +426,16 @@ export const createPersonalizedSearchController = ({
           sessionUuid,
           isRenderableBlock,
         );
+        if (isStale()) { return; }
         const after = storeApi.getState();
         after.reset();
         after.setStream(() => reopened.stream);
         after.setMode('past', reopened.created);
+        setRatings(reopened.ratings);
         after.setHistory({ open: false });
       } catch (e) {
         deps.logError(e);
+        if (isStale()) { return; }
         if (restoring) {
           setSessionParam(null); // the URL named a conversation that's gone or not this learner's
         } else {
@@ -443,17 +459,10 @@ export const createPersonalizedSearchController = ({
       if (restoredSession.current && shownSessionUuid && shownSessionUuid !== sessionParam) {
         setSessionParam(shownSessionUuid);
       }
-    }, [shownSessionUuid]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [shownSessionUuid, sessionParam, setSessionParam]);
 
     const showPane = useCallback((pane: MobilePane) => {
       storeApi.getState().setMobilePane(pane);
-    }, []);
-
-    const showLastRecommendations = useCallback((turnId: string) => {
-      const store = storeApi.getState();
-      store.setViewedTurnId(turnId);
-      store.setMobilePane('page');
-      store.requestPageFocus();
     }, []);
 
     const setDraft = useCallback((value: string) => {
@@ -492,7 +501,6 @@ export const createPersonalizedSearchController = ({
       session: stream.session,
       busy,
       viewedTurnId,
-      pageFocusRequest,
       draft,
       unavailable,
       announcement,
@@ -503,7 +511,6 @@ export const createPersonalizedSearchController = ({
       newChat,
       viewPage,
       showLatestResults,
-      showLastRecommendations,
       isWide,
       reducedMotion,
       mobilePane,

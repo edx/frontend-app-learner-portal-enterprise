@@ -49,7 +49,7 @@ const COLUMN_LABELS: Record<NumericColumn, string> = {
 };
 
 /** What each step's model does, for the info hover next to its picker. */
-export const STEP_INFO = {
+const STEP_INFO = {
   Intent: 'Reads the learner\'s message and turns it into a structured search (skills, roles, level, pacing, '
     + 'time and content types), merged with earlier turns, and checks that it\'s about learning. It runs first, '
     + 'so a small, fast model keeps the reply snappy.',

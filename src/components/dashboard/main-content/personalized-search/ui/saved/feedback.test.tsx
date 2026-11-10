@@ -237,5 +237,21 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
       await user.click(screen.getByRole('button', { name: 'Helpful' }));
       await waitFor(() => expect(screen.queryByRole('button', { name: 'Helpful' })).not.toBeInTheDocument());
     });
+
+    it('a slow failure of an earlier click doesn\'t undo the latest rating', async () => {
+      const user = userEvent.setup();
+      await renderWithPage(user);
+      let failFirst: (error: Error) => void = () => {};
+      http.post.mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }));
+      const up = screen.getByRole('button', { name: 'Helpful' });
+      await user.click(up); // on (held)
+      await user.click(up); // off
+      await user.click(up); // on again
+      expect(up).toHaveAttribute('aria-pressed', 'true');
+      failFirst(new Error('down'));
+      await waitFor(() => expect(http.post).toHaveBeenCalledTimes(3));
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      expect(up).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 });

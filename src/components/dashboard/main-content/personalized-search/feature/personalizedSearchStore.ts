@@ -38,8 +38,6 @@ export interface PersonalizedSearchState {
   stream: ChatStreamState;
   /** Turn whose page the page pane shows; null means the latest turn with a page. */
   viewedTurnId: string | null;
-  /** Incremented to ask the page pane to take focus ("See your last recommendations"). */
-  pageFocusRequest: number;
   /** Composer text; kept in the store so a rejected message can be restored. */
   draft: string;
   /** Set when the backend says the feature is off or the learner has no access (403/404). */
@@ -78,7 +76,6 @@ export interface PersonalizedSearchState {
 export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setStream: (update: (stream: ChatStreamState) => ChatStreamState) => void;
   setViewedTurnId: (turnId: string | null) => void;
-  requestPageFocus: () => void;
   setDraft: (draft: string) => void;
   setUnavailable: (unavailable: boolean) => void;
   setAnnouncement: (announcement: string) => void;
@@ -100,7 +97,6 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
 export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => ({
   stream: getInitialChatStreamState(),
   viewedTurnId: null,
-  pageFocusRequest: 0,
   draft: '',
   unavailable: false,
   announcement: '',
@@ -132,7 +128,6 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
     ...getInitialPersonalizedSearchState(),
     setStream: (update) => set((state) => ({ stream: update(state.stream) })),
     setViewedTurnId: (viewedTurnId) => set({ viewedTurnId }),
-    requestPageFocus: () => set((state) => ({ pageFocusRequest: state.pageFocusRequest + 1 })),
     setDraft: (draft) => set({ draft }),
     setUnavailable: (unavailable) => set({ unavailable }),
     setAnnouncement: (announcement) => set({ announcement }),

@@ -110,7 +110,7 @@ describe('Personalized Search usage events: what the client sends', () => {
 
     const card = screen.getByRole('link', { name: 'Course edX+C2' }).closest('.personalized-search__card') as HTMLElement;
     await user.click(within(card).getByRole('button', { name: 'Why this?' }));
-    screen.getByRole('button', { name: 'Why these?' }).focus();
+    await user.click(screen.getByRole('button', { name: 'Why these?' }));
     await waitFor(() => expect(named('explanation_opened').map((p) => p.scope)).toEqual(['tile', 'set']));
 
     await user.type(screen.getByRole('textbox', { name: 'Message' }), `${LEARNER_TEXT}{Enter}`);
