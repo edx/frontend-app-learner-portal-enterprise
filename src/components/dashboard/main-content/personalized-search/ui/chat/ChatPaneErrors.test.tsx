@@ -66,7 +66,7 @@ const sendMessage = async (user: ReturnType<typeof userEvent.setup>, text: strin
   await user.click(screen.getByRole('button', { name: 'Send' }));
 };
 
-const GENERIC = 'Something went wrong building your page. Try again.';
+const GENERIC = 'Something went wrong updating your results. Try again.';
 const NOT_AVAILABLE = "Personalized Search isn't available right now";
 
 describe('ChatPane stop, errors and retry', () => {

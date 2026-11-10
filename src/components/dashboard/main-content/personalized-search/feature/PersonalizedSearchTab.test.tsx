@@ -44,7 +44,7 @@ describe('PersonalizedSearchTab', () => {
     renderTab();
     const chat = screen.getByRole('region', { name: 'Chat' });
     expect(within(chat).getByText('Hi! What do you want to learn?')).toBeInTheDocument();
-    expect(within(chat).getByText("I search your organization's catalog and build you a learning page.")).toBeInTheDocument();
+    expect(within(chat).getByText("I search your organization's catalog and show you results to compare.")).toBeInTheDocument();
     [
       'Prepare for a leadership role',
       'Learn AI for my job',
@@ -52,9 +52,9 @@ describe('PersonalizedSearchTab', () => {
       'Something quick, under 4 weeks',
     ].forEach((chip) => expect(within(chat).getByText(chip)).toBeInTheDocument());
 
-    const page = screen.getByRole('region', { name: 'Your learning page' });
+    const page = screen.getByRole('region', { name: 'Your results' });
     expect(within(page).getByText(
-      "Your learning page is empty. Tell me what you want to learn and I'll build it.",
+      'Your results will show here. Tell me what you want to learn.',
     )).toBeInTheDocument();
 
     expect(getAuthenticatedHttpClient).not.toHaveBeenCalled();
