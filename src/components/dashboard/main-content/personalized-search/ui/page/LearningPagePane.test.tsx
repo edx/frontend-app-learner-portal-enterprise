@@ -80,12 +80,12 @@ describe('LearningPagePane', () => {
   });
 
   describe('new results bring the results column back to its top', () => {
-    const tree = (turns: AssistantTurn[], reducedMotion = false) => (
+    const tree = (turns: AssistantTurn[], reducedMotion = false, viewedTurnId: string | null = null) => (
       <IntlProvider locale="en">
         <MemoryRouter initialEntries={[`/${SLUG}`]}>
           <LearningPagePane
             turns={turns}
-            viewedTurnId={null}
+            viewedTurnId={viewedTurnId}
             pageFocusRequest={0}
             links={createPortalItemLinks(SLUG)}
             reducedMotion={reducedMotion}
@@ -95,40 +95,68 @@ describe('LearningPagePane', () => {
     );
     const placePaneAt = (top: number) => jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockReturnValue({ top } as DOMRect);
-    let scrollTo: jest.SpyInstance;
+    let scrollIntoView: jest.Mock;
     beforeEach(() => {
-      scrollTo = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
-      Object.defineProperty(window, 'scrollY', { configurable: true, value: 1200 });
+      scrollIntoView = jest.fn();
+      // jsdom doesn't implement scrollIntoView.
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
     });
     afterEach(() => {
       jest.restoreAllMocks();
-      Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
     });
 
-    it('scrolls up when the learner is past the top, and not on mount', () => {
+    it('brings the results top into view on phones when the learner is past it, and not on mount', () => {
       placePaneAt(-800);
       const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
-      expect(scrollTo).not.toHaveBeenCalled();
+      expect(scrollIntoView).not.toHaveBeenCalled();
       rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
-      expect(scrollTo).toHaveBeenCalledTimes(1);
-      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 800 - 16, behavior: 'smooth' });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
     });
 
-    it('turns off scroll anchoring while mounted, so growing results do not drag the view down', () => {
+    it('never writes to the host page to turn off scroll anchoring (a CSS rule does it)', () => {
       const { unmount } = render(tree(runTurns(['normal_turn.sse']).turns));
-      expect(document.documentElement).toHaveAttribute('data-personalized-search-results');
+      const written = Array.from(document.documentElement.attributes).filter(({ name }) => name.includes('personalized'));
+      expect(written).toEqual([]);
       unmount();
-      expect(document.documentElement).not.toHaveAttribute('data-personalized-search-results');
     });
 
     it('stays put when the top is already in view, and jumps without animation for reduced motion', () => {
       placePaneAt(120);
       const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
       rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
-      expect(scrollTo).not.toHaveBeenCalled();
+      expect(scrollIntoView).not.toHaveBeenCalled();
       placePaneAt(-50);
       rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse', 'normal_turn.sse']).turns, true));
-      expect(scrollTo).toHaveBeenCalledWith({ top: 1200 - 50 - 16, behavior: 'auto' });
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' });
+    });
+
+    it('does not scroll for a new chat with no results', () => {
+      placePaneAt(-800);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns));
+      rerender(tree([]));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it('scrolls back to the top when an earlier turn is chosen', () => {
+      placePaneAt(-800);
+      const { turns } = runTurns(['normal_turn.sse', 'normal_turn.sse']);
+      const { rerender } = render(tree(turns));
+      rerender(tree(turns, false, turns[0].localId));
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it('resets its own scroll container in the wide layout instead of scrolling the page', () => {
+      const scroller = document.createElement('div');
+      scroller.className = 'personalized-search__results-scroll';
+      document.body.appendChild(scroller);
+      const { rerender } = render(tree(runTurns(['normal_turn.sse']).turns), { container: scroller });
+      scroller.scrollTop = 300;
+      rerender(tree(runTurns(['normal_turn.sse', 'normal_turn.sse']).turns));
+      expect(scroller.scrollTop).toBe(0);
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      scroller.remove();
     });
   });
 
