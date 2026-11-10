@@ -50,4 +50,9 @@ export interface PersonalizedSearchDeps {
    * (null removes it), so Back and Forward return to the same conversation.
    */
   useSessionParam: () => [string | null, (sessionUuid: string | null) => void];
+  /**
+   * The learner's content language for results and AI text (e.g. "es"), resolved the way the host's other
+   * catalog features resolve it. Optional: without it the server uses English.
+   */
+  getContentLocale?: () => string;
 }

@@ -149,6 +149,8 @@ describe('History panel (chunk 29)', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
     expect(transport.requests[0]).toEqual(expect.objectContaining({ sessionUuid: DETAIL.uuid, message: 'Something shorter' }));
+    // The portal's content locale, resolved like Learner Pathways (English when the config lists no other).
+    expect(transport.requests[0].locale).toBe('en');
     expect(screen.queryByText(/^Past search/)).not.toBeInTheDocument();
     expect(testStore.getState().stream.turns).toHaveLength(2);
   });

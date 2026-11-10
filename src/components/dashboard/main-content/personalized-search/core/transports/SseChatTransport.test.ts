@@ -71,6 +71,16 @@ describe('SseChatTransport', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('debug');
   });
 
+  it('sends the content locale when the request has one, and no key otherwise', async () => {
+    fetchMock.mockImplementation(async () => ({
+      ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')),
+    }));
+    await collect(new SseChatTransport(options).send({ request: { ...REQUEST, locale: 'es' } }));
+    await collect(new SseChatTransport(options).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(expect.objectContaining({ locale: 'es' }));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).not.toHaveProperty('locale');
+  });
+
   it.each([
     [409, { code: 'turn_in_progress' }, 'turn_in_progress'],
     [503, { code: 'backend_unsupported' }, 'backend_unsupported'],
