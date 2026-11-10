@@ -141,6 +141,21 @@ const messages = defineMessages({
     defaultMessage: 'A suggested order',
     description: 'Heading of the suggested learning order on the learning page.',
   },
+  forYouTab: {
+    id: 'learner.personalizedSearch.results.tab.forYou',
+    defaultMessage: 'For you',
+    description: 'The results tab with the AI-personalized picks.',
+  },
+  savedToast: {
+    id: 'learner.personalizedSearch.results.savedToast',
+    defaultMessage: 'Saved',
+    description: 'Toast shown after saving a recommendation.',
+  },
+  viewSaved: {
+    id: 'learner.personalizedSearch.results.viewSaved',
+    defaultMessage: 'View saved',
+    description: 'Toast action that opens the Saved tab.',
+  },
   disclaimer: {
     id: 'learner.personalizedSearch.chat.disclaimer',
     defaultMessage: 'AI recommendations may not be perfect. Results come from your organization\'s catalog.',
@@ -318,7 +333,7 @@ const messages = defineMessages({
   },
   savedEmpty: {
     id: 'learner.personalizedSearch.saved.empty',
-    defaultMessage: 'Nothing saved yet. Use Save on a recommendation to keep it here.',
+    defaultMessage: 'Save recommendations to compare them later. Saved items stay here across chats.',
     description: 'Empty Saved view.',
   },
   notAvailable: {

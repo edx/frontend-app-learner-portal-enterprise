@@ -84,6 +84,13 @@
   max-width: 85%;
 }
 
+// Saved tab empty state (wireframe D2b).
+.personalized-search__saved-empty {
+  max-width: 40rem;
+  border: 1px dashed currentColor;
+  border-radius: .5rem;
+}
+
 // Debug panel (?debug=true): the benchmark table scrolls inside the card, never the page.
 .personalized-search__debug-table {
   max-width: 100%;

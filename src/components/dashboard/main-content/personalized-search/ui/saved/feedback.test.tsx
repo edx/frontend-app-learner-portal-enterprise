@@ -93,7 +93,7 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
   it('loads saved items once the page has picks, and saves/unsaves with the snapshot', async () => {
     const user = userEvent.setup();
     await renderWithPage(user);
-    expect(await screen.findByRole('button', { name: 'Saved (1)' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Saved (1)' })).toBeInTheDocument();
 
     const save = screen.getByRole('button', { name: 'Save Course edX+C1' });
     expect(save).toHaveAttribute('aria-pressed', 'false');
@@ -106,23 +106,34 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
       kind: 'saved',
       card_snapshot: expect.objectContaining({ title: 'Course edX+C1' }),
     }));
-    expect(screen.getByRole('button', { name: 'Saved (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Saved (2)' })).toBeInTheDocument();
 
     await user.click(unsave);
     expect(http.delete).toHaveBeenCalledWith(URL, {
       params: { enterprise_customer_uuid: 'ent-uuid', item_id: 'edX+C1', kind: 'saved' },
     });
-    expect(screen.getByRole('button', { name: 'Saved (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Saved (1)' })).toBeInTheDocument();
   });
 
-  it('opens the Saved view with saved snapshots and can unsave from it', async () => {
+  it('the Saved tab lists saved snapshots, unsaving removes the card, and the empty state explains the tab', async () => {
     const user = userEvent.setup();
     await renderWithPage(user);
-    await user.click(await screen.findByRole('button', { name: 'Saved (1)' }));
-    const view = screen.getByRole('dialog', { name: 'Saved items' });
+    await user.click(await screen.findByRole('tab', { name: 'Saved (1)' }));
+    const view = screen.getByRole('tabpanel', { name: 'Saved (1)' });
     expect(within(view).getByRole('link', { name: 'Saved earlier' })).toBeInTheDocument();
     await user.click(within(view).getByRole('button', { name: 'Remove Saved earlier from saved' }));
-    expect(within(view).getByText(/Nothing saved yet/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Saved (0)' })).toBeInTheDocument();
+    expect(screen.getByText('Save recommendations to compare them later. Saved items stay here across chats.'))
+      .toBeInTheDocument();
+  });
+
+  it('saving from For you shows a "Saved" toast whose action opens the Saved tab', async () => {
+    const user = userEvent.setup();
+    await renderWithPage(user);
+    await screen.findByRole('tab', { name: 'Saved (1)' });
+    await user.click(screen.getByRole('button', { name: 'Save Course edX+C1' }));
+    await user.click(await screen.findByRole('button', { name: 'View saved' }));
+    expect(screen.getByRole('tab', { name: 'Saved (2)' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('Not interested hides the card with Undo, by keyboard', async () => {
