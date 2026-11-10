@@ -315,6 +315,19 @@ describe('LearningPagePane', () => {
     expect(within(pickInCompare).getByRole('button', { name: 'More options for Program p-1' })).toBeInTheDocument();
   });
 
+  it('explains how the suggested order was picked and why, from an info button', async () => {
+    const user = userEvent.setup();
+    const onExplain = jest.fn();
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { onExplain });
+    const plan = screen.getByRole('heading', { name: 'A suggested order' }).closest('aside') as HTMLElement;
+    await user.hover(within(plan).getByRole('button', { name: 'How this order was picked' }));
+    const popover = await screen.findByRole('tooltip');
+    expect(within(popover).getByText(/The best fit for your goal comes first/)).toBeInTheDocument();
+    expect(within(popover).getByText('Start with the basics, then build to the full certificate.')).toBeInTheDocument();
+    expect(onExplain).toHaveBeenCalledWith('order');
+  });
+
   it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {
     const user = userEvent.setup();
     const { turns } = runTurns(['normal_turn.sse']);

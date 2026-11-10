@@ -205,10 +205,10 @@ export const createPersonalizedSearchController = ({
       // Sending from a reopened session continues it (same session uuid), now live.
       const resumedFromHistory = store.mode === 'past';
       if (resumedFromHistory) { store.setMode('live'); }
-      // Fixed starter-chip copy only; follow-up chips are model-written and typed text is the learner's.
-      track('prompt_submitted', {
-        prompt_source: source, chip_label: source === 'starter_chip' ? chipLabel ?? message : null,
-      });
+      // Fixed chip copy only (starter and follow-up chips); suggested chips are model-written and typed
+      // text is the learner's.
+      const fixedChip = source === 'starter_chip' || source === 'followup_chip';
+      track('prompt_submitted', { prompt_source: source, chip_label: fixedChip ? chipLabel ?? message : null });
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -220,6 +220,7 @@ export const createPersonalizedSearchController = ({
           sessionUuid: store.stream.session.sessionUuid,
           message,
           ...(resumedFromHistory ? { resumedFromHistory } : {}),
+          ...(deps.getContentLocale ? { locale: deps.getContentLocale() } : {}),
         },
         localId,
         signal: controller.signal,
@@ -315,7 +316,7 @@ export const createPersonalizedSearchController = ({
     const openItem = useCallback((item: ItemCard, fallbackSection: string | null = null) => {
       track('result_clicked', itemFacts(item, fallbackSection));
     }, [track]);
-    const explain = useCallback((scope: 'tile' | 'set', item?: ItemCard) => {
+    const explain = useCallback((scope: 'tile' | 'set' | 'order', item?: ItemCard) => {
       track('explanation_opened', { scope, item_key: item?.item_id ?? null });
     }, [track]);
     const clearFeedbackNotice = useCallback(() => {

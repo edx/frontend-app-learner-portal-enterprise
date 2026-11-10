@@ -23,7 +23,7 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   onDismiss?: (item: ItemCard) => void;
   searchQuery?: string;
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
 }
 
 /**

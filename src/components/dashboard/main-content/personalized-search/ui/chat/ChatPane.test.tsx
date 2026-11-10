@@ -13,6 +13,11 @@ import type { FixtureName } from '../../core/transports/FixtureChatTransport';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
+/** A follow-up chip by its text (results headings can share it, e.g. "Programs"). */
+const followUpChip = (text: string) => screen.getAllByText(text)
+  .map((el) => el.closest('.pgn__chip') as HTMLElement)
+  .find(Boolean) as HTMLElement;
+
 const testStore = createPersonalizedSearchStore();
 
 jest.mock('@openedx/paragon', () => ({
@@ -97,18 +102,24 @@ describe('ChatPane', () => {
     expect(composer()).not.toBeDisabled();
   });
 
-  it('sends an opening chip, then a follow-up suggestion chip', async () => {
+  it('sends an opening chip, then a fixed follow-up chip, then an AI-suggested chip', async () => {
     const user = userEvent.setup();
-    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
+    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse', 'normal_turn.sse']);
     renderTab(transport);
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
     expect(sent).toEqual(['Build data skills']);
 
-    await user.click(await screen.findByText('1 to 3 months'));
+    await user.click(await waitFor(() => followUpChip('Programs')));
     await waitForIdle();
-    expect(sent).toEqual(['Build data skills', '1 to 3 months']);
+    // The AI's chips follow the fixed ones and carry a sparkle.
+    const idea = screen.getByText('Giving feedback to my team').closest('.pgn__chip') as HTMLElement;
+    expect(idea).toHaveClass('personalized-search__idea-chip');
+    expect(idea.querySelector('svg')).toBeInTheDocument();
+    await user.click(screen.getByText('Giving feedback to my team'));
+    await waitForIdle();
+    expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
   });
 
   it('chips are keyboard operable', async () => {
@@ -129,7 +140,7 @@ describe('ChatPane', () => {
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
-    await user.click(screen.getByText('1 to 3 months'));
+    await user.click(followUpChip('Programs'));
     await waitForIdle();
 
     const [, second] = testStore.getState().stream.turns;
@@ -181,9 +192,9 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const messages = container.querySelector('.personalized-search__messages') as HTMLElement;
-    expect(within(messages).getByText('How much time can you give it?')).toBeInTheDocument();
-    expect(within(messages).queryByRole('button', { name: 'Under 4 weeks' })).not.toBeInTheDocument();
-    const chip = screen.getByRole('button', { name: 'Under 4 weeks' });
+    expect(within(messages).getByText('Do you want courses, executive education or a program?')).toBeInTheDocument();
+    expect(within(messages).queryByText('Giving feedback to my team')).not.toBeInTheDocument();
+    const chip = followUpChip('Programs');
     const form = container.querySelector('.personalized-search__composer') as HTMLElement;
     // eslint-disable-next-line no-bitwise
     expect(chip.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

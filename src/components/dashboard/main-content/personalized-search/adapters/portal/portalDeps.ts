@@ -1,5 +1,7 @@
 import { logError } from '@edx/frontend-platform/logging';
 
+import { getPathwaysSupportedLocale } from '../../../../../app/data';
+
 import { createDebugApi } from '../../core/api/debug';
 import { createFeedbackApi } from '../../core/api/feedback';
 import { createSessionsApi } from '../../core/api/sessions';
@@ -34,4 +36,7 @@ export const portalDeps: PersonalizedSearchDeps = {
   trackEvent: trackPersonalizedSearchEvent,
   getEntryPoint: getPortalEntryPoint,
   useSessionParam,
+  // The same locale Learner Pathways searches in: the learner's portal language when the MFE's
+  // SUPPORTED_ALGOLIA_LANGUAGE_FILTERS lists it, otherwise English.
+  getContentLocale: getPathwaysSupportedLocale,
 };
