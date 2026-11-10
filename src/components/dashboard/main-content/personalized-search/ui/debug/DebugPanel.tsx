@@ -55,8 +55,9 @@ export const STEP_INFO = {
     + 'so a small, fast model keeps the reply snappy.',
   Compose: 'Picks from the search shortlist and writes the chat reply and the results: the top pick, the '
     + 'comparison, the sections and the follow-up question. It streams, so its speed sets when results appear. '
-    + 'Default: gpt-6-luna, all results in about 6 s. Higher-quality backup: gpt-6.1-terra at low reasoning '
-    + '(it gets 40 results to choose from): better picks and follow-ups, but about 4 s slower (about 10.5 s).',
+    + 'Default: gpt-6-luna, all results in about 6–7 s. Backup: gpt-6.1-terra at low reasoning (it gets 40 '
+    + 'results to choose from): about 3 s slower (about 9–10 s) and 10× the cost, with no better picks in '
+    + 'blind review since the November 2026 fixes. Use it to compare, or if Luna is unavailable.',
 };
 
 interface ModelPickerProps {
