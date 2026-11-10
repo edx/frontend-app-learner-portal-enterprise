@@ -114,9 +114,8 @@ describe('ChatPane', () => {
     await user.click(await waitFor(() => followUpChip('Programs')));
     await waitForIdle();
     // The AI's chips follow the fixed ones and carry a sparkle.
-    const idea = screen.getByText('Giving feedback to my team').closest('.pgn__chip') as HTMLElement;
+    const idea = screen.getByRole('button', { name: /Giving feedback to my team.*Suggested/ });
     expect(idea).toHaveClass('personalized-search__idea-chip');
-    expect(idea.querySelector('svg')).toBeInTheDocument();
     await user.click(screen.getByText('Giving feedback to my team'));
     await waitForIdle();
     expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
@@ -135,6 +134,25 @@ describe('ChatPane', () => {
     expect(scroll).not.toHaveClass('personalized-search__chat-scroll--locked');
     expect(scroll.scrollTop).toBe(800);
     jest.restoreAllMocks();
+  });
+
+  it('goes back to an earlier reply\'s results and returns to the latest', async () => {
+    const user = userEvent.setup();
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    // Only earlier replies offer a way back; the newest results are already showing.
+    expect(screen.queryByRole('button', { name: 'View these results' })).not.toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+    await waitForIdle();
+
+    await user.click(screen.getByRole('button', { name: 'View these results' }));
+    expect(screen.getByText('Earlier results for “Build data skills”')).toBeInTheDocument();
+    expect(screen.getByText('Showing these results')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
+    expect(screen.queryByText(/Earlier results for/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View these results' })).toBeInTheDocument();
   });
 
   it('chips are keyboard operable', async () => {
@@ -175,6 +193,8 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
+    // With no fixed chips, the AI's ideas are the only chips.
+    expect(followUpChip('Data skills')).toHaveClass('personalized-search__idea-chip');
     expect(screen.queryByRole('button', { name: 'See your last recommendations' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', first.localId);
   });

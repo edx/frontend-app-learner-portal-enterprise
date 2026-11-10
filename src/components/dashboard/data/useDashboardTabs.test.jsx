@@ -5,7 +5,8 @@ import { mergeConfig } from '@edx/frontend-platform';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { AutoAwesome } from '@openedx/paragon/icons';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
@@ -250,11 +251,14 @@ describe('useDashboardTabs', () => {
       ]);
     });
 
-    it('has a Beta badge in its title', () => {
+    it('has the sparkle icon before its name and a Beta badge after it', () => {
       enablePersonalizedSearch();
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
-      expect(tab.props.title.props.children[1].props.children).toBe('Beta');
+      const [icon, name, badge] = tab.props.title.props.children;
+      expect(icon.props.src).toBe(AutoAwesome);
+      expect(name).toBe('Personalized Search');
+      expect(badge.props.children).toBe('Beta');
     });
 
     it('is absent when its flag is off, even with the Learner Pathways operator flag on', () => {
@@ -287,6 +291,20 @@ describe('useDashboardTabs', () => {
         'edx.ui.enterprise.learner_portal.personalized_search_tab.page_visit',
         expect.objectContaining({ tab: DASHBOARD_PERSONALIZED_SEARCH_TAB }),
       );
+    });
+
+    it('marks a tab chosen here with navigation state, so the tab can tell it from a deep link', () => {
+      enablePersonalizedSearch();
+      const { result } = renderHook(
+        () => ({ ...useDashboardTabs(), location: useLocation() }),
+        { wrapper: createWrapper([`/?tab=${DASHBOARD_COURSES_TAB}`]) },
+      );
+      expect(result.current.location.state).toBeNull();
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      });
+      expect(result.current.location.search).toBe(`?tab=${DASHBOARD_PERSONALIZED_SEARCH_TAB}`);
+      expect(result.current.location.state).toEqual({ dashboardTabSource: 'nav_tab' });
     });
   });
 

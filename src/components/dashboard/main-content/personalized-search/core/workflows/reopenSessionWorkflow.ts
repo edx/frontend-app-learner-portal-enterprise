@@ -3,6 +3,9 @@ import type { BlockValidator } from '../stream/applyPart';
 import type { ChatStreamState } from '../stream/types';
 import type { SessionDetail, SessionsApi, SessionSummary } from '../api/sessions';
 
+/** The local id a replayed turn gets. */
+export const pastTurnId = (sessionUuid: string, sequence: number) => `past-${sessionUuid}-${sequence}`;
+
 /**
  * Rebuilds chat state from a stored session by replaying each turn's parts through the same reducer
  * the live stream uses, so a reopened session renders exactly as it did live (REQ-010). Hook-free.
@@ -15,7 +18,7 @@ export const reopenSessionWorkflow = (
 ): ChatStreamState => {
   let state = getInitialChatStreamState();
   [...detail.turns].sort((a, b) => a.sequence - b.sequence).forEach((turn) => {
-    state = beginTurn(state, { localId: `past-${detail.uuid}-${turn.sequence}`, userMessage: turn.user_message });
+    state = beginTurn(state, { localId: pastTurnId(detail.uuid, turn.sequence), userMessage: turn.user_message });
     state = applyParts(state, turn.parts, isRenderableBlock);
     if (state.activeTurnId) { state = applyParts(state, [{ type: 'finish' }]); }
   });
@@ -35,9 +38,13 @@ export const openSessionWorkflow = async (
   enterpriseCustomerUuid: string,
   sessionUuid: string,
   isRenderableBlock?: BlockValidator,
-): Promise<{ stream: ChatStreamState; created: string }> => {
+): Promise<{ stream: ChatStreamState; created: string; ratings: Record<string, 1 | -1> }> => {
   const detail = await api.getSession(enterpriseCustomerUuid, sessionUuid);
-  return { stream: reopenSessionWorkflow(detail, isRenderableBlock), created: detail.created };
+  // The learner's thumbs, keyed by the replayed turns' local ids, so a reopened reply shows its rating.
+  const ratings = Object.fromEntries(detail.turns
+    .filter((turn) => turn.rating === 1 || turn.rating === -1)
+    .map((turn) => [pastTurnId(detail.uuid, turn.sequence), turn.rating as 1 | -1]));
+  return { stream: reopenSessionWorkflow(detail, isRenderableBlock), created: detail.created, ratings };
 };
 
 /**

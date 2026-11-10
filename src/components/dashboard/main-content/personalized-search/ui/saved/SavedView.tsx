@@ -32,7 +32,8 @@ const SavedView = ({
       {items.map((item) => (
         <EditorialItemCard
           key={item.item_id}
-          item={item}
+          // "Updated" belongs to the results; a saved card is just saved (as after a reload).
+          item={{ ...item, status: undefined }}
           links={links}
           saved
           onToggleSave={onToggleSave}

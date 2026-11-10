@@ -211,6 +211,12 @@
   &:focus {
     background-color: #f2f0ef;
   }
+
+  // A visible keyboard focus ring (WCAG 2.4.7): this rule replaces Paragon's own focus styling.
+  &:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
 }
 
 // History, like the Xpert chat sidebar: a 25rem right panel, a title bar, day dividers with a rule on
@@ -285,9 +291,15 @@
 }
 
 // Results update in place above the learner's position; scroll anchoring would pin the footer and
-// drag the view down as they grow, away from the results' top (see LearningPagePane).
-html[data-personalized-search-results] {
+// drag the view down as they grow, away from the results' top (see LearningPagePane). Scoped by CSS
+// alone, so the feature never writes to the host page.
+html:has(.personalized-search__page) {
   overflow-anchor: none;
+}
+
+// The gap kept above the results when the page scrolls back to them on phones.
+.personalized-search__page {
+  scroll-margin-top: 1rem;
 }
 
 // A button inside a card sits above the card's full-card link.

@@ -9,21 +9,28 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from '../messages';
 import type { AssistantTurn } from '../../core/stream/types';
 import StatusLine from './StatusLine';
+import { renderInlineBold } from './inlineBold';
 import { presentTurnError } from './turnErrors';
 
 export interface AssistantMessageProps {
   turn: AssistantTurn;
-  /** Only the latest turn's chips are interactive. */
+  /** Only the latest turn offers Retry. */
   isLatest: boolean;
   busy: boolean;
   onRetry: (turnId: string) => void;
   /** The learner's thumbs on this reply; omitted (with onRate) where rating isn't available. */
   rating?: 1 | -1 | null;
   onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
+  /**
+   * Going back to earlier results: 'view' offers "View these results" (an earlier reply with results),
+   * 'showing' marks the reply whose earlier results are on screen, undefined shows nothing.
+   */
+  results?: 'view' | 'showing';
+  onViewResults?: (turnId: string) => void;
 }
 
 const AssistantMessage = ({
-  turn, isLatest, busy, onRetry, rating = null, onRate,
+  turn, isLatest, busy, onRetry, rating = null, onRate, results, onViewResults,
 }: AssistantMessageProps) => {
   const intl = useIntl();
   const isStreaming = turn.status === 'streaming';
@@ -58,10 +65,24 @@ const AssistantMessage = ({
         {turn.status === 'stopped' && (
           <p className="small text-gray-700 font-italic mb-1">{intl.formatMessage(messages.stopped)}</p>
         )}
-        {/* Rendered as plain text: model output never becomes HTML. */}
-        {turn.text && <p className="mb-1 personalized-search__reply">{turn.text}</p>}
+        {/* Plain text with **bold** as <strong> elements: model output never becomes HTML. */}
+        {turn.text && <p className="mb-1 personalized-search__reply">{renderInlineBold(turn.text, { partial: !isDone })}</p>}
         {isDone && turn.followups?.question && (
           <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
+        )}
+        {isDone && results === 'view' && onViewResults && (
+          <Button
+            variant="link"
+            size="inline"
+            className="personalized-search__view-results small mt-1"
+            disabled={busy}
+            onClick={() => onViewResults(turn.localId)}
+          >
+            {intl.formatMessage(messages.viewTheseResults)}
+          </Button>
+        )}
+        {isDone && results === 'showing' && (
+          <p className="small text-gray-700 mb-0 mt-1">{intl.formatMessage(messages.showingTheseResults)}</p>
         )}
         {isDone && onRate && turn.sequence && (
           <Stack direction="horizontal" gap={1} className="mt-1 personalized-search__thumbs">

@@ -49,12 +49,16 @@ const COLUMN_LABELS: Record<NumericColumn, string> = {
 };
 
 /** What each step's model does, for the info hover next to its picker. */
-export const STEP_INFO = {
+const STEP_INFO = {
   Intent: 'Reads the learner\'s message and turns it into a structured search (skills, roles, level, pacing, '
     + 'time and content types), merged with earlier turns, and checks that it\'s about learning. It runs first, '
     + 'so a small, fast model keeps the reply snappy.',
   Compose: 'Picks from the search shortlist and writes the chat reply and the results: the top pick, the '
-    + 'comparison, the sections and the follow-up question. It streams, so its speed sets when results appear.',
+    + 'comparison, the sections and the follow-up question. It streams, so its speed sets when results appear. '
+    + 'Measured November 2026: the default, gpt-6-luna, shows all results in about 6–7 s. The backup, '
+    + 'gpt-6.1-terra with Reasoning set to low (it gets 40 results to choose from), is about 3 s slower '
+    + '(about 9–10 s) and 10× the cost, with no better picks in blind review. Use it to compare, or if '
+    + 'Luna is unavailable.',
 };
 
 interface ModelPickerProps {

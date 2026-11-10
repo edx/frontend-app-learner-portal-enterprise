@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
 import { render, waitFor } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { logError } from '@edx/frontend-platform/logging';
 import { useMediaQuery } from '@openedx/paragon';
 import { MemoryRouter } from 'react-router-dom';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
@@ -44,29 +45,40 @@ describe('Personalized Search usage events: port and adapter', () => {
       .toBe('edx.ui.enterprise.learner_portal.personalized_search.chat.prompt_submitted');
   });
 
-  it('sends nothing without an enterprise and never throws', () => {
-    trackPersonalizedSearchEvent('tab_viewed', {});
-    expect(sendEnterpriseTrackEvent).not.toHaveBeenCalled();
-    (sendEnterpriseTrackEvent as jest.Mock).mockImplementationOnce(() => { throw new Error('blocked'); });
-    expect(() => trackPersonalizedSearchEvent('tab_viewed', { enterprise_customer_uuid: 'ent-uuid' })).not.toThrow();
-  });
-
-  it('reads the entry point from the URL', () => {
+  // The tab mounts only at ?tab=personalized-search, so the URL alone can't tell the entry points apart.
+  it('reports nav_tab for a tab chosen in the dashboard tabs, and deep_link otherwise', () => {
     window.history.pushState({}, '', '/test-enterprise?tab=personalized-search');
     expect(getPortalEntryPoint()).toBe('deep_link');
-    window.history.pushState({}, '', '/test-enterprise');
+    window.history.pushState(
+      { usr: { dashboardTabSource: 'nav_tab' }, key: 'k1', idx: 1 },
+      '',
+      '/test-enterprise?tab=personalized-search',
+    );
     expect(getPortalEntryPoint()).toBe('nav_tab');
   });
 
+  const renderTab = () => render(
+    <IntlProvider locale="en">
+      <MemoryRouter>
+        <PersonalizedSearchTab store={createPersonalizedSearchStore()} transport={new FixtureChatTransport()} />
+      </MemoryRouter>
+    </IntlProvider>,
+  );
+
+  it('a failing send is logged by the controller and doesn\'t break the tab', async () => {
+    const blocked = new Error('blocked');
+    (sendEnterpriseTrackEvent as jest.Mock).mockImplementationOnce(() => { throw blocked; });
+    renderTab();
+    await waitFor(() => expect(logError).toHaveBeenCalledWith(blocked));
+  });
+
   it('sends tab_viewed once when the tab opens, with flat properties', async () => {
-    const view = () => render(
-      <IntlProvider locale="en">
-        <MemoryRouter>
-          <PersonalizedSearchTab store={createPersonalizedSearchStore()} transport={new FixtureChatTransport()} />
-        </MemoryRouter>
-      </IntlProvider>,
+    window.history.pushState(
+      { usr: { dashboardTabSource: 'nav_tab' }, key: 'k2', idx: 2 },
+      '',
+      '/test-enterprise?tab=personalized-search',
     );
-    const { rerender } = view();
+    const { rerender } = renderTab();
     await waitFor(() => expect(sendEnterpriseTrackEvent).toHaveBeenCalledTimes(1));
     rerender(<IntlProvider locale="en"><MemoryRouter><div /></MemoryRouter></IntlProvider>);
     const [uuid, name, properties] = (sendEnterpriseTrackEvent as jest.Mock).mock.calls[0];

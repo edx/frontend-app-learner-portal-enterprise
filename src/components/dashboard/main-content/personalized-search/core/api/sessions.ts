@@ -22,6 +22,8 @@ export interface StoredTurn {
   /** The turn's stream as stored: transient parts removed, reply text coalesced. */
   parts: Part[];
   created: string;
+  /** The learner's thumbs on this reply (1 up, -1 down), if any. */
+  rating?: 1 | -1 | null;
 }
 
 export interface SessionDetail {
@@ -48,7 +50,7 @@ export const createSessionsApi = ({ getHttpClient, getBaseUrl }: ApiOptions): Se
     return data as SessionPage;
   },
   getSession: async (enterpriseCustomerUuid, sessionUuid) => {
-    const { data } = await getHttpClient().get(`${getSessionsUrl(getBaseUrl())}${sessionUuid}/`, {
+    const { data } = await getHttpClient().get(`${getSessionsUrl(getBaseUrl())}${encodeURIComponent(sessionUuid)}/`, {
       params: { enterprise_customer_uuid: enterpriseCustomerUuid },
     });
     return data as SessionDetail;

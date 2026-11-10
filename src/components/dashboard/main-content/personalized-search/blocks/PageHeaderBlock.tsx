@@ -16,7 +16,9 @@ export interface PageHeaderBlockProps extends PageHeaderProps {
 
 /**
  * The results headline (h2) and an "About you" line (wireframe D2). "Why these?" opens a read-only
- * Paragon Popover on hover, focus or click with the plain-language basis and the learner's preferences.
+ * Paragon Popover on click (or Enter/Space) with the plain-language basis and the learner's preferences;
+ * a click elsewhere or Escape closes it. Click, not hover, so it stays open while the learner reads it
+ * and works the same on every browser and with a keyboard.
  */
 const PageHeaderBlock = ({
   title, dek, label, profile, onOpenWhy,
@@ -28,10 +30,10 @@ const PageHeaderBlock = ({
       {label && <p className="sr-only">{label}</p>}
       <div className="d-flex align-items-start justify-content-between">
         <h2 className="mb-2 mr-3">{title}</h2>
-        {profile && (
+        {profile && profile.chips.length > 0 && (
           <OverlayTrigger
-            // Hover or focus opens it (a click focuses the button, so it stays open); Esc closes it.
-            trigger={['hover', 'focus']}
+            trigger="click"
+            rootClose
             placement="bottom-end"
             show={showWhy}
             onToggle={(show: boolean) => {
@@ -55,7 +57,6 @@ const PageHeaderBlock = ({
               size="inline"
               className="text-nowrap mt-2"
               aria-expanded={showWhy}
-              onKeyDown={(event: React.KeyboardEvent) => { if (event.key === 'Escape') { setShowWhy(false); } }}
             >
               {intl.formatMessage(messages.whyThese)}
             </Button>

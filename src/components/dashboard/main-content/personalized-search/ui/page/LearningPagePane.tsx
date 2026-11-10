@@ -1,21 +1,19 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
 import {
-  Alert, Icon, Stack, Toast,
+  Alert, Button, Icon, Skeleton, Stack, Toast,
 } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { selectPageTurn } from '../../core/selectors';
+import { hasPage, selectPageTurn } from '../../core/selectors';
+import type { ExplainScope } from '../../core/analytics';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
 import ResultsSkeleton from './ResultsSkeleton';
 import type { BlockRegistry } from '../../blocks/blockRegistry';
 import type { ItemLinks } from '../cards/EditorialItemCard';
-
-/** Set on <html> while the pane is mounted; the stylesheet turns scroll anchoring off for it. */
-export const SCROLL_ANCHOR_OFF = 'data-personalized-search-results';
 
 const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fromEntries(
   blocks.flatMap(({ block }) => (block.type === 'item_section'
@@ -26,8 +24,6 @@ const itemTitlesOf = (blocks: PageBlock[]): Record<string, string> => Object.fro
 export interface LearningPagePaneProps {
   turns: AssistantTurn[];
   viewedTurnId: string | null;
-  /** Each increment moves focus to the pane. */
-  pageFocusRequest: number;
   /** How item cards link to course and program pages (supplied by the host). */
   links: ItemLinks;
   /** Block renderers; Block catalog v1 by default. */
@@ -41,18 +37,21 @@ export interface LearningPagePaneProps {
   /** The card just hidden by Not interested, offered for Undo. */
   undoItem?: ItemCard | null;
   onUndo?: () => void;
+  /** A failed change hides the Undo notice; its Alert sits above the results tabs. */
   feedbackError?: boolean;
   onClearNotice?: () => void;
   /** Sends a chat message for the learner (More like this). */
   onAsk?: (message: string) => void;
   /** Usage events (KD-12). */
   onOpenItem?: (item: ItemCard) => void;
-  onExplain?: (scope: 'tile' | 'set' | 'order', item?: ItemCard) => void;
+  onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
+  /** Leaves an earlier reply's results (the "Earlier results" banner) for the newest ones. */
+  onBackToLatest?: () => void;
 }
 
 const LearningPagePane = ({
-  turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
-  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain,
+  turns, viewedTurnId, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain, onBackToLatest,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
@@ -84,23 +83,13 @@ const LearningPagePane = ({
   }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
     onOpenItem, onExplain]);
 
-  useEffect(() => {
-    if (pageFocusRequest > 0) { paneRef.current?.focus(); }
-  }, [pageFocusRequest]);
-
-  // Results update in place, above wherever the learner is. The browser's scroll anchoring would pin
-  // the content at the bottom of the window (the footer) and scroll down as the new results grow,
-  // dragging the view away from their top, so it's off while the pane is mounted.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute(SCROLL_ANCHOR_OFF, '');
-    return () => root.removeAttribute(SCROLL_ANCHOR_OFF);
-  }, []);
-
   // New results start at the top: the results pane scrolls back to its top when another turn's results
-  // (or their placeholders) take over. In the wide layout the pane is its own scroll container; on
-  // phones the page scrolls, so it scrolls the page back to the pane. Not on mount, so reopening a
-  // search or returning to the tab doesn't jump.
+  // (or their placeholders) take over, including a search reopened from History or an earlier turn
+  // chosen in the chat. In the wide layout the pane is its own scroll container; on phones the page
+  // scrolls, so it brings the pane's top into view (its scroll-margin keeps a gap). Not on mount, so
+  // returning to the tab doesn't jump; a search restored from the URL arrives after mount but finds the
+  // pane already at its top, so nothing scrolls. (Scroll anchoring is off for
+  // the page by a CSS rule while the pane is in it, so growing results don't drag the view down.)
   const shownTurnId = pageTurn?.localId ?? null;
   const lastShownTurnId = useRef(shownTurnId);
   useEffect(() => {
@@ -113,9 +102,8 @@ const LearningPagePane = ({
       if (scroller.scrollTop > 0) { scroller.scrollTop = 0; }
       return;
     }
-    const { top } = pane.getBoundingClientRect();
-    if (top < 0) {
-      window.scrollTo({ top: Math.max(top + window.scrollY - 16, 0), behavior: reducedMotion ? 'auto' : 'smooth' });
+    if (pane.getBoundingClientRect().top < 0) {
+      pane.scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
     }
   }, [shownTurnId, reducedMotion]);
 
@@ -125,7 +113,8 @@ const LearningPagePane = ({
   const segments = useMemo(() => {
     const out: Array<{ key: string; entries: PageBlock[] }> = [];
     blocks.forEach((entry) => {
-      if (entry.block.type === 'profile') { return; }
+      // The profile shows through "Why these?"; the plan sits in the header row's reserved corner.
+      if (entry.block.type === 'profile' || entry.block.type === 'plan') { return; }
       const last = out[out.length - 1];
       if (entry.block.type === 'item_section' && last?.entries[0].block.type === 'item_section') {
         last.entries.push(entry);
@@ -135,12 +124,18 @@ const LearningPagePane = ({
     });
     return out;
   }, [blocks]);
-  // A caveat from the latest finished turn shows above the previous results when that turn has none.
-  const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn
+  // A caveat from the latest finished turn shows above the previous results when that turn has none of its
+  // own; while the learner views an earlier reply, only that reply's caveat (in its blocks) shows.
+  const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn && !hasPage(latest)
+    && pageTurn === selectPageTurn(turns, null)
     ? latest.blocks.find(({ block }) => block.type === 'caveat') : undefined;
   const loading = !!pageTurn && pageTurn.status === 'streaming';
   const has = (type: string) => blocks.some(({ block }) => block.type === type);
   const reachedCards = has('compare') || has('item_section');
+  const planEntry = blocks.find(({ block }) => block.type === 'plan');
+  // Earlier results (the learner went back to an older reply): say which, with a way back.
+  const latestPageId = selectPageTurn(turns, null)?.localId ?? null;
+  const viewingEarlier = !!pageTurn && !loadingTurn && pageTurn.localId !== latestPageId;
   const blockClass = classNames('personalized-search__block', { 'personalized-search__block--enter': !reducedMotion });
 
   return (
@@ -151,11 +146,6 @@ const LearningPagePane = ({
       aria-label={intl.formatMessage(messages.pagePaneLabel)}
       data-turn-id={pageTurn?.localId}
     >
-      {feedbackError && (
-        <Alert variant="danger" dismissible onClose={onClearNotice} className="mb-3">
-          {intl.formatMessage(messages.feedbackError)}
-        </Alert>
-      )}
       <Toast
         show={!!undoItem && !feedbackError}
         onClose={() => onClearNotice?.()}
@@ -166,29 +156,67 @@ const LearningPagePane = ({
       {standaloneCaveat && (
         <div className="mb-4" data-block-id={standaloneCaveat.id}>{renderBlock(standaloneCaveat.block, ctx, registry)}</div>
       )}
+      {viewingEarlier && (
+        <Alert
+          variant="info"
+          className="mb-4 personalized-search__earlier-results"
+          actions={onBackToLatest ? [(
+            <Button key="back" variant="primary" size="sm" onClick={onBackToLatest}>
+              {intl.formatMessage(messages.backToLatest)}
+            </Button>
+          )] : []}
+        >
+          {intl.formatMessage(messages.earlierResults, { message: pageTurn?.userMessage ?? '' })}
+        </Alert>
+      )}
       {!pageTurn ? (
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
         <Stack gap={4}>
-          {segments.map(({ key, entries }) => (entries[0].block.type === 'item_section' ? (
-            <div key={key} className="personalized-search__more-options">
-              <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
-                <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
-                {intl.formatMessage(messages.moreOptions)}
-              </p>
-              <Stack gap={4}>
-                {entries.map(({ id, block }) => (
-                  <div key={id} className={blockClass} data-block-id={id}>
-                    {renderBlock(block, ctx, registry)}
+          {segments.map(({ key, entries }) => {
+            if (entries[0].block.type === 'page_header') {
+              // The headline row keeps "A suggested order" in its top-right corner. The plan streams last
+              // (it names items already shown), so the corner holds a placeholder until it arrives and
+              // closes if the turn ends without one.
+              return (
+                <div key={key} className="d-flex flex-wrap align-items-start personalized-search__page-top">
+                  <div className={classNames(blockClass, 'personalized-search__header-col mr-4 mb-3')} data-block-id={key}>
+                    {renderBlock(entries[0].block, ctx, registry)}
                   </div>
-                ))}
-              </Stack>
-            </div>
-          ) : (
-            <div key={key} className={blockClass} data-block-id={key}>
-              {renderBlock(entries[0].block, ctx, registry)}
-            </div>
-          )))}
+                  {planEntry && (
+                    <div className={classNames(blockClass, 'personalized-search__plan-col mb-3')} data-block-id={planEntry.id}>
+                      {renderBlock(planEntry.block, ctx, registry)}
+                    </div>
+                  )}
+                  {!planEntry && loading && (
+                    <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
+                      <Skeleton height={18} width="70%" className="mb-2" />
+                      <Skeleton count={3} />
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return entries[0].block.type === 'item_section' ? (
+              <div key={key} className="personalized-search__more-options">
+                <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
+                  <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
+                  {intl.formatMessage(messages.moreOptions)}
+                </p>
+                <Stack gap={4}>
+                  {entries.map(({ id, block }) => (
+                    <div key={id} className={blockClass} data-block-id={id}>
+                      {renderBlock(block, ctx, registry)}
+                    </div>
+                  ))}
+                </Stack>
+              </div>
+            ) : (
+              <div key={key} className={blockClass} data-block-id={key}>
+                {renderBlock(entries[0].block, ctx, registry)}
+              </div>
+            );
+          })}
           {loading && (
             <ResultsSkeleton
               header={!has('page_header')}

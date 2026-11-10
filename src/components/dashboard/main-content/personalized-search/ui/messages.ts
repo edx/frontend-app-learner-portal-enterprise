@@ -81,16 +81,6 @@ const messages = defineMessages({
     defaultMessage: 'Updating your results…',
     description: 'Status line while the assistant writes the reply and page.',
   },
-  viewPage: {
-    id: 'learner.personalizedSearch.chat.viewPage',
-    defaultMessage: 'View results',
-    description: 'Link on a chat reply that shows that turn\'s learning page.',
-  },
-  seeLastRecommendations: {
-    id: 'learner.personalizedSearch.chat.seeLastRecommendations',
-    defaultMessage: 'See your last recommendations',
-    description: 'Link on a text-only reply that shows the previous learning page.',
-  },
   newReplyAnnouncement: {
     id: 'learner.personalizedSearch.chat.newReplyAnnouncement',
     defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} in your results',
@@ -139,7 +129,7 @@ const messages = defineMessages({
   planTitle: {
     id: 'learner.personalizedSearch.page.plan.title',
     defaultMessage: 'A suggested order',
-    description: 'Heading of the suggested learning order on the learning page.',
+    description: 'Heading of the suggested learning order in the results.',
   },
   planInfoTitle: {
     id: 'learner.personalizedSearch.page.plan.infoTitle',
@@ -154,7 +144,7 @@ const messages = defineMessages({
   suggestedChip: {
     id: 'learner.personalizedSearch.chat.suggestedChip',
     defaultMessage: 'Suggested',
-    description: 'Screen reader label for the sparkle on a chip the AI suggested for this conversation.',
+    description: 'Screen reader label after the text of a chip the AI suggested for this conversation (marked by a sparkle).',
   },
   excludedTab: {
     id: 'learner.personalizedSearch.results.tab.excluded',
@@ -173,7 +163,7 @@ const messages = defineMessages({
   },
   includeAgainItem: {
     id: 'learner.personalizedSearch.results.excluded.includeAgainItem',
-    defaultMessage: 'Include {title} in results again',
+    defaultMessage: 'Include again: {title}',
     description: 'Accessible label for the Include again button on an excluded item.',
   },
   forYouTab: {
@@ -239,12 +229,12 @@ const messages = defineMessages({
   pagePaneLabel: {
     id: 'learner.personalizedSearch.page.label',
     defaultMessage: 'Your results',
-    description: 'Accessible label for the Personalized Search learning page pane.',
+    description: 'Accessible label for the Personalized Search results pane.',
   },
   emptyPage: {
     id: 'learner.personalizedSearch.page.empty',
     defaultMessage: 'Your results will show here. Tell me what you want to learn.',
-    description: 'Shown in the learning page pane before the first turn.',
+    description: 'Shown in the results pane before the first turn.',
   },
   paneToggle: {
     id: 'learner.personalizedSearch.paneToggle.label',
@@ -259,12 +249,12 @@ const messages = defineMessages({
   panePage: {
     id: 'learner.personalizedSearch.paneToggle.page',
     defaultMessage: 'Results',
-    description: 'Toggle button that shows the learning page pane on small screens.',
+    description: 'Toggle button that shows the results pane on small screens.',
   },
   newPicks: {
     id: 'learner.personalizedSearch.paneToggle.newPicks',
     defaultMessage: 'New picks',
-    description: 'Badge on the Page toggle when the learning page has picks the learner has not seen yet.',
+    description: 'Badge on the Page toggle when the results have picks the learner has not seen yet.',
   },
   history: {
     id: 'learner.personalizedSearch.history.button',
@@ -325,6 +315,26 @@ const messages = defineMessages({
     id: 'learner.personalizedSearch.close',
     defaultMessage: 'Close',
     description: 'Closes a panel.',
+  },
+  viewTheseResults: {
+    id: 'learner.personalizedSearch.chat.viewTheseResults',
+    defaultMessage: 'View these results',
+    description: 'Link under an earlier reply that shows the results it produced.',
+  },
+  showingTheseResults: {
+    id: 'learner.personalizedSearch.chat.showingTheseResults',
+    defaultMessage: 'Showing these results',
+    description: 'Shown under the earlier reply whose results are on screen.',
+  },
+  earlierResults: {
+    id: 'learner.personalizedSearch.page.earlierResults',
+    defaultMessage: 'Earlier results for “{message}”',
+    description: 'Banner over the results pane while the learner looks at an earlier reply\'s results.',
+  },
+  backToLatest: {
+    id: 'learner.personalizedSearch.page.backToLatest',
+    defaultMessage: 'Back to latest results',
+    description: 'Returns the results pane to the newest results.',
   },
   loadingResults: {
     id: 'learner.personalizedSearch.page.loadingResults',
@@ -489,12 +499,7 @@ const messages = defineMessages({
   savedButton: {
     id: 'learner.personalizedSearch.saved.button',
     defaultMessage: 'Saved ({count})',
-    description: 'Opens the Saved view; count is the number of saved items.',
-  },
-  savedTitle: {
-    id: 'learner.personalizedSearch.saved.title',
-    defaultMessage: 'Saved items',
-    description: 'Heading of the Saved view.',
+    description: 'Label of the Saved results tab; count is the number of saved items.',
   },
   savedEmpty: {
     id: 'learner.personalizedSearch.saved.empty',

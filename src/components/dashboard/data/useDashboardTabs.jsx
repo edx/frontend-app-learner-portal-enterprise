@@ -4,7 +4,8 @@ import {
 import loadable from '@loadable/component';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Badge, Tab } from '@openedx/paragon';
+import { Badge, Icon, Tab } from '@openedx/paragon';
+import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { getConfig } from '@edx/frontend-platform/config';
@@ -147,11 +148,12 @@ const useDashboardTabs = () => {
       return;
     }
 
+    // The navigation state tells a tab it was chosen here rather than reached by a link (?tab=).
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', tabName);
       return next;
-    });
+    }, { state: { dashboardTabSource: 'nav_tab' } });
   }, [activeTab, setSearchParams, tabState]);
 
   useEffect(() => {
@@ -252,6 +254,7 @@ const useDashboardTabs = () => {
         eventKey={DASHBOARD_PERSONALIZED_SEARCH_TAB}
         title={(
           <>
+            <Icon src={AutoAwesome} size="sm" className="d-inline-block align-text-bottom mr-1" />
             {intl.formatMessage({
               id: 'enterprise.dashboard.tab.personalized.search',
               defaultMessage: 'Personalized Search',

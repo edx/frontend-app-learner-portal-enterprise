@@ -50,10 +50,12 @@ describe('applyPart', () => {
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
     expect(turn.text).toBe('I put a leadership certificate at the top.');
-    // Blocks keep stream order; the profile comes after the results and shows through the header's "Why these?".
+    // Blocks keep stream order. The profile arrives with the header and is replaced in place (same id)
+    // by the final one after the results; it shows through the header's "Why these?".
     expect(turn.blocks.map((b) => b.block.type)).toEqual(
-      ['page_header', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan', 'profile'],
+      ['page_header', 'profile', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
     );
+    expect(turn.blocks.filter((b) => b.block.type === 'profile')).toHaveLength(1);
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();

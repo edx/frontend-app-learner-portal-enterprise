@@ -12,6 +12,7 @@ import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import PersonalizedSearchTab from '../adapters/portal/PortalPersonalizedSearchTab';
 import { PERSONALIZED_SEARCH_EVENTS } from '../../../../../eventTracking';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
+import type { FixtureName } from '../core/transports/FixtureChatTransport';
 import { toTurnRequestBody } from '../core/transports/ChatTransport';
 import type { ChatTransport, SendTurnOptions, TurnRequest } from '../core/transports/ChatTransport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
@@ -48,9 +49,13 @@ const JOIN = {
 class Recording implements ChatTransport {
   readonly requests: TurnRequest[] = [];
 
+  /** Goldens for the next sends, in order; then the normal turn. */
+  readonly fixtures: FixtureName[] = [];
+
   async* send({ request, signal }: SendTurnOptions) {
     this.requests.push(request);
-    yield* new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => 'normal_turn.sse' }).send({ request, signal });
+    const fixture = this.fixtures.shift() ?? 'normal_turn.sse';
+    yield* new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => fixture }).send({ request, signal });
   }
 }
 
@@ -110,7 +115,7 @@ describe('Personalized Search usage events: what the client sends', () => {
 
     const card = screen.getByRole('link', { name: 'Course edX+C2' }).closest('.personalized-search__card') as HTMLElement;
     await user.click(within(card).getByRole('button', { name: 'Why this?' }));
-    screen.getByRole('button', { name: 'Why these?' }).focus();
+    await user.click(screen.getByRole('button', { name: 'Why these?' }));
     await waitFor(() => expect(named('explanation_opened').map((p) => p.scope)).toEqual(['tile', 'set']));
 
     await user.type(screen.getByRole('textbox', { name: 'Message' }), `${LEARNER_TEXT}{Enter}`);
@@ -143,6 +148,54 @@ describe('Personalized Search usage events: what the client sends', () => {
     expect(named('prompt_submitted')[2]).toEqual(
       expect.objectContaining({ prompt_source: 'suggested_chip', chip_label: null }),
     );
+  });
+
+  it('Retry resends with the original prompt source', async () => {
+    const user = userEvent.setup();
+    transport.fixtures.push('error_turn.sse');
+    await sendStarter(user);
+    await user.click(await screen.findByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+    const starter = { prompt_source: 'starter_chip', chip_label: 'Prepare for a leadership role' };
+    expect(named('prompt_submitted')).toEqual([expect.objectContaining(starter), expect.objectContaining(starter)]);
+  });
+
+  it('item events on the Saved tab report the tab, not the section the card was saved from', async () => {
+    const user = userEvent.setup();
+    await sendStarter(user);
+    await user.click(screen.getByRole('button', { name: 'Save Course edX+C2' }));
+    expect(named('item_save_toggled')[0]).toEqual(expect.objectContaining({
+      item_key: 'edX+C2', item_section: 'course', item_position: 6, saved: true,
+    }));
+
+    await user.click(screen.getByRole('tab', { name: /Saved/ }));
+    const savedTab = screen.getByRole('tabpanel', { name: /Saved/ });
+    await user.click(within(savedTab).getByRole('link', { name: 'Course edX+C2' }));
+    expect(named('result_clicked')[0]).toEqual(expect.objectContaining({
+      item_key: 'edX+C2', item_section: 'saved_tab', item_position: null,
+    }));
+    await user.click(within(savedTab).getByRole('button', { name: 'Remove Course edX+C2 from saved' }));
+    expect(named('item_save_toggled')[1]).toEqual(expect.objectContaining({
+      item_key: 'edX+C2', item_section: 'saved_tab', item_position: null, saved: false,
+    }));
+  });
+
+  it('opening the Excluded tab is reported once, and Include again sends dismissed: false', async () => {
+    const user = userEvent.setup();
+    await sendStarter(user);
+    await user.click(screen.getByRole('button', { name: 'More options for Course edX+C1' }));
+    await user.click(await screen.findByRole('button', { name: 'Not for me' }));
+    expect(named('excluded_tab_opened')).toHaveLength(0);
+
+    await user.click(screen.getByRole('tab', { name: /Excluded/ }));
+    expect(named('excluded_tab_opened')).toHaveLength(1);
+    const excludedTab = screen.getByRole('tabpanel', { name: /Excluded/ });
+    await user.click(within(excludedTab).getByRole('button', { name: 'Include again: Course edX+C1' }));
+    expect(named('item_dismissed')).toEqual([
+      expect.objectContaining({ item_key: 'edX+C1', dismissed: true }),
+      expect.objectContaining({ item_key: 'edX+C1', dismissed: false }),
+    ]);
+    expect(named('excluded_tab_opened')).toHaveLength(1);
   });
 });
 

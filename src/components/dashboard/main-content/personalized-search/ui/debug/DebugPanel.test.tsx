@@ -7,9 +7,7 @@ import { useMediaQuery } from '@openedx/paragon';
 import { MemoryRouter } from 'react-router-dom';
 
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
-import {
-  DEBUG_SETTINGS_STORAGE_KEY, defaultDebugSettings, createPersonalizedSearchStore,
-} from '../../feature/personalizedSearchStore';
+import { defaultDebugSettings, createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
 import { installStreamGlobals, readGoldenBytes, streamFromBytes } from '../../core/stream/testUtils';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
@@ -108,7 +106,7 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(JSON.parse(init.body).debug).toEqual({ compose_model: 'gpt-4.1', compose_effort: null });
     expect(screen.getByRole('button', { name: 'Copy results as JSON' })).toBeInTheDocument();
     // Kept for this conversation only, never in the browser.
-    expect(window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY)).toBeNull();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('a new conversation goes back to the server default models, in the store and the dropdown', async () => {
@@ -128,11 +126,8 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).debug).toBeUndefined();
   });
 
-  it('a page load starts on the defaults and clears a choice an earlier version saved', () => {
-    window.localStorage.setItem(DEBUG_SETTINGS_STORAGE_KEY, JSON.stringify({ composeModel: 'gpt-4.1' }));
-    const store = createPersonalizedSearchStore();
-    expect(store.getState().debugSettings).toEqual(defaultDebugSettings());
-    expect(window.localStorage.getItem(DEBUG_SETTINGS_STORAGE_KEY)).toBeNull();
+  it('a page load starts on the defaults', () => {
+    expect(createPersonalizedSearchStore().getState().debugSettings).toEqual(defaultDebugSettings());
   });
 
   it('switching back to Server default stops sending the override', async () => {
@@ -189,7 +184,7 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     });
   });
 
-  it('turning Live AI off replays fixtures without calling enterprise-access', async () => {
+  it('turning Live AI off replays fixtures without calling enterprise-access, and New chat keeps it off', async () => {
     const user = userEvent.setup();
     renderTab('/test-enterprise?tab=personalized-search&debug=true');
     await user.click(await screen.findByRole('switch', { name: /Live AI/ }));
@@ -197,6 +192,11 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     await user.click(screen.getByRole('button', { name: 'Learn AI for my job' }));
     await waitFor(() => expect(testStore.getState().stream.turns[0]?.status).toBe('done'), { timeout: 8000 });
     expect(fetchMock).not.toHaveBeenCalled();
+
+    // New chat resets the model choices but keeps the Live switch off.
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.getByRole('switch', { name: /Live AI/ })).not.toBeChecked();
+    expect(testStore.getState().debugSettings).toEqual({ ...defaultDebugSettings(), live: false });
   });
 
   it('says the switcher is off when the server has debug overrides disabled', async () => {

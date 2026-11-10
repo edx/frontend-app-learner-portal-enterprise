@@ -189,19 +189,7 @@ exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] =
       },
       "blocks": [],
       "error": "model_failed",
-      "followups": {
-        "attribute": "type",
-        "ideas": [
-          "Giving feedback to my team",
-          "Leading remote teams",
-        ],
-        "question": "Do you want courses, executive education or a program?",
-        "suggestions": [
-          "Courses",
-          "Executive education",
-          "Programs",
-        ],
-      },
+      "followups": null,
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
       "sequence": 1,
@@ -311,6 +299,20 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "v": 1,
           },
           "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
+              "chips": [
+                "Leadership",
+                "Introductory",
+              ],
+              "summary": "I picked these from your organization's catalog using what you told me: your goal, how you like to learn and the time you have.",
+            },
+            "type": "profile",
+            "v": 1,
+          },
+          "id": "blk_profile",
         },
         {
           "block": {
@@ -518,6 +520,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/edx.png",
                   "partner_name": "edX",
+                  "section": "course",
                   "title": "Course edX+C4",
                   "why": null,
                 },
@@ -597,20 +600,6 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
           },
           "id": "blk_7",
         },
-        {
-          "block": {
-            "props": {
-              "chips": [
-                "Leadership",
-                "Introductory",
-              ],
-              "summary": "I picked these from your organization's catalog using what you told me: your goal, how you like to learn and the time you have.",
-            },
-            "type": "profile",
-            "v": 1,
-          },
-          "id": "blk_8",
-        },
       ],
       "error": null,
       "followups": {
@@ -636,7 +625,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
         "backend": "openai",
         "complete_ms": 9900,
         "dropped_lines": 0,
-        "first_section_ms": 5500,
+        "first_section_ms": 2400,
         "first_text_ms": 400,
         "intent_ms": 100,
         "model_compose": "gpt-5.4-mini",
