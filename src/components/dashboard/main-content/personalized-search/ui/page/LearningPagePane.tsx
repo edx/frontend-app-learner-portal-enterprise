@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
 import {
-  Alert, Col, Icon, Row, Stack, Toast,
+  Alert, Icon, Stack, Toast,
 } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -41,11 +41,14 @@ export interface LearningPagePaneProps {
   onClearNotice?: () => void;
   /** Sends a chat message for the learner (More like this). */
   onAsk?: (message: string) => void;
+  /** Usage events (KD-12). */
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, pageFocusRequest, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
-  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk,
+  onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain,
   registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
@@ -66,14 +69,17 @@ const LearningPagePane = ({
     onAsk,
     topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
     profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock]);
+    onOpenItem,
+    onExplain,
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
+    onOpenItem, onExplain]);
 
   useEffect(() => {
     if (pageFocusRequest > 0) { paneRef.current?.focus(); }
   }, [pageFocusRequest]);
 
   const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
-  // Sections are grouped under "More options", two groups per row (wireframe D2).
+  // Sections are grouped under "More options", one group per row so every card has the same width.
   const groups = body.filter(({ block }) => block.type === 'item_section');
   // The profile renders inside the header's "Why these?", not as a block of its own; caveats lead the pane.
   const others = body.filter(({ block }) => !['item_section', 'profile', 'caveat'].includes(block.type));
@@ -133,13 +139,13 @@ const LearningPagePane = ({
                 <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
                 {intl.formatMessage(messages.moreOptions)}
               </p>
-              <Row>
+              <Stack gap={4}>
                 {groups.map(({ id, block }) => (
-                  <Col key={id} md={6} className={classNames(blockClass, 'mb-4')} data-block-id={id}>
+                  <div key={id} className={blockClass} data-block-id={id}>
                     {renderBlock(block, ctx, registry)}
-                  </Col>
+                  </div>
                 ))}
-              </Row>
+              </Stack>
             </div>
           )}
         </Stack>

@@ -30,6 +30,9 @@ export interface BlockRenderContext {
   topPickId?: string;
   /** What the AI knows about the learner, shown by the header's "Why these?". */
   profile?: ProfileProps;
+  /** Usage events: a card was opened, or an explanation was expanded (a card's or the set's). */
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 /** How one block type renders, and where the results pane puts it. */
@@ -48,7 +51,9 @@ type CatalogBlocks = {
 /** Block catalog v1 (KD-5): `type -> Paragon component`. */
 export const catalogBlocks: CatalogBlocks = {
   page_header: {
-    render: (props, ctx) => <PageHeaderBlock {...props} profile={ctx.profile} />,
+    render: (props, ctx) => (
+      <PageHeaderBlock {...props} profile={ctx.profile} onOpenWhy={() => ctx.onExplain?.('set')} />
+    ),
     slot: 'top',
     slotClassName: 'personalized-search__header-col mr-4 mb-3',
   },
@@ -62,6 +67,8 @@ export const catalogBlocks: CatalogBlocks = {
         onToggleSave={ctx.onToggleSave}
         onDismiss={ctx.onDismiss}
         searchQuery={ctx.searchQuery}
+        onOpenItem={ctx.onOpenItem}
+        onExplain={ctx.onExplain}
       />
     ),
   },

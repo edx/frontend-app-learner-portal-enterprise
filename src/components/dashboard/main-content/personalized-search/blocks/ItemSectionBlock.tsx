@@ -3,11 +3,11 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../ui/messages';
 import type { ItemCard, ItemSectionProps } from '../core/stream/types';
-import EditorialItemCard from '../ui/cards/EditorialItemCard';
+import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 
-/** Cards shown per group (wireframe D2: exactly two); the rest fill a removed card. */
-export const CARDS_PER_GROUP = 2;
+/** Cards shown per group, one row on wide screens; the rest fill a removed card. */
+export const CARDS_PER_GROUP = 3;
 
 const SECTION_NAMES = {
   course: messages.sectionCourse,
@@ -22,15 +22,18 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
   searchQuery?: string;
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: 'tile' | 'set', item?: ItemCard) => void;
 }
 
 /**
  * One "More options" group: the type as an h3, "See all (n)" when the catalog total is known, one
- * explanation line, and two cards. A removed card is replaced by the next item or reserve card.
+ * explanation line, and up to three cards in the shared result grid. A removed card is replaced by the
+ * next item or reserve card.
  */
 const ItemSectionBlock = ({
   dek, items, reserve, total, item_type: itemType, links, savedIds, dismissedIds, onToggleSave, onDismiss,
-  searchQuery,
+  searchQuery, onOpenItem, onExplain,
 }: ItemSectionBlockProps) => {
   const intl = useIntl();
   const pool = [...items, ...(reserve ?? [])];
@@ -49,7 +52,7 @@ const ItemSectionBlock = ({
         )}
       </div>
       {dek && <p className="text-gray-700 mb-3">{dek}</p>}
-      <CardGrid columnSizes={visible.length === 1 ? { xs: 12 } : { xs: 12, md: 6 }}>
+      <CardGrid columnSizes={RESULT_COLUMN_SIZES}>
         {visible.map((item) => (
           <EditorialItemCard
             key={item.item_id}
@@ -58,7 +61,8 @@ const ItemSectionBlock = ({
             saved={savedIds?.has(item.item_id) ?? false}
             onToggleSave={onToggleSave}
             onDismiss={onDismiss}
-            orientation={visible.length === 1 ? 'horizontal' : 'vertical'}
+            onOpen={onOpenItem}
+            onExplain={(opened) => onExplain?.('tile', opened)}
           />
         ))}
       </CardGrid>

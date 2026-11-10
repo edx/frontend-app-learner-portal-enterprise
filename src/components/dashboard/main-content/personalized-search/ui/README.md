@@ -12,7 +12,7 @@ The results pane has two tabs: "For you" (the AI-personalized results, marked wi
 
 ## Result cards
 
-`EditorialItemCard` is the edx.org-style card: a 4px top accent per type (Professional Certificates #03C7E8, Executive Education #D23228, other programs #F0CC00, courses #2D494E), the type label, title, partner, hours per week and length, then pacing and level. The whole card is one link (a stretched title link) that lifts on hover and shows a 3px outline on keyboard focus. The bookmark and a "More options" menu with "Not for me" sit above the link. "Why this?" opens the one-line reason. A section with a single card lays it out horizontally. "Not for me" removes the card and offers Undo in a toast.
+`EditorialItemCard` is the edx.org-style card: a 4px top accent per type (Professional Certificates #03C7E8, Executive Education #D23228, other programs #F0CC00, courses #2D494E), the type label, title, partner, hours per week and length, then pacing and level. The whole card is one link (a stretched title link) that lifts on hover and shows a 3px outline on keyboard focus. The bookmark and a "More options" menu with "Not for me" sit above the link. "Why this?" opens the one-line reason. Every card has the same parts in the same place (a missing image keeps its space, the title clamps to three lines and the partner to one, "Why this?" sits at the bottom), and every result grid uses `RESULT_COLUMN_SIZES` (one card per row on phones, two on tablets, three on wide screens), so the top pick, compare, groups and Saved line up like the search page. "Not for me" removes the card and offers Undo in a toast.
 
 ## Thumbs on replies
 

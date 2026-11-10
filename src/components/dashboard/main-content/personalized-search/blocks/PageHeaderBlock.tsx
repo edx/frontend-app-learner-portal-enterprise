@@ -10,6 +10,8 @@ import type { PageHeaderProps, ProfileProps } from '../core/stream/types';
 export interface PageHeaderBlockProps extends PageHeaderProps {
   /** What the AI knows about the learner; when present, "Why these?" opens it (wireframe D2c). */
   profile?: ProfileProps;
+  /** Usage event: "Why these?" opened. */
+  onOpenWhy?: () => void;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface PageHeaderBlockProps extends PageHeaderProps {
  * Paragon Popover on hover, focus or click with the plain-language basis and the learner's preferences.
  */
 const PageHeaderBlock = ({
-  title, dek, label, profile,
+  title, dek, label, profile, onOpenWhy,
 }: PageHeaderBlockProps) => {
   const intl = useIntl();
   const [showWhy, setShowWhy] = useState(false);
@@ -32,7 +34,10 @@ const PageHeaderBlock = ({
             trigger={['hover', 'focus']}
             placement="bottom-end"
             show={showWhy}
-            onToggle={setShowWhy}
+            onToggle={(show: boolean) => {
+              if (show && !showWhy) { onOpenWhy?.(); }
+              setShowWhy(show);
+            }}
             overlay={(
               <Popover id="personalized-search-why-these" style={{ maxWidth: 460 }}>
                 <Popover.Title as="h3" className="h5">{intl.formatMessage(messages.whyThese)}</Popover.Title>

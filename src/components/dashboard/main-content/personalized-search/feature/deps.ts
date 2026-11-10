@@ -45,4 +45,9 @@ export interface PersonalizedSearchDeps {
   trackEvent: (action: TrackAction, properties: TrackProperties) => void;
   /** How the learner reached the tab, for `tab_viewed`. */
   getEntryPoint: () => string;
+  /**
+   * A React hook: the conversation id in the page URL (`?session=<uuid>`) and a setter that replaces it
+   * (null removes it), so Back and Forward return to the same conversation.
+   */
+  useSessionParam: () => [string | null, (sessionUuid: string | null) => void];
 }
