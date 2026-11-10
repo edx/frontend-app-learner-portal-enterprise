@@ -6,9 +6,6 @@ import { getInitialChatStreamState } from '../core/stream/applyPart';
 import type { ChatStreamState } from '../core/stream/types';
 import type { DebugSettings, HistoryState } from '../core/state';
 
-/** Where earlier versions saved debug choices; cleared so an old choice can't come back. */
-export const DEBUG_SETTINGS_STORAGE_KEY = 'personalizedSearch.debugSettings';
-
 /**
  * Debug model choices last one conversation: every page load, New chat and reopened search starts on
  * the server defaults, so a model picked to test one conversation never silently carries into the next.
@@ -16,14 +13,6 @@ export const DEBUG_SETTINGS_STORAGE_KEY = 'personalizedSearch.debugSettings';
 export const defaultDebugSettings = (): DebugSettings => ({
   live: true, intentModel: null, intentEffort: null, composeModel: null, composeEffort: null,
 });
-
-const clearSavedDebugSettings = () => {
-  try {
-    window.localStorage.removeItem(DEBUG_SETTINGS_STORAGE_KEY);
-  } catch {
-    // Storage blocked (private window, previews): nothing was saved.
-  }
-};
 
 export type { DebugSettings, HistoryState };
 
@@ -122,40 +111,37 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
  * Not persisted: the server is the record (sessions are reopened from enterprise-access).
  * One store per mounted tab, so two tabs on a page never share state.
  */
-export const createPersonalizedSearchStore = () => createStore<PersonalizedSearchStore>()((set) => {
-  clearSavedDebugSettings();
-  return {
+export const createPersonalizedSearchStore = () => createStore<PersonalizedSearchStore>()((set) => ({
+  ...getInitialPersonalizedSearchState(),
+  setStream: (update) => set((state) => ({ stream: update(state.stream) })),
+  setViewedTurnId: (viewedTurnId) => set({ viewedTurnId }),
+  setDraft: (draft) => set({ draft }),
+  setUnavailable: (unavailable) => set({ unavailable }),
+  setAnnouncement: (announcement) => set({ announcement }),
+  setMobilePane: (mobilePane) => set({ mobilePane }),
+  setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
+  setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
+  setFeedback: (update) => set((state) => ({ feedback: update(state.feedback) })),
+  setFeedbackLoaded: (feedbackLoaded) => set({ feedbackLoaded }),
+  // One results tab at a time: For you (both closed), Saved or Excluded.
+  setSavedOpen: (savedOpen) => set((state) => ({ savedOpen, excludedOpen: savedOpen ? false : state.excludedOpen })),
+  setExcludedOpen: (excludedOpen) => set((state) => ({
+    excludedOpen, savedOpen: excludedOpen ? false : state.savedOpen,
+  })),
+  showExcludedTab: () => set({ excludedTabShown: true }),
+  setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
+  setDebugSettings: (changes) => set((state) => ({ debugSettings: { ...state.debugSettings, ...changes } })),
+  setDebugConfig: (debugConfig, debugConfigError = null) => set({ debugConfig, debugConfigError }),
+  reset: () => set((state) => ({
     ...getInitialPersonalizedSearchState(),
-    setStream: (update) => set((state) => ({ stream: update(state.stream) })),
-    setViewedTurnId: (viewedTurnId) => set({ viewedTurnId }),
-    setDraft: (draft) => set({ draft }),
-    setUnavailable: (unavailable) => set({ unavailable }),
-    setAnnouncement: (announcement) => set({ announcement }),
-    setMobilePane: (mobilePane) => set({ mobilePane }),
-    setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
-    setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
-    setFeedback: (update) => set((state) => ({ feedback: update(state.feedback) })),
-    setFeedbackLoaded: (feedbackLoaded) => set({ feedbackLoaded }),
-    // One results tab at a time: For you (both closed), Saved or Excluded.
-    setSavedOpen: (savedOpen) => set((state) => ({ savedOpen, excludedOpen: savedOpen ? false : state.excludedOpen })),
-    setExcludedOpen: (excludedOpen) => set((state) => ({
-      excludedOpen, savedOpen: excludedOpen ? false : state.savedOpen,
-    })),
-    showExcludedTab: () => set({ excludedTabShown: true }),
-    setSeenPageTurnId: (seenPageTurnId) => set({ seenPageTurnId }),
-    setDebugSettings: (changes) => set((state) => ({ debugSettings: { ...state.debugSettings, ...changes } })),
-    setDebugConfig: (debugConfig, debugConfigError = null) => set({ debugConfig, debugConfigError }),
-    reset: () => set((state) => ({
-      ...getInitialPersonalizedSearchState(),
-      // A new conversation starts on the server's models; only the Live switch carries over.
-      debugSettings: { ...defaultDebugSettings(), live: state.debugSettings.live },
-      debugConfig: state.debugConfig,
-      debugConfigError: state.debugConfigError,
-      feedback: { ...state.feedback, undo: null, error: false },
-      excludedTabShown: state.excludedTabShown,
-      feedbackLoaded: state.feedbackLoaded,
-    })),
-  };
-});
+    // A new conversation starts on the server's models; only the Live switch carries over.
+    debugSettings: { ...defaultDebugSettings(), live: state.debugSettings.live },
+    debugConfig: state.debugConfig,
+    debugConfigError: state.debugConfigError,
+    feedback: { ...state.feedback, undo: null, error: false },
+    excludedTabShown: state.excludedTabShown,
+    feedbackLoaded: state.feedbackLoaded,
+  })),
+}));
 
 export type PersonalizedSearchStoreApi = ReturnType<typeof createPersonalizedSearchStore>;
