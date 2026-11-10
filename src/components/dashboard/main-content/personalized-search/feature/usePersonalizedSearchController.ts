@@ -66,6 +66,7 @@ export const createPersonalizedSearchController = ({
     const intl = useIntl();
     const enterpriseCustomer = deps.useEnterpriseContext();
     const enterpriseCustomerUuid = enterpriseCustomer.uuid;
+    const [sessionParam, setSessionParam] = deps.useSessionParam();
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
     const debugEnabled = deps.debug.useDebugRequested();
@@ -263,7 +264,8 @@ export const createPersonalizedSearchController = ({
       track('new_chat_started'); // with the join keys of the chat being left
       abortRef.current?.abort();
       storeApi.getState().reset();
-    }, [track]);
+      setSessionParam(null);
+    }, [track, setSessionParam]);
 
     const viewPage = useCallback((turnId: string) => {
       const store = storeApi.getState();
@@ -378,7 +380,7 @@ export const createPersonalizedSearchController = ({
     }, [loadHistoryPage]);
 
     /** Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. */
-    const openSession = useCallback(async (sessionUuid: string) => {
+    const openSession = useCallback(async (sessionUuid: string, { restoring = false } = {}) => {
       const store = storeApi.getState();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
       try {
@@ -395,9 +397,30 @@ export const createPersonalizedSearchController = ({
         after.setHistory({ open: false });
       } catch (e) {
         deps.logError(e);
-        storeApi.getState().setHistory({ error: true });
+        if (restoring) {
+          setSessionParam(null); // the URL named a conversation that's gone or not this learner's
+        } else {
+          storeApi.getState().setHistory({ error: true });
+        }
       }
-    }, [enterpriseCustomerUuid]);
+    }, [enterpriseCustomerUuid, setSessionParam]);
+
+    // The conversation id lives in the URL (?session=), so Back and Forward return to it. On arriving with
+    // one, reopen it once; after that, keep the URL in step with the conversation shown.
+    const restoredSession = useRef(false);
+    useEffect(() => {
+      if (restoredSession.current || !enterpriseCustomerUuid) { return; }
+      restoredSession.current = true;
+      if (sessionParam && storeApi.getState().stream.session.sessionUuid !== sessionParam) {
+        openSession(sessionParam, { restoring: true });
+      }
+    }, [enterpriseCustomerUuid, sessionParam, openSession]);
+    const shownSessionUuid = stream.session.sessionUuid;
+    useEffect(() => {
+      if (restoredSession.current && shownSessionUuid && shownSessionUuid !== sessionParam) {
+        setSessionParam(shownSessionUuid);
+      }
+    }, [shownSessionUuid]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const showPane = useCallback((pane: MobilePane) => {
       storeApi.getState().setMobilePane(pane);

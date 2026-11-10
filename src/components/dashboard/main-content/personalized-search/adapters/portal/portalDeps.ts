@@ -12,6 +12,7 @@ import { selectTransport } from './selectTransport';
 import { useDebugRequested } from './useDebugRequested';
 import { useEnterpriseContext } from './useEnterpriseContext';
 import { getPortalEntryPoint, trackPersonalizedSearchEvent } from './analytics';
+import { useSessionParam } from './useSessionParam';
 
 const apiOptions = { getHttpClient: getPortalHttpClient, getBaseUrl: getPersonalizedSearchApiBaseUrl };
 const debugApi = createDebugApi(apiOptions);
@@ -32,4 +33,5 @@ export const portalDeps: PersonalizedSearchDeps = {
   },
   trackEvent: trackPersonalizedSearchEvent,
   getEntryPoint: getPortalEntryPoint,
+  useSessionParam,
 };
