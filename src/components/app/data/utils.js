@@ -1384,14 +1384,22 @@ export function canViewAcademies({
 /**
  * Whether "Find a Course" entry points should be hidden for the given enterprise customer, per the
  * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER config value (a single customer UUID, or
- * the nil UUID as a wildcard for every customer). Case-insensitive. See
- * docs/features/disable-find-a-course.md (ENT-12375).
+ * the nil UUID as a wildcard for every customer). Case-insensitive and whitespace-tolerant. The
+ * value is normalized here rather than relying on src/index.tsx, because in deployed environments
+ * it arrives via the LMS runtime MFE config API, which is merged after index.tsx's config handler.
+ * See docs/features/disable-find-a-course.md (ENT-12375).
  *
  * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
  * @returns {boolean} - True if "Find a Course" entry points should be hidden.
  */
 export function isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid) {
-  const disabledUuid = getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER?.toLowerCase();
+  const configValue = getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER;
+  // Guard against a misconfigured non-string value (e.g. a YAML boolean or list), which would
+  // otherwise throw in the site header on every page.
+  if (typeof configValue !== 'string') {
+    return false;
+  }
+  const disabledUuid = configValue.trim().toLowerCase();
   if (!disabledUuid) {
     return false;
   }

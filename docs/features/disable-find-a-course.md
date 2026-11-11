@@ -14,7 +14,7 @@ follows on from the TAG-GDPT pathway sidebar message
 | Config value | `FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER` |
 | Format | A **single** enterprise customer UUID string, the same as `FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER`. It is **not** a comma-separated list: a list matches no customer. |
 | Wildcard | The nil UUID (`00000000-0000-0000-0000-000000000000`) hides "Find a Course" for **every** customer. Use it only for local dev. |
-| Matching | Case-insensitive, whitespace-trimmed |
+| Matching | Case-insensitive, whitespace-trimmed. A non-string value (e.g. a YAML boolean or list) is treated as unset. |
 | Default | `''` (disabled) in `.env.development` / `.env.development-stage` |
 | Helper | `isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)` in `src/components/app/data/utils.js`. It reads `getConfig()` itself, so call sites only pass the customer UUID. |
 
@@ -25,6 +25,13 @@ It is enabled for TAG-GDPT in the edx-internal deployment config
 ```yaml
 FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: 2e16fcfa-58ea-4021-be51-2235ef4b5284  # tag-gdpt uuid
 ```
+
+In deployed environments the value comes from the LMS runtime MFE config API
+(`MFE_CONFIG_API_URL`), which frontend-platform merges *after* the `config` handler in
+`src/index.tsx`. So the `?.trim() || null` in `index.tsx` only normalizes the build-time `.env`
+value, and the helper does its own normalization. For the same reason, changing the edx-internal
+value takes effect without a frontend rebuild. Locally, `.env.development` applies unless the
+devstack LMS's MFE config also defines the key.
 
 This value is **independent** of `FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER`, which
 controls the TAG-GDPT "Welcome to your pathway" sidebar message from ENT-12339. For TAG-GDPT both

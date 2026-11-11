@@ -10,7 +10,7 @@ import {
 
 const FindACourseNavLink = ({ enterpriseSlug, className }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
-  // "Find a Course" will be disabled for specific TAG GDPT enterprise customers (ENT-12375).
+  // "Find a Course" may be disabled for specific (e.g. TAG GDPT) enterprise customers (ENT-12375).
   if (isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
     return null;
   }

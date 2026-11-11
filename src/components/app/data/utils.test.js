@@ -1882,6 +1882,9 @@ describe('isFindACourseDisabledForEnterpriseCustomer', () => {
     { label: 'null', value: null },
     { label: 'undefined', value: undefined },
     { label: 'an empty string', value: '' },
+    { label: 'whitespace only', value: '   ' },
+    { label: 'a non-string boolean (misconfigured)', value: true },
+    { label: 'a non-string list (misconfigured)', value: ['2e16fcfa-58ea-4021-be51-2235ef4b5284'] },
     { label: 'another customer', value: '11111111-1111-1111-1111-111111111111' },
   ])('returns false when the config value is $label', ({ value }) => {
     setDisabledEnterpriseCustomer(value);
@@ -1896,6 +1899,7 @@ describe('isFindACourseDisabledForEnterpriseCustomer', () => {
   it.each([
     { label: 'the customer UUID', value: enterpriseCustomerUuid },
     { label: 'the customer UUID in uppercase', value: enterpriseCustomerUuid.toUpperCase() },
+    { label: 'the customer UUID with surrounding whitespace', value: `  ${enterpriseCustomerUuid}  ` },
     { label: 'the nil UUID (wildcard)', value: '00000000-0000-0000-0000-000000000000' },
   ])('returns true when the config value is $label', ({ value }) => {
     setDisabledEnterpriseCustomer(value);

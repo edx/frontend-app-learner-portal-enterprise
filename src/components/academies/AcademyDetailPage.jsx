@@ -16,7 +16,7 @@ const AcademyDetailPage = () => {
   const { data: academy } = useAcademyDetails();
   const academyURL = `/${enterpriseCustomer.slug}/academy/${academyUUID}/?${enterpriseCustomer.uuid}`;
   const intl = useIntl();
-  // The breadcrumb's only link is "Find a Course", which may be disabled for TAG GDPT enterprise customers(ENT-12375).
+  // The breadcrumb's only link is "Find a Course", which may be disabled for TAG GDPT enterprise customers (ENT-12375).
   const isFindACourseDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
 
   if (!academy) {
