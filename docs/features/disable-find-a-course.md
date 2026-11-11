@@ -1,7 +1,7 @@
 # Disabling "Find a Course" for specific enterprise customers
 
 [ENT-12375](https://2u-internal.atlassian.net/browse/ENT-12375) asked to hide every "Find a Course"
-entry point in the learner portal for TAG-GDP (Talal Abu-Ghazaleh Global Digital Polytechnic), whose
+entry point in the learner portal for TAG-GDPT (Talal Abu-Ghazaleh Global Digital Polytechnic), whose
 learners should reach content through their Academy / pathway instead of open catalog search. This
 follows on from the TAG-GDPT pathway sidebar message
 ([ENT-12339](https://2u-internal.atlassian.net/browse/ENT-12339), see
