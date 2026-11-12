@@ -94,7 +94,10 @@ describe('useDashboardTabs', () => {
     features.FEATURE_ENABLE_MY_CAREER = false;
     // Nil-uuid wildcard by default so every existing test below (which never touches this
     // allowlist itself) keeps its current "enabled for all" expectations.
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    mergeConfig({
+      FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+      FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [],
+    });
   });
 
   it('always returns courses tab', () => {
@@ -233,6 +236,7 @@ describe('useDashboardTabs', () => {
     const enablePersonalizedSearch = () => {
       useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
       useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: true } });
+      mergeConfig({ FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     };
 
     it('appears immediately after the Pathways tab when its flag is on, keeping existing order', () => {
@@ -275,6 +279,33 @@ describe('useDashboardTabs', () => {
       mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [ALLOWLISTED_UUID] });
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
       expect(result.current.tabs.map(tab => tab.props.eventKey)).toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+    });
+
+    it.each([
+      { allowlist: undefined, visible: false },
+      { allowlist: [], visible: false },
+      { allowlist: [ALLOWLISTED_UUID], visible: false },
+      { allowlist: 'customer', visible: true },
+      { allowlist: [NIL_UUID], visible: true },
+    ])('follows its own customer allowlist ($allowlist -> visible: $visible)', ({ allowlist, visible }) => {
+      enablePersonalizedSearch();
+      const enterpriseCustomer = enterpriseCustomerFactory({ enable_pathways: true });
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomer });
+      mergeConfig({
+        FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: (
+          allowlist === 'customer' ? [enterpriseCustomer.uuid] : allowlist
+        ),
+      });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
+      expect(tabKeys.includes(DASHBOARD_PERSONALIZED_SEARCH_TAB)).toBe(visible);
+    });
+
+    it('is absent for an allowlisted customer when the learner flag is off', () => {
+      enablePersonalizedSearch();
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: false } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
     });
 
     it('renders PersonalizedSearchTab and sends its own page-visit event when selected', () => {
