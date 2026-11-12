@@ -32,8 +32,11 @@ import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './pe
 
 export type TurnRating = 1 | -1 | null;
 
-/** The overrides a debug-mode turn sends; unset choices fall back to the server defaults. */
-export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null => {
+/**
+ * The overrides a debug-mode turn sends; unset choices fall back to the server defaults. Always an object, even
+ * an empty one: the object itself marks a debug turn, which the server may answer from its debug catalog.
+ */
+export const toDebugOverrides = (settings: DebugSettings): DebugOverrides => {
   const overrides: DebugOverrides = {};
   if (settings.intentModel) {
     overrides.intent_model = settings.intentModel;
@@ -43,7 +46,7 @@ export const toDebugOverrides = (settings: DebugSettings): DebugOverrides | null
     overrides.compose_model = settings.composeModel;
     overrides.compose_effort = settings.composeEffort;
   }
-  return Object.keys(overrides).length ? overrides : null;
+  return overrides;
 };
 
 export interface PersonalizedSearchControllerOptions {

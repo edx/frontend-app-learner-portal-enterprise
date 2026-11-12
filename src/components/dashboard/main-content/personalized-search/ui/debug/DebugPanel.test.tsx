@@ -123,7 +123,8 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(testStore.getState().debugSettings).toEqual(defaultDebugSettings());
     await user.click(screen.getByRole('button', { name: 'Build data skills' }));
     await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body).debug).toBeUndefined();
+    // Still a debug turn (an empty debug object), just without model overrides.
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).debug).toEqual({});
   });
 
   it('a page load starts on the defaults', () => {
@@ -138,7 +139,7 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     await user.selectOptions(screen.getByLabelText('Compose model'), '');
     await user.click(screen.getByRole('button', { name: 'Build data skills' }));
     await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toBeUndefined();
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({});
   });
 
   it('drops a chosen model the server no longer offers, so turns use the default again', async () => {
