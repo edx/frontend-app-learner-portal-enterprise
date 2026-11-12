@@ -8,13 +8,16 @@ import {
   SKILL_DESCRIPTION_CUTOFF_LIMIT, ELLIPSIS_STR,
 } from './data/constants';
 import { shortenString } from './data/utils';
-import { useCourseMetadata, useEnterpriseCustomer } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useCourseMetadata, useEnterpriseCustomer } from '../app/data';
 
 export const MAX_VISIBLE_SKILLS = 5;
 
 const CourseSkills = () => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const { data: courseMetadata } = useCourseMetadata();
+  // Skill badges link to course search, which may be disabled for the customer (ENT-12375). When it
+  // is, render plain badges that stay focusable so the description popover still opens on focus.
+  const isCourseSearchDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
 
   if (courseMetadata.skills.length === 0) {
     return null;
@@ -56,8 +59,9 @@ const CourseSkills = () => {
             )}
           >
             <Badge
-              as={Link}
-              to={`/${enterpriseCustomer.slug}/search?skill_names=${skill.name}`}
+              {...(isCourseSearchDisabled
+                ? { tabIndex: 0 }
+                : { as: Link, to: `/${enterpriseCustomer.slug}/search?skill_names=${skill.name}` })}
               key={skill.name}
               className="course-skill"
               variant="light"

@@ -36,6 +36,7 @@ describe('src/index.tsx bootstrap', () => {
     process.env = { ...originalEnv };
     delete process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS;
     delete process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER;
+    delete process.env.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER;
   });
 
   afterEach(() => {
@@ -134,6 +135,34 @@ describe('src/index.tsx bootstrap', () => {
     expect(mockMergeConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: '2e16fcfa-58ea-4021-be51-2235ef4b5284',
+      }),
+    );
+  });
+
+  it('defaults FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER to null when unset', () => {
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: null }),
+    );
+  });
+
+  it('trims surrounding whitespace from FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER', () => {
+    process.env.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER = '  2e16fcfa-58ea-4021-be51-2235ef4b5284  ';
+
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: '2e16fcfa-58ea-4021-be51-2235ef4b5284',
       }),
     );
   });

@@ -9,11 +9,12 @@ import { generateRandomSkills, generateRandomString } from './testUtils';
 
 import { SKILL_DESCRIPTION_CUTOFF_LIMIT, ELLIPSIS_STR } from '../data/constants';
 import { shortenString } from '../data/utils';
-import { useCourseMetadata, useEnterpriseCustomer } from '../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useCourseMetadata, useEnterpriseCustomer } from '../../app/data';
 import { enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useCourseMetadata: jest.fn(),
 }));
@@ -34,6 +35,7 @@ describe('<CourseSkills />', () => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useCourseMetadata.mockReturnValue({ data: mockCourseMetadata });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   test('renders course skills less than or equal to limit', () => {
@@ -95,6 +97,42 @@ describe('<CourseSkills />', () => {
     await user.hover(screen.getByText(skills[0].name));
     await waitFor(() => {
       expect(screen.getByText(maxVisibleDesc)).toBeVisible();
+    });
+  });
+
+  test('renders each skill as a link to course search', () => {
+    renderWithRouter(<CourseSkillsWrapper />);
+    const [firstSkill] = mockCourseMetadata.skills;
+    expect(screen.getByRole('link', { name: firstSkill.name })).toHaveAttribute(
+      'href',
+      `/${mockEnterpriseCustomer.slug}/search?skill_names=${firstSkill.name}`,
+    );
+  });
+
+  describe('when "Find a Course" is disabled for the enterprise customer', () => {
+    beforeEach(() => {
+      isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    });
+
+    test('renders skills as focusable badges without links to course search', () => {
+      renderWithRouter(<CourseSkillsWrapper />);
+      expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      mockCourseMetadata.skills.forEach((skill) => {
+        const badge = screen.getByText(skill.name);
+        expect(badge).toBeVisible();
+        expect(badge).toHaveAttribute('tabindex', '0');
+      });
+    });
+
+    test('still shows the skill description popover on hover', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<CourseSkillsWrapper />);
+      const [firstSkill] = mockCourseMetadata.skills;
+      await user.hover(screen.getByText(firstSkill.name));
+      await waitFor(() => {
+        expect(screen.getByText(firstSkill.description)).toBeVisible();
+      });
     });
   });
 });

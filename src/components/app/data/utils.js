@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { NIL as NIL_UUID } from 'uuid';
 import { logError } from '@edx/frontend-platform/logging';
 import { getConfig } from '@edx/frontend-platform/config';
 import { getLocale } from '@edx/frontend-platform/i18n';
@@ -1378,4 +1379,43 @@ export function canViewAcademies({
     subscriptionLicense,
     browseAndRequestConfiguration,
   });
+}
+
+/**
+ * Whether a single-UUID config value (e.g. FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER,
+ * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER) applies to the given enterprise customer.
+ * The nil UUID is a wildcard matching every customer. Case-insensitive and whitespace-tolerant.
+ *
+ * Values are normalized here rather than relying on src/index.tsx, because in deployed environments
+ * they arrive via the LMS runtime MFE config API, which is merged after index.tsx's config handler.
+ * A misconfigured non-string value (e.g. a YAML boolean or list) never matches, instead of throwing.
+ *
+ * @param {*} configUuid - The config value; expected to be a single UUID string.
+ * @param {string} [enterpriseCustomerUuid] - The current enterprise customer's UUID.
+ * @returns {boolean} - True if the config value matches the customer (or is the nil UUID).
+ */
+export function matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid) {
+  if (typeof configUuid !== 'string') {
+    return false;
+  }
+  const normalizedConfigUuid = configUuid.trim().toLowerCase();
+  if (!normalizedConfigUuid) {
+    return false;
+  }
+  return normalizedConfigUuid === NIL_UUID || normalizedConfigUuid === enterpriseCustomerUuid?.toLowerCase();
+}
+
+/**
+ * Whether "Find a Course" entry points should be hidden for the given enterprise customer, per the
+ * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER config value. See
+ * docs/features/disable-find-a-course.md (ENT-12375).
+ *
+ * @param {string} [enterpriseCustomerUuid] - The current enterprise customer's UUID.
+ * @returns {boolean} - True if "Find a Course" entry points should be hidden.
+ */
+export function isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid) {
+  return matchesEnterpriseCustomerConfigUuid(
+    getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER,
+    enterpriseCustomerUuid,
+  );
 }

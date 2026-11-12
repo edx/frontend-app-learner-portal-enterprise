@@ -1,6 +1,7 @@
 import MockDate from 'mockdate';
 
 import dayjs from 'dayjs';
+import * as frontendPlatformConfig from '@edx/frontend-platform/config';
 import { LICENSE_STATUS } from '../../enterprise-user-subsidy/data/constants';
 import { POLICY_TYPES } from '../../enterprise-user-subsidy/enterprise-offers/data/constants';
 import {
@@ -16,7 +17,9 @@ import {
   getAvailableCourseRuns,
   getSubsidyToApplyForCourse,
   hasValidLicenseOrSubscriptionRequestsEnabled,
+  isFindACourseDisabledForEnterpriseCustomer,
   isLinkedEnterpriseCustomer,
+  matchesEnterpriseCustomerConfigUuid,
   normalizeCatalogUuid,
   resolveApplicableSubscriptionLicense,
   selectBestLicense,
@@ -1861,5 +1864,80 @@ describe('canViewAcademies', () => {
 
   it('returns false when there is no enterprise customer', () => {
     expect(canViewAcademies({ enterpriseCustomer: null })).toBe(false);
+  });
+});
+
+describe('isFindACourseDisabledForEnterpriseCustomer', () => {
+  const enterpriseCustomerUuid = '2e16fcfa-58ea-4021-be51-2235ef4b5284';
+  const setDisabledEnterpriseCustomer = (value) => {
+    jest.spyOn(frontendPlatformConfig, 'getConfig').mockReturnValue({
+      FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: value,
+    });
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    { label: 'null', value: null },
+    { label: 'undefined', value: undefined },
+    { label: 'an empty string', value: '' },
+    { label: 'whitespace only', value: '   ' },
+    { label: 'a non-string boolean (misconfigured)', value: true },
+    { label: 'a non-string list (misconfigured)', value: ['2e16fcfa-58ea-4021-be51-2235ef4b5284'] },
+    { label: 'another customer', value: '11111111-1111-1111-1111-111111111111' },
+  ])('returns false when the config value is $label', ({ value }) => {
+    setDisabledEnterpriseCustomer(value);
+    expect(isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)).toBe(false);
+  });
+
+  it('returns false when getConfig() returns nothing', () => {
+    jest.spyOn(frontendPlatformConfig, 'getConfig').mockReturnValue(undefined);
+    expect(isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)).toBe(false);
+  });
+
+  it.each([
+    { label: 'the customer UUID', value: enterpriseCustomerUuid },
+    { label: 'the customer UUID in uppercase', value: enterpriseCustomerUuid.toUpperCase() },
+    { label: 'the customer UUID with surrounding whitespace', value: `  ${enterpriseCustomerUuid}  ` },
+    { label: 'the nil UUID (wildcard)', value: '00000000-0000-0000-0000-000000000000' },
+  ])('returns true when the config value is $label', ({ value }) => {
+    setDisabledEnterpriseCustomer(value);
+    expect(isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)).toBe(true);
+  });
+
+  it('returns false when the customer UUID is missing', () => {
+    setDisabledEnterpriseCustomer(enterpriseCustomerUuid);
+    expect(isFindACourseDisabledForEnterpriseCustomer(undefined)).toBe(false);
+  });
+
+  it('is independent of FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER', () => {
+    jest.spyOn(frontendPlatformConfig, 'getConfig').mockReturnValue({
+      FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: enterpriseCustomerUuid,
+    });
+    expect(isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)).toBe(false);
+  });
+});
+
+describe('matchesEnterpriseCustomerConfigUuid', () => {
+  const enterpriseCustomerUuid = '2e16fcfa-58ea-4021-be51-2235ef4b5284';
+
+  it.each([null, undefined, '', '   ', true, ['2e16fcfa-58ea-4021-be51-2235ef4b5284'], '11111111-1111-1111-1111-111111111111'])(
+    'returns false for config value %p',
+    (configUuid) => {
+      expect(matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid)).toBe(false);
+    },
+  );
+
+  it.each([enterpriseCustomerUuid, enterpriseCustomerUuid.toUpperCase(), `  ${enterpriseCustomerUuid}  `])(
+    'returns true for matching config value %p',
+    (configUuid) => {
+      expect(matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid)).toBe(true);
+    },
+  );
+
+  it('treats the nil UUID as a wildcard, even without a customer UUID', () => {
+    expect(matchesEnterpriseCustomerConfigUuid('00000000-0000-0000-0000-000000000000', undefined)).toBe(true);
   });
 });

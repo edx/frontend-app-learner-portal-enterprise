@@ -33,7 +33,7 @@ import SkillsQuizHeader from './SkillsQuizHeader';
 import headerImage from './images/headerImage.png';
 import { saveSkillsGoalsAndJobsUserSelected } from './data/utils';
 import { fetchCourseEnrollments } from './data/service';
-import { useAlgoliaSearch, useEnterpriseCustomer } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useAlgoliaSearch, useEnterpriseCustomer } from '../app/data';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
 import { getSupportedLocale } from '../app/data/utils';
 import SkillsQuizContentCards from './SkillsQuizContentCards';
@@ -69,7 +69,10 @@ const SkillsQuizStepper = ({ isStyleAutoSuggest }) => {
   const canContinueToRecommendedCourses = goalExceptImproveAndJobSelected || improveGoalAndCurrentJobSelected;
 
   const closeSkillsQuiz = () => {
-    navigate(`/${enterpriseCustomer.slug}/search`);
+    // Exit to the dashboard when course search is disabled for the customer (ENT-12375); the search
+    // route would redirect there anyway, so this avoids the extra hop.
+    const exitPath = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid) ? '' : '/search';
+    navigate(`/${enterpriseCustomer.slug}${exitPath}`);
     sendEnterpriseTrackEvent(
       enterpriseCustomer.uuid,
       'edx.ui.enterprise.learner_portal.skills_quiz.done.clicked',

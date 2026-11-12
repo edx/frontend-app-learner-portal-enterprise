@@ -5,6 +5,7 @@ import { getConfig } from '@edx/frontend-platform/config';
 import { ensureAuthenticatedUser } from '../../app/routes/data/utils';
 import {
   extractEnterpriseCustomer,
+  isFindACourseDisabledForEnterpriseCustomer,
   queryAcademiesList,
   resolveCanViewAcademies,
   safeEnsureQueryDataAcademiesList,
@@ -83,6 +84,13 @@ const makeSearchLoader: MakeRouteLoaderFunctionWithQueryClient = function makeSe
         });
         return redirect(redirectPath);
       }
+    }
+
+    // Course search ("Find a Course") may be disabled for specific enterprise customers (ENT-12375).
+    // Guarding the route (after the single-academy redirect above) covers direct URLs and bookmarks,
+    // plus in-app navigations into search, e.g. the skills quiz exit and the academy loader fallback.
+    if (isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+      return redirect(generatePath('/:enterpriseSlug', { enterpriseSlug }));
     }
 
     return null;

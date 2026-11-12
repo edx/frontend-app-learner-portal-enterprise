@@ -11,6 +11,7 @@ import { COURSE_PACING_MAP } from '../../data/constants';
 import { TEST_OWNER } from '../../tests/data/constants';
 import {
   COURSE_MODES_MAP,
+  isFindACourseDisabledForEnterpriseCustomer,
   useCourseMetadata,
   useCourseRedemptionEligibility,
   useCourseReviews,
@@ -41,6 +42,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../app/data', () => ({
   ...jest.requireActual('../../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
   useCourseMetadata: jest.fn(),
@@ -179,6 +181,7 @@ describe('<CourseHeader />', () => {
     useCourseFromAlgolia.mockReturnValue({ algoliaCourse: null, isLoading: false });
     useCourseReviews.mockReturnValue({ data: mockCourseReviews });
     useRedeemablePolicies.mockReturnValue({ data: mockBaseRedeemablePolicies });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   test('renders breadcrumb', () => {
@@ -203,6 +206,43 @@ describe('<CourseHeader />', () => {
     expect(screen.queryByText('Find a Course')).not.toBeInTheDocument();
     expect(screen.queryByText(mockCourseMetadata.title, { selector: 'li' })).not.toBeInTheDocument();
   });
+
+  test('does not render breadcrumb when "Find a Course" is disabled for customer and there is no parent route', () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    renderWithRouterProvider({
+      path: '/:enterpriseSlug/course/:courseKey',
+      element: <CourseHeaderWrapper />,
+    }, {
+      initialEntries: [`/${mockEnterpriseCustomer.slug}/course/${mockCourseMetadata.key}`],
+    });
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+    expect(screen.queryByText('Find a Course')).not.toBeInTheDocument();
+    expect(screen.queryByText(mockCourseMetadata.title, { selector: 'li' })).not.toBeInTheDocument();
+  });
+
+  test.each([false, true])(
+    'renders the parent route in the breadcrumb, with "Find a Course" only when not disabled (disabled: %s)',
+    (isFindACourseDisabled) => {
+      isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(isFindACourseDisabled);
+      const parentRoute = { label: 'Test Academy', to: `/${mockEnterpriseCustomer.slug}/academies/test-uuid` };
+      renderWithRouterProvider({
+        path: '/:enterpriseSlug/course/:courseKey',
+        element: <CourseHeaderWrapper />,
+      }, {
+        initialEntries: [{
+          pathname: `/${mockEnterpriseCustomer.slug}/course/${mockCourseMetadata.key}`,
+          state: { parentRoute },
+        }],
+      });
+      expect(screen.getByRole('link', { name: 'Test Academy' })).toHaveAttribute('href', parentRoute.to);
+      expect(screen.getByText(mockCourseMetadata.title, { selector: 'li' })).toBeInTheDocument();
+      if (isFindACourseDisabled) {
+        expect(screen.queryByText('Find a Course')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByText('Find a Course')).toBeInTheDocument();
+      }
+    },
+  );
 
   test('renders course title and short description', () => {
     renderWithRouterProvider({

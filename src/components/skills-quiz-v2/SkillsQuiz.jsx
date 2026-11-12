@@ -11,7 +11,7 @@ import { useContext, useEffect } from 'react';
 import SkillsQuizHeader from './SkillsQuizHeader';
 import SkillQuizForm from './SkillsQuizForm';
 import headerImage from '../skills-quiz/images/headerImage.png';
-import { useEnterpriseCustomer } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer } from '../app/data';
 
 const SkillsQuizV2 = ({ isStyleAutoSuggest }) => {
   const intl = useIntl();
@@ -21,7 +21,10 @@ const SkillsQuizV2 = ({ isStyleAutoSuggest }) => {
   const [isOpen, open, close] = useToggle(false);
 
   const handleExit = () => {
-    navigate(`/${enterpriseCustomer.slug}/search`);
+    // Exit to the dashboard when course search is disabled for the customer (ENT-12375); the search
+    // route would redirect there anyway, so this avoids the extra hop.
+    const exitPath = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid) ? '' : '/search';
+    navigate(`/${enterpriseCustomer.slug}${exitPath}`);
     sendEnterpriseTrackEvent(
       enterpriseCustomer.uuid,
       'edx.ui.enterprise.learner_portal.skills_quiz.done.clicked',
