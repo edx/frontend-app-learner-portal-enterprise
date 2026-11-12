@@ -14,7 +14,11 @@ import { sortSkillsCoursesWithCourseCount } from './data/utils';
 import { NO_COURSES_ALERT_MESSAGE_AGAINST_SKILLS } from './constants';
 import CourseCard from './CourseCard';
 import {
-  useAlgoliaSearch, useContentTypeFilter, useDefaultSearchFilters, useEnterpriseCustomer,
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAlgoliaSearch,
+  useContentTypeFilter,
+  useDefaultSearchFilters,
+  useEnterpriseCustomer,
 } from '../app/data';
 import { AlgoliaFilterBuilder } from '../AlgoliaFilterBuilder';
 import CardLoadingSkeleton from './CardLoadingSkeleton';
@@ -23,6 +27,9 @@ import { withCamelCasedStateResults } from '../../utils/HOC';
 
 const SkillsHits = ({ hits, isLoading }) => {
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  // Skill badges and "See more courses" link to course search, which may be disabled for the
+  // customer (ENT-12375). The recommended course cards link to course pages, so they stay.
+  const isCourseSearchDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
   const skillsWithSignificanceOrder = useSelectedSkillsAndJobSkills({
     getAllSkills: false,
     getAllSkillsWithSignificanceOrder: true,
@@ -82,8 +89,7 @@ const SkillsHits = ({ hits, isLoading }) => {
           {coursesWithSkills.map(cs => (
             <Badge
               key={cs.key}
-              to={`/${enterpriseCustomer.slug}/search?skill_names=${cs.key}`}
-              as={Link}
+              {...(!isCourseSearchDisabled && { as: Link, to: `/${enterpriseCustomer.slug}/search?skill_names=${cs.key}` })}
               className="course-skill"
               variant="light"
             >
@@ -102,19 +108,21 @@ const SkillsHits = ({ hits, isLoading }) => {
                 values={{ skill: cs.key }}
               />
             </h3>
-            <Button
-              as={Link}
-              to={`/${enterpriseCustomer.slug}/search?skill_names=${cs.key}`}
-              variant="link"
-              size="inline"
-            >
-              <FormattedMessage
-                id="enterprise.skills.quiz.v1.skills.page.see.more.courses.button.label"
-                defaultMessage="See more courses >"
-                description="See more courses button label on the skills quiz v1 page."
-                values={{ skill: cs.key }}
-              />
-            </Button>
+            {!isCourseSearchDisabled && (
+              <Button
+                as={Link}
+                to={`/${enterpriseCustomer.slug}/search?skill_names=${cs.key}`}
+                variant="link"
+                size="inline"
+              >
+                <FormattedMessage
+                  id="enterprise.skills.quiz.v1.skills.page.see.more.courses.button.label"
+                  defaultMessage="See more courses >"
+                  description="See more courses button label on the skills quiz v1 page."
+                  values={{ skill: cs.key }}
+                />
+              </Button>
+            )}
           </div>
           <CardGrid>
             {cs.value.map(course => (

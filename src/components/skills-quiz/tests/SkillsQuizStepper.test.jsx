@@ -5,6 +5,7 @@
 import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
 import { screen } from '@testing-library/react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '@edx/frontend-platform/react';
 import { SearchContext, SearchData } from '@2uinc/frontend-enterprise-catalog-search';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
@@ -22,7 +23,12 @@ import {
   DROPDOWN_OPTION_IMPROVE_CURRENT_ROLE,
   GOAL_DROPDOWN_DEFAULT_OPTION,
 } from '../constants';
-import { useAlgoliaSearch, useDefaultSearchFilters, useEnterpriseCustomer } from '../../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAlgoliaSearch,
+  useDefaultSearchFilters,
+  useEnterpriseCustomer,
+} from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 
 jest.mock('@2uinc/frontend-enterprise-utils', () => ({
@@ -38,14 +44,21 @@ jest.mock('@2uinc/frontend-enterprise-catalog-search', () => ({
   removeFromRefinementArray: jest.fn(),
 }));
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: jest.fn(),
+}));
+
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useAlgoliaSearch: jest.fn(),
   useDefaultSearchFilters: jest.fn(),
 }));
 
 const mockEnterpriseCustomer = enterpriseCustomerFactory();
+const mockNavigate = jest.fn();
 const mockAuthenticatedUser = authenticatedUserFactory();
 
 const defaultAppState = {
@@ -120,6 +133,25 @@ describe('<SkillsQuizStepper />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAlgoliaSearch.mockReturnValue(mockAlgoliaSearch);
     useDefaultSearchFilters.mockReturnValue(`enterprise_customer_uuids:${mockEnterpriseCustomer.uuid}`);
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
+    useNavigate.mockReturnValue(mockNavigate);
+  });
+
+  it.each([
+    { isFindACourseDisabled: false, expectedPath: `/${mockEnterpriseCustomer.slug}/search` },
+    { isFindACourseDisabled: true, expectedPath: `/${mockEnterpriseCustomer.slug}` },
+  ])('navigates to $expectedPath on close (Find a Course disabled: $isFindACourseDisabled)', async ({
+    isFindACourseDisabled,
+    expectedPath,
+  }) => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(isFindACourseDisabled);
+    const user = userEvent.setup();
+    renderWithRouter(
+      <SkillsQuizStepperWrapper />,
+      { route: '/test/skills-quiz/' },
+    );
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(mockNavigate).toHaveBeenCalledWith(expectedPath);
   });
 
   it('checks header is correctly rendered', () => {

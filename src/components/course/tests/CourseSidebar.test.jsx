@@ -10,7 +10,7 @@ import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import CourseSidebar from '../CourseSidebar';
 import CourseSidebarListItem from '../CourseSidebarListItem';
-import { useCourseMetadata, useEnterpriseCustomer } from '../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useCourseMetadata, useEnterpriseCustomer } from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 
 jest.mock('@2uinc/frontend-enterprise-utils', () => ({
@@ -67,6 +67,7 @@ jest.mock('../CourseSidebarPrice', () => jest.fn(() => (
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useCourseMetadata: jest.fn(),
 }));
@@ -105,6 +106,7 @@ describe('CourseSidebarWrapper', () => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useCourseMetadata.mockReturnValue({ data: { activeCourseRun: mockActiveCourseRun, ...mockCourse } });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   it('renders', async () => {
@@ -234,5 +236,24 @@ describe('CourseSidebarWrapper', () => {
     // prerequisites
     expect(screen.getByText('Prerequisites')).toBeInTheDocument();
     expect(screen.getByText('Test Prerequisites')).toBeInTheDocument();
+  });
+
+  it('renders the institution and subject as plain text when "Find a Course" is disabled for the customer', async () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    const user = userEvent.setup();
+    renderWithRouter(<CourseSidebarWrapper />);
+
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+
+    const partner = screen.getByText('Test Partner');
+    expect(partner.closest('a')).toBeNull();
+    const subject = screen.getByText('Test Subject');
+    expect(subject.closest('a')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Test Partner' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Test Subject' })).not.toBeInTheDocument();
+
+    await user.click(partner);
+    await user.click(subject);
+    expect(sendEnterpriseTrackEvent).not.toHaveBeenCalled();
   });
 });

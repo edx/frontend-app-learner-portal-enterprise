@@ -11,7 +11,12 @@ import { renderWithRouter } from '../../../utils/tests';
 import { TEST_IMAGE_URL } from '../../search/tests/constants';
 import { NO_COURSES_ALERT_MESSAGE_AGAINST_SKILLS } from '../constants';
 import { SkillsContext } from '../SkillsContextProvider';
-import { useAlgoliaSearch, useDefaultSearchFilters, useEnterpriseCustomer } from '../../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAlgoliaSearch,
+  useDefaultSearchFilters,
+  useEnterpriseCustomer,
+} from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 import { resetMockReactInstantSearch, setFakeHits } from '../__mocks__/react-instantsearch-dom';
 
@@ -22,6 +27,7 @@ jest.mock('@2uinc/frontend-enterprise-utils', () => ({
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useAlgoliaSearch: jest.fn(),
   useDefaultSearchFilters: jest.fn(),
@@ -112,6 +118,7 @@ describe('<SkillsCourses />', () => {
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useDefaultSearchFilters.mockReturnValue(`enterprise_customer_uuids:${mockEnterpriseCustomer.uuid}`);
     useAlgoliaSearch.mockReturnValue(mockAlgoliaSearch);
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
     setFakeHits(courses.hits);
   });
   afterEach(() => {
@@ -147,5 +154,31 @@ describe('<SkillsCourses />', () => {
       <SkillsCoursesWithContext />,
     );
     expect(await screen.findByText(NO_COURSES_ALERT_MESSAGE_AGAINST_SKILLS)).toBeInTheDocument();
+  });
+
+  test('links skill badges and "See more courses" to course search', async () => {
+    renderWithRouter(<SkillsCoursesWithContext />);
+    await waitFor(() => {
+      expect(screen.getByText(SKILLS_HEADING)).toBeInTheDocument();
+    });
+    const searchUrl = `/${mockEnterpriseCustomer.slug}/search?skill_names=test-skill-1`;
+    expect(screen.getByRole('link', { name: 'test-skill-1' })).toHaveAttribute('href', searchUrl);
+    expect(screen.getByRole('link', { name: 'See more courses >' })).toHaveAttribute('href', searchUrl);
+  });
+
+  test('hides "See more courses" and unlinks skill badges when "Find a Course" is disabled for the customer', async () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    renderWithRouter(<SkillsCoursesWithContext />);
+    await waitFor(() => {
+      expect(screen.getByText(SKILLS_HEADING)).toBeInTheDocument();
+    });
+
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+    expect(screen.getAllByText('test-skill-1').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'test-skill-1' })).not.toBeInTheDocument();
+    expect(screen.queryByText('See more courses >')).not.toBeInTheDocument();
+    // Recommended course cards still link to course pages.
+    expect(screen.getByText('Top courses in test-skill-1')).toBeInTheDocument();
+    expect(screen.getByTestId('skills-quiz-course-card')).toBeInTheDocument();
   });
 });

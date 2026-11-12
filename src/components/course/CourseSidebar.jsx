@@ -18,7 +18,7 @@ import {
   useCoursePacingType,
 } from './data/hooks';
 import { processCourseSubjects } from './data/utils';
-import { useCourseMetadata, useEnterpriseCustomer } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useCourseMetadata, useEnterpriseCustomer } from '../app/data';
 
 const CourseSidebar = () => {
   const { data: courseMetadata } = useCourseMetadata();
@@ -28,6 +28,8 @@ const CourseSidebar = () => {
   const [transcriptLanguages, transcriptLabel] = useCourseTranscriptLanguages(courseMetadata.activeCourseRun);
   const [pacingType, pacingTypeContent] = useCoursePacingType(courseMetadata.activeCourseRun);
   const { data: enterpriseCustomer } = useEnterpriseCustomer();
+  // Partner and subject link to course search, which may be disabled for the customer (ENT-12375).
+  const isCourseSearchDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
   const intl = useIntl();
   return (
     <>
@@ -79,20 +81,22 @@ const CourseSidebar = () => {
             label={institutionLabel}
             content={partners.map(partner => (
               <span key={partner.key} className="d-block">
-                <Link
-                  to={`/${enterpriseCustomer.slug}/search?partners.name=${encodeURIComponent(partner.name)}`}
-                  onClick={() => {
-                    sendEnterpriseTrackEvent(
-                      enterpriseCustomer.uuid,
-                      'edx.ui.enterprise.learner_portal.course.sidebar.partner.clicked',
-                      {
-                        partner_name: partner.key,
-                      },
-                    );
-                  }}
-                >
-                  {partner.key}
-                </Link>
+                {isCourseSearchDisabled ? partner.key : (
+                  <Link
+                    to={`/${enterpriseCustomer.slug}/search?partners.name=${encodeURIComponent(partner.name)}`}
+                    onClick={() => {
+                      sendEnterpriseTrackEvent(
+                        enterpriseCustomer.uuid,
+                        'edx.ui.enterprise.learner_portal.course.sidebar.partner.clicked',
+                        {
+                          partner_name: partner.key,
+                        },
+                      );
+                    }}
+                  >
+                    {partner.key}
+                  </Link>
+                )}
               </span>
             ))}
           />
@@ -107,7 +111,7 @@ const CourseSidebar = () => {
                 description: 'Label for the subject of the course.',
               })
             }
-            content={(
+            content={isCourseSearchDisabled ? primarySubject.name : (
               <Link
                 to={`/${enterpriseCustomer.slug}/search?subjects=${encodeURIComponent(primarySubject.name)}`}
                 onClick={() => {

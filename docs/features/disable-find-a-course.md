@@ -62,6 +62,14 @@ exactly the pages this feature targets.
 | 8 | Program page "Catalog" / "<Subject> Courses" breadcrumbs | `program/ProgramHeader.jsx` | Breadcrumb hidden. Both links went to search. |
 | 9 | "exploring courses" inline link (redesigned My Courses empty state, Learner Pathways only) | `dashboard/main-content/course-enrollments/CourseEnrollmentsEmptyState.jsx` | Rendered as plain text. |
 | 10 | "course search" link in the pathway Need help card (Learner Pathways only) | `.../pathway-courses/NeedHelpCard.tsx` | Rendered as plain text, like the admin link without a contact email. |
+| 11 | Course page "Skills you'll gain" badges | `course/CourseSkills.jsx` | Plain badges, still keyboard-focusable so the description popover opens on focus. |
+| 12 | Course page sidebar Institution and Subject links | `course/CourseSidebar.jsx` | Plain text. The click-tracking events are skipped, since there is nothing to click. |
+| 13 | Skills quiz results: skill badges and "See more courses >" | `skills-quiz/SkillsCourses.jsx` (used by both quiz versions) | Badges unlinked and "See more courses" hidden. The recommended course cards stay. |
+| 14 | Skills quiz exit ("Close" / "Exit") | `skills-quiz/SkillsQuizStepper.jsx`, `skills-quiz-v2/SkillsQuiz.jsx` | Goes straight to the dashboard instead of through the `/search` redirect. |
+| 11 | Course page "Skills you'll gain" badges | `course/CourseSkills.jsx` | Plain badges, still focusable so the description popover opens on hover/focus. |
+| 12 | Course page sidebar Institution / Subject links | `course/CourseSidebar.jsx` | Rendered as plain text; click tracking skipped. |
+| 13 | Skills quiz results: skill badges and "See more courses >" | `skills-quiz/SkillsCourses.jsx` (used by quiz v1 and v2) | Badges unlinked; "See more courses" hidden. Recommended course cards stay. |
+| 14 | Skills quiz exit ("Close" in v1, "Exit" in v2) | `skills-quiz/SkillsQuizStepper.jsx`, `skills-quiz-v2/SkillsQuiz.jsx` | Navigates straight to the dashboard instead of `/search`. |
 
 Related behavior when disabled:
 
@@ -73,10 +81,10 @@ Related behavior when disabled:
   sends a first-time learner with no enrollments or assignments to `/search`. It now keeps them on
   the dashboard.
 - **The `/search` route is guarded.** `searchLoader` redirects to the dashboard, after its existing
-  single-academy redirect, so one-academy customers still land on their academy. This also covers
-  direct URLs, bookmarks and in-app navigations into search: the skills quiz exit, which sits behind
-  "Recommend courses for me", and the academy loader fallback for academy-ineligible learners. Those
-  navigate to `/search` and are then redirected.
+  single-academy redirect, so one-academy customers still land on their academy. This is the safety
+  net for direct URLs, bookmarks and any link into search not listed above, such as the academy
+  loader fallback for academy-ineligible learners. Visible links should still be gated (rows 1–14);
+  otherwise they silently land on the dashboard, which looks broken.
 
 ## Deliberately out of scope
 
