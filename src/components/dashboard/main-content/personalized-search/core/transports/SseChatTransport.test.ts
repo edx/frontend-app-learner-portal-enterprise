@@ -65,10 +65,16 @@ describe('SseChatTransport', () => {
     expect(parts[parts.length - 1].type).toBe('finish');
   });
 
-  it('sends no debug key without overrides', async () => {
+  it('sends no debug key outside debug mode', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')) });
     await collect(new SseChatTransport(options).send({ request: REQUEST }));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('debug');
+  });
+
+  it('sends an empty debug object in debug mode without model overrides', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')) });
+    await collect(new SseChatTransport({ ...options, getDebugOverrides: () => ({}) }).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({});
   });
 
   it('sends the content locale when the request has one, and no key otherwise', async () => {
