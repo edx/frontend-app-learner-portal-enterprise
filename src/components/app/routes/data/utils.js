@@ -10,6 +10,7 @@ import {
   addLicenseToSubscriptionLicensesByStatus,
   ALGOLIA_QUERY_CACHE_EPSILON,
   buildCatalogIndex,
+  isFindACourseDisabledForEnterpriseCustomer,
   querySubscriptions,
   resolveBFFQuery,
   safeEnsureQueryDataAcademiesList,
@@ -177,11 +178,14 @@ export async function ensureEnterpriseAppData({
  * @param {string} params.enterpriseSlug - The enterprise slug.
  * @param {Array} params.enterpriseCourseEnrollments - The enterprise course enrollments.
  * @param {Object} params.redeemablePolicies - The redeemable policies.
+ * @param {string} [params.enterpriseCustomerUuid] - The enterprise customer UUID, used to skip the
+ *  redirect when "Find a Course" (course search) is disabled for the customer (ENT-12375).
  */
 export function redirectToSearchPageForNewUser({
   enterpriseSlug,
   enterpriseCourseEnrollments,
   redeemablePolicies,
+  enterpriseCustomerUuid,
 }) {
   // If the user has already visited the dashboard, return early.
   if (localStorage.getItem('has-user-visited-learner-dashboard')) {
@@ -206,6 +210,9 @@ export function redirectToSearchPageForNewUser({
   const { hasAssignmentsForDisplay } = redeemablePolicies.learnerContentAssignments;
   const hasEnterpriseCourseEnrollments = enterpriseCourseEnrollments.length > 0;
   if (!(hasAssignmentsForDisplay || hasEnterpriseCourseEnrollments)) {
+    if (isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)) {
+      return;
+    }
     throw redirect(generatePath('/:enterpriseSlug/search', { enterpriseSlug }));
   }
 }

@@ -105,4 +105,12 @@ describe('isPathwayMessageEnabledForEnterpriseCustomer', () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('comma-separated list'));
     warnSpy.mockRestore();
   });
+
+  it('tolerates surrounding whitespace in the allowed uuid (runtime config is not trimmed by index.tsx)', () => {
+    expect(isPathwayMessageEnabledForEnterpriseCustomer(CUSTOMER_UUID, `  ${CUSTOMER_UUID}  `)).toBe(true);
+  });
+
+  it('returns false instead of throwing for a misconfigured non-string allowed uuid', () => {
+    expect(isPathwayMessageEnabledForEnterpriseCustomer(CUSTOMER_UUID, [CUSTOMER_UUID])).toBe(false);
+  });
 });

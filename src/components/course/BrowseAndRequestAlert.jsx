@@ -5,7 +5,7 @@ import {
 import { Link } from 'react-router-dom';
 import { FormattedMessage } from '@edx/frontend-platform/i18n';
 import useBFF from '../app/data/hooks/useBFF';
-import { isFindACourseDisabledForEnterpriseCustomer, queryDefaultEmptyFallback } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, queryDefaultEmptyFallback, useEnterpriseCustomer } from '../app/data';
 import bookLoverImg from '../../assets/images/course/book-lover.svg';
 
 const BrowseAndRequestCard = () => {
@@ -13,12 +13,13 @@ const BrowseAndRequestCard = () => {
     bffQueryOptions: {},
     fallbackQueryConfig: queryDefaultEmptyFallback(),
   });
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const [isDismissed, setIsDismissed] = useState(false);
   const isSmall = useMediaQuery({ maxWidth: breakpoints.small.maxWidth });
 
   if (isDismissed || !data?.hasBnrEnabledPolicy) { return null; }
   // "Find a course" is the card's only CTA, so hide the card when it is disabled (ENT-12375).
-  if (isFindACourseDisabledForEnterpriseCustomer(data.enterpriseCustomer?.uuid)) { return null; }
+  if (isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) { return null; }
 
   return (
     <Card

@@ -19,6 +19,7 @@ import {
   hasValidLicenseOrSubscriptionRequestsEnabled,
   isFindACourseDisabledForEnterpriseCustomer,
   isLinkedEnterpriseCustomer,
+  matchesEnterpriseCustomerConfigUuid,
   normalizeCatalogUuid,
   resolveApplicableSubscriptionLicense,
   selectBestLicense,
@@ -1916,5 +1917,27 @@ describe('isFindACourseDisabledForEnterpriseCustomer', () => {
       FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: enterpriseCustomerUuid,
     });
     expect(isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid)).toBe(false);
+  });
+});
+
+describe('matchesEnterpriseCustomerConfigUuid', () => {
+  const enterpriseCustomerUuid = '2e16fcfa-58ea-4021-be51-2235ef4b5284';
+
+  it.each([null, undefined, '', '   ', true, ['2e16fcfa-58ea-4021-be51-2235ef4b5284'], '11111111-1111-1111-1111-111111111111'])(
+    'returns false for config value %p',
+    (configUuid) => {
+      expect(matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid)).toBe(false);
+    },
+  );
+
+  it.each([enterpriseCustomerUuid, enterpriseCustomerUuid.toUpperCase(), `  ${enterpriseCustomerUuid}  `])(
+    'returns true for matching config value %p',
+    (configUuid) => {
+      expect(matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid)).toBe(true);
+    },
+  );
+
+  it('treats the nil UUID as a wildcard, even without a customer UUID', () => {
+    expect(matchesEnterpriseCustomerConfigUuid('00000000-0000-0000-0000-000000000000', undefined)).toBe(true);
   });
 });

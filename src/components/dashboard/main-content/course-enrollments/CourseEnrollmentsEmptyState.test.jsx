@@ -181,4 +181,16 @@ describe('CourseEnrollmentsEmptyStateContainer', () => {
     const exploreLink = screen.getByRole('link', { name: 'exploring courses' });
     expect(exploreLink).toHaveAttribute('href', '/test-enterprise/search');
   });
+
+  it('renders "exploring courses" as plain text when Learner Pathways is enabled and "Find a Course" is disabled', () => {
+    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    useEnterpriseFeatures.mockReturnValue({ data: { enterpriseAiPathwaysOperatorEnabled: true } });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+
+    renderComponent();
+
+    expect(screen.getByText(/Once you enroll in a course/)).toBeInTheDocument();
+    expect(screen.getByText(/exploring courses/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'exploring courses' })).not.toBeInTheDocument();
+  });
 });

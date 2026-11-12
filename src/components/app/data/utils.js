@@ -1382,26 +1382,40 @@ export function canViewAcademies({
 }
 
 /**
- * Whether "Find a Course" entry points should be hidden for the given enterprise customer, per the
- * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER config value (a single customer UUID, or
- * the nil UUID as a wildcard for every customer). Case-insensitive and whitespace-tolerant. The
- * value is normalized here rather than relying on src/index.tsx, because in deployed environments
- * it arrives via the LMS runtime MFE config API, which is merged after index.tsx's config handler.
- * See docs/features/disable-find-a-course.md (ENT-12375).
+ * Whether a single-UUID config value (e.g. FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER,
+ * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER) applies to the given enterprise customer.
+ * The nil UUID is a wildcard matching every customer. Case-insensitive and whitespace-tolerant.
  *
- * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
+ * Values are normalized here rather than relying on src/index.tsx, because in deployed environments
+ * they arrive via the LMS runtime MFE config API, which is merged after index.tsx's config handler.
+ * A misconfigured non-string value (e.g. a YAML boolean or list) never matches, instead of throwing.
+ *
+ * @param {*} configUuid - The config value; expected to be a single UUID string.
+ * @param {string} [enterpriseCustomerUuid] - The current enterprise customer's UUID.
+ * @returns {boolean} - True if the config value matches the customer (or is the nil UUID).
+ */
+export function matchesEnterpriseCustomerConfigUuid(configUuid, enterpriseCustomerUuid) {
+  if (typeof configUuid !== 'string') {
+    return false;
+  }
+  const normalizedConfigUuid = configUuid.trim().toLowerCase();
+  if (!normalizedConfigUuid) {
+    return false;
+  }
+  return normalizedConfigUuid === NIL_UUID || normalizedConfigUuid === enterpriseCustomerUuid?.toLowerCase();
+}
+
+/**
+ * Whether "Find a Course" entry points should be hidden for the given enterprise customer, per the
+ * FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER config value. See
+ * docs/features/disable-find-a-course.md (ENT-12375).
+ *
+ * @param {string} [enterpriseCustomerUuid] - The current enterprise customer's UUID.
  * @returns {boolean} - True if "Find a Course" entry points should be hidden.
  */
 export function isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomerUuid) {
-  const configValue = getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER;
-  // Guard against a misconfigured non-string value (e.g. a YAML boolean or list), which would
-  // otherwise throw in the site header on every page.
-  if (typeof configValue !== 'string') {
-    return false;
-  }
-  const disabledUuid = configValue.trim().toLowerCase();
-  if (!disabledUuid) {
-    return false;
-  }
-  return disabledUuid === NIL_UUID || disabledUuid === enterpriseCustomerUuid?.toLowerCase();
+  return matchesEnterpriseCustomerConfigUuid(
+    getConfig()?.FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER,
+    enterpriseCustomerUuid,
+  );
 }

@@ -1,5 +1,6 @@
 import { NIL as NIL_UUID } from 'uuid';
 
+import { matchesEnterpriseCustomerConfigUuid } from '../../app/data/utils';
 import { ASSIGNMENTS_EXPIRING_WARNING_LOCALSTORAGE_KEY, BUDGET_STATUSES } from './constants';
 
 /**
@@ -83,8 +84,7 @@ export function isPathwayMessageEnabledForEnterpriseCustomer(enterpriseCustomerU
       + 'UUID, not a comma-separated list — this value will not match any customer.',
     );
   }
-  const normalizedAllowedUuid = allowedEnterpriseCustomerUuid.toLowerCase();
-  return normalizedAllowedUuid === NIL_UUID || normalizedAllowedUuid === enterpriseCustomerUuid?.toLowerCase();
+  return matchesEnterpriseCustomerConfigUuid(allowedEnterpriseCustomerUuid, enterpriseCustomerUuid);
 }
 
 //  Utility function to check the budget status

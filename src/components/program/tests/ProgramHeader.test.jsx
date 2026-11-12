@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/extend-expect';
 
 import ProgramHeader from '../ProgramHeader';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
-import { useEnterpriseCustomer, useProgramDetails } from '../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer, useProgramDetails } from '../../app/data';
 
 jest.mock('react-router-dom', () => ({
   useParams: jest.fn().mockReturnValue({ enterpriseSlug: 'test-enterprise-slug' }),
@@ -12,6 +12,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useProgramDetails: jest.fn(),
 }));
@@ -51,6 +52,7 @@ describe('<ProgramHeader />', () => {
     jest.clearAllMocks();
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useProgramDetails.mockReturnValue({ data: initialProgramState });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   test('does not render program header with marketing hook if subject is not available.', () => {
@@ -88,5 +90,16 @@ describe('<ProgramHeader />', () => {
     expect(screen.getByText('Subject Courses')).toBeInTheDocument();
     expect(screen.getByText('Catalog')).toBeInTheDocument();
     expect(screen.getByText(organizationKeyWithTitle)).toBeInTheDocument();
+  });
+
+  test('does not render the search breadcrumbs when "Find a Course" is disabled for the customer', () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    render(
+      <ProgramHeaderWithContext />,
+    );
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+    expect(screen.getByText('Test program marketing hook')).toBeInTheDocument();
+    expect(screen.queryByText('Catalog')).not.toBeInTheDocument();
+    expect(screen.queryByText('Subject Courses')).not.toBeInTheDocument();
   });
 });

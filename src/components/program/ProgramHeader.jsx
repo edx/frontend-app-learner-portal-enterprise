@@ -3,11 +3,12 @@ import { breakpoints, Breadcrumb } from '@openedx/paragon';
 import { getConfig } from '@edx/frontend-platform/config';
 import { Link, useParams } from 'react-router-dom';
 import { fixedEncodeURIComponent } from '../../utils/common';
-import { useProgramDetails } from '../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer, useProgramDetails } from '../app/data';
 
 const ProgramHeader = () => {
   const config = getConfig();
   const { enterpriseSlug } = useParams();
+  const { data: enterpriseCustomer } = useEnterpriseCustomer();
   const {
     data: {
       title, authoringOrganizations, subjects, marketingHook,
@@ -63,9 +64,13 @@ const ProgramHeader = () => {
     return `${multipleOrganizationString}'s ${title}`;
   };
 
-  const links = [{ label: 'Catalog', to: `/${enterpriseSlug}/search` }];
-  if (subjectName && subjectSlug) {
-    links.push({ label: `${subjectName} Courses`, to: `/${enterpriseSlug}/search?subjects=${ fixedEncodeURIComponent(subjectName)}` });
+  const links = [];
+  // Both breadcrumb links go to course search, which may be disabled (ENT-12375).
+  if (!isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+    links.push({ label: 'Catalog', to: `/${enterpriseSlug}/search` });
+    if (subjectName && subjectSlug) {
+      links.push({ label: `${subjectName} Courses`, to: `/${enterpriseSlug}/search?subjects=${ fixedEncodeURIComponent(subjectName)}` });
+    }
   }
 
   if (!subjectSlug) {
@@ -81,13 +86,15 @@ const ProgramHeader = () => {
     >
       <header className="program-header">
         <div className="container mw-lg program-header-container">
-          <div className="header-breadcrumbs ml-2">
-            <Breadcrumb
-              links={links}
-              activeLabel={prependProgramOrganizationsToTitle()}
-              linkAs={Link}
-            />
-          </div>
+          {links.length > 0 && (
+            <div className="header-breadcrumbs ml-2">
+              <Breadcrumb
+                links={links}
+                activeLabel={prependProgramOrganizationsToTitle()}
+                linkAs={Link}
+              />
+            </div>
+          )}
           <h1 className="display-3">{marketingHook}</h1>
         </div>
       </header>

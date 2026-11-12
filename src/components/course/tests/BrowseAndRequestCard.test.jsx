@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useMediaQuery } from '@openedx/paragon';
 import useBFF from '../../app/data/hooks/useBFF';
-import { isFindACourseDisabledForEnterpriseCustomer } from '../../app/data';
+import { isFindACourseDisabledForEnterpriseCustomer, useEnterpriseCustomer } from '../../app/data';
 import BrowseAndRequestCard from '../BrowseAndRequestAlert';
 
 jest.mock('../../app/data/hooks/useBFF');
@@ -17,6 +17,7 @@ jest.mock('@openedx/paragon', () => {
 jest.mock('../../app/data', () => ({
   queryDefaultEmptyFallback: jest.fn().mockReturnValue({}),
   isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
+  useEnterpriseCustomer: jest.fn(),
 }));
 
 describe('BrowseAndRequestCard', () => {
@@ -31,6 +32,7 @@ describe('BrowseAndRequestCard', () => {
   beforeEach(() => {
     useMediaQuery.mockReturnValue(false); // default to desktop view
     useBFF.mockReturnValue({ data: mockData });
+    useEnterpriseCustomer.mockReturnValue({ data: mockData.enterpriseCustomer });
     isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 

@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import { when } from 'jest-when';
+import * as frontendPlatformConfig from '@edx/frontend-platform/config';
 import '@testing-library/jest-dom/extend-expect';
 
 import { renderWithRouterProvider } from '../../../utils/tests';
@@ -35,6 +36,7 @@ const mockQueryClient = {
 describe('dashboardLoader', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
     localStorage.clear();
     ensureAuthenticatedUser.mockResolvedValue({ userId: 3 });
     extractEnterpriseCustomer.mockResolvedValue({ uuid: mockEnterpriseId, slug: mockEnterpriseSlug });
@@ -64,6 +66,15 @@ describe('dashboardLoader', () => {
       currentPageRoute: `/${mockEnterpriseSlug}`,
       hasVisitedDashboardBefore: false,
       shouldRedirectToSearch: true,
+    },
+    {
+      hasAssignmentsForDisplay: false,
+      hasEnterpriseCourseEnrollments: false,
+      currentPageRoute: `/${mockEnterpriseSlug}`,
+      hasVisitedDashboardBefore: false,
+      // First-time visitor, but course search is disabled for the customer (ENT-12375).
+      isFindACourseDisabled: true,
+      shouldRedirectToSearch: false,
     },
     {
       hasAssignmentsForDisplay: false,
@@ -106,8 +117,16 @@ describe('dashboardLoader', () => {
     currentPageRoute,
     hasVisitedDashboardBefore,
     shouldRedirectToSearch,
+    isFindACourseDisabled = false,
   }) => {
     resolveBFFQuery.mockReturnValue(queryEnterpriseLearnerDashboardBFF);
+    if (isFindACourseDisabled) {
+      const actualConfig = frontendPlatformConfig.getConfig();
+      jest.spyOn(frontendPlatformConfig, 'getConfig').mockReturnValue({
+        ...actualConfig,
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseId,
+      });
+    }
 
     // Mock global.location.pathname
     const mockLocation = {
