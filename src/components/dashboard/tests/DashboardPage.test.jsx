@@ -231,9 +231,12 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Nil-uuid wildcard by default so every existing test below (which never touches this
-    // allowlist itself) keeps its current "enabled for all" expectations.
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    // Nil-uuid wildcard by default so every existing test below (which never touches these
+    // allowlists itself) keeps its current "enabled for all" expectations.
+    mergeConfig({
+      FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+      FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+    });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useCanViewAcademies.mockReturnValue(false);

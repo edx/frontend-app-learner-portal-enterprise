@@ -25,7 +25,10 @@ import {
   DASHBOARD_PROGRAMS_TAB,
   DASHBOARD_TABS_SEGMENT_KEY,
 } from './constants';
-import { isLearnerPathwaysEnabledForEnterpriseCustomer } from './utils';
+import {
+  isLearnerPathwaysEnabledForEnterpriseCustomer,
+  isPersonalizedSearchEnabledForEnterpriseCustomer,
+} from './utils';
 import MyCareerTabSkeleton from '../../my-career/MyCareerTabSkeleton';
 import {
   queryLearnerSkillLevels,
@@ -72,8 +75,13 @@ const useDashboardTabs = () => {
   const hasExistingPathways = enterprisePathways.length > 0;
   const hasPathwaysTab = enablePathways && (isLearnerPathwaysEnabled || hasExistingPathways);
   const showLearnerPathwaysAlert = enablePathways && isLearnerPathwaysEnabled;
-  // Personalized Search has its own per-learner flag (edx-enterprise `enterprise.personalized_search_enabled`).
-  const isPersonalizedSearchEnabled = !!enterpriseFeatures?.enterprisePersonalizedSearchEnabled;
+  // Personalized Search has its own per-learner flag (edx-enterprise `enterprise.personalized_search_enabled`)
+  // and its own enterprise customer allowlist, gated the same way as Learner Pathways.
+  const isPersonalizedSearchEnabled = !!enterpriseFeatures?.enterprisePersonalizedSearchEnabled
+    && isPersonalizedSearchEnabledForEnterpriseCustomer(
+      enterpriseCustomerUuid,
+      getConfig().FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS,
+    );
 
   const learnerCurrentJobID = extractCurrentJobID(authenticatedUser);
 
