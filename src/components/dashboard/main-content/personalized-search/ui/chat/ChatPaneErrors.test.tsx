@@ -15,6 +15,7 @@ import type { FixtureName } from '../../core/transports/FixtureChatTransport';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
 import { TURN_IN_PROGRESS_RETRY_MS } from '../../core/workflows';
+import { STOP_GUARD_MS } from './Composer';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
 const testStore = createPersonalizedSearchStore();
@@ -83,9 +84,10 @@ describe('ChatPane stop, errors and retry', () => {
 
   it('Stop aborts the turn, marks it Stopped, discards its blocks and shows the previous page', async () => {
     const user = userEvent.setup();
+    // 30 ms a part puts the first section (part 20) past Stop's guard after it appears.
     const transport = new ScriptedTransport([
       { fixture: 'normal_turn.sse' },
-      { fixture: 'normal_turn.sse', delayMs: 20 },
+      { fixture: 'normal_turn.sse', delayMs: 30 },
     ]);
     renderTab(transport);
     await sendMessage(user, 'Leading teams');
@@ -103,6 +105,44 @@ describe('ChatPane stop, errors and retry', () => {
     expect(screen.getByText('Stopped')).toBeInTheDocument();
     expect(store().stream.turns[1]).toEqual(expect.objectContaining({ status: 'stopped', blocks: [] }));
     expect(store().viewedTurnId).toBe(firstTurnId);
+  });
+
+  it('a double-click on Send does not stop the turn: Stop ignores clicks for 500 ms after it appears', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const transport = new ScriptedTransport([{ fixture: 'normal_turn.sse', delayMs: 100 }]);
+    renderTab(transport);
+    await user.type(composer(), 'Leading teams');
+    // A double-click's second click lands on Stop, which takes Send's place.
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(transport.signals[0].aborted).toBe(false);
+    await act(async () => { await jest.advanceTimersByTimeAsync(STOP_GUARD_MS - 50); });
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(transport.signals[0].aborted).toBe(false);
+    expect(store().stream.activeTurnId).not.toBeNull();
+
+    // After the guard, Stop works.
+    await act(async () => { await jest.advanceTimersByTimeAsync(50); });
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(transport.signals[0].aborted).toBe(true);
+    expect(transport.requests).toHaveLength(1);
+  });
+
+  it('Enter or Space on Stop is ignored for 500 ms after it appears', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const transport = new ScriptedTransport([{ fixture: 'normal_turn.sse', delayMs: 100 }]);
+    renderTab(transport);
+    await user.type(composer(), 'Leading teams{Enter}');
+    screen.getByRole('button', { name: 'Stop' }).focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+    expect(transport.signals[0].aborted).toBe(false);
+
+    await act(async () => { await jest.advanceTimersByTimeAsync(STOP_GUARD_MS); });
+    await user.keyboard('{Enter}');
+    expect(transport.signals[0].aborted).toBe(true);
   });
 
   it('400 shows the length message and restores the draft', async () => {
@@ -163,6 +203,7 @@ describe('ChatPane stop, errors and retry', () => {
     await sendMessage(user, 'Leading teams');
     expect(transport.requests).toHaveLength(1);
 
+    await act(async () => { await jest.advanceTimersByTimeAsync(STOP_GUARD_MS); });
     await user.click(screen.getByRole('button', { name: 'Stop' }));
     await act(async () => { await jest.advanceTimersByTimeAsync(TURN_IN_PROGRESS_RETRY_MS + 100); });
 
