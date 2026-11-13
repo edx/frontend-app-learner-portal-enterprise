@@ -238,11 +238,12 @@ describe('LearningPagePane', () => {
       expect(container.querySelector('[data-skeleton="plan"]')).toBeNull();
     });
 
-    it('holds the header row corner for the plan while the turn streams, and closes it without one', () => {
+    it('holds no placeholder for the plan while the turn streams, and shows none without one', () => {
+      // enterprise-access can have the suggested order switched off, so a placeholder would flash on every turn.
       const streaming = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block'
         && (p as { data: { type: string } }).data.type === 'compare')));
       const { container, unmount } = renderPane(streaming);
-      expect(container.querySelector('.personalized-search__page-top [data-skeleton="plan"]')).not.toBeNull();
+      expect(container.querySelector('[data-skeleton="plan"]')).toBeNull();
       unmount();
       const done = renderPane(goldenTurnWithout('plan'));
       expect(done.container.querySelector('[data-skeleton="plan"], .personalized-search__plan')).toBeNull();
