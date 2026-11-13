@@ -72,9 +72,10 @@ describe('dashboardLoader', () => {
       hasEnterpriseCourseEnrollments: false,
       currentPageRoute: `/${mockEnterpriseSlug}`,
       hasVisitedDashboardBefore: false,
-      // First-time visitor, but course search is disabled for the customer (ENT-12375).
+      // Course search disabled for the customer (ENT-12375): the first visit still goes to /search,
+      // where searchLoader redirects to the customer's single academy, or back to the dashboard.
       isFindACourseDisabled: true,
-      shouldRedirectToSearch: false,
+      shouldRedirectToSearch: true,
     },
     {
       hasAssignmentsForDisplay: false,

@@ -61,7 +61,6 @@ const makeDashboardLoader: MakeRouteLoaderFunctionWithQueryClient = function mak
         enterpriseSlug: enterpriseSlug!,
         enterpriseCourseEnrollments,
         redeemablePolicies,
-        enterpriseCustomerUuid: enterpriseCustomer.uuid,
       });
     });
 

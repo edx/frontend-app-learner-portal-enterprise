@@ -69,14 +69,21 @@ Related behavior when disabled:
   hidden, so it never shows as an empty bordered box. The check uses `enableOneAcademy` rather than
   the academies list, so the list isn't fetched just for this. A one-academy customer with zero
   academies could still see an empty card, which is a misconfiguration edge case.
-- **First-visit redirect.** `redirectToSearchPageForNewUser` (used by the dashboard loader) normally
-  sends a first-time learner with no enrollments or assignments to `/search`. It now keeps them on
-  the dashboard.
 - **The `/search` route is guarded.** `searchLoader` redirects to the dashboard, after its existing
   single-academy redirect, so one-academy customers still land on their academy. This also covers
   direct URLs, bookmarks and in-app navigations into search: the skills quiz exit, which sits behind
   "Recommend courses for me", and the academy loader fallback for academy-ineligible learners. Those
   navigate to `/search` and are then redirected.
+- **Pathway detail pages stay reachable.** The same loader serves `/search/:pathwayUUID`, which
+  opens a pathway in a modal. Those URLs are linked from outside search (skills quiz pathway
+  results, content highlights), so the guard skips them. Closing the modal navigates to `/search`,
+  which the guard then redirects. On `master`, one-academy customers were already sent to their
+  academy from these URLs, and that is unchanged.
+- **First-visit redirect is unchanged.** `redirectToSearchPageForNewUser` still sends a first-time
+  learner with no enrollments or assignments to `/search`. The guard then takes over, so they land
+  on their single academy (as on `master`) or back on the dashboard. This can't loop:
+  `has-user-visited-learner-dashboard` is set in localStorage before that first redirect, so the
+  second dashboard load doesn't redirect again.
 
 ## Deliberately out of scope
 
