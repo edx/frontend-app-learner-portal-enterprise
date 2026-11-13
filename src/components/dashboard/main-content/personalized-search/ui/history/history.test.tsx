@@ -13,7 +13,7 @@ import type { ChatTransport, SendTurnOptions, TurnRequest } from '../../core/tra
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import type { SessionDetail } from '../../core/api/sessions';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
-import { applyParts, getInitialChatStreamState } from '../../core/stream/applyPart';
+import { applyParts, beginTurn, getInitialChatStreamState } from '../../core/stream/applyPart';
 import { readGolden } from '../../core/stream/testUtils';
 import { parseSseText } from '../../core/stream/parseSse';
 import type { Part } from '../../core/stream/types';
@@ -68,7 +68,7 @@ const DETAIL: SessionDetail = {
 
 describe('reopenSessionWorkflow', () => {
   it('replays stored parts into the same turn the live stream produced', () => {
-    const live = applyParts(getInitialChatStreamState(), GOLDEN).turns[0];
+    const live = applyParts(beginTurn(getInitialChatStreamState(), { localId: 'live', userMessage: null }), GOLDEN).turns[0];
     const state = reopenSessionWorkflow(DETAIL);
     const [past] = state.turns;
     expect(past.status).toBe('done');

@@ -551,7 +551,7 @@ All new code lives under `src/components/dashboard/main-content/personalized-sea
 | `state/personalizedSearchStore.ts` | zustand | `{sessionUuid, turns[], activeTurnId, viewedTurnId, status, savedIds, mode: 'live' \| 'past', mobilePane, hasNewPicks}` (`viewedTurnId` drives "View these results"; the last two are Phase 2 mobile state); setters only; **not** persisted to localStorage (the server is the record) |
 | `messages.ts` | i18n | `defineMessages`, ids `learner.personalizedSearch.*` |
 
-Transport selection: `getConfig().PERSONALIZED_SEARCH_TRANSPORT` is `fixture` (local development and demos without a backend), `buffered` (KD-4 fallback), or unset for SSE. It's a new optional env var.
+Transport selection: `getConfig().PERSONALIZED_SEARCH_TRANSPORT` is `fixture` (local development and demos without a backend), `buffered` (KD-4 fallback), `unavailable` (behaves like a switched-off backend), or unset (or `sse`) for SSE. Any other value is treated as `unavailable`, so a typo shows the tab as off rather than silently streaming. It's a new optional env var.
 
 **Tab registration** in `useDashboardTabs.jsx`: add the key `personalized-search` to `dashboard/data/constants.js:13-23` and `tabState` (`:77-100`). The entry in `allTabs` (`:172-255`) follows the programs entry shape (`:191-204`), visible and available when `isLearnerPathwaysEnabled` (`:64-68`) (KD-8). Title: "Personalized Search" with a "Beta" badge, the same as the Pathways title (`:217-225`).
 
@@ -819,7 +819,7 @@ Two dedicated flags and a customer allowlist (KD-8, amended 2026-11-04 and 2026-
 | `PERSONALIZED_SEARCH_INTENT_TIMEOUT_S` / `_COMPOSE_READ_TIMEOUT_S` (settings, new) | 3 / 5 | Step timeouts (Deadline) | Change the setting |
 | `PERSONALIZED_SEARCH_DEBUG_OVERRIDES_ENABLED` (setting, dev only) | False | `?debug=true` per-turn model overrides and the debug menu endpoint | Leave False outside dev |
 | `PATHWAYS_MODEL_BACKEND` (setting) | `xpert` | Which LLM backend chat uses (KD-2) | Change the setting |
-| `PERSONALIZED_SEARCH_TRANSPORT` (MFE env, new, optional) | unset (SSE) | `fixture` or `buffered` override the SSE transport | Unset |
+| `PERSONALIZED_SEARCH_TRANSPORT` (MFE env, new, optional) | unset (SSE) | `fixture`, `buffered` or `unavailable` override the SSE transport; any other value is `unavailable` | Unset |
 
 ### Rollback Plan
 
