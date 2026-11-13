@@ -136,6 +136,11 @@ declare global {
     FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: string | null;
   };
 
+  // TAG GDPT enterprise customer UUID (or the nil-UUID wildcard) for which "Find a Course" is hidden.
+  type FindACourseDisabledConfiguration = {
+    FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: string | null;
+  };
+
   interface Configuration extends
     AlgoliaConfiguration,
     ServiceUrls,
@@ -147,7 +152,8 @@ declare global {
     OptimizelyConfiguration,
     PathwaysFeedbackConfiguration,
     LearnerPathwaysAllowlistConfiguration,
-    PathwayMessageConfiguration {}
+    PathwayMessageConfiguration,
+    FindACourseDisabledConfiguration {}
 
   // Application Data (enterprise)
 

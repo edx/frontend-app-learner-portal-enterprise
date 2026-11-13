@@ -55,7 +55,7 @@ describe('searchLoader', () => {
   it('does nothing with unauthenticated users', async () => {
     ensureAuthenticatedUser.mockResolvedValue(null);
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div>hello world</div>,
       loader: makeSearchLoader(mockQueryClient),
     }, [
@@ -71,7 +71,7 @@ describe('searchLoader', () => {
 
   it('ensures the requisite search data is resolved without content highlights', async () => {
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div>hello world</div>,
       loader: makeSearchLoader(mockQueryClient),
     }, [
@@ -102,7 +102,7 @@ describe('searchLoader', () => {
       FEATURE_CONTENT_HIGHLIGHTS: true,
     });
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div>hello world</div>,
       loader: makeSearchLoader(mockQueryClient),
     }, [
@@ -140,7 +140,7 @@ describe('searchLoader', () => {
     ensureAuthenticatedUser.mockResolvedValue({ userId: 3, username: 'test-user' });
 
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div data-testid="search-page" />,
       loader: makeSearchLoader(mockQueryClient),
     }, {
@@ -170,7 +170,7 @@ describe('searchLoader', () => {
     ensureAuthenticatedUser.mockResolvedValue({ userId: 3, username: 'test-user' });
 
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div data-testid="search-page" />,
       loader: makeSearchLoader(mockQueryClient),
     }, {
@@ -196,7 +196,7 @@ describe('searchLoader', () => {
     });
 
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div>hello world</div>,
       loader: makeSearchLoader(mockQueryClient),
     }, [
@@ -230,7 +230,7 @@ describe('searchLoader', () => {
     ensureAuthenticatedUser.mockResolvedValue({ userId: 3, username: 'test-user' });
 
     renderWithRouterProvider({
-      path: '/:enterpriseSlug/search',
+      path: '/:enterpriseSlug/search/:pathwayUUID?',
       element: <div data-testid="search-page" />,
       loader: makeSearchLoader(mockQueryClient),
     }, {
@@ -247,5 +247,86 @@ describe('searchLoader', () => {
       expect(screen.getByTestId('search-page')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('academy-details-page')).not.toBeInTheDocument();
+  });
+
+  describe('when "Find a Course" is disabled for the enterprise customer', () => {
+    it('redirects to the dashboard', async () => {
+      getConfig.mockReturnValue({
+        FEATURE_CONTENT_HIGHLIGHTS: false,
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+      });
+
+      renderWithRouterProvider({
+        path: '/:enterpriseSlug/search/:pathwayUUID?',
+        element: <div data-testid="search-page" />,
+        loader: makeSearchLoader(mockQueryClient),
+      }, {
+        routes: [{ path: '/:enterpriseSlug', element: <div data-testid="dashboard-page" /> }],
+        initialEntries: [`/${mockEnterpriseCustomer.slug}/search`],
+      });
+
+      expect(await screen.findByTestId('dashboard-page')).toBeInTheDocument();
+      expect(screen.queryByTestId('search-page')).not.toBeInTheDocument();
+    });
+
+    it('still redirects a one-academy customer to their academy rather than the dashboard', async () => {
+      const oneAcademyCustomer = enterpriseCustomerFactory({ enable_one_academy: true });
+      extractEnterpriseCustomer.mockResolvedValue(oneAcademyCustomer);
+      getConfig.mockReturnValue({
+        FEATURE_CONTENT_HIGHLIGHTS: false,
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: oneAcademyCustomer.uuid,
+      });
+
+      renderWithRouterProvider({
+        path: '/:enterpriseSlug/search/:pathwayUUID?',
+        element: <div data-testid="search-page" />,
+        loader: makeSearchLoader(mockQueryClient),
+      }, {
+        routes: [
+          { path: '/:enterpriseSlug/academies/:academyUUID', element: <div data-testid="academy-details-page" /> },
+          { path: '/:enterpriseSlug', element: <div data-testid="dashboard-page" /> },
+        ],
+        initialEntries: [`/${oneAcademyCustomer.slug}/search`],
+      });
+
+      expect(await screen.findByTestId('academy-details-page')).toBeInTheDocument();
+    });
+
+    it('does not redirect pathway detail pages (/search/:pathwayUUID)', async () => {
+      getConfig.mockReturnValue({
+        FEATURE_CONTENT_HIGHLIGHTS: false,
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: mockEnterpriseCustomer.uuid,
+      });
+
+      renderWithRouterProvider({
+        path: '/:enterpriseSlug/search/:pathwayUUID?',
+        element: <div data-testid="search-page" />,
+        loader: makeSearchLoader(mockQueryClient),
+      }, {
+        routes: [{ path: '/:enterpriseSlug', element: <div data-testid="dashboard-page" /> }],
+        initialEntries: [`/${mockEnterpriseCustomer.slug}/search/test-pathway-uuid`],
+      });
+
+      expect(await screen.findByTestId('search-page')).toBeInTheDocument();
+      expect(screen.queryByTestId('dashboard-page')).not.toBeInTheDocument();
+    });
+
+    it('does not redirect other customers', async () => {
+      getConfig.mockReturnValue({
+        FEATURE_CONTENT_HIGHLIGHTS: false,
+        FEATURE_DISABLE_FIND_A_COURSE_FOR_ENTERPRISE_CUSTOMER: '11111111-1111-1111-1111-111111111111',
+      });
+
+      renderWithRouterProvider({
+        path: '/:enterpriseSlug/search/:pathwayUUID?',
+        element: <div data-testid="search-page" />,
+        loader: makeSearchLoader(mockQueryClient),
+      }, {
+        routes: [{ path: '/:enterpriseSlug', element: <div data-testid="dashboard-page" /> }],
+        initialEntries: [`/${mockEnterpriseCustomer.slug}/search`],
+      });
+
+      expect(await screen.findByTestId('search-page')).toBeInTheDocument();
+    });
   });
 });

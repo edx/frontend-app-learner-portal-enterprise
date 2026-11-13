@@ -3,7 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from '@edx/frontend-platform/i18n';
 import NotFoundPage from '../NotFoundPage';
 import './styles/Academy.scss';
-import { useAcademyDetails, useEnterpriseCustomer } from '../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAcademyDetails,
+  useEnterpriseCustomer,
+} from '../app/data';
 import AcademyContentCard from './AcademyContentCard';
 
 const AcademyDetailPage = () => {
@@ -12,6 +16,8 @@ const AcademyDetailPage = () => {
   const { data: academy } = useAcademyDetails();
   const academyURL = `/${enterpriseCustomer.slug}/academy/${academyUUID}/?${enterpriseCustomer.uuid}`;
   const intl = useIntl();
+  // The breadcrumb's only link is "Find a Course", which may be disabled for TAG GDPT enterprise customers (ENT-12375).
+  const isFindACourseDisabled = isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid);
 
   if (!academy) {
     return (
@@ -32,22 +38,24 @@ const AcademyDetailPage = () => {
   return (
     <>
       <Container size="lg" className="pt-3">
-        <div className="small">
-          <Breadcrumb
-            data-testid="academy-breadcrumb"
-            links={[
-              {
-                label: <FormattedMessage
-                  id="academy.breadcrumb.find.course.link.label"
-                  defaultMessage="Find a Course"
-                />,
-                to: `/${enterpriseCustomer.slug}/search`,
-              },
-            ]}
-            linkAs={Link}
-            activeLabel={academy.title}
-          />
-        </div>
+        {!isFindACourseDisabled && (
+          <div className="small">
+            <Breadcrumb
+              data-testid="academy-breadcrumb"
+              links={[
+                {
+                  label: <FormattedMessage
+                    id="academy.breadcrumb.find.course.link.label"
+                    defaultMessage="Find a Course"
+                  />,
+                  to: `/${enterpriseCustomer.slug}/search`,
+                },
+              ]}
+              linkAs={Link}
+              activeLabel={academy.title}
+            />
+          </div>
+        )}
         <div>
           <h1 data-testid="academy-title" className="my-4.5 font-italic text-left academy-title">
             <FormattedMessage
