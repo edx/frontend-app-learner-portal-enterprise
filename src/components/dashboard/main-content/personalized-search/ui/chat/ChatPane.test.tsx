@@ -156,9 +156,27 @@ describe('ChatPane', () => {
     await user.click(screen.getByRole('button', { name: 'View these results' }));
     expect(screen.getByText('Earlier results for “Build data skills”')).toBeInTheDocument();
     expect(screen.getByText('Showing these results')).toBeInTheDocument();
+    // Focus goes to the results the learner chose, both ways.
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+    composer().focus();
     await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
     expect(screen.queryByText(/Earlier results for/)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'View these results' })).toBeInTheDocument();
+  });
+
+  it('More like this moves focus to the composer\'s Stop while the reply streams, then to the textarea', async () => {
+    const user = userEvent.setup();
+    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 5);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    await user.click(screen.getByRole('button', { name: 'More like this' }));
+    expect(screen.queryByRole('button', { name: 'More like this' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stop' })).toHaveFocus();
+    await waitForIdle();
+    expect(composer()).toHaveFocus();
+    expect(sent).toHaveLength(2);
   });
 
   it('chips are keyboard operable', async () => {

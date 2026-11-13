@@ -47,12 +47,14 @@ export interface LearningPagePaneProps {
   onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
   /** Leaves an earlier reply's results (the "Earlier results" banner) for the newest ones. */
   onBackToLatest?: () => void;
+  /** Moves focus to the results when it changes (not on mount): after the learner picks which results show. */
+  focusRequest?: number;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
   onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain, onBackToLatest,
-  registry = defaultBlockRegistry,
+  focusRequest, registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
@@ -104,6 +106,30 @@ const LearningPagePane = ({
     }
   }, [shownTurnId, reducedMotion]);
 
+  // "View these results" and "Back to latest results" put focus on the results they show (scrolling is
+  // left to the effect above).
+  const lastFocusRequest = useRef(focusRequest);
+  useEffect(() => {
+    if (focusRequest === lastFocusRequest.current) { return; }
+    lastFocusRequest.current = focusRequest;
+    paneRef.current?.focus({ preventScroll: true });
+  }, [focusRequest]);
+
+  // When the Undo notice closes, its focus would fall to the page. Undo puts it on the restored card's link;
+  // Close or the timeout on the results. Only if focus was in the notice or lost, so a learner who has moved
+  // on keeps their place.
+  const focusAfterNotice = useRef<string | null>(null);
+  useEffect(() => {
+    const itemId = focusAfterNotice.current;
+    if (itemId === null || undoItem) { return; }
+    focusAfterNotice.current = null;
+    const active = document.activeElement;
+    if (active && active !== document.body && !active.closest('.pgn__toast')) { return; }
+    const card = Array.from(paneRef.current?.querySelectorAll<HTMLElement>('[data-item-id]') ?? [])
+      .find((el) => el.dataset.itemId === itemId);
+    (card?.querySelector<HTMLElement>('a') ?? paneRef.current)?.focus();
+  }, [undoItem]);
+
   // The registry's `top` blocks (the headline and the plan) share the row above the rest, so a plan
   // still shows when a turn has no headline. The others render in the order they stream, which is page
   // order (the compose prompt writes them top to bottom), so a new block only ever appears below the
@@ -145,9 +171,20 @@ const LearningPagePane = ({
       data-turn-id={pageTurn?.localId}
     >
       <Toast
+        // One notice per hidden card, so each gets its full time before it closes.
+        key={undoItem?.item_id}
         show={!!undoItem && !feedbackError}
-        onClose={() => onClearNotice?.()}
-        action={{ label: intl.formatMessage(messages.undo), onClick: () => onUndo?.() }}
+        onClose={() => {
+          focusAfterNotice.current = '';
+          onClearNotice?.();
+        }}
+        action={{
+          label: intl.formatMessage(messages.undo),
+          onClick: () => {
+            focusAfterNotice.current = undoItem?.item_id ?? '';
+            onUndo?.();
+          },
+        }}
       >
         {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
       </Toast>

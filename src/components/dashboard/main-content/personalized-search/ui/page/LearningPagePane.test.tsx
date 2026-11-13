@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
+import { useState } from 'react';
 import {
-  fireEvent, render, screen, waitFor, within,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -734,6 +735,91 @@ describe('LearningPagePane', () => {
     links[links.length - 1].focus();
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-2`);
+  });
+
+  describe('the Undo notice', () => {
+    const C1 = 'edX+C1';
+    /** The golden page with C1 hidden by Not for me, and a host that clears the notice like the controller. */
+    const PaneWithNotice = ({ onClearNotice }: { onClearNotice?: () => void }) => {
+      const hidden = runTurns(['normal_turn.sse']).turns[0].blocks.flatMap(({ block }) => (
+        block.type === 'item_section' ? block.props.items : [])).find((item) => item.item_id === C1) as ItemCard;
+      const [undoItem, setUndoItem] = useState<ItemCard | null>(hidden);
+      const [dismissedIds, setDismissedIds] = useState(new Set([C1]));
+      return (
+        <IntlProvider locale="en">
+          <MemoryRouter>
+            <input aria-label="Elsewhere" />
+            <LearningPagePane
+              turns={runTurns(['normal_turn.sse']).turns}
+              viewedTurnId={null}
+              links={createPortalItemLinks(SLUG)}
+              reducedMotion
+              undoItem={undoItem}
+              dismissedIds={dismissedIds}
+              onUndo={() => {
+                setUndoItem(null);
+                setDismissedIds(new Set());
+              }}
+              onClearNotice={() => {
+                onClearNotice?.();
+                setUndoItem(null);
+              }}
+            />
+          </MemoryRouter>
+        </IntlProvider>
+      );
+    };
+    afterEach(() => jest.useRealTimers());
+
+    it('restarts its 5 second timer for each hidden card', () => {
+      jest.useFakeTimers();
+      const onClearNotice = jest.fn();
+      const tree = (item: ItemCard) => (
+        <IntlProvider locale="en">
+          <MemoryRouter>
+            <LearningPagePane
+              turns={[]}
+              viewedTurnId={null}
+              links={createPortalItemLinks(SLUG)}
+              reducedMotion
+              undoItem={item}
+              onClearNotice={onClearNotice}
+            />
+          </MemoryRouter>
+        </IntlProvider>
+      );
+      const { rerender } = render(tree(card({ item_id: 'a', title: 'First' })));
+      act(() => { jest.advanceTimersByTime(3000); });
+      rerender(tree(card({ item_id: 'b', title: 'Second' })));
+      act(() => { jest.advanceTimersByTime(3000); });
+      expect(onClearNotice).not.toHaveBeenCalled();
+      expect(screen.getByText(/^Removed Second/)).toBeInTheDocument();
+      act(() => { jest.advanceTimersByTime(2500); });
+      expect(onClearNotice).toHaveBeenCalledTimes(1);
+    });
+
+    it('Undo puts focus on the restored card\'s link', async () => {
+      const user = userEvent.setup();
+      render(<PaneWithNotice />);
+      expect(screen.queryByRole('link', { name: 'Course edX+C1' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Undo' }));
+      await waitFor(() => expect(screen.getByRole('link', { name: 'Course edX+C1' })).toHaveFocus());
+    });
+
+    it('closing on its timeout puts lost focus on the results, and leaves focus the learner moved alone', () => {
+      jest.useFakeTimers();
+      const { unmount } = render(<PaneWithNotice />);
+      act(() => { jest.advanceTimersByTime(5000); });
+      expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+      unmount();
+
+      const onClearNotice = jest.fn();
+      render(<PaneWithNotice onClearNotice={onClearNotice} />);
+      screen.getByRole('textbox', { name: 'Elsewhere' }).focus();
+      act(() => { jest.advanceTimersByTime(5000); });
+      expect(onClearNotice).toHaveBeenCalled();
+      expect(screen.getByRole('textbox', { name: 'Elsewhere' })).toHaveFocus();
+    });
   });
 
   it('adds the entrance transition only when reduced motion is not requested', () => {

@@ -28,15 +28,27 @@ export interface ChatPaneProps {
   /** Going back to an earlier reply's results. */
   viewedTurnId?: string | null;
   onViewResults?: (turnId: string) => void;
+  /** Moves focus to the composer when it changes (not on mount), e.g. after a send from the results. */
+  composerFocusRequest?: number;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onStop, onRetry, ratings, onRate, viewedTurnId, onViewResults,
+  onDraftChange, onSend, onStop, onRetry, ratings, onRate, viewedTurnId, onViewResults, composerFocusRequest,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const stopRef = useRef<HTMLButtonElement>(null);
   const wasBusy = useRef(busy);
+
+  // A send from the results (More like this, which unmounts while the reply streams) brings focus to the
+  // composer: its Stop button while the turn runs, since the textarea is disabled until it finishes.
+  const lastFocusRequest = useRef(composerFocusRequest);
+  useEffect(() => {
+    if (composerFocusRequest === lastFocusRequest.current) { return; }
+    lastFocusRequest.current = composerFocusRequest;
+    (composerRef.current?.disabled ? stopRef.current : composerRef.current)?.focus();
+  }, [composerFocusRequest]);
 
   // Return focus to the composer when a turn finishes (REQ-015).
   useEffect(() => {
@@ -125,6 +137,7 @@ const ChatPane = ({
         onDraftChange={onDraftChange}
         onSend={(message) => onSend(message, 'typed')}
         onStop={onStop}
+        stopRef={stopRef}
       />
       <p className="x-small text-gray-500 mt-2 mb-0">{intl.formatMessage(messages.disclaimer)}</p>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
