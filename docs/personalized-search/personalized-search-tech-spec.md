@@ -888,7 +888,7 @@ explains why, so nothing falls through silently.*
 From the Paragon wireframes reviewed on 2026-11-09 (frames D2 decision guide, D2b Saved, D2c Why these?).
 
 - **Layout:** the dashboard welcome header is hidden on this tab. Chat takes about 30% and stays fixed, with its own scrolling message list and a pinned composer; only the results scroll.
-- **Results, top to bottom:** "For you | Saved (n)" tabs; an h2 headline with "Why these?"; an "About you" line; the top pick (card plus reason, checks, Why this?, More like this, Not for me); "Compare top options" (three mini cards under "Best for…" h4s); "More options" (per type: h3, See all (n), one explanation line, two cards).
+- **Results, top to bottom:** "For you | Saved (n)" tabs; an h2 headline with "Why these?"; an "About you" line; the top pick (card plus reason, checks, Why this?, More like this, Not for me); "Compare top options" (three mini cards under "Best for…" h4s); "More options" (per type: h3, See all (n), one explanation line, a row of up to three cards, padded from the section's `reserve`, which also refills the row after "Not for me").
 - **Cards:** one link per card, hover lift, 3px focus outline; bookmark and a "Not for me" menu; hours per week and length; a 4px top accent per type: Professional Certificates #03C7E8, Executive Education #D23228, Programs #F0CC00, Courses #2D494E. The header and type label always name the type.
 - **Type and spacing:** Paragon scale only (h2 32, h3 22, h4 18, small, x-small); 3rem between major blocks.
 - **Saved tab:** standard cards in a grid; unsaving removes the card; empty state "Save recommendations to compare them later. Saved items stay here across chats."

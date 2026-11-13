@@ -14,7 +14,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 
 ## More options groups
 
-`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` and the `search_query` it counts (linking to the host's search for that query through `ItemLinks.getSeeAllHref`; without a `search_query` there's no link, since the learner's message isn't the query that was counted), the one-line `dek`, and up to three cards. When the learner removes a card, the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
+`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` and the `search_query` it counts (linking to the host's search for that query through `ItemLinks.getSeeAllHref`; without a `search_query` there's no link, since the learner's message isn't the query that was counted), the one-line `dek`, and a row of up to three cards: the section's `items`, padded from its `reserve` when it has fewer than three. The reserve also refills the row after "Not for me": the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
 
 ## Decision guide
 
@@ -28,4 +28,4 @@ The `profile` block (what the AI knows about the learner, restated from the merg
 
 ## Caveat
 
-A `caveat` block renders as a warning `Alert` at the top of For you. The latest finished turn's caveat shows even when that turn found nothing, above the previous results that stay in place. Turns with only a caveat or the profile don't count as having results (`hasPage`), so they don't replace what's shown.
+A `caveat` block renders as a warning `Alert` at the top of For you. The latest finished turn's caveat shows even when that turn found nothing, above the previous results that stay in place. Turns with only a caveat or the profile don't count as having results (`hasPage`), so they don't replace what's shown. A no-match turn still shows placeholders while it searches, like any turn; when it finishes with no results, the previous results return under its caveat.

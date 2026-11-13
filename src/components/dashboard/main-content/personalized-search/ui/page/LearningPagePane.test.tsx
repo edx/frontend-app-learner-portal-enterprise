@@ -164,13 +164,13 @@ describe('LearningPagePane', () => {
 
   describe('loading: placeholders, then blocks top to bottom', () => {
     /** The first turn done, then a second turn with only `upTo` of its parts streamed. */
-    const secondTurnUpTo = (upTo: (parts: Part[]) => Part[]) => {
+    const secondTurnUpTo = (upTo: (parts: Part[]) => Part[], second: GoldenFile = 'normal_turn.sse') => {
       const done = applyParts(
         beginTurn(getInitialChatStreamState(), { localId: 'turn-1', userMessage: 'first' }),
         goldenParts('normal_turn.sse'),
       );
       const next = beginTurn(done, { localId: 'turn-2', userMessage: 'second' });
-      return applyParts(next, upTo(goldenParts('normal_turn.sse'))).turns;
+      return applyParts(next, upTo(goldenParts(second))).turns;
     };
     const blockTypes = (container: HTMLElement) => Array.from(container.querySelectorAll('[data-block-id]'))
       .map((el) => el.getAttribute('data-block-id'));
@@ -209,6 +209,20 @@ describe('LearningPagePane', () => {
       expect(Array.from(screen.getByTestId('results-skeleton').querySelectorAll('[data-skeleton]'))
         .map((el) => el.getAttribute('data-skeleton'))).toEqual(['top-pick', 'cards']);
       expect(blockTypes(container)).toHaveLength(1);
+    });
+
+    it('a no-match turn shows placeholders while it searches, then the previous results return under its caveat', () => {
+      const searching = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block')), 'no_match_turn.sse');
+      const { container, unmount } = renderPane(searching);
+      expect(screen.getByTestId('results-skeleton')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { level: 2, name: 'Lead with confidence' })).not.toBeInTheDocument();
+      expect(container.querySelector('.personalized-search__caveat')).toBeNull();
+      unmount();
+
+      renderPane(secondTurnUpTo((parts) => parts, 'no_match_turn.sse'));
+      expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
+      expect(screen.getByText('No matching courses')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
     });
 
     it('renders the finished turn in stream order, with the suggested order in the header row and no placeholders', () => {

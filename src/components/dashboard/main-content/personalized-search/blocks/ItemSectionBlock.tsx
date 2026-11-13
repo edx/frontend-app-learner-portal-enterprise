@@ -7,7 +7,7 @@ import type { ItemCard, ItemSectionProps } from '../core/stream/types';
 import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 
-/** Cards shown per group, one row on wide screens; the rest fill a removed card. */
+/** Cards shown per group, one row on wide screens: the items, padded from the reserve; the rest fill a removed card. */
 export const CARDS_PER_GROUP = 3;
 
 const SECTION_NAMES = {
