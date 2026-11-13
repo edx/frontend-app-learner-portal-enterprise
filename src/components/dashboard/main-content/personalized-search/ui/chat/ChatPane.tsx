@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import classNames from 'classnames';
 import { Chip, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
@@ -9,6 +8,9 @@ import type { PromptSource } from '../../core/analytics';
 import Composer from './Composer';
 import FollowUpChips from './FollowUpChips';
 import MessageList from './MessageList';
+
+/** How close to the bottom (px) still counts as following the conversation (subpixel and rounding slack). */
+const AT_BOTTOM_SLACK_PX = 24;
 
 export interface ChatPaneProps {
   turns: AssistantTurn[];
@@ -44,16 +46,23 @@ const ChatPane = ({
     wasBusy.current = busy;
   }, [busy]);
 
-  // From send (Enter or a chip) until the turn finishes, the conversation snaps to its newest message
-  // and stays there: scrolling is locked so the streaming reply stays in view. One last snap when the
-  // turn finishes shows its follow-up question.
+  // From send (Enter or a chip) until the turn finishes, the conversation snaps to its newest message so
+  // the streaming reply stays in view, and one last snap when the turn finishes shows its follow-up
+  // question. A learner who scrolls up to reread is left there: the snapping stops until they scroll back
+  // to the bottom or send again.
   const scrollRef = useRef<HTMLDivElement>(null);
   const wasStreaming = useRef(busy);
+  const atBottom = useRef(true);
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el && (busy || wasStreaming.current)) { el.scrollTop = el.scrollHeight; }
+    if (busy && !wasStreaming.current) { atBottom.current = true; }
+    if (el && (busy || wasStreaming.current) && atBottom.current) { el.scrollTop = el.scrollHeight; }
     wasStreaming.current = busy;
   }, [busy, turns]);
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el) { atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight <= AT_BOTTOM_SLACK_PX; }
+  };
 
   const latest = turns[turns.length - 1];
   const followups = latest?.status === 'done' ? latest.followups : null;
@@ -64,7 +73,8 @@ const ChatPane = ({
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
       <div
         ref={scrollRef}
-        className={classNames('personalized-search__chat-scroll', { 'personalized-search__chat-scroll--locked': busy })}
+        className="personalized-search__chat-scroll"
+        onScroll={onScroll}
         data-testid="chat-scroll"
       >
         {turns.length === 0 ? (

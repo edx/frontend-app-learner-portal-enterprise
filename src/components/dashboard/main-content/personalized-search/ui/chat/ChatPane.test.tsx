@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  act, render, screen, waitFor, within,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -121,18 +121,24 @@ describe('ChatPane', () => {
     expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
   });
 
-  it('snaps the conversation to the newest message and locks scrolling until the turn finishes', async () => {
+  it('snaps the conversation to the newest message while the reply streams, until the learner scrolls up', async () => {
     const user = userEvent.setup();
     jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(800);
-    const { transport } = scriptedTransport(['normal_turn.sse'], 30);
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 30);
     renderTab(transport);
     const scroll = screen.getByTestId('chat-scroll');
     await user.click(screen.getByText('Build data skills'));
-    await waitFor(() => expect(scroll).toHaveClass('personalized-search__chat-scroll--locked'));
-    expect(scroll.scrollTop).toBe(800);
+    await waitFor(() => expect(scroll.scrollTop).toBe(800));
     await waitForIdle();
-    expect(scroll).not.toHaveClass('personalized-search__chat-scroll--locked');
     expect(scroll.scrollTop).toBe(800);
+
+    await user.type(composer(), 'Something shorter{Enter}');
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).not.toBeNull());
+    // The learner scrolls up to reread while the reply streams: it's never locked, and isn't snapped back.
+    scroll.scrollTop = 100;
+    fireEvent.scroll(scroll);
+    await waitForIdle();
+    expect(scroll.scrollTop).toBe(100);
     jest.restoreAllMocks();
   });
 

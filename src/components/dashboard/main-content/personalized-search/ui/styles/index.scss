@@ -89,11 +89,6 @@
     overflow-y: auto;
     padding-right: .25rem;
     scrollbar-gutter: stable;
-
-    // While a turn streams, the conversation is held at its newest message.
-    &--locked {
-      overflow-y: hidden;
-    }
   }
 }
 
