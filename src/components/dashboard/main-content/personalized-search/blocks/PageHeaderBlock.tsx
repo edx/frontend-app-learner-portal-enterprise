@@ -25,16 +25,18 @@ const PageHeaderBlock = ({
 }: PageHeaderBlockProps) => {
   const intl = useIntl();
   const [showWhy, setShowWhy] = useState(false);
-  // "Why these?" only when the profile names something the results reflect: enterprise-access replaces an early
-  // profile with one with no chips when nothing is left, to hide it. Blank text isn't shown.
+  // "Why these?" whenever the profile can explain the results: its summary, its chips, or both. When no preference
+  // the learner gave is reflected, enterprise-access sends the search topic or a catalog summary instead, so it's
+  // there on every turn with results. Blank text isn't shown.
   const summary = profile?.summary?.trim() ?? '';
   const chips = (profile?.chips ?? []).filter((chip) => chip.trim());
+  const canExplain = chips.length > 0 || summary.length > 0;
   return (
     <header className="personalized-search__page-header">
       {label && <p className="sr-only">{label}</p>}
       <div className="d-flex align-items-start justify-content-between">
         <h2 className="mb-2 mr-3">{title}</h2>
-        {chips.length > 0 && (
+        {canExplain && (
           <OverlayTrigger
             trigger="click"
             rootClose
@@ -48,10 +50,12 @@ const PageHeaderBlock = ({
               <Popover id="personalized-search-why-these" style={{ maxWidth: 460 }}>
                 <Popover.Title as="h3" className="h5">{intl.formatMessage(messages.whyThese)}</Popover.Title>
                 <Popover.Content>
-                  {summary && <p className="mb-2">{summary}</p>}
-                  <Stack direction="horizontal" gap={2} className="flex-wrap">
-                    {chips.map((chip) => <Chip key={chip}>{chip}</Chip>)}
-                  </Stack>
+                  {summary && <p className={chips.length > 0 ? 'mb-2' : 'mb-0'}>{summary}</p>}
+                  {chips.length > 0 && (
+                    <Stack direction="horizontal" gap={2} className="flex-wrap">
+                      {chips.map((chip) => <Chip key={chip}>{chip}</Chip>)}
+                    </Stack>
+                  )}
                 </Popover.Content>
               </Popover>
             )}
