@@ -10,6 +10,8 @@ import { MemoryRouter } from 'react-router-dom';
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import type { FixtureName } from '../../core/transports/FixtureChatTransport';
+import type { ChatTransport, SendTurnOptions } from '../../core/transports/ChatTransport';
+import type { FollowupsData, Part } from '../../core/stream/types';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
@@ -45,7 +47,7 @@ const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
   return { transport, sent };
 };
 
-const renderTab = (transport: FixtureChatTransport) => render(
+const renderTab = (transport: ChatTransport) => render(
   <IntlProvider locale="en">
     <MemoryRouter>
       <PersonalizedSearchTab store={testStore} transport={transport} />
@@ -293,5 +295,69 @@ describe('ChatPane', () => {
     // Every card on screen, once: the top pick (also compared), two more compared, and the sections' four.
     expect(liveRegions[0]).toHaveTextContent('New reply, 7 picks in your results');
     await waitFor(() => expect(composer()).toHaveFocus());
+  });
+
+  describe('a distress reply (redirect_reason "distress", hand-built parts)', () => {
+    const SUPPORT = "I'm sorry you're feeling this way. You don't have to go through it alone.";
+    const distressParts = (followups: FollowupsData | null): Part[] => [
+      { type: 'start', messageId: 'turn_d' },
+      {
+        type: 'data-session',
+        id: 'session',
+        data: { session_uuid: '00000000-0000-0000-0000-0000000a11ce', turn_sequence: 2, title: null },
+      },
+      {
+        type: 'data-analytics',
+        id: 'analytics',
+        data: {
+          conversation_id: '00000000-0000-0000-0000-0000000a11ce', turn_id: 'd', turn_index: 2, redirect_reason: 'distress',
+        },
+      },
+      { type: 'data-status', data: { step: 'understanding' }, transient: true },
+      { type: 'text-start', id: 'reply' },
+      { type: 'text-delta', id: 'reply', delta: SUPPORT },
+      { type: 'text-end', id: 'reply' },
+      ...(followups ? [{ type: 'data-followups', id: 'followups', data: followups } as Part] : []),
+      { type: 'finish' },
+    ];
+    /** The normal golden first (results and chips), then the hand-built distress turn. */
+    const transportFor = (distress: Part[]): ChatTransport => {
+      const fixture = new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => 'normal_turn.sse' });
+      let sends = 0;
+      return {
+        async* send(options: SendTurnOptions) {
+          sends += 1;
+          if (sends === 1) {
+            yield* fixture.send(options);
+          } else {
+            yield* distress;
+          }
+        },
+      };
+    };
+
+    it.each([
+      ['no data-followups', null],
+      ['data-followups with no chips', {
+        question: 'What else would you like to learn?', attribute: 'open', suggestions: [], ideas: [],
+      } as FollowupsData],
+    ])('with %s shows the reply with no chips, no stale chips and no follow-up question', async (_, followups) => {
+      const user = userEvent.setup();
+      renderTab(transportFor(distressParts(followups)));
+      await user.type(composer(), 'Leading teams{Enter}');
+      await waitForIdle();
+      expect(followUpChip('Programs')).toBeInTheDocument();
+
+      await user.type(composer(), 'I feel hopeless{Enter}');
+      await waitForIdle();
+      expect(screen.getByText(SUPPORT)).toBeInTheDocument();
+      expect(document.querySelector('.personalized-search__followups')).toBeNull();
+      expect(screen.queryByText('Giving feedback to my team')).not.toBeInTheDocument();
+      expect(screen.queryByText('What else would you like to learn?')).not.toBeInTheDocument();
+      expect(document.querySelectorAll('.personalized-search__followup-question')).toHaveLength(1); // the first reply's
+      // The redirect reason rides along with the join keys; the reply has no results, so none are announced.
+      expect(testStore.getState().stream.turns[1].analytics?.redirect_reason).toBe('distress');
+      expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(/^New reply$/);
+    });
   });
 });
