@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom/extend-expect';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { logError } from '@edx/frontend-platform/logging';
 import { useMediaQuery } from '@openedx/paragon';
-import { MemoryRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 
 import PersonalizedSearchTab from '../adapters/portal/PortalPersonalizedSearchTab';
@@ -54,6 +55,31 @@ describe('Personalized Search usage events: port and adapter', () => {
       '',
       '/test-enterprise?tab=personalized-search',
     );
+    expect(getPortalEntryPoint()).toBe('nav_tab');
+  });
+
+  // Back from a course page or a reload remounts the tab, which reads the mark again from this entry.
+  it('keeps the nav_tab mark when the first reply puts ?session= in the URL', async () => {
+    const user = userEvent.setup();
+    window.history.pushState(
+      { usr: { dashboardTabSource: 'nav_tab' }, key: 'k3', idx: 3 },
+      '',
+      '/test-enterprise?tab=personalized-search',
+    );
+    render(
+      <IntlProvider locale="en">
+        <BrowserRouter>
+          <PersonalizedSearchTab
+            store={createPersonalizedSearchStore()}
+            transport={new FixtureChatTransport({ partDelayMs: 0 })}
+          />
+        </BrowserRouter>
+      </IntlProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get('session'))
+      .toBe('00000000-0000-0000-0000-0000000a11ce'));
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('personalized-search');
     expect(getPortalEntryPoint()).toBe('nav_tab');
   });
 
