@@ -104,14 +104,16 @@ const LearningPagePane = ({
     }
   }, [shownTurnId, reducedMotion]);
 
-  // Blocks render in the order they stream, which is page order (the compose prompt writes them top
-  // to bottom), so a new block only ever appears below the ones already shown. Consecutive sections
-  // share one "More options" group; the profile shows through the header's "Why these?".
+  // The registry's `top` blocks (the headline and the plan) share the row above the rest, so a plan
+  // still shows when a turn has no headline. The others render in the order they stream, which is page
+  // order (the compose prompt writes them top to bottom), so a new block only ever appears below the
+  // ones already shown. Consecutive sections share one "More options" group.
+  const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
   const segments = useMemo(() => {
     const out: Array<{ key: string; entries: PageBlock[] }> = [];
-    blocks.forEach((entry) => {
-      // The profile shows through "Why these?"; the plan sits in the header row's reserved corner.
-      if (entry.block.type === 'profile' || entry.block.type === 'plan') { return; }
+    body.forEach((entry) => {
+      // The profile shows through the header's "Why these?".
+      if (entry.block.type === 'profile') { return; }
       const last = out[out.length - 1];
       if (entry.block.type === 'item_section' && last?.entries[0].block.type === 'item_section') {
         last.entries.push(entry);
@@ -120,7 +122,7 @@ const LearningPagePane = ({
       }
     });
     return out;
-  }, [blocks]);
+  }, [body]);
   // A caveat from the latest finished turn shows above the previous results when that turn has none of its
   // own; while the learner views an earlier reply, only that reply's caveat (in its blocks) shows.
   const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn && !hasPage(latest)
@@ -129,7 +131,6 @@ const LearningPagePane = ({
   const loading = !!pageTurn && pageTurn.status === 'streaming';
   const has = (type: string) => blocks.some(({ block }) => block.type === type);
   const reachedCards = has('compare') || has('item_section');
-  const planEntry = blocks.find(({ block }) => block.type === 'plan');
   // Earlier results (the learner went back to an older reply): say which, with a way back.
   const latestPageId = selectPageTurn(turns, null)?.localId ?? null;
   const viewingEarlier = !!pageTurn && !loadingTurn && pageTurn.localId !== latestPageId;
@@ -170,31 +171,26 @@ const LearningPagePane = ({
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
         <Stack gap={4}>
-          {segments.map(({ key, entries }) => {
-            if (entries[0].block.type === 'page_header') {
-              // The headline row keeps "A suggested order" in its top-right corner. The plan streams last
-              // (it names items already shown), so the corner holds a placeholder until it arrives and
-              // closes if the turn ends without one.
-              return (
-                <div key={key} className="d-flex flex-wrap align-items-start personalized-search__page-top">
-                  <div className={classNames(blockClass, 'personalized-search__header-col mr-4 mb-3')} data-block-id={key}>
-                    {renderBlock(entries[0].block, ctx, registry)}
-                  </div>
-                  {planEntry && (
-                    <div className={classNames(blockClass, 'personalized-search__plan-col mb-3')} data-block-id={planEntry.id}>
-                      {renderBlock(planEntry.block, ctx, registry)}
-                    </div>
-                  )}
-                  {!planEntry && loading && (
-                    <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
-                      <Skeleton height={18} width="70%" className="mb-2" />
-                      <Skeleton count={3} />
-                    </div>
-                  )}
+          {top.length > 0 && (
+            // The headline row keeps "A suggested order" in its top-right corner. The plan streams last (it
+            // names items already shown), so the corner holds a placeholder until it arrives and closes if the
+            // turn ends without one.
+            <div className="d-flex flex-wrap align-items-start personalized-search__page-top">
+              {top.map(({ entry, className }) => (
+                <div key={entry.id} className={classNames(blockClass, className)} data-block-id={entry.id}>
+                  {renderBlock(entry.block, ctx, registry)}
                 </div>
-              );
-            }
-            return entries[0].block.type === 'item_section' ? (
+              ))}
+              {!has('plan') && loading && (
+                <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
+                  <Skeleton height={18} width="70%" className="mb-2" />
+                  <Skeleton count={3} />
+                </div>
+              )}
+            </div>
+          )}
+          {segments.map(({ key, entries }) => (
+            entries[0].block.type === 'item_section' ? (
               <div key={key} className="personalized-search__more-options">
                 <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
                   <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
@@ -212,8 +208,8 @@ const LearningPagePane = ({
               <div key={key} className={blockClass} data-block-id={key}>
                 {renderBlock(entries[0].block, ctx, registry)}
               </div>
-            );
-          })}
+            )
+          ))}
           {loading && (
             <ResultsSkeleton
               header={!has('page_header')}

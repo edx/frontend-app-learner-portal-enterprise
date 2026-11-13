@@ -60,10 +60,11 @@ describe('block registry', () => {
         entry('d', 'page_header'), entry('e', 'item_section'),
       ];
       const { top, body } = defaultBlockRegistry.layout(blocks);
-      // The plan isn't a top block: it renders where it arrives, last.
-      expect(top.map((t) => t.entry.id)).toEqual(['c']);
+      // The plan streams last but sits in the top row's corner, after the headline.
+      expect(top.map((t) => t.entry.id)).toEqual(['c', 'b']);
       expect(top[0].className).toContain('personalized-search__header-col');
-      expect(body.map((b) => b.id)).toEqual(['a', 'b', 'd', 'e']);
+      expect(top[1].className).toContain('personalized-search__plan-col');
+      expect(body.map((b) => b.id)).toEqual(['a', 'd', 'e']);
     });
 
     it('treats a host-registered top type as a top slot', () => {

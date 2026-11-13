@@ -77,10 +77,12 @@ export const catalogBlocks: CatalogBlocks = {
   caveat: { render: (props) => <CaveatBlock {...props} /> },
   compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
-    // Rendered where it arrives, last: the plan can only name items already on the page.
+    // Streams last (it can only name items already on the page) but sits in the top row's corner.
     render: (props, ctx) => (
       <PlanBlock {...props} itemTitles={ctx.itemTitles} onOpenWhy={() => ctx.onExplain?.('order')} />
     ),
+    slot: 'top',
+    slotClassName: 'personalized-search__plan-col mb-3',
   },
 };
 

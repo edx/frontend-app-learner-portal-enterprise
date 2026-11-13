@@ -22,7 +22,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 
 ## Why these?
 
-`plan` ("A suggested order") renders where it arrives, after the sections: it can only name items already on the page, so it's always last in the stream. It has an info button that opens a Popover on hover or focus: how the steps were picked (the best fit first, each step building on the last) and, when the server sends it, the AI's one sentence on why this order.
+`plan` ("A suggested order") is a `top` slot block: it sits in the top row's corner beside the headline (or alone, when a turn has no headline), though it can only name items already on the page, so it's always last in the stream; the corner holds a placeholder until it arrives. It has an info button that opens a Popover on hover or focus: how the steps were picked (the best fit first, each step building on the last) and, when the server sends it, the AI's one sentence on why this order.
 
 The `profile` block (what the AI knows about the learner, restated from the merged intent; the server keeps only the preferences the shown results reflect and sends it after them) isn't drawn on its own: the header shows a "Why these?" link that opens a read-only Paragon Popover on click (or Enter/Space) and closes on a click elsewhere or Escape, so it stays open while the learner reads it. It shows the plain-language basis and the preferences as chips. Without a profile there's no link. There is no edit-preferences control yet.
 

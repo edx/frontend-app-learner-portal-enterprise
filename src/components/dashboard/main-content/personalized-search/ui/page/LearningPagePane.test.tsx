@@ -71,6 +71,10 @@ const turnWithParts = (parts: Part[]): AssistantTurn[] => applyParts(
   [{ type: 'start', messageId: 'turn_x' }, ...parts, { type: 'finish' }],
 ).turns;
 
+/** The golden turn with every block of one type left out. */
+const goldenTurnWithout = (type: string) => turnWithParts(goldenParts('normal_turn.sse').filter((p) => !(
+  p.type === 'data-block' && p.data.type === type)));
+
 describe('LearningPagePane', () => {
   beforeEach(() => {
     mergeConfig({
@@ -225,11 +229,18 @@ describe('LearningPagePane', () => {
       const { container, unmount } = renderPane(streaming);
       expect(container.querySelector('.personalized-search__page-top [data-skeleton="plan"]')).not.toBeNull();
       unmount();
-      const noPlan = turnWithParts(goldenParts('normal_turn.sse').filter((p) => !(p.type === 'data-block'
-        && (p as { data: { type: string } }).data.type === 'plan')));
-      const done = renderPane(noPlan);
+      const done = renderPane(goldenTurnWithout('plan'));
       expect(done.container.querySelector('[data-skeleton="plan"], .personalized-search__plan')).toBeNull();
     });
+  });
+
+  it('keeps a plan in the top row when the turn has no headline, with no Why these?', () => {
+    const { container } = renderPane(goldenTurnWithout('page_header'));
+    const topRow = container.querySelector('.personalized-search__page-top') as HTMLElement;
+    expect(within(topRow).getByRole('heading', { name: 'A suggested order' })).toBeInTheDocument();
+    expect(container.querySelector('.personalized-search__page-header')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Top pick' })).toBeInTheDocument();
   });
 
   it('shows the empty page before any turn has a page', () => {
