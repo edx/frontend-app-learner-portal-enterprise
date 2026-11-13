@@ -330,7 +330,6 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
           "block": {
             "props": {
               "checks": [
-                "Introductory",
                 "Certificate",
               ],
               "item": {
@@ -511,7 +510,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   "why": "Builds on it.",
                 },
               ],
-              "label": "Courses · 2 picks",
+              "label": "Courses · 3 picks",
               "reserve": [
                 {
                   "facts": {
@@ -673,7 +672,7 @@ exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1
       "error": null,
       "followups": {
         "attribute": "open",
-        "question": "What else would you like to learn?",
+        "question": "Want a starting point?",
         "suggestions": [
           "Prepare for a leadership role",
           "Learn AI for my job",
