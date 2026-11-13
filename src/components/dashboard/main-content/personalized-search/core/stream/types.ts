@@ -84,6 +84,8 @@ export interface ItemSectionProps {
   total?: number;
   /** Optional, additive in v1: next-best cards that fill a card the learner removes. */
   reserve?: ItemCard[];
+  /** Optional, additive in v1: the search query `total` counts, for the "See all (n)" link to the host's search. */
+  search_query?: string;
 }
 
 export interface InsightProps {

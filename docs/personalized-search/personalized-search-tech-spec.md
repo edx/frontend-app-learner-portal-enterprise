@@ -458,7 +458,7 @@ All blocks are `{v: 1, type, props}`. The frontend renders only `v === 1` and th
 | `facts` | `level_type`; course and exec ed: `advertised_course_run.weeks_to_complete` and `advertised_course_run.pacing_type` (not top-level); program: `type` (short name, e.g. `MicroMasters`) and `len(course_keys)`. On courses, `type` is a course-type UUID and isn't used; `course_type` is |
 | `why`, `fit` | compose LLM, validated |
 
-**Additive v1 types and props (KD-11, built in the follow-up series):** `profile` (summary plus preference chips, for "Why these?"), `top_pick` (item, reason, checks), `compare` (2–3 options, each with a "Best for…" line), `caveat` (warning), `item_section.total` and `.reserve`, and optional card `status`, `section`, `position` and `facts.hours_per_week_min/max`.
+**Additive v1 types and props (KD-11, built in the follow-up series):** `profile` (summary plus preference chips, for "Why these?"), `top_pick` (item, reason, checks), `compare` (2–3 options, each with a "Best for…" line), `caveat` (warning), `item_section.total`, `.reserve` and `.search_query` (the query `total` counts, for "See all (n)"), and optional card `status`, `section`, `position` and `facts.hours_per_week_min/max`.
 
 **Cards:** a new `EditorialItemCard` built on Paragon `Card` that shows the prototype's "Why this fits you" and `fit` badges. It doesn't reuse `SearchCourseCard` or `SearchProgramCard`: those require Algolia-hit shapes and search tracking context (`SearchCourseCard.jsx:15-17,34,82`; `SearchProgramCard.jsx:66`), and they have no place for `why`.
 

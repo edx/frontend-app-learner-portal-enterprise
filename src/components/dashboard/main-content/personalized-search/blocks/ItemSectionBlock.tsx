@@ -22,26 +22,26 @@ export interface ItemSectionBlockProps extends ItemSectionProps {
   dismissedIds?: ReadonlySet<string>;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
-  searchQuery?: string;
   onOpenItem?: (item: ItemCard) => void;
   onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
 }
 
 /**
- * One "More options" group: the type as an h3, "See all (n)" when the catalog total is known, one
- * explanation line, and up to three cards in the shared result grid. A removed card is replaced by the
- * next item or reserve card.
+ * One "More options" group: the type as an h3, "See all (n)" when the server sends the catalog total and
+ * the search query that total counts, one explanation line, and up to three cards in the shared result
+ * grid. A removed card is replaced by the next item or reserve card.
  */
 const ItemSectionBlock = ({
-  dek, items, reserve, total, item_type: itemType, links, savedIds, dismissedIds, onToggleSave, onDismiss,
-  searchQuery, onOpenItem, onExplain,
+  dek, items, reserve, total, search_query: searchQuery, item_type: itemType, links, savedIds, dismissedIds,
+  onToggleSave, onDismiss, onOpenItem, onExplain,
 }: ItemSectionBlockProps) => {
   const intl = useIntl();
   const pool = [...items, ...(reserve ?? [])];
   const visible = (dismissedIds ? pool.filter((item) => !dismissedIds.has(item.item_id)) : pool)
     .slice(0, CARDS_PER_GROUP);
   if (visible.length === 0) { return null; }
-  const seeAllHref = total && links.getSeeAllHref && searchQuery ? links.getSeeAllHref(itemType, searchQuery) : null;
+  const query = typeof searchQuery === 'string' ? searchQuery.trim() : '';
+  const seeAllHref = total && links.getSeeAllHref && query ? links.getSeeAllHref(itemType, query) : null;
   return (
     <section className="personalized-search__section" data-item-type={itemType}>
       <div className="d-flex align-items-baseline justify-content-between">

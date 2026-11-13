@@ -612,6 +612,7 @@ describe('LearningPagePane', () => {
           dek: 'Focused, single-topic learning.',
           fallback: false,
           total: 7,
+          search_query: 'team leadership',
           items: [card({ item_id: 'c1', title: 'One' }), card({ item_id: 'c2', title: 'Two' }),
             card({ item_id: 'c3', title: 'Three' })],
           reserve: [card({ item_id: 'c4', title: 'Four' })],
@@ -623,9 +624,35 @@ describe('LearningPagePane', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Courses' })).toBeInTheDocument();
     expect(screen.getByText('Focused, single-topic learning.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See all (7)' }))
-      .toHaveAttribute('href', `/${SLUG}/search?q=m&content_type=course`);
+      .toHaveAttribute('href', `/${SLUG}/search?q=team%20leadership&content_type=course`);
     expect(screen.getAllByRole('link', { name: /One|Two|Three|Four/ }).map((l) => l.textContent))
       .toEqual(['One', 'Two', 'Three']);
+  });
+
+  it('hides See all (n) when the section has no search query, even with a total', () => {
+    const section = (searchQuery?: string) => turnWithParts([{
+      type: 'data-block',
+      id: 'blk_1',
+      data: {
+        v: 1,
+        type: 'item_section',
+        props: {
+          item_type: 'course',
+          label: 'Courses',
+          dek: '',
+          fallback: false,
+          total: 7,
+          items: [card({})],
+          ...(searchQuery === undefined ? {} : { search_query: searchQuery }),
+        },
+      },
+    }]);
+    const { unmount } = renderPane(section());
+    expect(screen.getByRole('heading', { level: 3, name: 'Courses' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /See all/ })).not.toBeInTheDocument();
+    unmount();
+    renderPane(section('  '));
+    expect(screen.queryByRole('link', { name: /See all/ })).not.toBeInTheDocument();
   });
 
   it('fills a removed card with the next item, then the reserve, and drops See all without a total', () => {

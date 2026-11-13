@@ -63,7 +63,6 @@ const LearningPagePane = ({
   const pageTurn = selectShownTurn(turns, viewedTurnId);
   const loadingTurn = pageTurn?.status === 'streaming' ? pageTurn : null;
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
-  const searchQuery = pageTurn?.userMessage ?? undefined;
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
   const profileBlock = blocks.find(({ block }) => block.type === 'profile')?.block;
   const ctx = useMemo(() => ({
@@ -73,14 +72,13 @@ const LearningPagePane = ({
     dismissedIds,
     onToggleSave,
     onDismiss,
-    searchQuery,
     onAsk,
     topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
     profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
     onOpenItem,
     onExplain,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
-    onOpenItem, onExplain]);
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, onAsk, topPickId, profileBlock, onOpenItem,
+    onExplain]);
 
   // New results start at the top: the results pane scrolls back to its top when another turn's results
   // (or their placeholders) take over, including a search reopened from History or an earlier turn

@@ -14,7 +14,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 
 ## More options groups
 
-`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` (linking to the host's search through `ItemLinks.getSeeAllHref`), the one-line `dek`, and up to three cards. When the learner removes a card, the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
+`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` and the `search_query` it counts (linking to the host's search for that query through `ItemLinks.getSeeAllHref`; without a `search_query` there's no link, since the learner's message isn't the query that was counted), the one-line `dek`, and up to three cards. When the learner removes a card, the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
 
 ## Decision guide
 
