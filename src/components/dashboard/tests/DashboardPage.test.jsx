@@ -231,9 +231,12 @@ describe('<Dashboard />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Nil-uuid wildcard by default so every existing test below (which never touches this
-    // allowlist itself) keeps its current "enabled for all" expectations.
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    // Nil-uuid wildcard by default so every existing test below (which never touches these
+    // allowlists itself) keeps its current "enabled for all" expectations.
+    mergeConfig({
+      FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+      FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+    });
     useEnterpriseCustomer.mockReturnValue({ data: mockEnterpriseCustomer });
     useAcademies.mockReturnValue({ data: academiesFactory(3) });
     useCanViewAcademies.mockReturnValue(false);
@@ -293,6 +296,16 @@ describe('<Dashboard />', () => {
   it('renders user first name if available', () => {
     renderWithRouter(<DashboardWithContext />);
     expect(screen.getByText(`Welcome, ${mockAuthenticatedUser.name.split(' ')[0]}!`)).toBeInTheDocument();
+  });
+
+  it('keeps the welcome heading for screen readers only on the Personalized Search tab', async () => {
+    const user = userEvent.setup();
+    useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: true } });
+    renderWithRouter(<DashboardWithContext />);
+    const welcome = `Welcome, ${mockAuthenticatedUser.name.split(' ')[0]}!`;
+    expect(screen.getByRole('heading', { name: welcome })).not.toHaveClass('sr-only');
+    await user.click(screen.getByRole('tab', { name: /Personalized Search/ }));
+    expect(screen.getByRole('heading', { name: welcome })).toHaveClass('sr-only');
   });
 
   it('does not render user first name if not available', () => {

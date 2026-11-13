@@ -1,6 +1,7 @@
 import {
   applyPart, applyParts, beginTurn, endActiveTurn, getInitialChatStreamState,
 } from './applyPart';
+import { KNOWN_BLOCK_TYPES } from './types';
 import { parseSseText } from './parseSse';
 import {
   deepFreeze, GOLDEN_FILES, GoldenFile, readGolden,
@@ -25,15 +26,18 @@ describe('applyPart', () => {
       let state = deepFreeze(startedState());
       goldenParts(file).forEach((part) => {
         const next = applyPart(state, part);
-        if (part.type !== 'text-start' && part.type !== 'text-end') {
+        // Block types this client doesn't render are dropped by design, so state is unchanged for them.
+        const ignored = part.type === 'data-block' && !KNOWN_BLOCK_TYPES.includes(part.data.type);
+        if (part.type !== 'text-start' && part.type !== 'text-end' && !ignored) {
           expect(next).not.toBe(state);
         }
         state = deepFreeze(next);
       });
     });
 
-    it('replays without a client-started turn (history reopen)', () => {
-      const replayed = applyParts(getInitialChatStreamState(), goldenParts(file));
+    it('replays a stored turn opened by beginTurn, as history does, into the turn the live stream produced', () => {
+      const opened = beginTurn(getInitialChatStreamState(), { localId: 'past-1', userMessage: null });
+      const replayed = applyParts(opened, goldenParts(file));
       const live = reduceGolden(file);
       expect(replayed.turns).toHaveLength(1);
       expect({ ...replayed.turns[0], localId: null, userMessage: null })
@@ -46,16 +50,21 @@ describe('applyPart', () => {
     const [turn] = state.turns;
     expect(turn.status).toBe('done');
     expect(turn.step).toBeNull();
-    expect(turn.text).toBe('Here are picks for leading a team.');
-    expect(turn.blocks.map((b) => b.block.type)).toEqual(['page_header', 'item_section', 'item_section', 'insight', 'plan']);
+    expect(turn.text).toBe('I put a leadership certificate at the top.');
+    // Blocks keep stream order. The profile arrives with the header and is replaced in place (same id)
+    // by the final one after the results; it shows through the header's "Why these?".
+    expect(turn.blocks.map((b) => b.block.type)).toEqual(
+      ['page_header', 'profile', 'top_pick', 'compare', 'item_section', 'item_section', 'insight', 'plan'],
+    );
+    expect(turn.blocks.filter((b) => b.block.type === 'profile')).toHaveLength(1);
     expect(turn.followups?.attribute).toBe('type');
     expect(state.session.title).toBe('Leading a team');
     expect(state.activeTurnId).toBeNull();
   });
 
-  it('off-topic and no-match turns have no page blocks', () => {
+  it('off-topic and no-match turns have no results (a no-match turn may carry a caveat)', () => {
     expect(reduceGolden('off_topic_turn.sse').turns[0].blocks).toEqual([]);
-    expect(reduceGolden('no_match_turn.sse').turns[0].blocks).toEqual([]);
+    expect(reduceGolden('no_match_turn.sse').turns[0].blocks.map((b) => b.block.type)).toEqual(['caveat']);
     expect(reduceGolden('off_topic_turn.sse').turns[0].followups?.attribute).toBe('open');
   });
 
@@ -99,10 +108,14 @@ describe('applyPart', () => {
   it('ignores turn parts when no turn is active', () => {
     const state = getInitialChatStreamState();
     expect(applyPart(state, { type: 'text-delta', id: 'reply', delta: 'x' })).toBe(state);
+    // A bare start opens nothing: every turn begins with beginTurn.
+    expect(applyPart(state, { type: 'start', messageId: 'turn_x' })).toBe(state);
   });
 
   it('endActiveTurn marks the turn stopped and discards its blocks', () => {
-    const midway = applyParts(startedState(), goldenParts('normal_turn.sse').slice(0, 15));
+    const parts = goldenParts('normal_turn.sse');
+    const firstSection = parts.findIndex((p) => p.type === 'data-block' && p.data.type === 'item_section');
+    const midway = applyParts(startedState(), parts.slice(0, firstSection + 1));
     expect(midway.turns[0].blocks.length).toBeGreaterThan(0);
     const stopped = endActiveTurn(midway, { status: 'stopped' });
     expect(stopped.turns[0]).toEqual(expect.objectContaining({ status: 'stopped', blocks: [], step: null }));

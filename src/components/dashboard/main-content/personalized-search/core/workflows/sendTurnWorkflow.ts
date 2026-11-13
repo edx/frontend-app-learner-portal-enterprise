@@ -1,6 +1,7 @@
 import { TransportError } from '../transports/ChatTransport';
 import { applyPart, beginTurn, endActiveTurn } from '../stream/applyPart';
 import type { AssistantTurn, ChatStreamState } from '../stream/types';
+import { countShownItems } from '../selectors';
 import type { SendTurnWorkflowInput, SendTurnWorkflowResult } from './types';
 
 /** Wait before the single resend after `409 turn_in_progress` (spec API Error Codes). */
@@ -9,10 +10,8 @@ export const TURN_IN_PROGRESS_RETRY_MS = 2000;
 /** Turn error code for an HTTP failure before the stream started, e.g. `http_503`. */
 export const httpErrorCode = (status: number) => `http_${status}`;
 
-export const countPicks = (turn: AssistantTurn | undefined): number => (turn?.blocks ?? []).reduce(
-  (count, { block }) => (block.type === 'item_section' ? count + block.props.items.length : count),
-  0,
-);
+/** The distinct items a turn's results show (before any are removed); see `countShownItems`. */
+export const countPicks = (turn: AssistantTurn | undefined): number => countShownItems(turn);
 
 const findTurn = (stream: ChatStreamState, localId: string) => stream.turns.find((t) => t.localId === localId);
 

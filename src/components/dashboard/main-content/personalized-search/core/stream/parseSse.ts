@@ -17,11 +17,35 @@ const eventData = (rawEvent: string): string | null => {
   return dataLines.length ? dataLines.join('\n') : null;
 };
 
+type Fields = Record<string, unknown>;
+const isObject = (value: unknown): value is Fields => !!value && typeof value === 'object';
+const isString = (value: unknown): value is string => typeof value === 'string';
+const dataOf = (part: Fields): Fields => (isObject(part.data) ? part.data : {});
+
+/**
+ * The fields the reducer reads, per known part type. A known part without them is dropped like a malformed
+ * frame; types not listed here (text-start, text-end, finish, and newer ones) pass, and the reducer ignores
+ * the ones it doesn't know. Blocks are checked separately by the reducer's block validator.
+ */
+const HAS_REQUIRED_FIELDS: Record<string, (part: Fields) => boolean> = {
+  start: (part) => isString(part.messageId),
+  error: (part) => isString(part.errorText),
+  'text-delta': (part) => isString(part.delta),
+  'data-session': (part) => isString(dataOf(part).session_uuid) && typeof dataOf(part).turn_sequence === 'number',
+  'data-status': (part) => isString(dataOf(part).step),
+  'data-block': (part) => isString(part.id) && isObject(part.data),
+  'data-followups': (part) => isString(dataOf(part).question) && Array.isArray(dataOf(part).suggestions),
+  'data-timing': (part) => isObject(part.data),
+  'data-analytics': (part) => isString(dataOf(part).conversation_id) && isString(dataOf(part).turn_id)
+    && typeof dataOf(part).turn_index === 'number',
+};
+
 const toPart = (data: string): Part | null => {
   try {
     const parsed = JSON.parse(data);
-    if (parsed && typeof parsed === 'object' && typeof parsed.type === 'string') {
-      return parsed as Part;
+    if (isObject(parsed) && isString(parsed.type)) {
+      const known = Object.prototype.hasOwnProperty.call(HAS_REQUIRED_FIELDS, parsed.type);
+      return !known || HAS_REQUIRED_FIELDS[parsed.type](parsed) ? parsed as Part : null;
     }
   } catch (e) {
     // A malformed frame is dropped rather than ending the turn; the reducer ignores what it

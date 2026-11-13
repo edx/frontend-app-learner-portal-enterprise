@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import {
-  Alert, Badge, Button, ButtonGroup, Col, Row, Stack,
+  Alert, Badge, Button, ButtonGroup, Col, Row, Stack, Toast,
 } from '@openedx/paragon';
+import { Add } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import ChatPane from '../ui/chat/ChatPane';
+import DebugPanel from '../ui/debug/DebugPanel';
+import HistoryPanel from '../ui/history/HistoryPanel';
+import PastSearchBanner from '../ui/history/PastSearchBanner';
+import SavedView from '../ui/saved/SavedView';
+import ExcludedView from '../ui/saved/ExcludedView';
+import ResultsTabs from '../ui/page/ResultsTabs';
 import { createPersonalizedSearchController } from './usePersonalizedSearchController';
+import { useFitToViewport } from './useFitToViewport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 import type { PersonalizedSearchDeps } from './deps';
@@ -41,7 +49,24 @@ const PersonalizedSearchTab = ({
     isRenderableBlock: registry.isRenderable,
   }));
   const controller = usePersonalizedSearchController({ transport });
-  const { isWide, reducedMotion, mobilePane } = controller;
+  // The chat panel always ends at the bottom of the window, so the composer is a footer that stays in view.
+  const panesRef = useFitToViewport<HTMLDivElement>(controller.isWide);
+  const {
+    isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
+  } = controller;
+  const [savedToast, setSavedToast] = useState(false);
+  // Focus follows the learner's choice instead of being lost: More like this unmounts while the reply
+  // streams, so its send moves focus to the composer (or, on phones where the chat is hidden, the results);
+  // View these results and Back to latest results move it to the results they show.
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+  const [resultsFocusRequest, setResultsFocusRequest] = useState(0);
+  const focusResults = () => setResultsFocusRequest((n) => n + 1);
+  const toggleSave = (item: Parameters<typeof controller.toggleSave>[0]) => {
+    const saving = !savedIds.has(item.item_id);
+    controller.toggleSave(item).then((ok) => {
+      if (saving && ok) { setSavedToast(true); }
+    });
+  };
 
   const chat = (
     <ChatPane
@@ -52,27 +77,102 @@ const PersonalizedSearchTab = ({
       announcement={controller.announcement}
       onDraftChange={controller.setDraft}
       onSend={controller.send}
-      onNewChat={controller.newChat}
-      onViewPage={controller.viewPage}
-      onShowLastRecommendations={controller.showLastRecommendations}
       onStop={controller.stop}
       onRetry={controller.retry}
+      ratings={controller.ratings}
+      onRate={controller.rateTurn}
+      viewedTurnId={controller.viewedTurnId}
+      onViewResults={(turnId: string) => {
+        controller.viewPage(turnId);
+        focusResults();
+      }}
+      composerFocusRequest={composerFocusRequest}
+      getSignInUrl={controller.getSignInUrl}
     />
   );
-  const page = (
+  const forYou = (
     <LearningPagePane
       turns={controller.turns}
       registry={registry}
       viewedTurnId={controller.viewedTurnId}
-      pageFocusRequest={controller.pageFocusRequest}
+      onBackToLatest={() => {
+        controller.showLatestResults();
+        focusResults();
+      }}
+      focusRequest={resultsFocusRequest}
       links={controller.links}
-      reducedMotion={reducedMotion}
+      reducedMotion={reducedMotion || controller.mode === 'past'}
+      savedIds={savedIds}
+      dismissedIds={dismissedIds}
+      onToggleSave={toggleSave}
+      onDismiss={controller.dismiss}
+      undoItem={feedback.undo}
+      onUndo={controller.undoDismiss}
+      feedbackError={feedback.error}
+      onClearNotice={controller.clearFeedbackNotice}
+      onAsk={controller.busy ? undefined : (message: string) => {
+        controller.send(message, 'more_like_this');
+        if (isWide) { setComposerFocusRequest((n) => n + 1); } else { focusResults(); }
+      }}
+      onOpenItem={controller.openItem}
+      onExplain={controller.explain}
+    />
+  );
+  const page = (
+    <>
+      {/* Above the tabs, so a failed change on any tab is shown. */}
+      {feedback.error && (
+        <Alert variant="danger" dismissible onClose={controller.clearFeedbackNotice} className="mb-3">
+          {intl.formatMessage(messages.feedbackError)}
+        </Alert>
+      )}
+      <ResultsTabs
+        activeTab={(controller.savedOpen && 'saved') || (controller.excludedOpen && 'excluded') || 'for-you'}
+        savedCount={controller.feedbackLoaded ? feedback.saved.length : null}
+        excludedCount={feedback.dismissed.length}
+        showExcluded={controller.excludedTabShown}
+        onSelect={(tab) => {
+          if (tab === 'saved') { controller.openSaved(); } else if (tab === 'excluded') {
+            controller.openExcluded();
+          } else { controller.closeSaved(); }
+        }}
+        forYou={forYou}
+        excluded={(
+          <ExcludedView
+            items={feedback.dismissed}
+            links={controller.links}
+            onRestore={controller.restore}
+            onOpen={(item) => controller.openItem(item, 'excluded_tab')}
+          />
+        )}
+        saved={(
+          <SavedView
+            items={feedback.saved}
+            links={controller.links}
+            onToggleSave={(item) => controller.toggleSave(item, 'saved_tab')}
+            onOpen={(item) => controller.openItem(item, 'saved_tab')}
+          />
+        )}
+      />
+    </>
+  );
+
+  const debugPanel = controller.debugEnabled && (
+    <DebugPanel
+      baseUrl={controller.debugBaseUrl}
+      settings={controller.debugSettings}
+      config={controller.debugConfig}
+      configError={controller.debugConfigError}
+      turns={controller.turns}
+      onChange={controller.setDebugSettings}
+      onCopyResults={controller.copyBenchmark}
     />
   );
 
   if (controller.unavailable) {
     return (
       <div className="personalized-search py-3">
+        {debugPanel}
         <Alert variant="warning" className="mt-3">
           {intl.formatMessage(messages.notAvailable)}
         </Alert>
@@ -80,13 +180,71 @@ const PersonalizedSearchTab = ({
     );
   }
 
+  const toolbar = (
+    <Stack direction="horizontal" gap={2} className="justify-content-end mb-2 personalized-search__toolbar">
+      <Button variant="tertiary" size="sm" disabled={controller.busy} onClick={controller.openHistory}>
+        {intl.formatMessage(messages.history)}
+      </Button>
+      {controller.turns.length > 0 && (
+        <Button
+          variant="outline-primary"
+          size="sm"
+          iconBefore={Add}
+          disabled={controller.busy}
+          onClick={controller.newChat}
+        >
+          {intl.formatMessage(messages.newChat)}
+        </Button>
+      )}
+    </Stack>
+  );
+  const overlays = (
+    <HistoryPanel
+      history={controller.history}
+      busy={controller.busy}
+      currentSessionUuid={controller.session.sessionUuid}
+      onClose={controller.closeHistory}
+      onLoadMore={controller.loadMoreHistory}
+      onOpenSession={controller.openSession}
+    />
+  );
+  const savedNotice = (
+    <Toast
+      show={savedToast}
+      onClose={() => setSavedToast(false)}
+      action={{
+        label: intl.formatMessage(messages.viewSaved),
+        onClick: () => {
+          setSavedToast(false);
+          controller.openSaved();
+        },
+      }}
+    >
+      {intl.formatMessage(messages.savedToast)}
+    </Toast>
+  );
+
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'toggle'}>
+      {debugPanel}
+      {toolbar}
+      {overlays}
+      {savedNotice}
+      {controller.mode === 'past' && controller.pastSessionCreated && (
+        <PastSearchBanner created={controller.pastSessionCreated} />
+      )}
       {isWide ? (
-        <Row>
-          <Col md={5} className="personalized-search__chat-col">{chat}</Col>
-          <Col md={7} className="personalized-search__page-col">{page}</Col>
-        </Row>
+        // Both panes fit the window and scroll inside themselves, like the search page.
+        <div ref={panesRef} className="personalized-search__panes">
+          <Row className="h-100">
+            <Col md={5} lg={4} className="personalized-search__chat-col h-100">
+              <div className="personalized-search__chat-panel h-100">{chat}</div>
+            </Col>
+            <Col md={7} lg={8} className="personalized-search__page-col personalized-search__results-scroll h-100">
+              {page}
+            </Col>
+          </Row>
+        </div>
       ) : (
         <Stack gap={3}>
           <ButtonGroup

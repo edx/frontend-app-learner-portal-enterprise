@@ -60,6 +60,17 @@ export function isLearnerPathwaysEnabledForEnterpriseCustomer(enterpriseCustomer
 }
 
 /**
+ * Whether Personalized Search is enabled for a specific enterprise customer, per the
+ * FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS allowlist. Same rules as the Learner
+ * Pathways allowlist above: unset or empty means no customer, and the nil UUID means every customer.
+ *
+ * @param {string} enterpriseCustomerUuid - The current enterprise customer's UUID.
+ * @param {string[]|null} allowlist - The FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS config value.
+ * @returns {Boolean} - Returns true if the feature is enabled for this customer.
+ */
+export const isPersonalizedSearchEnabledForEnterpriseCustomer = isLearnerPathwaysEnabledForEnterpriseCustomer;
+
+/**
  * Whether the learner portal pathway sidebar message is enabled for a specific enterprise
  * customer, per the FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER config value — a
  * single enterprise customer UUID, or null/undefined/empty when unset. The nil UUID (`uuid`'s

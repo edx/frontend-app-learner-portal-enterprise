@@ -1,11 +1,79 @@
-import type { PageHeaderProps } from '../core/stream/types';
+import { useState } from 'react';
+import {
+  Button, Chip, OverlayTrigger, Popover, Stack,
+} from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 
-const PageHeaderBlock = ({ title, dek, label }: PageHeaderProps) => (
-  <header className="personalized-search__page-header">
-    {label && <p className="small text-uppercase font-weight-bold text-gray-500 mb-1">{label}</p>}
-    <h2 className="h3 mb-2">{title}</h2>
-    {dek && <p className="lead mb-0">{dek}</p>}
-  </header>
-);
+import messages from '../ui/messages';
+import type { PageHeaderProps, ProfileProps } from '../core/stream/types';
+
+export interface PageHeaderBlockProps extends PageHeaderProps {
+  /** What the AI knows about the learner; when present, "Why these?" opens it (wireframe D2c). */
+  profile?: ProfileProps;
+  /** Usage event: "Why these?" opened. */
+  onOpenWhy?: () => void;
+}
+
+/**
+ * The results headline (h2) and an "About you" line (wireframe D2). "Why these?" opens a read-only
+ * Paragon Popover on click (or Enter/Space) with the plain-language basis and the learner's preferences;
+ * a click elsewhere or Escape closes it. Click, not hover, so it stays open while the learner reads it
+ * and works the same on every browser and with a keyboard.
+ */
+const PageHeaderBlock = ({
+  title, dek, label, profile, onOpenWhy,
+}: PageHeaderBlockProps) => {
+  const intl = useIntl();
+  const [showWhy, setShowWhy] = useState(false);
+  // "Why these?" whenever the profile can explain the results: its summary, its chips, or both. When no preference
+  // the learner gave is reflected, enterprise-access sends the search topic or a catalog summary instead, so it's
+  // there on every turn with results. Blank text isn't shown.
+  const summary = profile?.summary?.trim() ?? '';
+  const chips = (profile?.chips ?? []).filter((chip) => chip.trim());
+  const canExplain = chips.length > 0 || summary.length > 0;
+  return (
+    <header className="personalized-search__page-header">
+      {label && <p className="sr-only">{label}</p>}
+      <div className="d-flex align-items-start justify-content-between">
+        <h2 className="mb-2 mr-3">{title}</h2>
+        {canExplain && (
+          <OverlayTrigger
+            trigger="click"
+            rootClose
+            placement="bottom-end"
+            show={showWhy}
+            onToggle={(show: boolean) => {
+              if (show && !showWhy) { onOpenWhy?.(); }
+              setShowWhy(show);
+            }}
+            overlay={(
+              <Popover id="personalized-search-why-these" style={{ maxWidth: 460 }}>
+                <Popover.Title as="h3" className="h5">{intl.formatMessage(messages.whyThese)}</Popover.Title>
+                <Popover.Content>
+                  {summary && <p className={chips.length > 0 ? 'mb-2' : 'mb-0'}>{summary}</p>}
+                  {chips.length > 0 && (
+                    <Stack direction="horizontal" gap={2} className="flex-wrap">
+                      {chips.map((chip) => <Chip key={chip}>{chip}</Chip>)}
+                    </Stack>
+                  )}
+                </Popover.Content>
+              </Popover>
+            )}
+          >
+            <Button
+              variant="link"
+              size="inline"
+              className="text-nowrap mt-2"
+              aria-expanded={showWhy}
+            >
+              {intl.formatMessage(messages.whyThese)}
+            </Button>
+          </OverlayTrigger>
+        )}
+      </div>
+      {dek?.trim() && <p className="text-gray-700 mb-0">{dek}</p>}
+    </header>
+  );
+};
 
 export default PageHeaderBlock;

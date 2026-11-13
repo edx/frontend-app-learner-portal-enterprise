@@ -46,6 +46,7 @@ describe('SseChatTransport', () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('normal_turn.sse'), [7, 200]) });
     const transport = new SseChatTransport({
       ...options,
+      getDebugOverrides: () => ({ compose_model: 'gpt-4.1', compose_effort: null }),
     });
     const parts = await collect(transport.send({ request: REQUEST }));
 
@@ -58,9 +59,32 @@ describe('SseChatTransport', () => {
       enterprise_customer_uuid: 'ent-1',
       session_uuid: null,
       message: 'Lead a team',
+      debug: { compose_model: 'gpt-4.1', compose_effort: null },
     });
     expect(parts[0].type).toBe('start');
     expect(parts[parts.length - 1].type).toBe('finish');
+  });
+
+  it('sends no debug key outside debug mode', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')) });
+    await collect(new SseChatTransport(options).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('debug');
+  });
+
+  it('sends an empty debug object in debug mode without model overrides', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')) });
+    await collect(new SseChatTransport({ ...options, getDebugOverrides: () => ({}) }).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({});
+  });
+
+  it('sends the content locale when the request has one, and no key otherwise', async () => {
+    fetchMock.mockImplementation(async () => ({
+      ok: true, status: 200, body: streamFromBytes(readGoldenBytes('off_topic_turn.sse')),
+    }));
+    await collect(new SseChatTransport(options).send({ request: { ...REQUEST, locale: 'es' } }));
+    await collect(new SseChatTransport(options).send({ request: REQUEST }));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(expect.objectContaining({ locale: 'es' }));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).not.toHaveProperty('locale');
   });
 
   it.each([

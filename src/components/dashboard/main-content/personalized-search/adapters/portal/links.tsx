@@ -13,10 +13,18 @@ export const getPortalItemHref = (item: ItemCard, enterpriseSlug: string): strin
   return getLinkToCourse({ key: item.link.course_key, courseType: item.link.course_type }, enterpriseSlug);
 };
 
-const PortalLink = ({ to, children }: { to: string; children: ReactNode }) => <Link to={to}>{children}</Link>;
+const PortalLink = ({
+  to, className, onClick, children,
+}: { to: string; className?: string; onClick?: () => void; children: ReactNode }) => (
+  <Link to={to} className={className} onClick={onClick}>{children}</Link>
+);
 
 /** Item links for the learner portal: its routes, through the router's `Link`. */
 export const createPortalItemLinks = (enterpriseSlug: string): ItemLinks => ({
   getItemHref: (item) => getPortalItemHref(item, enterpriseSlug),
   LinkComponent: PortalLink,
+  getSeeAllHref: (itemType, query) => {
+    const contentType = itemType === 'program' ? 'program' : 'course';
+    return `/${enterpriseSlug}/search?q=${encodeURIComponent(query)}&content_type=${contentType}`;
+  },
 });

@@ -1,8 +1,10 @@
-import { previousPageTurnId, selectPageTurn } from './selectors';
-import type { AssistantTurn } from './stream/types';
+import {
+  countShownItems, hasPage, previousPageTurnId, promotedTopPick, selectPageTurn, selectShownTurn,
+} from './selectors';
+import type { AssistantTurn, ItemCard, PageBlock } from './stream/types';
 
 const turn = (localId: string, blocks: number): AssistantTurn => (
-  { localId, blocks: Array.from({ length: blocks }, (_, i) => ({ id: `${localId}-${i}` })) } as unknown as AssistantTurn
+  { localId, blocks: Array.from({ length: blocks }, (_, i) => ({ id: `${localId}-${i}`, block: { type: 'item_section' } })) } as unknown as AssistantTurn
 );
 
 describe('selectPageTurn', () => {
@@ -24,10 +26,94 @@ describe('selectPageTurn', () => {
   });
 });
 
+describe('selectShownTurn', () => {
+  const streaming = (step: string | null, blocks = 0) => ({ ...turn('t3', blocks), status: 'streaming', step }) as AssistantTurn;
+
+  it('is the live turn once it is searching, writing or has blocks; until then the previous page', () => {
+    const done = turn('t1', 1);
+    expect(selectShownTurn([done, streaming('understanding')], null)?.localId).toBe('t1');
+    expect(selectShownTurn([done, streaming('searching')], null)?.localId).toBe('t3');
+    expect(selectShownTurn([done, streaming(null, 1)], null)?.localId).toBe('t3');
+    expect(selectShownTurn([done, streaming('writing')], 't1')?.localId).toBe('t1');
+  });
+});
+
 describe('previousPageTurnId', () => {
   it('returns the latest earlier turn with a page', () => {
     const turns = [turn('t1', 1), turn('t2', 0), turn('t3', 1)];
     expect(previousPageTurnId(turns, 2)).toBe('t1');
     expect(previousPageTurnId(turns, 0)).toBeNull();
+  });
+});
+
+describe('hasPage', () => {
+  it('ignores turns that only carry a caveat or the profile', () => {
+    const only = (...types: string[]) => ({
+      localId: 'x', blocks: types.map((type, i) => ({ id: `b${i}`, block: { type } })),
+    }) as unknown as AssistantTurn;
+    expect(hasPage(only('caveat', 'profile'))).toBe(false);
+    expect(hasPage(only('caveat', 'item_section'))).toBe(true);
+    expect(hasPage(only())).toBe(false);
+  });
+});
+
+describe('promotedTopPick', () => {
+  const item = (id: string) => ({ item_id: id }) as ItemCard;
+  const blocks = [
+    { id: 'tp', block: { v: 1, type: 'top_pick', props: { item: item('a'), reason: 'r', checks: [] } } },
+    {
+      id: 'cmp',
+      block: {
+        v: 1,
+        type: 'compare',
+        props: { options: [{ best_for: 'A', item: item('a') }, { best_for: 'B', item: item('b') }, { best_for: 'C', item: item('c') }] },
+      },
+    },
+  ] as PageBlock[];
+
+  it('is null while the top pick stands', () => {
+    expect(promotedTopPick(blocks, new Set())).toBeNull();
+    expect(promotedTopPick(blocks, undefined)).toBeNull();
+    expect(promotedTopPick(blocks, new Set(['b']))).toBeNull();
+  });
+
+  it('is the next compare option, skipping the top pick and removed options', () => {
+    expect(promotedTopPick(blocks, new Set(['a']))?.best_for).toBe('B');
+    expect(promotedTopPick(blocks, new Set(['a', 'b']))?.best_for).toBe('C');
+  });
+
+  it('is null when no option is left, or the turn has no compare', () => {
+    expect(promotedTopPick(blocks, new Set(['a', 'b', 'c']))).toBeNull();
+    expect(promotedTopPick([blocks[0]], new Set(['a']))).toBeNull();
+  });
+});
+
+describe('countShownItems', () => {
+  const item = (id: string) => ({ item_id: id }) as ItemCard;
+  const section = (items: string[], reserve: string[] = []) => ({
+    v: 1, type: 'item_section', props: { items: items.map(item), reserve: reserve.map(item) },
+  });
+  const withBlocks = (...blocks: unknown[]) => (
+    { blocks: blocks.map((block, i) => ({ id: `b${i}`, block })) } as unknown as AssistantTurn
+  );
+  const page = withBlocks(
+    { v: 1, type: 'top_pick', props: { item: item('a'), reason: 'r', checks: [] } },
+    { v: 1, type: 'compare', props: { options: [{ best_for: 'A', item: item('a') }, { best_for: 'B', item: item('b') }] } },
+    section(['c'], ['d', 'e', 'f']),
+    section([], ['g']),
+  );
+
+  it('counts each card on screen once: the top pick, compare, and sections padded from the reserve to three', () => {
+    expect(countShownItems(page)).toBe(6); // a, b, c d e, g
+  });
+
+  it('leaves out removed items, with the reserve filling in and compare filling the top pick', () => {
+    expect(countShownItems(page, new Set(['c']))).toBe(6); // a, b, d e f, g
+    expect(countShownItems(page, new Set(['a']))).toBe(5); // b (promoted), c d e, g
+  });
+
+  it('is 0 for a turn without results', () => {
+    expect(countShownItems(withBlocks({ v: 1, type: 'caveat', props: { title: 't', body: 'b' } }))).toBe(0);
+    expect(countShownItems(undefined)).toBe(0);
   });
 });

@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useMemo, useRef,
+  useCallback, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { breakpoints, useMediaQuery } from '@openedx/paragon';
@@ -8,13 +8,58 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
-import { isSendableMessage, latestPicksTurnId, previousPageTurnId } from '../core/selectors';
+import {
+  countShownItems, hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId, selectShownTurn,
+} from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
+import type { AssistantTurn, ItemCard } from '../core/stream/types';
+import { joinKeysOf } from '../core/analytics';
+import {
+  clearPendingTurn, isPendingTurnStored, loadPendingTurn, savePendingTurn, withInterruptedTurn,
+} from '../core/pendingTurn';
+import type { PendingTurnStorage } from '../core/pendingTurn';
+import type {
+  ExplainScope, ItemSurface, PromptSource, TrackAction, TrackProperties,
+} from '../core/analytics';
 import type { ChatTransport } from '../core/transports/ChatTransport';
+import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
+import type { DebugOverrides } from '../core/transports/SseChatTransport';
+import type { BenchmarkRow } from '../core/debug/benchmark';
+import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
-import { sendTurnWorkflow } from '../core/workflows';
-import type { MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+import {
+  itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
+} from '../core/workflows';
+import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
+
+export type TurnRating = 1 | -1 | null;
+
+/**
+ * The overrides a debug-mode turn sends; unset choices fall back to the server defaults. Always an object, even
+ * an empty one: the object itself marks a debug turn, which the server may answer from its debug catalog.
+ */
+export const toDebugOverrides = (settings: DebugSettings): DebugOverrides => {
+  const overrides: DebugOverrides = {};
+  if (settings.intentModel) {
+    overrides.intent_model = settings.intentModel;
+    overrides.intent_effort = settings.intentEffort;
+  }
+  if (settings.composeModel) {
+    overrides.compose_model = settings.composeModel;
+    overrides.compose_effort = settings.composeEffort;
+  }
+  return overrides;
+};
+
+/** The browser tab's session storage, or null where it's unavailable (reading it can throw when blocked). */
+const getPendingTurnStorage = (): PendingTurnStorage | null => {
+  try {
+    return globalThis.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+};
 
 export interface PersonalizedSearchControllerOptions {
   deps: PersonalizedSearchDeps;
@@ -38,26 +83,53 @@ export const createPersonalizedSearchController = ({
     const intl = useIntl();
     const enterpriseCustomer = deps.useEnterpriseContext();
     const enterpriseCustomerUuid = enterpriseCustomer.uuid;
+    const [sessionParam, setSessionParam] = deps.useSessionParam();
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
-    const transport = useMemo(
-      () => injected ?? deps.createTransport(),
-      [injected],
+    // Built when shown, so it returns to the page as it is then (its ?session=).
+    const getSignInUrl = useMemo(() => {
+      const { getSignInUrl: hostSignInUrl } = deps;
+      return hostSignInUrl ? () => hostSignInUrl(enterpriseSlug) : undefined;
+    }, [enterpriseSlug]);
+    const debugEnabled = deps.debug.useDebugRequested();
+    const getDebugOverrides = useCallback(() => (
+      debugEnabled ? toDebugOverrides(storeApi.getState().debugSettings) : null
+    ), [debugEnabled]);
+    const configuredTransport = useMemo(
+      () => injected ?? deps.createTransport(getDebugOverrides),
+      [injected, getDebugOverrides],
     );
+    // Debug mode's AI switch: live enterprise-access turns, or the canned fixture turns.
+    const liveTransport = useMemo(
+      () => injected ?? deps.debug.createLiveTransport(getDebugOverrides),
+      [injected, getDebugOverrides],
+    );
+    const fixtureTransport = useMemo(() => injected ?? new FixtureChatTransport(), [injected]);
     const abortRef = useRef<AbortController | null>(null);
 
     const {
-      stream, viewedTurnId, pageFocusRequest, draft, unavailable, announcement,
-      mobilePane, seenPageTurnId,
+      stream, viewedTurnId, draft, unavailable, announcement,
+      mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
+      feedback, savedOpen, excludedOpen, excludedTabShown, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
-      pageFocusRequest: state.pageFocusRequest,
       draft: state.draft,
       unavailable: state.unavailable,
       announcement: state.announcement,
       mobilePane: state.mobilePane,
       seenPageTurnId: state.seenPageTurnId,
+      mode: state.mode,
+      pastSessionCreated: state.pastSessionCreated,
+      history: state.history,
+      feedback: state.feedback,
+      savedOpen: state.savedOpen,
+      excludedOpen: state.excludedOpen,
+      excludedTabShown: state.excludedTabShown,
+      feedbackLoaded: state.feedbackLoaded,
+      debugSettings: state.debugSettings,
+      debugConfig: state.debugConfig,
+      debugConfigError: state.debugConfigError,
     })));
 
     // Layout (KD-1, REQ-011): dual pane from 768 px; below that, one pane at a time.
@@ -65,12 +137,34 @@ export const createPersonalizedSearchController = ({
     const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
     const newestPicksTurnId = useMemo(() => latestPicksTurnId(stream.turns), [stream.turns]);
     const pageOnScreen = isWide || mobilePane === 'page';
+    // The results count as seen only while For you shows them, not under the Saved or Excluded tab.
+    const forYouOnScreen = pageOnScreen && !savedOpen && !excludedOpen;
     useEffect(() => {
-      if (pageOnScreen && newestPicksTurnId !== seenPageTurnId) {
+      if (forYouOnScreen && newestPicksTurnId !== seenPageTurnId) {
         storeApi.getState().setSeenPageTurnId(newestPicksTurnId);
       }
-    }, [pageOnScreen, newestPicksTurnId, seenPageTurnId]);
+    }, [forYouOnScreen, newestPicksTurnId, seenPageTurnId]);
     const hasNewPicks = !pageOnScreen && newestPicksTurnId !== null && newestPicksTurnId !== seenPageTurnId;
+
+    let transport = configuredTransport;
+    if (debugEnabled) {
+      transport = debugSettings.live ? liveTransport : fixtureTransport;
+    }
+    const debugBaseUrl = debugEnabled ? deps.debug.getApiBaseUrl() : null;
+
+    // Load the server's model menu once per page view in debug mode.
+    useEffect(() => {
+      if (!debugEnabled || !debugBaseUrl || !enterpriseCustomerUuid
+          || storeApi.getState().debugConfig !== undefined) {
+        return;
+      }
+      deps.debug.fetchDebugConfig(enterpriseCustomerUuid)
+        .then((config) => storeApi.getState().setDebugConfig(config))
+        .catch((e) => {
+          deps.logError(e);
+          storeApi.getState().setDebugConfig(null, intl.formatMessage(messages.debugMenuError));
+        });
+    }, [debugEnabled, debugBaseUrl, enterpriseCustomerUuid, intl]);
 
     const busy = stream.activeTurnId !== null;
 
@@ -84,7 +178,63 @@ export const createPersonalizedSearchController = ({
     // Abort an in-flight turn when the tab unmounts.
     useEffect(() => () => abortRef.current?.abort(), []);
 
-    const send = useCallback(async (rawMessage: string) => {
+    /**
+     * Sends a usage event with join keys, the enterprise and the viewport. The keys are `turn`'s when one is
+     * given (none for null, or while it has none), otherwise the newest turn's that has them. Properties are
+     * raw facts; nothing is counted or derived here (KD-12).
+     */
+    const track = useCallback((action: TrackAction, properties: TrackProperties = {}, turn?: AssistantTurn | null) => {
+      if (!enterpriseCustomerUuid) { return; }
+      const { turns } = storeApi.getState().stream;
+      const context = turn !== undefined
+        ? turn?.analytics
+        : [...turns].reverse().find((t) => t.analytics)?.analytics;
+      try {
+        deps.trackEvent(action, {
+          ...joinKeysOf(context),
+          enterprise_customer_uuid: enterpriseCustomerUuid,
+          viewport: isWide ? 'desktop' : 'mobile',
+          ...properties,
+        });
+      } catch (e) {
+        deps.logError(e);
+      }
+    }, [enterpriseCustomerUuid, isWide]);
+    const trackedTabView = useRef(false);
+    useEffect(() => {
+      if (trackedTabView.current || !enterpriseCustomerUuid) { return; }
+      trackedTabView.current = true;
+      track('tab_viewed', { entry_point: deps.getEntryPoint() });
+    }, [enterpriseCustomerUuid, track]);
+
+    /**
+     * The raw facts that identify an item event: the card's key and where the server placed it, or the
+     * Saved or Excluded tab it was acted on there.
+     */
+    const itemFacts = (item: ItemCard, surface?: ItemSurface): TrackProperties => ({
+      item_key: item.item_id,
+      item_type: item.item_type,
+      item_section: surface ?? item.section ?? null,
+      item_position: surface ? null : (item.position ?? null),
+    });
+    /** Item events join to the turn whose results are on screen (an earlier reply's, when viewed), not the newest. */
+    const trackItem = useCallback((action: TrackAction, properties: TrackProperties) => {
+      const { stream: { turns }, viewedTurnId: viewed } = storeApi.getState();
+      track(action, properties, selectShownTurn(turns, viewed) ?? undefined);
+    }, [track]);
+
+    // How each message was sent, so Retry resends it with the same source.
+    const promptSources = useRef<Record<string, { source: PromptSource; chipLabel?: string }>>({});
+    // Whether the past search on screen was reopened from History (not restored from the URL).
+    const reopenedFromHistory = useRef(false);
+
+    /** Back to For you from the Saved or Excluded tab. */
+    const closeSaved = useCallback(() => {
+      storeApi.getState().setSavedOpen(false);
+      storeApi.getState().setExcludedOpen(false);
+    }, []);
+
+    const send = useCallback(async (rawMessage: string, source: PromptSource = 'typed', chipLabel?: string) => {
       const store = storeApi.getState();
       const message = rawMessage.trim();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId || !isSendableMessage(message)) {
@@ -93,9 +243,39 @@ export const createPersonalizedSearchController = ({
       const controller = new AbortController();
       abortRef.current = controller;
       const localId = uuidv4();
+      promptSources.current[localId] = { source, chipLabel };
+      // Sending from a reopened session continues it (same session uuid), now live. Only a search reopened
+      // from History counts as resumed; one restored from the URL (?session=) is the learner coming back.
+      const resumedFromHistory = store.mode === 'past' && reopenedFromHistory.current;
+      if (store.mode === 'past') { store.setMode('live'); }
+      // Fixed chip copy only (starter and follow-up chips); suggested chips are model-written and typed
+      // text is the learner's.
+      const fixedChip = source === 'starter_chip' || source === 'followup_chip';
+      // Sent with the new turn's join keys once its data-analytics part arrives; a turn that ends without
+      // one sends it without keys.
+      let promptTracked = false;
+      const trackPrompt = (turn: AssistantTurn | null) => {
+        if (promptTracked) { return; }
+        promptTracked = true;
+        track('prompt_submitted', { prompt_source: source, chip_label: fixedChip ? chipLabel ?? message : null }, turn);
+      };
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
+      closeSaved(); // new results show in For you
+
+      // Keep the message until the turn ends, so a reload mid-turn can offer to resend it (N-10): from the
+      // send in a known session, and once the server numbers the turn (a new session learns its id then).
+      const pendingStorage = getPendingTurnStorage();
+      let pendingSession: string | null = null;
+      let pendingNumbered = false;
+      const keepPending = (sessionUuid: string, sequence: number) => {
+        if (pendingSession && pendingSession !== sessionUuid) { clearPendingTurn(pendingStorage, pendingSession); }
+        pendingSession = sessionUuid;
+        savePendingTurn(pendingStorage, sessionUuid, { message, sequence });
+      };
+      const { sessionUuid: knownSession, turnSequence } = store.stream.session;
+      if (knownSession) { keepPending(knownSession, (turnSequence ?? 0) + 1); }
 
       const result = await sendTurnWorkflow({
         transport,
@@ -103,17 +283,38 @@ export const createPersonalizedSearchController = ({
           enterpriseCustomerUuid,
           sessionUuid: store.stream.session.sessionUuid,
           message,
+          ...(resumedFromHistory ? { resumedFromHistory } : {}),
+          ...(deps.getContentLocale ? { locale: deps.getContentLocale() } : {}),
         },
         localId,
         signal: controller.signal,
-        dispatch: store.setStream,
+        dispatch: (update) => {
+          store.setStream(update);
+          const { stream: current } = storeApi.getState();
+          const turn = current.turns.find((t) => t.localId === localId);
+          if (turn?.analytics) { trackPrompt(turn); }
+          if (!pendingNumbered && turn?.sequence && current.session.sessionUuid) {
+            pendingNumbered = true;
+            keepPending(current.session.sessionUuid, turn.sequence);
+          }
+        },
         isRenderableBlock,
       });
 
+      trackPrompt(null);
+      if (pendingSession) { clearPendingTurn(pendingStorage, pendingSession); }
       if (abortRef.current === controller) { abortRef.current = null; }
       const after = storeApi.getState();
       if (result.outcome === 'done') {
-        after.setAnnouncement(intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }));
+        // The count is of the cards on screen; a reply without results (off topic, a redirect) leaves the
+        // previous ones, so it doesn't count them as its own.
+        const finished = after.stream.turns.find((t) => t.localId === localId);
+        after.setAnnouncement(finished && hasPage(finished)
+          ? intl.formatMessage(messages.newReplyAnnouncement, {
+            count: countShownItems(finished, new Set(after.feedback.dismissedIds)),
+          })
+          : intl.formatMessage(messages.newReplyAnnouncementNoResults));
+        if (finished && hasPage(finished)) { track('results_rendered', {}, finished); }
       } else if (result.outcome === 'stopped') {
         // The stopped turn's blocks were discarded, so show the page from before it.
         const { turns } = after.stream;
@@ -126,7 +327,7 @@ export const createPersonalizedSearchController = ({
       } else if (result.status === 400) {
         after.setDraft(message);
       }
-    }, [enterpriseCustomerUuid, intl, transport]);
+    }, [enterpriseCustomerUuid, intl, transport, track, closeSaved]);
 
     const stop = useCallback(() => {
       abortRef.current?.abort();
@@ -138,45 +339,253 @@ export const createPersonalizedSearchController = ({
       const failed = store.stream.turns.find((t) => t.localId === turnId);
       if (!failed?.userMessage || store.stream.activeTurnId) { return; }
       store.setStream((current) => removeTurn(current, turnId));
-      send(failed.userMessage);
+      const { source, chipLabel } = promptSources.current[turnId] ?? {};
+      send(failed.userMessage, source, chipLabel);
     }, [send]);
 
     const newChat = useCallback(() => {
+      track('new_chat_started'); // with the join keys of the chat being left
       abortRef.current?.abort();
       storeApi.getState().reset();
-    }, []);
+      setSessionParam(null);
+    }, [track, setSessionParam]);
 
     const viewPage = useCallback((turnId: string) => {
       const store = storeApi.getState();
       store.setViewedTurnId(turnId);
       store.setMobilePane('page');
+      closeSaved();
+    }, [closeSaved]);
+    /** Leaves an earlier reply's results for the newest ones. */
+    const showLatestResults = useCallback(() => storeApi.getState().setViewedTurnId(null), []);
+
+    // Saved and dismissed items (REQ-009), loaded once, lazily: when the page first has picks to mark
+    // or hide, or when the Saved view opens, so the opening state makes no network request.
+    useEffect(() => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.feedbackLoaded || !(newestPicksTurnId || savedOpen)) { return; }
+      store.setFeedbackLoaded(true);
+      loadFeedbackWorkflow(deps.feedbackApi, enterpriseCustomerUuid).then((loaded) => {
+        storeApi.getState().setFeedback((f) => ({ ...f, ...loaded }));
+      }).catch((e) => deps.logError(e));
+    }, [enterpriseCustomerUuid, newestPicksTurnId, savedOpen]);
+
+    /** Resolves to whether the server took the change (a failure is reverted and shown). */
+    const runFeedback = useCallback(async (action: FeedbackAction) => {
+      if (!enterpriseCustomerUuid) { return false; }
+      const { sessionUuid } = storeApi.getState().stream.session;
+      return itemFeedbackWorkflow(action, {
+        api: {
+          add: (kind, item) => deps.feedbackApi.addFeedback(enterpriseCustomerUuid, kind, item, sessionUuid),
+          remove: (kind, itemId) => deps.feedbackApi.removeFeedback(enterpriseCustomerUuid, kind, itemId),
+        },
+        update: (fn) => storeApi.getState().setFeedback(fn),
+        getState: () => storeApi.getState().feedback,
+      });
+    }, [enterpriseCustomerUuid]);
+
+    const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
+    const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
+    const toggleSave = useCallback((item: ItemCard, surface?: ItemSurface) => {
+      trackItem('item_save_toggled', { ...itemFacts(item, surface), saved: !savedIds.has(item.item_id) });
+      return runFeedback({ type: 'toggleSave', item });
+    }, [runFeedback, savedIds, trackItem]);
+    const dismiss = useCallback((item: ItemCard) => {
+      trackItem('item_dismissed', { ...itemFacts(item), dismissed: true });
+      return runFeedback({ type: 'dismiss', item });
+    }, [runFeedback, trackItem]);
+    const undoDismiss = useCallback(() => {
+      const { undo } = storeApi.getState().feedback;
+      if (undo) { trackItem('item_dismissed', { ...itemFacts(undo), dismissed: false }); }
+      return runFeedback({ type: 'undoDismiss' });
+    }, [runFeedback, trackItem]);
+    /** Include a dismissed item in results again, from the Excluded tab. */
+    const restore = useCallback((item: ItemCard) => {
+      trackItem('item_dismissed', { ...itemFacts(item, 'excluded_tab'), dismissed: false });
+      return runFeedback({ type: 'restore', item });
+    }, [runFeedback, trackItem]);
+    // The Excluded tab appears once the learner has any excluded item and stays (disabled) when the last
+    // is restored; a reload with none hides it. Leaving it empty returns to For you.
+    useEffect(() => {
+      if (feedback.dismissed.length > 0 && !excludedTabShown) { storeApi.getState().showExcludedTab(); }
+      if (feedback.dismissed.length === 0 && excludedOpen) { storeApi.getState().setExcludedOpen(false); }
+    }, [feedback.dismissed.length, excludedTabShown, excludedOpen]);
+    const openItem = useCallback((item: ItemCard, surface?: ItemSurface) => {
+      trackItem('result_clicked', itemFacts(item, surface));
+    }, [trackItem]);
+    const explain = useCallback((scope: ExplainScope, item?: ItemCard) => {
+      trackItem('explanation_opened', { scope, item_key: item?.item_id ?? null });
+    }, [trackItem]);
+    const clearFeedbackNotice = useCallback(() => {
+      storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
     }, []);
+    // Thumbs on replies: optimistic, reverted on failure; hidden if the server has no rating endpoint (404).
+    const [ratings, setRatings] = useState<Record<string, TurnRating>>({});
+    const [ratingUnavailable, setRatingUnavailable] = useState(false);
+    const rateRequests = useRef<Record<string, number>>({});
+    const rateTurn = useCallback(async (turn: AssistantTurn, rating: 1 | -1) => {
+      const { sessionUuid } = storeApi.getState().stream.session;
+      if (!enterpriseCustomerUuid || !sessionUuid || !turn.sequence) { return; }
+      const previous = ratings[turn.localId] ?? null;
+      const next = previous === rating ? null : rating;
+      const request = (rateRequests.current[turn.localId] ?? 0) + 1;
+      rateRequests.current[turn.localId] = request;
+      setRatings((current) => ({ ...current, [turn.localId]: next }));
+      try {
+        await deps.feedbackApi.rateTurn(enterpriseCustomerUuid, sessionUuid, turn.sequence, next);
+      } catch (e) {
+        // Revert only the latest click on this reply, so a slow failure can't undo a later rating.
+        if (rateRequests.current[turn.localId] === request) {
+          setRatings((current) => ({ ...current, [turn.localId]: previous }));
+        }
+        if ((e as { response?: { status?: number } })?.response?.status === 404) {
+          setRatingUnavailable(true);
+        } else {
+          deps.logError(e);
+        }
+      }
+    }, [enterpriseCustomerUuid, ratings]);
+    const openSaved = useCallback(() => {
+      track('saved_tab_opened');
+      storeApi.getState().setSavedOpen(true);
+    }, [track]);
+    const openExcluded = useCallback(() => {
+      track('excluded_tab_opened');
+      storeApi.getState().setExcludedOpen(true);
+    }, [track]);
+
+    const loadHistoryPage = useCallback(async (page: number) => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.history.loading) { return; }
+      store.setHistory({ loading: true, error: false });
+      try {
+        const loaded = await loadHistoryPageWorkflow(
+          deps.sessionsApi,
+          enterpriseCustomerUuid,
+          page,
+          () => storeApi.getState().history.items,
+        );
+        storeApi.getState().setHistory({ ...loaded, loading: false });
+      } catch (e) {
+        deps.logError(e);
+        storeApi.getState().setHistory({ loading: false, error: true });
+      }
+    }, [enterpriseCustomerUuid]);
+
+    const openHistory = useCallback(() => {
+      track('history_opened');
+      storeApi.getState().setHistory({ open: true });
+      loadHistoryPage(1);
+    }, [loadHistoryPage, track]);
+
+    const closeHistory = useCallback(() => {
+      storeApi.getState().setHistory({ open: false });
+    }, []);
+
+    const loadMoreHistory = useCallback(() => {
+      loadHistoryPage(storeApi.getState().history.page + 1);
+    }, [loadHistoryPage]);
+
+    /**
+     * Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. A
+     * response that arrives after the learner moved on (sent a message, started a new chat, or opened
+     * another session) is dropped.
+     */
+    const openRequest = useRef(0);
+    const openSession = useCallback(async (sessionUuid: string, { restoring = false } = {}) => {
+      const store = storeApi.getState();
+      if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
+      openRequest.current += 1;
+      const request = openRequest.current;
+      const isStale = () => request !== openRequest.current || storeApi.getState().stream !== store.stream;
+      try {
+        const reopened = await openSessionWorkflow(
+          deps.sessionsApi,
+          enterpriseCustomerUuid,
+          sessionUuid,
+          isRenderableBlock,
+        );
+        if (isStale()) { return; }
+        // A message whose reply a reload cut off comes back, to resend (N-10); once stored, it's forgotten.
+        const pendingStorage = getPendingTurnStorage();
+        const pending = loadPendingTurn(pendingStorage, sessionUuid);
+        if (pending && isPendingTurnStored(reopened.stream, pending)) { clearPendingTurn(pendingStorage, sessionUuid); }
+        const after = storeApi.getState();
+        after.reset();
+        after.setStream(() => withInterruptedTurn(reopened.stream, pending));
+        after.setMode('past', reopened.created);
+        reopenedFromHistory.current = !restoring;
+        setRatings(reopened.ratings);
+        after.setHistory({ open: false });
+      } catch (e) {
+        deps.logError(e);
+        if (isStale()) { return; }
+        if (restoring) {
+          setSessionParam(null); // the URL named a conversation that's gone or not this learner's
+        } else {
+          storeApi.getState().setHistory({ error: true });
+        }
+      }
+    }, [enterpriseCustomerUuid, setSessionParam]);
+
+    // The conversation id lives in the URL (?session=), so Back and Forward return to it. On arriving with
+    // one, reopen it once; after that, keep the URL in step with the conversation shown.
+    const restoredSession = useRef(false);
+    useEffect(() => {
+      if (restoredSession.current || !enterpriseCustomerUuid) { return; }
+      restoredSession.current = true;
+      if (sessionParam && storeApi.getState().stream.session.sessionUuid !== sessionParam) {
+        openSession(sessionParam, { restoring: true });
+      }
+    }, [enterpriseCustomerUuid, sessionParam, openSession]);
+    const shownSessionUuid = stream.session.sessionUuid;
+    useEffect(() => {
+      if (restoredSession.current && shownSessionUuid && shownSessionUuid !== sessionParam) {
+        setSessionParam(shownSessionUuid);
+      }
+    }, [shownSessionUuid, sessionParam, setSessionParam]);
 
     const showPane = useCallback((pane: MobilePane) => {
       storeApi.getState().setMobilePane(pane);
-    }, []);
-
-    const showLastRecommendations = useCallback((turnId: string) => {
-      const store = storeApi.getState();
-      store.setViewedTurnId(turnId);
-      store.setMobilePane('page');
-      store.requestPageFocus();
     }, []);
 
     const setDraft = useCallback((value: string) => {
       storeApi.getState().setDraft(value);
     }, []);
 
+    const setDebugSettings = useCallback((changes: Partial<DebugSettings>) => {
+      const store = storeApi.getState();
+      store.setDebugSettings(changes);
+      // Switching backends retries availability: the other backend may answer.
+      if (changes.live !== undefined) { store.setUnavailable(false); }
+    }, []);
+
+    const copyBenchmark = useCallback(async (rows: BenchmarkRow[]) => {
+      const store = storeApi.getState();
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(rows, null, 2));
+        store.setAnnouncement(intl.formatMessage(messages.debugCopied, { count: rows.length }));
+      } catch (e) {
+        deps.logError(e);
+        store.setAnnouncement(intl.formatMessage(messages.debugCopyFailed));
+      }
+    }, [intl]);
+
     return {
+      track,
+      openItem,
+      explain,
+      ratings,
+      rateTurn: ratingUnavailable ? undefined : rateTurn,
       enterpriseCustomerUuid,
       enterpriseSlug,
       links,
+      getSignInUrl,
       transport,
       turns: stream.turns,
       session: stream.session,
       busy,
       viewedTurnId,
-      pageFocusRequest,
       draft,
       unavailable,
       announcement,
@@ -186,13 +595,42 @@ export const createPersonalizedSearchController = ({
       retry,
       newChat,
       viewPage,
-      showLastRecommendations,
+      showLatestResults,
       isWide,
       reducedMotion,
       mobilePane,
       hasNewPicks,
       showPane,
+      mode,
+      pastSessionCreated,
+      history,
+      openHistory,
+      closeHistory,
+      loadMoreHistory,
+      openSession,
+      feedback,
+      feedbackLoaded,
+      savedIds,
+      dismissedIds,
+      savedOpen,
+      excludedOpen,
+      excludedTabShown,
+      toggleSave,
+      dismiss,
+      undoDismiss,
+      restore,
+      openExcluded,
+      clearFeedbackNotice,
+      openSaved,
+      closeSaved,
       setDraft,
+      debugEnabled,
+      debugBaseUrl,
+      debugSettings,
+      debugConfig,
+      debugConfigError,
+      setDebugSettings,
+      copyBenchmark,
     };
   };
   return usePersonalizedSearchController;

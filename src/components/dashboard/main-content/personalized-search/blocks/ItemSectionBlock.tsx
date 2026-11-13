@@ -1,23 +1,75 @@
 import { CardGrid } from '@openedx/paragon';
+import { useIntl } from '@edx/frontend-platform/i18n';
 
-import type { ItemSectionProps } from '../core/stream/types';
-import EditorialItemCard from '../ui/cards/EditorialItemCard';
+import messages from '../ui/messages';
+import type { ExplainScope } from '../core/analytics';
+import { CARDS_PER_SECTION } from '../core/selectors';
+import type { ItemCard, ItemSectionProps } from '../core/stream/types';
+import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
+
+/** Cards shown per group, one row on wide screens: the items, padded from the reserve; the rest fill a removed card. */
+export const CARDS_PER_GROUP = CARDS_PER_SECTION;
+
+const SECTION_NAMES = {
+  course: messages.sectionCourse,
+  executive_education: messages.sectionExecutiveEducation,
+  program: messages.sectionProgram,
+};
 
 export interface ItemSectionBlockProps extends ItemSectionProps {
   links: ItemLinks;
+  savedIds?: ReadonlySet<string>;
+  dismissedIds?: ReadonlySet<string>;
+  onToggleSave?: (item: ItemCard) => void;
+  onDismiss?: (item: ItemCard) => void;
+  onOpenItem?: (item: ItemCard) => void;
+  onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
 }
 
+/**
+ * One "More options" group: the type as an h3, "See all (n)" when the server sends the catalog total and
+ * the search query that total counts, one explanation line, and up to three cards in the shared result
+ * grid. A removed card is replaced by the next item or reserve card.
+ */
 const ItemSectionBlock = ({
-  label, dek, items, item_type: itemType, links,
-}: ItemSectionBlockProps) => (
-  <section className="personalized-search__section" data-item-type={itemType}>
-    <h3 className="h4 mb-1">{label}</h3>
-    {dek && <p className="text-gray-700 mb-3">{dek}</p>}
-    <CardGrid columnSizes={{ xs: 12, lg: 6, xl: 4 }}>
-      {items.map((item) => <EditorialItemCard key={item.item_id} item={item} links={links} />)}
-    </CardGrid>
-  </section>
-);
+  dek, items, reserve, total, search_query: searchQuery, item_type: itemType, links, savedIds, dismissedIds,
+  onToggleSave, onDismiss, onOpenItem, onExplain,
+}: ItemSectionBlockProps) => {
+  const intl = useIntl();
+  const pool = [...items, ...(reserve ?? [])];
+  const visible = (dismissedIds ? pool.filter((item) => !dismissedIds.has(item.item_id)) : pool)
+    .slice(0, CARDS_PER_GROUP);
+  if (visible.length === 0) { return null; }
+  const query = typeof searchQuery === 'string' ? searchQuery.trim() : '';
+  const seeAllHref = total && links.getSeeAllHref && query ? links.getSeeAllHref(itemType, query) : null;
+  return (
+    <section className="personalized-search__section" data-item-type={itemType}>
+      <div className="d-flex align-items-baseline justify-content-between">
+        <h3 className="h3 mb-1">{intl.formatMessage(SECTION_NAMES[itemType])}</h3>
+        {seeAllHref && (
+          <links.LinkComponent to={seeAllHref}>
+            {intl.formatMessage(messages.seeAll, { count: total })}
+          </links.LinkComponent>
+        )}
+      </div>
+      {dek?.trim() && <p className="text-gray-700 mb-3">{dek}</p>}
+      <CardGrid columnSizes={RESULT_COLUMN_SIZES}>
+        {visible.map((item) => (
+          <EditorialItemCard
+            key={item.item_id}
+            item={item}
+            links={links}
+            saved={savedIds?.has(item.item_id) ?? false}
+            onToggleSave={onToggleSave}
+            onDismiss={onDismiss}
+            onOpen={onOpenItem}
+            onExplain={(opened) => onExplain?.('tile', opened)}
+          />
+        ))}
+      </CardGrid>
+    </section>
+  );
+};
 
 export default ItemSectionBlock;

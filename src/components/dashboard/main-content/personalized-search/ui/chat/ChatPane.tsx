@@ -1,11 +1,16 @@
-import { useEffect, useRef } from 'react';
-import { Button, Chip, Stack } from '@openedx/paragon';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { Chip, Stack } from '@openedx/paragon';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
 import type { AssistantTurn } from '../../core/stream/types';
+import type { PromptSource } from '../../core/analytics';
 import Composer from './Composer';
+import FollowUpChips from './FollowUpChips';
 import MessageList from './MessageList';
+
+/** How close to the bottom (px) still counts as following the conversation (subpixel and rounding slack). */
+const AT_BOTTOM_SLACK_PX = 24;
 
 export interface ChatPaneProps {
   turns: AssistantTurn[];
@@ -14,21 +19,39 @@ export interface ChatPaneProps {
   draft: string;
   announcement: string;
   onDraftChange: (draft: string) => void;
-  onSend: (message: string) => void;
-  onNewChat: () => void;
-  onViewPage: (turnId: string) => void;
-  onShowLastRecommendations: (turnId: string) => void;
+  /** Sends a message; `source` says how (typed by default), `chipLabel` names a fixed chip. */
+  onSend: (message: string, source?: PromptSource, chipLabel?: string) => void;
   onStop: () => void;
   onRetry: (turnId: string) => void;
+  ratings?: Record<string, 1 | -1 | null>;
+  onRate?: (turn: AssistantTurn, rating: 1 | -1) => void;
+  /** Going back to an earlier reply's results. */
+  viewedTurnId?: string | null;
+  onViewResults?: (turnId: string) => void;
+  /** Moves focus to the composer when it changes (not on mount), e.g. after a send from the results. */
+  composerFocusRequest?: number;
+  /** Where the learner signs in again and returns here; offered when the session expired. */
+  getSignInUrl?: () => string;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
-  onDraftChange, onSend, onNewChat, onViewPage, onShowLastRecommendations, onStop, onRetry,
+  onDraftChange, onSend, onStop, onRetry, ratings, onRate, viewedTurnId, onViewResults, composerFocusRequest,
+  getSignInUrl,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const stopRef = useRef<HTMLButtonElement>(null);
   const wasBusy = useRef(busy);
+
+  // A send from the results (More like this, which unmounts while the reply streams) brings focus to the
+  // composer: its Stop button while the turn runs, since the textarea is disabled until it finishes.
+  const lastFocusRequest = useRef(composerFocusRequest);
+  useEffect(() => {
+    if (composerFocusRequest === lastFocusRequest.current) { return; }
+    lastFocusRequest.current = composerFocusRequest;
+    (composerRef.current?.disabled ? stopRef.current : composerRef.current)?.focus();
+  }, [composerFocusRequest]);
 
   // Return focus to the composer when a turn finishes (REQ-015).
   useEffect(() => {
@@ -38,53 +61,90 @@ const ChatPane = ({
     wasBusy.current = busy;
   }, [busy]);
 
+  // From send (Enter or a chip) until the turn finishes, the conversation snaps to its newest message so
+  // the streaming reply stays in view, and one last snap when the turn finishes shows its follow-up
+  // question. A learner who scrolls up to reread is left there: the snapping stops until they scroll back
+  // to the bottom or send again.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const wasStreaming = useRef(busy);
+  const atBottom = useRef(true);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (busy && !wasStreaming.current) { atBottom.current = true; }
+    if (el && (busy || wasStreaming.current) && atBottom.current) { el.scrollTop = el.scrollHeight; }
+    wasStreaming.current = busy;
+  }, [busy, turns]);
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el) { atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight <= AT_BOTTOM_SLACK_PX; }
+  };
+
+  const latest = turns[turns.length - 1];
+  const followups = latest?.status === 'done' ? latest.followups : null;
+  // Only the newest reply's chips: one with none (or no follow-ups at all) shows none, never older ones.
+  const chips = followups?.suggestions ?? [];
+  const ideas = followups?.ideas ?? [];
+
   return (
     <section className="personalized-search__chat" aria-label={intl.formatMessage(messages.chatPaneLabel)}>
-      {turns.length === 0 ? (
-        <div className="personalized-search__opening">
-          <div className="personalized-search__greeting mb-3">
-            <p className="h4 mb-1">{intl.formatMessage(messages.greeting)}</p>
-            <p className="mb-0 text-gray-700">{intl.formatMessage(messages.greetingDetail)}</p>
+      <div
+        ref={scrollRef}
+        className="personalized-search__chat-scroll"
+        onScroll={onScroll}
+        data-testid="chat-scroll"
+      >
+        {turns.length === 0 ? (
+          <div className="personalized-search__opening">
+            <div className="personalized-search__greeting mb-3">
+              <p className="h4 mb-1">{intl.formatMessage(messages.greeting)}</p>
+              <p className="mb-0 text-gray-700">{intl.formatMessage(messages.greetingDetail)}</p>
+            </div>
+            <Stack direction="horizontal" gap={2} className="flex-wrap">
+              {openingChips.map((chip) => (
+                <Chip
+                  key={chip}
+                  disabled={busy}
+                  onClick={() => {
+                    if (!busy) { onSend(chip, 'starter_chip', chip); }
+                  }}
+                >
+                  {chip}
+                </Chip>
+              ))}
+            </Stack>
           </div>
-          <Stack direction="horizontal" gap={2} className="flex-wrap">
-            {openingChips.map((chip) => (
-              <Chip
-                key={chip}
-                disabled={busy}
-                onClick={() => {
-                  if (!busy) { onSend(chip); }
-                }}
-              >
-                {chip}
-              </Chip>
-            ))}
-          </Stack>
-        </div>
-      ) : (
-        <>
-          <div className="d-flex justify-content-end mb-2">
-            <Button variant="outline-primary" size="sm" disabled={busy} onClick={onNewChat}>
-              {intl.formatMessage(messages.newChat)}
-            </Button>
-          </div>
+        ) : (
           <MessageList
             turns={turns}
             busy={busy}
-            onSend={onSend}
-            onViewPage={onViewPage}
-            onShowLastRecommendations={onShowLastRecommendations}
             onRetry={onRetry}
+            ratings={ratings}
+            onRate={onRate}
+            viewedTurnId={viewedTurnId}
+            onViewResults={onViewResults}
+            getSignInUrl={getSignInUrl}
           />
-        </>
+        )}
+      </div>
+      {(chips.length > 0 || ideas.length > 0) && (
+        <FollowUpChips
+          suggestions={chips}
+          ideas={ideas}
+          disabled={busy}
+          onSelect={(chip) => onSend(chip, 'followup_chip', chip)}
+          onSelectIdea={(idea) => onSend(idea, 'suggested_chip')}
+        />
       )}
       <Composer
         ref={composerRef}
         draft={draft}
         disabled={busy}
         onDraftChange={onDraftChange}
-        onSend={onSend}
+        onSend={(message) => onSend(message, 'typed')}
         onStop={onStop}
+        stopRef={stopRef}
       />
+      <p className="x-small text-gray-500 mt-2 mb-0">{intl.formatMessage(messages.disclaimer)}</p>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
     </section>
   );

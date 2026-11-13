@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  act, render, screen, waitFor, within,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -10,8 +10,15 @@ import { MemoryRouter } from 'react-router-dom';
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import type { FixtureName } from '../../core/transports/FixtureChatTransport';
+import type { ChatTransport, SendTurnOptions } from '../../core/transports/ChatTransport';
+import type { FollowupsData, Part } from '../../core/stream/types';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
 import { useEnterpriseCustomer } from '../../../../../app/data';
+
+/** A follow-up chip by its text (results headings can share it, e.g. "Programs"). */
+const followUpChip = (text: string) => screen.getAllByText(text)
+  .map((el) => el.closest('.pgn__chip') as HTMLElement)
+  .find(Boolean) as HTMLElement;
 
 const testStore = createPersonalizedSearchStore();
 
@@ -24,7 +31,7 @@ jest.mock('../../../../../app/data', () => ({
   useEnterpriseCustomer: jest.fn(),
 }));
 
-const NORMAL_REPLY = 'Here are picks for leading a team.';
+const NORMAL_REPLY = 'I put a leadership certificate at the top.';
 
 /** A fixture transport that replays the given goldens in order, one per sent message. */
 const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
@@ -40,7 +47,7 @@ const scriptedTransport = (fixtures: FixtureName[], partDelayMs = 0) => {
   return { transport, sent };
 };
 
-const renderTab = (transport: FixtureChatTransport) => render(
+const renderTab = (transport: ChatTransport) => render(
   <IntlProvider locale="en">
     <MemoryRouter>
       <PersonalizedSearchTab store={testStore} transport={transport} />
@@ -78,7 +85,8 @@ describe('ChatPane', () => {
 
     const seenSteps: string[] = [];
     const seenReplyLengths: number[] = [];
-    for (let i = 0; i < 25; i += 1) {
+    // The golden has more parts than before (reserve cards, newer blocks), so allow enough ticks to finish.
+    for (let i = 0; i < 40; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       await act(async () => { await jest.advanceTimersByTimeAsync(50); });
       const step = document.querySelector('.personalized-search__status')?.getAttribute('data-step');
@@ -96,18 +104,81 @@ describe('ChatPane', () => {
     expect(composer()).not.toBeDisabled();
   });
 
-  it('sends an opening chip, then a follow-up suggestion chip', async () => {
+  it('sends an opening chip, then a fixed follow-up chip, then an AI-suggested chip', async () => {
     const user = userEvent.setup();
-    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
+    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse', 'normal_turn.sse']);
     renderTab(transport);
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
     expect(sent).toEqual(['Build data skills']);
 
-    await user.click(await screen.findByText('1 to 3 months'));
+    await user.click(await waitFor(() => followUpChip('Programs')));
     await waitForIdle();
-    expect(sent).toEqual(['Build data skills', '1 to 3 months']);
+    // The AI's chips follow the fixed ones and carry a sparkle.
+    const idea = screen.getByRole('button', { name: /Giving feedback to my team.*Suggested/ });
+    expect(idea).toHaveClass('personalized-search__idea-chip');
+    await user.click(screen.getByText('Giving feedback to my team'));
+    await waitForIdle();
+    expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
+  });
+
+  it('snaps the conversation to the newest message while the reply streams, until the learner scrolls up', async () => {
+    const user = userEvent.setup();
+    jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(800);
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 30);
+    renderTab(transport);
+    const scroll = screen.getByTestId('chat-scroll');
+    await user.click(screen.getByText('Build data skills'));
+    await waitFor(() => expect(scroll.scrollTop).toBe(800));
+    await waitForIdle();
+    expect(scroll.scrollTop).toBe(800);
+
+    await user.type(composer(), 'Something shorter{Enter}');
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).not.toBeNull());
+    // The learner scrolls up to reread while the reply streams: it's never locked, and isn't snapped back.
+    scroll.scrollTop = 100;
+    fireEvent.scroll(scroll);
+    await waitForIdle();
+    expect(scroll.scrollTop).toBe(100);
+    jest.restoreAllMocks();
+  });
+
+  it('goes back to an earlier reply\'s results and returns to the latest', async () => {
+    const user = userEvent.setup();
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    // Only earlier replies offer a way back; the newest results are already showing.
+    expect(screen.queryByRole('button', { name: 'View these results' })).not.toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+    await waitForIdle();
+
+    await user.click(screen.getByRole('button', { name: 'View these results' }));
+    expect(screen.getByText('Earlier results for “Build data skills”')).toBeInTheDocument();
+    expect(screen.getByText('Showing these results')).toBeInTheDocument();
+    // Focus goes to the results the learner chose, both ways.
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+    composer().focus();
+    await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
+    expect(screen.queryByText(/Earlier results for/)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'View these results' })).toBeInTheDocument();
+  });
+
+  it('More like this moves focus to the composer\'s Stop while the reply streams, then to the textarea', async () => {
+    const user = userEvent.setup();
+    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 5);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    await user.click(screen.getByRole('button', { name: 'More like this' }));
+    expect(screen.queryByRole('button', { name: 'More like this' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stop' })).toHaveFocus();
+    await waitForIdle();
+    expect(composer()).toHaveFocus();
+    expect(sent).toHaveLength(2);
   });
 
   it('chips are keyboard operable', async () => {
@@ -121,22 +192,22 @@ describe('ChatPane', () => {
     expect(sent).toEqual(['Learn AI for my job']);
   });
 
-  it('"View page" on an earlier turn sets viewedTurnId to that turn', async () => {
+  it('updates one set of results in place: the latest results show and the chat has no per-turn links', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse']);
     renderTab(transport);
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
-    await user.click(screen.getByText('1 to 3 months'));
+    await user.click(followUpChip('Programs'));
     await waitForIdle();
 
-    const [first] = testStore.getState().stream.turns;
-    await user.click(screen.getAllByRole('button', { name: 'View page' })[0]);
-    expect(testStore.getState().viewedTurnId).toBe(first.localId);
+    const [, second] = testStore.getState().stream.turns;
+    expect(screen.queryByRole('button', { name: 'View results' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', second.localId);
   });
 
-  it('a text-only turn links back to the last recommendations and asks the page pane for focus', async () => {
+  it('a text-only turn keeps the previous results in view without a link', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse', 'no_match_turn.sse']);
     renderTab(transport);
@@ -148,10 +219,10 @@ describe('ChatPane', () => {
     await waitForIdle();
 
     const [first] = testStore.getState().stream.turns;
-    const focusBefore = testStore.getState().pageFocusRequest;
-    await user.click(screen.getByRole('button', { name: 'See your last recommendations' }));
-    expect(testStore.getState().viewedTurnId).toBe(first.localId);
-    expect(testStore.getState().pageFocusRequest).toBe(focusBefore + 1);
+    // With no fixed chips, the AI's ideas are the only chips.
+    expect(followUpChip('Data skills')).toHaveClass('personalized-search__idea-chip');
+    expect(screen.queryByRole('button', { name: 'See your last recommendations' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveAttribute('data-turn-id', first.localId);
   });
 
   it('disables Send for an empty or over-long message and keeps the draft', async () => {
@@ -174,14 +245,36 @@ describe('ChatPane', () => {
     expect(sent).toEqual([]);
   });
 
+  it('keeps the follow-up question in the reply and its chips above the composer, with the disclaimer below', async () => {
+    const user = userEvent.setup();
+    const { transport } = scriptedTransport(['normal_turn.sse']);
+    const { container } = renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+
+    const messages = container.querySelector('.personalized-search__messages') as HTMLElement;
+    expect(within(messages).getByText('Do you want courses, executive education or a program?')).toBeInTheDocument();
+    expect(within(messages).queryByText('Giving feedback to my team')).not.toBeInTheDocument();
+    const chip = followUpChip('Programs');
+    const form = container.querySelector('.personalized-search__composer') as HTMLElement;
+    // eslint-disable-next-line no-bitwise
+    expect(chip.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/Results come from your organization's catalog/)).toBeInTheDocument();
+  });
+
   it('New chat resets to the opening state with no session', async () => {
     const user = userEvent.setup();
     const { transport } = scriptedTransport(['normal_turn.sse']);
-    renderTab(transport);
+    const { container } = renderTab(transport);
+    expect(screen.queryByRole('button', { name: 'New chat' })).not.toBeInTheDocument();
 
     await user.click(screen.getByText('Build data skills'));
     await waitForIdle();
     expect(testStore.getState().stream.session.sessionUuid).not.toBeNull();
+    // New chat sits in the tab toolbar, outside the chat's own scrolling area.
+    const newChat = screen.getByRole('button', { name: 'New chat' });
+    expect(container.querySelector('.personalized-search__toolbar')).toContainElement(newChat);
+    expect(container.querySelector('.personalized-search__chat-scroll')).not.toContainElement(newChat);
 
     await user.click(screen.getByRole('button', { name: 'New chat' }));
     expect(testStore.getState().stream.session.sessionUuid).toBeNull();
@@ -199,7 +292,72 @@ describe('ChatPane', () => {
 
     const liveRegions = container.querySelectorAll('[aria-live="polite"]');
     expect(liveRegions).toHaveLength(1);
-    expect(liveRegions[0]).toHaveTextContent('New reply, 3 picks on your learning page');
+    // Every card on screen, once: the top pick (also compared), two more compared, and the sections' four.
+    expect(liveRegions[0]).toHaveTextContent('New reply, 7 picks in your results');
     await waitFor(() => expect(composer()).toHaveFocus());
+  });
+
+  describe('a distress reply (redirect_reason "distress", hand-built parts)', () => {
+    const SUPPORT = "I'm sorry you're feeling this way. You don't have to go through it alone.";
+    const distressParts = (followups: FollowupsData | null): Part[] => [
+      { type: 'start', messageId: 'turn_d' },
+      {
+        type: 'data-session',
+        id: 'session',
+        data: { session_uuid: '00000000-0000-0000-0000-0000000a11ce', turn_sequence: 2, title: null },
+      },
+      {
+        type: 'data-analytics',
+        id: 'analytics',
+        data: {
+          conversation_id: '00000000-0000-0000-0000-0000000a11ce', turn_id: 'd', turn_index: 2, redirect_reason: 'distress',
+        },
+      },
+      { type: 'data-status', data: { step: 'understanding' }, transient: true },
+      { type: 'text-start', id: 'reply' },
+      { type: 'text-delta', id: 'reply', delta: SUPPORT },
+      { type: 'text-end', id: 'reply' },
+      ...(followups ? [{ type: 'data-followups', id: 'followups', data: followups } as Part] : []),
+      { type: 'finish' },
+    ];
+    /** The normal golden first (results and chips), then the hand-built distress turn. */
+    const transportFor = (distress: Part[]): ChatTransport => {
+      const fixture = new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => 'normal_turn.sse' });
+      let sends = 0;
+      return {
+        async* send(options: SendTurnOptions) {
+          sends += 1;
+          if (sends === 1) {
+            yield* fixture.send(options);
+          } else {
+            yield* distress;
+          }
+        },
+      };
+    };
+
+    it.each([
+      ['no data-followups', null],
+      ['data-followups with no chips', {
+        question: 'What else would you like to learn?', attribute: 'open', suggestions: [], ideas: [],
+      } as FollowupsData],
+    ])('with %s shows the reply with no chips, no stale chips and no follow-up question', async (_, followups) => {
+      const user = userEvent.setup();
+      renderTab(transportFor(distressParts(followups)));
+      await user.type(composer(), 'Leading teams{Enter}');
+      await waitForIdle();
+      expect(followUpChip('Programs')).toBeInTheDocument();
+
+      await user.type(composer(), 'I feel hopeless{Enter}');
+      await waitForIdle();
+      expect(screen.getByText(SUPPORT)).toBeInTheDocument();
+      expect(document.querySelector('.personalized-search__followups')).toBeNull();
+      expect(screen.queryByText('Giving feedback to my team')).not.toBeInTheDocument();
+      expect(screen.queryByText('What else would you like to learn?')).not.toBeInTheDocument();
+      expect(document.querySelectorAll('.personalized-search__followup-question')).toHaveLength(1); // the first reply's
+      // The redirect reason rides along with the join keys; the reply has no results, so none are announced.
+      expect(testStore.getState().stream.turns[1].analytics?.redirect_reason).toBe('distress');
+      expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(/^New reply$/);
+    });
   });
 });
