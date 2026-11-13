@@ -1,4 +1,6 @@
-import { hasPage, previousPageTurnId, selectPageTurn } from './selectors';
+import {
+  hasPage, previousPageTurnId, selectPageTurn, selectShownTurn,
+} from './selectors';
 import type { AssistantTurn } from './stream/types';
 
 const turn = (localId: string, blocks: number): AssistantTurn => (
@@ -21,6 +23,18 @@ describe('selectPageTurn', () => {
   it('is null when no turn has a page', () => {
     expect(selectPageTurn([turn('a', 0)], null)).toBeNull();
     expect(selectPageTurn([], null)).toBeNull();
+  });
+});
+
+describe('selectShownTurn', () => {
+  const streaming = (step: string | null, blocks = 0) => ({ ...turn('t3', blocks), status: 'streaming', step }) as AssistantTurn;
+
+  it('is the live turn once it is searching, writing or has blocks; until then the previous page', () => {
+    const done = turn('t1', 1);
+    expect(selectShownTurn([done, streaming('understanding')], null)?.localId).toBe('t1');
+    expect(selectShownTurn([done, streaming('searching')], null)?.localId).toBe('t3');
+    expect(selectShownTurn([done, streaming(null, 1)], null)?.localId).toBe('t3');
+    expect(selectShownTurn([done, streaming('writing')], 't1')?.localId).toBe('t1');
   });
 });
 

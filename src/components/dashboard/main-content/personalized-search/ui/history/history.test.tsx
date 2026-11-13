@@ -278,6 +278,19 @@ describe('History panel (chunk 29)', () => {
       expect(params().get('session')).toBe(DETAIL.uuid);
     });
 
+    it('continuing a conversation restored from the URL is not a resume from History', async () => {
+      const user = userEvent.setup();
+      const transport = new RecordingTransport();
+      const store = createPersonalizedSearchStore();
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, transport, store);
+      expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+      await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+      await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+      expect(transport.requests[0]).toEqual(expect.objectContaining({ sessionUuid: DETAIL.uuid }));
+      expect(transport.requests[0].resumedFromHistory).toBeUndefined();
+      expect(screen.queryByText(/^Past search/)).not.toBeInTheDocument();
+    });
+
     it('drops an unknown conversation id from the URL and starts fresh', async () => {
       renderAt('/test-enterprise?tab=personalized-search&session=11111111-2222-3333-4444-555555555555');
       await waitFor(() => expect(params().get('session')).toBeNull());

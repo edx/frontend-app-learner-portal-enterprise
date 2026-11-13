@@ -13,7 +13,7 @@ import PersonalizedSearchTab from '../adapters/portal/PortalPersonalizedSearchTa
 import { PERSONALIZED_SEARCH_EVENTS } from '../../../../../eventTracking';
 import { FixtureChatTransport } from '../core/transports/FixtureChatTransport';
 import type { FixtureName } from '../core/transports/FixtureChatTransport';
-import { toTurnRequestBody } from '../core/transports/ChatTransport';
+import { toTurnRequestBody, TransportError } from '../core/transports/ChatTransport';
 import type { ChatTransport, SendTurnOptions, TurnRequest } from '../core/transports/ChatTransport';
 import { createPersonalizedSearchStore } from './personalizedSearchStore';
 import { expectFlat } from './analyticsTestUtils';
@@ -46,16 +46,25 @@ const JOIN = {
   conversation_id: '00000000-0000-0000-0000-0000000a11ce', turn_id: '00000000-0000-0000-0000-000000000b0b', turn_index: 1,
 };
 
+/** The second message's turn: its own join keys in the same conversation. */
+const JOIN_2 = { ...JOIN, turn_id: 'turn-2', turn_index: 2 };
+
 class Recording implements ChatTransport {
   readonly requests: TurnRequest[] = [];
 
-  /** Goldens for the next sends, in order; then the normal turn. */
-  readonly fixtures: FixtureName[] = [];
+  /** Goldens for the next sends, in order (`fail`: a 503 before the stream); then the normal turn. */
+  readonly fixtures: Array<FixtureName | 'fail'> = [];
 
   async* send({ request, signal }: SendTurnOptions) {
     this.requests.push(request);
     const fixture = this.fixtures.shift() ?? 'normal_turn.sse';
-    yield* new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => fixture }).send({ request, signal });
+    if (fixture === 'fail') { throw new TransportError(503); }
+    const later = this.requests.length > 1;
+    const golden = new FixtureChatTransport({ partDelayMs: 0, pickFixture: () => fixture });
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const part of golden.send({ request, signal })) {
+      yield (later && part.type === 'data-analytics' ? { ...part, data: { ...part.data, ...JOIN_2 } } : part);
+    }
   }
 }
 
@@ -120,7 +129,10 @@ describe('Personalized Search usage events: what the client sends', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'Message' }), `${LEARNER_TEXT}{Enter}`);
     await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
-    expect(named('prompt_submitted')[1]).toEqual(expect.objectContaining({ prompt_source: 'typed', chip_label: null }));
+    expect(named('prompt_submitted')).toEqual([
+      expect.objectContaining(JOIN),
+      expect.objectContaining({ ...JOIN_2, prompt_source: 'typed', chip_label: null }),
+    ]);
 
     await user.click(screen.getByRole('tab', { name: /Saved/ }));
     await user.click(screen.getByRole('button', { name: 'New chat' }));
@@ -140,14 +152,14 @@ describe('Personalized Search usage events: what the client sends', () => {
     const user = userEvent.setup();
     await sendStarter(user);
     await user.click(followUpChip('Programs'));
-    expect(named('prompt_submitted')[1]).toEqual(
+    await waitFor(() => expect(named('prompt_submitted')[1]).toEqual(
       expect.objectContaining({ prompt_source: 'followup_chip', chip_label: 'Programs' }),
-    );
+    ));
     await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
     await user.click(screen.getByText('Giving feedback to my team'));
-    expect(named('prompt_submitted')[2]).toEqual(
+    await waitFor(() => expect(named('prompt_submitted')[2]).toEqual(
       expect.objectContaining({ prompt_source: 'suggested_chip', chip_label: null }),
-    );
+    ));
   });
 
   it('Retry resends with the original prompt source', async () => {
@@ -158,6 +170,40 @@ describe('Personalized Search usage events: what the client sends', () => {
     await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
     const starter = { prompt_source: 'starter_chip', chip_label: 'Prepare for a leadership role' };
     expect(named('prompt_submitted')).toEqual([expect.objectContaining(starter), expect.objectContaining(starter)]);
+  });
+
+  it('a prompt is sent with its own turn\'s join keys once they arrive, and without keys if the turn fails first', async () => {
+    const user = userEvent.setup();
+    transport.fixtures.push('normal_turn.sse', 'fail');
+    await sendStarter(user);
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+    await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+    const [first, failed] = named('prompt_submitted');
+    expect(first).toEqual(expect.objectContaining(JOIN));
+    expect(failed).toEqual(expect.objectContaining({ prompt_source: 'typed', enterprise_customer_uuid: 'ent-uuid' }));
+    expect(failed).not.toHaveProperty('conversation_id');
+    expect(failed).not.toHaveProperty('turn_id');
+    expect(named('prompt_submitted')).toHaveLength(2);
+  });
+
+  it('item events carry the join keys of the turn whose results are on screen, not the newest turn', async () => {
+    const user = userEvent.setup();
+    await sendStarter(user);
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+    await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+
+    await user.click(screen.getByRole('button', { name: 'View these results' }));
+    await user.click(screen.getByRole('link', { name: 'Course edX+C1' }));
+    await user.click(screen.getByRole('button', { name: 'Save Course edX+C2' }));
+    await user.click(screen.getByRole('button', { name: 'Why these?' }));
+    await waitFor(() => expect(named('explanation_opened')).toHaveLength(1));
+    [...named('result_clicked'), ...named('item_save_toggled'), ...named('explanation_opened')].forEach((props) => {
+      expect(props).toEqual(expect.objectContaining({ turn_id: JOIN.turn_id, turn_index: 1 }));
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
+    await user.click(screen.getByRole('link', { name: 'Course edX+C1' }));
+    expect(named('result_clicked')[1]).toEqual(expect.objectContaining({ turn_id: JOIN_2.turn_id, turn_index: 2 }));
   });
 
   it('item events on the Saved tab report the tab, not the section the card was saved from', async () => {

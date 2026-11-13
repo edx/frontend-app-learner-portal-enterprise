@@ -7,7 +7,7 @@ import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { hasPage, selectPageTurn } from '../../core/selectors';
+import { hasPage, selectPageTurn, selectShownTurn } from '../../core/selectors';
 import type { ExplainScope } from '../../core/analytics';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
@@ -60,9 +60,8 @@ const LearningPagePane = ({
   // the previous ones: placeholders first, then its blocks top to bottom. Until then (or for an
   // off-topic turn) the previous results stay.
   const latest = turns[turns.length - 1];
-  const loadingTurn = !viewedTurnId && latest?.status === 'streaming'
-    && (latest.blocks.length > 0 || latest.step === 'searching' || latest.step === 'writing') ? latest : null;
-  const pageTurn = loadingTurn ?? selectPageTurn(turns, viewedTurnId);
+  const pageTurn = selectShownTurn(turns, viewedTurnId);
+  const loadingTurn = pageTurn?.status === 'streaming' ? pageTurn : null;
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const searchQuery = pageTurn?.userMessage ?? undefined;
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;

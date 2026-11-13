@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
 import {
-  hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId,
+  hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId, selectShownTurn,
 } from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
@@ -168,13 +168,16 @@ export const createPersonalizedSearchController = ({
     useEffect(() => () => abortRef.current?.abort(), []);
 
     /**
-     * Sends a usage event with the turn's join keys (or the latest turn's), the enterprise and the
-     * viewport. Properties are raw facts; nothing is counted or derived here (KD-12).
+     * Sends a usage event with join keys, the enterprise and the viewport. The keys are `turn`'s when one is
+     * given (none for null, or while it has none), otherwise the newest turn's that has them. Properties are
+     * raw facts; nothing is counted or derived here (KD-12).
      */
-    const track = useCallback((action: TrackAction, properties: TrackProperties = {}, turn?: AssistantTurn) => {
+    const track = useCallback((action: TrackAction, properties: TrackProperties = {}, turn?: AssistantTurn | null) => {
       if (!enterpriseCustomerUuid) { return; }
       const { turns } = storeApi.getState().stream;
-      const context = turn?.analytics ?? [...turns].reverse().find((t) => t.analytics)?.analytics;
+      const context = turn !== undefined
+        ? turn?.analytics
+        : [...turns].reverse().find((t) => t.analytics)?.analytics;
       try {
         deps.trackEvent(action, {
           ...joinKeysOf(context),
@@ -203,9 +206,16 @@ export const createPersonalizedSearchController = ({
       item_section: surface ?? item.section ?? null,
       item_position: surface ? null : (item.position ?? null),
     });
+    /** Item events join to the turn whose results are on screen (an earlier reply's, when viewed), not the newest. */
+    const trackItem = useCallback((action: TrackAction, properties: TrackProperties) => {
+      const { stream: { turns }, viewedTurnId: viewed } = storeApi.getState();
+      track(action, properties, selectShownTurn(turns, viewed) ?? undefined);
+    }, [track]);
 
     // How each message was sent, so Retry resends it with the same source.
     const promptSources = useRef<Record<string, { source: PromptSource; chipLabel?: string }>>({});
+    // Whether the past search on screen was reopened from History (not restored from the URL).
+    const reopenedFromHistory = useRef(false);
 
     /** Back to For you from the Saved or Excluded tab. */
     const closeSaved = useCallback(() => {
@@ -223,13 +233,21 @@ export const createPersonalizedSearchController = ({
       abortRef.current = controller;
       const localId = uuidv4();
       promptSources.current[localId] = { source, chipLabel };
-      // Sending from a reopened session continues it (same session uuid), now live.
-      const resumedFromHistory = store.mode === 'past';
-      if (resumedFromHistory) { store.setMode('live'); }
+      // Sending from a reopened session continues it (same session uuid), now live. Only a search reopened
+      // from History counts as resumed; one restored from the URL (?session=) is the learner coming back.
+      const resumedFromHistory = store.mode === 'past' && reopenedFromHistory.current;
+      if (store.mode === 'past') { store.setMode('live'); }
       // Fixed chip copy only (starter and follow-up chips); suggested chips are model-written and typed
       // text is the learner's.
       const fixedChip = source === 'starter_chip' || source === 'followup_chip';
-      track('prompt_submitted', { prompt_source: source, chip_label: fixedChip ? chipLabel ?? message : null });
+      // Sent with the new turn's join keys once its data-analytics part arrives; a turn that ends without
+      // one sends it without keys.
+      let promptTracked = false;
+      const trackPrompt = (turn: AssistantTurn | null) => {
+        if (promptTracked) { return; }
+        promptTracked = true;
+        track('prompt_submitted', { prompt_source: source, chip_label: fixedChip ? chipLabel ?? message : null }, turn);
+      };
       store.setDraft('');
       store.setViewedTurnId(null);
       store.setAnnouncement('');
@@ -246,10 +264,15 @@ export const createPersonalizedSearchController = ({
         },
         localId,
         signal: controller.signal,
-        dispatch: store.setStream,
+        dispatch: (update) => {
+          store.setStream(update);
+          const turn = storeApi.getState().stream.turns.find((t) => t.localId === localId);
+          if (turn?.analytics) { trackPrompt(turn); }
+        },
         isRenderableBlock,
       });
 
+      trackPrompt(null);
       if (abortRef.current === controller) { abortRef.current = null; }
       const after = storeApi.getState();
       if (result.outcome === 'done') {
@@ -328,23 +351,23 @@ export const createPersonalizedSearchController = ({
     const savedIds = useMemo(() => new Set(feedback.saved.map((item) => item.item_id)), [feedback.saved]);
     const dismissedIds = useMemo(() => new Set(feedback.dismissedIds), [feedback.dismissedIds]);
     const toggleSave = useCallback((item: ItemCard, surface?: ItemSurface) => {
-      track('item_save_toggled', { ...itemFacts(item, surface), saved: !savedIds.has(item.item_id) });
+      trackItem('item_save_toggled', { ...itemFacts(item, surface), saved: !savedIds.has(item.item_id) });
       return runFeedback({ type: 'toggleSave', item });
-    }, [runFeedback, savedIds, track]);
+    }, [runFeedback, savedIds, trackItem]);
     const dismiss = useCallback((item: ItemCard) => {
-      track('item_dismissed', { ...itemFacts(item), dismissed: true });
+      trackItem('item_dismissed', { ...itemFacts(item), dismissed: true });
       return runFeedback({ type: 'dismiss', item });
-    }, [runFeedback, track]);
+    }, [runFeedback, trackItem]);
     const undoDismiss = useCallback(() => {
       const { undo } = storeApi.getState().feedback;
-      if (undo) { track('item_dismissed', { ...itemFacts(undo), dismissed: false }); }
+      if (undo) { trackItem('item_dismissed', { ...itemFacts(undo), dismissed: false }); }
       return runFeedback({ type: 'undoDismiss' });
-    }, [runFeedback, track]);
+    }, [runFeedback, trackItem]);
     /** Include a dismissed item in results again, from the Excluded tab. */
     const restore = useCallback((item: ItemCard) => {
-      track('item_dismissed', { ...itemFacts(item, 'excluded_tab'), dismissed: false });
+      trackItem('item_dismissed', { ...itemFacts(item, 'excluded_tab'), dismissed: false });
       return runFeedback({ type: 'restore', item });
-    }, [runFeedback, track]);
+    }, [runFeedback, trackItem]);
     // The Excluded tab appears once the learner has any excluded item and stays (disabled) when the last
     // is restored; a reload with none hides it. Leaving it empty returns to For you.
     useEffect(() => {
@@ -352,11 +375,11 @@ export const createPersonalizedSearchController = ({
       if (feedback.dismissed.length === 0 && excludedOpen) { storeApi.getState().setExcludedOpen(false); }
     }, [feedback.dismissed.length, excludedTabShown, excludedOpen]);
     const openItem = useCallback((item: ItemCard, surface?: ItemSurface) => {
-      track('result_clicked', itemFacts(item, surface));
-    }, [track]);
+      trackItem('result_clicked', itemFacts(item, surface));
+    }, [trackItem]);
     const explain = useCallback((scope: ExplainScope, item?: ItemCard) => {
-      track('explanation_opened', { scope, item_key: item?.item_id ?? null });
-    }, [track]);
+      trackItem('explanation_opened', { scope, item_key: item?.item_id ?? null });
+    }, [trackItem]);
     const clearFeedbackNotice = useCallback(() => {
       storeApi.getState().setFeedback((f) => ({ ...f, undo: null, error: false }));
     }, []);
@@ -451,6 +474,7 @@ export const createPersonalizedSearchController = ({
         after.reset();
         after.setStream(() => reopened.stream);
         after.setMode('past', reopened.created);
+        reopenedFromHistory.current = !restoring;
         setRatings(reopened.ratings);
         after.setHistory({ open: false });
       } catch (e) {
