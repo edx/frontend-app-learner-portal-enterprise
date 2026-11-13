@@ -18,6 +18,7 @@ import { readGolden } from '../../core/stream/testUtils';
 import { parseSseText } from '../../core/stream/parseSse';
 import type { Part } from '../../core/stream/types';
 import { reopenSessionWorkflow } from '../../core/workflows';
+import { loadPendingTurn, savePendingTurn } from '../../core/pendingTurn';
 import HistoryPanel, { groupByDay } from './HistoryPanel';
 import { useEnterpriseCustomer } from '../../../../../app/data';
 
@@ -312,6 +313,52 @@ describe('History panel (chunk 29)', () => {
       expect(await screen.findByText(/Past search/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Helpful' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Not helpful' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    describe('a reload mid-turn (N-10)', () => {
+      afterEach(() => sessionStorage.clear());
+
+      it('keeps the message in session storage while its turn runs, and forgets it when the turn ends', async () => {
+        const user = userEvent.setup();
+        const store = createPersonalizedSearchStore();
+        renderAt('/test-enterprise?tab=personalized-search', new FixtureChatTransport({ partDelayMs: 20 }), store);
+        await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+        const session = '00000000-0000-0000-0000-0000000a11ce';
+        await waitFor(() => expect(loadPendingTurn(sessionStorage, session)).toEqual({
+          message: 'Prepare for a leadership role', sequence: 1,
+        }));
+        await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+        expect(loadPendingTurn(sessionStorage, session)).toBeNull();
+      });
+
+      it('shows a message the reload cut off under the restored session, and Resend sends it again', async () => {
+        const user = userEvent.setup();
+        const transport = new RecordingTransport();
+        const store = createPersonalizedSearchStore();
+        savePendingTurn(sessionStorage, DETAIL.uuid, { message: 'Something shorter', sequence: 2 });
+        renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, transport, store);
+        expect(await screen.findByText("This message didn't finish.")).toBeInTheDocument();
+        const chat = screen.getByRole('region', { name: 'Chat' });
+        expect(within(chat).getByText('Prepare for a leadership role')).toBeInTheDocument();
+        expect(within(chat).getByText('Something shorter')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Resend' }));
+        await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+        expect(transport.requests).toEqual([expect.objectContaining({ message: 'Something shorter', sessionUuid: DETAIL.uuid })]);
+        expect(screen.queryByText("This message didn't finish.")).not.toBeInTheDocument();
+        expect(store.getState().stream.turns.map((t) => t.userMessage)).toEqual([
+          'Prepare for a leadership role', 'Something shorter',
+        ]);
+        expect(loadPendingTurn(sessionStorage, DETAIL.uuid)).toBeNull();
+      });
+
+      it('shows nothing extra, and forgets the message, when the server stored that turn after all', async () => {
+        savePendingTurn(sessionStorage, DETAIL.uuid, { message: 'Prepare for a leadership role', sequence: 1 });
+        renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`);
+        expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+        expect(screen.queryByText("This message didn't finish.")).not.toBeInTheDocument();
+        expect(loadPendingTurn(sessionStorage, DETAIL.uuid)).toBeNull();
+      });
     });
 
     it('keeps a conversation the learner started while the one in the URL was still loading', async () => {

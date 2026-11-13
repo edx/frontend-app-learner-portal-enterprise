@@ -40,11 +40,11 @@ const AssistantMessage = ({
 
   if (turn.status === 'error') {
     const {
-      message, asAlert, canRetry, signIn,
+      message, asAlert, canRetry, signIn, retryLabel = messages.retry, variant = 'danger',
     } = presentTurnError(turn.error);
     let retry: JSX.Element | false = canRetry && isLatest && (
       <Button variant="outline-primary" size="sm" disabled={busy} onClick={() => onRetry(turn.localId)}>
-        {intl.formatMessage(messages.retry)}
+        {intl.formatMessage(retryLabel)}
       </Button>
     );
     if (signIn && isLatest && getSignInUrl) {
@@ -57,7 +57,7 @@ const AssistantMessage = ({
     return (
       <div className="personalized-search__assistant mb-3" data-turn-status={turn.status}>
         {asAlert ? (
-          <Alert variant="danger" className="mb-0" actions={retry ? [retry] : []}>
+          <Alert variant={variant} className="mb-0" actions={retry ? [retry] : []}>
             {intl.formatMessage(message)}
           </Alert>
         ) : (
