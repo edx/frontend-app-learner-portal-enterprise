@@ -30,11 +30,14 @@ export interface ChatPaneProps {
   onViewResults?: (turnId: string) => void;
   /** Moves focus to the composer when it changes (not on mount), e.g. after a send from the results. */
   composerFocusRequest?: number;
+  /** Where the learner signs in again and returns here; offered when the session expired. */
+  getSignInUrl?: () => string;
 }
 
 const ChatPane = ({
   turns, openingChips, busy, draft, announcement,
   onDraftChange, onSend, onStop, onRetry, ratings, onRate, viewedTurnId, onViewResults, composerFocusRequest,
+  getSignInUrl,
 }: ChatPaneProps) => {
   const intl = useIntl();
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -118,6 +121,7 @@ const ChatPane = ({
             onRate={onRate}
             viewedTurnId={viewedTurnId}
             onViewResults={onViewResults}
+            getSignInUrl={getSignInUrl}
           />
         )}
       </div>

@@ -55,4 +55,9 @@ export interface PersonalizedSearchDeps {
    * catalog features resolve it. Optional: without it the server uses English.
    */
   getContentLocale?: () => string;
+  /**
+   * Where the learner signs in again and comes back to the current page, offered when their session expired
+   * (HTTP 401). Optional: without it the expired-session message shows with no link.
+   */
+  getSignInUrl?: (enterpriseSlug?: string) => string;
 }

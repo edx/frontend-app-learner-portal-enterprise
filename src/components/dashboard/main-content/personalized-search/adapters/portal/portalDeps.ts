@@ -1,4 +1,6 @@
+import { getLoginRedirectUrl } from '@edx/frontend-platform/auth';
 import { logError } from '@edx/frontend-platform/logging';
+import { getProxyLoginUrl } from '@2uinc/frontend-enterprise-logistration';
 
 import { getPathwaysSupportedLocale } from '../../../../../app/data';
 
@@ -39,4 +41,9 @@ export const portalDeps: PersonalizedSearchDeps = {
   // The same locale Learner Pathways searches in: the learner's portal language when the MFE's
   // SUPPORTED_ALGOLIA_LANGUAGE_FILTERS lists it, otherwise English.
   getContentLocale: getPathwaysSupportedLocale,
+  // The same login the route loaders send a signed-out learner to: the enterprise's proxy login (its SSO, when
+  // it has one), returning to the current page.
+  getSignInUrl: (enterpriseSlug) => (
+    enterpriseSlug ? getProxyLoginUrl(enterpriseSlug) : getLoginRedirectUrl(global.location.href)
+  ),
 };

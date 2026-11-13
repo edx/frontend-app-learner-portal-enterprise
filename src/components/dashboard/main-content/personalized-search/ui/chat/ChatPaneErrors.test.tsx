@@ -227,9 +227,22 @@ describe('ChatPane stop, errors and retry', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
+  it('401 (the session expired) offers Sign in, back to this page through the enterprise login, and no Retry', async () => {
+    const user = userEvent.setup();
+    renderTab(new ScriptedTransport([{ error: new TransportError(401, null) }]));
+    await sendMessage(user, 'Leading teams');
+    expect(await screen.findByText('Your session expired. Sign in again.')).toBeInTheDocument();
+    const signIn = screen.getByRole('link', { name: 'Sign in' });
+    const href = new URL(signIn.getAttribute('href') as string);
+    expect(href.pathname).toEqual('/enterprise/proxy-login/');
+    expect(href.searchParams.get('enterprise_slug')).toEqual('test-enterprise');
+    expect(href.searchParams.get('next')).toEqual(global.location.href);
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+    expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+  });
+
   it.each([
     ['an in-stream error', { fixture: 'error_turn.sse' as FixtureName }],
-    ['HTTP 401', { error: new TransportError(401, null) }],
     ['HTTP 500', { error: new TransportError(500, null) }],
     ['HTTP 502', { error: new TransportError(502, null) }],
     ['a network failure', { error: new TypeError('Failed to fetch') }],

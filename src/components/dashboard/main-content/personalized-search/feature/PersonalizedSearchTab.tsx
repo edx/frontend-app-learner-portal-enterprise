@@ -87,6 +87,7 @@ const PersonalizedSearchTab = ({
         focusResults();
       }}
       composerFocusRequest={composerFocusRequest}
+      getSignInUrl={controller.getSignInUrl}
     />
   );
   const forYou = (

@@ -73,6 +73,11 @@ export const createPersonalizedSearchController = ({
     const [sessionParam, setSessionParam] = deps.useSessionParam();
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
+    // Built when shown, so it returns to the page as it is then (its ?session=).
+    const getSignInUrl = useMemo(() => {
+      const { getSignInUrl: hostSignInUrl } = deps;
+      return hostSignInUrl ? () => hostSignInUrl(enterpriseSlug) : undefined;
+    }, [enterpriseSlug]);
     const debugEnabled = deps.debug.useDebugRequested();
     const getDebugOverrides = useCallback(() => (
       debugEnabled ? toDebugOverrides(storeApi.getState().debugSettings) : null
@@ -533,6 +538,7 @@ export const createPersonalizedSearchController = ({
       enterpriseCustomerUuid,
       enterpriseSlug,
       links,
+      getSignInUrl,
       transport,
       turns: stream.turns,
       session: stream.session,
