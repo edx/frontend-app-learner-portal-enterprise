@@ -1,4 +1,7 @@
-import { act, renderHook } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import {
+  act, render, renderHook, screen,
+} from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { mergeConfig } from '@edx/frontend-platform';
@@ -6,7 +9,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { AutoAwesome } from '@openedx/paragon/icons';
+import { Tabs } from '@openedx/paragon';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
@@ -255,14 +258,18 @@ describe('useDashboardTabs', () => {
       ]);
     });
 
-    it('has the sparkle icon before its name and a Beta badge after it', () => {
+    it('is named "Personalized Search Beta" for screen readers, with its sparkle icon hidden from them', () => {
       enablePersonalizedSearch();
-      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
-      const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
-      const [icon, name, badge] = tab.props.title.props.children;
-      expect(icon.props.src).toBe(AutoAwesome);
-      expect(name).toBe('Personalized Search');
-      expect(badge.props.children).toBe('Beta');
+      const PersonalizedSearchTabTitle = () => {
+        const { tabs, activeTab } = useDashboardTabs();
+        const searchTab = tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
+        return <Tabs activeKey={activeTab}>{searchTab}</Tabs>;
+      };
+      render(<PersonalizedSearchTabTitle />, { wrapper });
+      const tab = screen.getByRole('tab', { name: 'Personalized Search Beta' });
+      const icon = tab.querySelector('svg');
+      expect(icon).toBeInTheDocument();
+      expect(icon.closest('[aria-hidden="true"]')).toBeInTheDocument();
     });
 
     it('is absent when its flag is off, even with the Learner Pathways operator flag on', () => {

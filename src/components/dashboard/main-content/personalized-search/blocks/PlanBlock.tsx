@@ -62,7 +62,10 @@ const PlanBlock = ({
       <ol className="pl-3 mb-0">
         {steps.map((step) => (
           <li key={step.item_id} className="mb-1">
-            <span className="font-weight-bold">{itemTitles[step.item_id] ?? step.item_id}</span>
+            <span className="font-weight-bold">
+              {/* Own keys only: an id like `__proto__` must not read Object.prototype. */}
+              {Object.prototype.hasOwnProperty.call(itemTitles, step.item_id) ? itemTitles[step.item_id] : step.item_id}
+            </span>
             {step.note && <span className="d-block small text-gray-700">{step.note}</span>}
           </li>
         ))}

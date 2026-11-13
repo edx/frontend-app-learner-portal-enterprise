@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import type { Block, PageBlock } from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
@@ -31,6 +32,20 @@ describe('block registry', () => {
   it('does not resolve Object.prototype names as block types', () => {
     expect(defaultBlockRegistry.get('toString')).toBeUndefined();
     expect(defaultBlockRegistry.isRenderable({ v: 1, type: 'constructor', props: {} })).toBe(false);
+  });
+
+  it('a plan step whose id is an Object.prototype name shows the id, not a crash', () => {
+    const block = {
+      v: 1,
+      type: 'plan',
+      props: { steps: [{ item_id: '__proto__' }, { item_id: 'toString' }, { item_id: 'edX+C1' }] },
+    } as unknown as Block;
+    render(
+      <IntlProvider locale="en">
+        {renderBlock(block, { ...ctx, itemTitles: { 'edX+C1': 'Leading people' } })}
+      </IntlProvider>,
+    );
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['__proto__', 'toString', 'Leading people']);
   });
 
   it('register returns a new registry and leaves the original unchanged', () => {
