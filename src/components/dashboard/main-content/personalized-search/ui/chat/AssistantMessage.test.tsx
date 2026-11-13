@@ -37,3 +37,28 @@ describe('AssistantMessage thumbs', () => {
     expect(screen.queryByRole('button', { name: 'Helpful' })).not.toBeInTheDocument();
   });
 });
+
+describe('AssistantMessage expired session', () => {
+  const EXPIRED: AssistantTurn = {
+    ...DONE, status: 'error', error: 'http_401', blocks: [], text: '',
+  };
+  const renderExpired = (props: Partial<AssistantMessageProps>) => render(
+    <IntlProvider locale="en">
+      <AssistantMessage turn={EXPIRED} isLatest busy={false} onRetry={jest.fn()} {...props} />
+    </IntlProvider>,
+  );
+
+  it('links to the host\'s sign-in instead of Retry', () => {
+    renderExpired({ getSignInUrl: () => 'https://lms.example/login?next=here' });
+    expect(screen.getByText('Your session expired. Sign in again.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', 'https://lms.example/login?next=here');
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  it('shows the message alone when the host has no sign-in link', () => {
+    renderExpired({});
+    expect(screen.getByText('Your session expired. Sign in again.')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+});

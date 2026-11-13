@@ -8,7 +8,7 @@ import type { AssistantMessageProps } from './AssistantMessage';
 
 export interface MessageListProps extends Pick<
 AssistantMessageProps,
-'busy' | 'onRetry' | 'onRate' | 'onViewResults'
+'busy' | 'onRetry' | 'onRate' | 'onViewResults' | 'getSignInUrl'
 > {
   turns: AssistantTurn[];
   ratings?: Record<string, 1 | -1 | null>;

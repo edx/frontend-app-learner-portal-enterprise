@@ -27,26 +27,37 @@ export interface AssistantMessageProps {
    */
   results?: 'view' | 'showing';
   onViewResults?: (turnId: string) => void;
+  /** Where the learner signs in again and returns here (offered when the session expired). */
+  getSignInUrl?: () => string;
 }
 
 const AssistantMessage = ({
-  turn, isLatest, busy, onRetry, rating = null, onRate, results, onViewResults,
+  turn, isLatest, busy, onRetry, rating = null, onRate, results, onViewResults, getSignInUrl,
 }: AssistantMessageProps) => {
   const intl = useIntl();
   const isStreaming = turn.status === 'streaming';
   const isDone = turn.status === 'done';
 
   if (turn.status === 'error') {
-    const { message, asAlert, canRetry } = presentTurnError(turn.error);
-    const retry = canRetry && isLatest && (
+    const {
+      message, asAlert, canRetry, signIn, retryLabel = messages.retry, variant = 'danger',
+    } = presentTurnError(turn.error);
+    let retry: JSX.Element | false = canRetry && isLatest && (
       <Button variant="outline-primary" size="sm" disabled={busy} onClick={() => onRetry(turn.localId)}>
-        {intl.formatMessage(messages.retry)}
+        {intl.formatMessage(retryLabel)}
       </Button>
     );
+    if (signIn && isLatest && getSignInUrl) {
+      retry = (
+        <Button as="a" href={getSignInUrl()} variant="primary" size="sm">
+          {intl.formatMessage(messages.signIn)}
+        </Button>
+      );
+    }
     return (
       <div className="personalized-search__assistant mb-3" data-turn-status={turn.status}>
         {asAlert ? (
-          <Alert variant="danger" className="mb-0" actions={retry ? [retry] : []}>
+          <Alert variant={variant} className="mb-0" actions={retry ? [retry] : []}>
             {intl.formatMessage(message)}
           </Alert>
         ) : (

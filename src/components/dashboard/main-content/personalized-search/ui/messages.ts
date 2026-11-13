@@ -221,6 +221,26 @@ const messages = defineMessages({
     defaultMessage: 'Something went wrong updating your results. Try again.',
     description: 'Shown when a reply fails while it is being written.',
   },
+  turnInterrupted: {
+    id: 'learner.personalizedSearch.error.interrupted',
+    defaultMessage: 'This message didn\'t finish.',
+    description: 'Shown under a message whose reply was cut off when the page reloaded.',
+  },
+  resend: {
+    id: 'learner.personalizedSearch.chat.resend',
+    defaultMessage: 'Resend',
+    description: 'Button that sends a message again after its reply was cut off by a page reload.',
+  },
+  errorSessionExpired: {
+    id: 'learner.personalizedSearch.error.sessionExpired',
+    defaultMessage: 'Your session expired. Sign in again.',
+    description: 'Shown when the learner\'s sign-in expired while they were chatting (HTTP 401).',
+  },
+  signIn: {
+    id: 'learner.personalizedSearch.error.signIn',
+    defaultMessage: 'Sign in',
+    description: 'Link to sign in again after the session expired; it returns to this page.',
+  },
   chatPaneLabel: {
     id: 'learner.personalizedSearch.chat.label',
     defaultMessage: 'Chat',

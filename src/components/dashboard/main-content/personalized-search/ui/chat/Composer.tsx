@@ -1,4 +1,6 @@
-import { forwardRef, KeyboardEvent, Ref } from 'react';
+import {
+  forwardRef, KeyboardEvent, Ref, useLayoutEffect, useRef,
+} from 'react';
 import {
   Button, Form, Icon, Stack,
 } from '@openedx/paragon';
@@ -8,12 +10,18 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 import messages from '../messages';
 import { MAX_MESSAGE_LENGTH, isSendableMessage } from '../../core/selectors';
 
+/**
+ * Stop takes Send's place as soon as a turn starts, so the second click of a double-click on Send (or a
+ * repeated Enter or Space on the button) would land on Stop. Stop ignores activation this long after it appears.
+ */
+export const STOP_GUARD_MS = 500;
+
 export interface ComposerProps {
   draft: string;
   disabled: boolean;
   onDraftChange: (draft: string) => void;
   onSend: (message: string) => void;
-  /** Shown instead of Send while a turn is in progress. */
+  /** Shown instead of Send while a turn is in progress; ignored for `STOP_GUARD_MS` after it appears. */
   onStop: () => void;
   /** The Stop button, the composer's one focusable control while the textarea is disabled. */
   stopRef: Ref<HTMLButtonElement>;
@@ -23,6 +31,14 @@ const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
   draft, disabled, onDraftChange, onSend, onStop, stopRef,
 }, ref) => {
   const intl = useIntl();
+  // When Stop starts working; set as it appears (before paint, so even an immediate second click is guarded).
+  const stopArmedAt = useRef(0);
+  useLayoutEffect(() => {
+    if (disabled) { stopArmedAt.current = Date.now() + STOP_GUARD_MS; }
+  }, [disabled]);
+  const stop = () => {
+    if (Date.now() >= stopArmedAt.current) { onStop(); }
+  };
   const tooLong = draft.trim().length > MAX_MESSAGE_LENGTH;
   const canSend = !disabled && isSendableMessage(draft);
 
@@ -63,7 +79,7 @@ const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
           )}
         </Form.Group>
         {disabled ? (
-          <Button ref={stopRef} variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
+          <Button ref={stopRef} variant="outline-primary" onClick={stop}>{intl.formatMessage(messages.stop)}</Button>
         ) : (
           <Button type="submit" disabled={!canSend} aria-label={intl.formatMessage(messages.send)}>
             <Icon src={Send} />

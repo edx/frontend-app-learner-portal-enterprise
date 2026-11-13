@@ -15,6 +15,10 @@ import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
 import type { AssistantTurn, ItemCard } from '../core/stream/types';
 import { joinKeysOf } from '../core/analytics';
+import {
+  clearPendingTurn, isPendingTurnStored, loadPendingTurn, savePendingTurn, withInterruptedTurn,
+} from '../core/pendingTurn';
+import type { PendingTurnStorage } from '../core/pendingTurn';
 import type {
   ExplainScope, ItemSurface, PromptSource, TrackAction, TrackProperties,
 } from '../core/analytics';
@@ -48,6 +52,15 @@ export const toDebugOverrides = (settings: DebugSettings): DebugOverrides => {
   return overrides;
 };
 
+/** The browser tab's session storage, or null where it's unavailable (reading it can throw when blocked). */
+const getPendingTurnStorage = (): PendingTurnStorage | null => {
+  try {
+    return globalThis.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export interface PersonalizedSearchControllerOptions {
   deps: PersonalizedSearchDeps;
   store: PersonalizedSearchStoreApi;
@@ -73,6 +86,11 @@ export const createPersonalizedSearchController = ({
     const [sessionParam, setSessionParam] = deps.useSessionParam();
     const enterpriseSlug = enterpriseCustomer.slug;
     const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
+    // Built when shown, so it returns to the page as it is then (its ?session=).
+    const getSignInUrl = useMemo(() => {
+      const { getSignInUrl: hostSignInUrl } = deps;
+      return hostSignInUrl ? () => hostSignInUrl(enterpriseSlug) : undefined;
+    }, [enterpriseSlug]);
     const debugEnabled = deps.debug.useDebugRequested();
     const getDebugOverrides = useCallback(() => (
       debugEnabled ? toDebugOverrides(storeApi.getState().debugSettings) : null
@@ -246,6 +264,19 @@ export const createPersonalizedSearchController = ({
       store.setAnnouncement('');
       closeSaved(); // new results show in For you
 
+      // Keep the message until the turn ends, so a reload mid-turn can offer to resend it (N-10): from the
+      // send in a known session, and once the server numbers the turn (a new session learns its id then).
+      const pendingStorage = getPendingTurnStorage();
+      let pendingSession: string | null = null;
+      let pendingNumbered = false;
+      const keepPending = (sessionUuid: string, sequence: number) => {
+        if (pendingSession && pendingSession !== sessionUuid) { clearPendingTurn(pendingStorage, pendingSession); }
+        pendingSession = sessionUuid;
+        savePendingTurn(pendingStorage, sessionUuid, { message, sequence });
+      };
+      const { sessionUuid: knownSession, turnSequence } = store.stream.session;
+      if (knownSession) { keepPending(knownSession, (turnSequence ?? 0) + 1); }
+
       const result = await sendTurnWorkflow({
         transport,
         request: {
@@ -259,13 +290,19 @@ export const createPersonalizedSearchController = ({
         signal: controller.signal,
         dispatch: (update) => {
           store.setStream(update);
-          const turn = storeApi.getState().stream.turns.find((t) => t.localId === localId);
+          const { stream: current } = storeApi.getState();
+          const turn = current.turns.find((t) => t.localId === localId);
           if (turn?.analytics) { trackPrompt(turn); }
+          if (!pendingNumbered && turn?.sequence && current.session.sessionUuid) {
+            pendingNumbered = true;
+            keepPending(current.session.sessionUuid, turn.sequence);
+          }
         },
         isRenderableBlock,
       });
 
       trackPrompt(null);
+      if (pendingSession) { clearPendingTurn(pendingStorage, pendingSession); }
       if (abortRef.current === controller) { abortRef.current = null; }
       const after = storeApi.getState();
       if (result.outcome === 'done') {
@@ -463,9 +500,13 @@ export const createPersonalizedSearchController = ({
           isRenderableBlock,
         );
         if (isStale()) { return; }
+        // A message whose reply a reload cut off comes back, to resend (N-10); once stored, it's forgotten.
+        const pendingStorage = getPendingTurnStorage();
+        const pending = loadPendingTurn(pendingStorage, sessionUuid);
+        if (pending && isPendingTurnStored(reopened.stream, pending)) { clearPendingTurn(pendingStorage, sessionUuid); }
         const after = storeApi.getState();
         after.reset();
-        after.setStream(() => reopened.stream);
+        after.setStream(() => withInterruptedTurn(reopened.stream, pending));
         after.setMode('past', reopened.created);
         reopenedFromHistory.current = !restoring;
         setRatings(reopened.ratings);
@@ -533,6 +574,7 @@ export const createPersonalizedSearchController = ({
       enterpriseCustomerUuid,
       enterpriseSlug,
       links,
+      getSignInUrl,
       transport,
       turns: stream.turns,
       session: stream.session,

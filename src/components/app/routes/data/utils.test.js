@@ -12,6 +12,7 @@ import {
   algoliaQueryCacheValidator,
   checkValidUntil,
   ensureActiveEnterpriseCustomerUser,
+  redirectToSearchPageForNewUser,
   validateAlgoliaValidUntil,
 } from './utils';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../data/services/data/__factories__';
@@ -380,5 +381,56 @@ describe('validateAlgoliaValidUntil', () => {
     } else {
       expect(mockQueryClient.invalidateQueries).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('redirectToSearchPageForNewUser', () => {
+  const newLearner = (requestUrl) => ({
+    enterpriseSlug: 'test-enterprise',
+    enterpriseCourseEnrollments: [],
+    redeemablePolicies: { learnerContentAssignments: { hasAssignmentsForDisplay: false } },
+    requestUrl,
+  });
+  const redirectOf = (fn) => {
+    try {
+      fn();
+    } catch (response) {
+      return response.headers.get('Location');
+    }
+    return null;
+  };
+
+  // (The visited flag is covered by the dashboard loader tests: an earlier resetAllMocks here stubs localStorage.)
+  let locationSpy;
+  beforeEach(() => {
+    locationSpy = jest.spyOn(global, 'location', 'get').mockReturnValue({ pathname: '/test-enterprise', search: '' });
+  });
+
+  afterEach(() => {
+    locationSpy.mockRestore();
+  });
+
+  it('redirects a first-time learner with nothing to show to search', () => {
+    expect(redirectOf(() => redirectToSearchPageForNewUser(
+      newLearner(new URL('http://localhost/test-enterprise')),
+    ))).toEqual('/test-enterprise/search');
+  });
+
+  it.each([
+    'http://localhost/test-enterprise?tab=personalized-search',
+    'http://localhost/test-enterprise?tab=courses&session=abc',
+  ])('stays on a dashboard tab the URL names (%s)', (url) => {
+    expect(redirectOf(() => redirectToSearchPageForNewUser(newLearner(new URL(url))))).toBeNull();
+  });
+
+  it('reads the tab from the current location when no request URL is given', () => {
+    locationSpy.mockReturnValue({ pathname: '/test-enterprise', search: '?tab=personalized-search' });
+    expect(redirectOf(() => redirectToSearchPageForNewUser(newLearner()))).toBeNull();
+  });
+
+  it('ignores an empty tab parameter', () => {
+    expect(redirectOf(() => redirectToSearchPageForNewUser(
+      newLearner(new URL('http://localhost/test-enterprise?tab=')),
+    ))).toEqual('/test-enterprise/search');
   });
 });
