@@ -524,7 +524,7 @@ describe('LearningPagePane', () => {
     const trigger = screen.getByRole('button', { name: 'Why these?' });
     await user.click(trigger);
     const popover = await screen.findByRole('tooltip');
-    expect(within(popover).getByText(/I picked these from your organization's catalog/)).toBeInTheDocument();
+    expect(within(popover).getByText(/Here's what I understood about your goal and your level/)).toBeInTheDocument();
     expect(within(popover).getByText('Leadership')).toBeInTheDocument();
     // rootClose listens for keyup with keyCode 27, which browsers set and user-event doesn't.
     fireEvent.keyUp(document, { key: 'Escape', keyCode: 27 });
