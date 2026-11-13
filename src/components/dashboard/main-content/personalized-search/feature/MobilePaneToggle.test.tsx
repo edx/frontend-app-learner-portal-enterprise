@@ -103,6 +103,25 @@ describe('Personalized Search mobile chat/page toggle (chunk 32)', () => {
     expect(screen.queryByText('New picks')).not.toBeInTheDocument();
   });
 
+  it('picks that arrive under the Saved tab are not marked seen until For you shows them', async () => {
+    const user = userEvent.setup();
+    const hasItemSection = () => store().stream.turns[0]?.blocks.some(({ block }) => block.type === 'item_section');
+    renderTab(new ScriptedTransport([{ fixture: 'normal_turn.sse', delayMs: 30 }]));
+    await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+    await user.click(pageToggle());
+    await user.click(screen.getByRole('tab', { name: /^Saved/ }));
+    expect(hasItemSection()).toBeFalsy(); // Saved covered For you before the picks arrived
+    await waitForIdle();
+
+    await user.click(chatToggle());
+    expect(within(pageToggle()).getByText('New picks')).toBeInTheDocument();
+
+    await user.click(pageToggle());
+    await user.click(screen.getByRole('tab', { name: 'For you' }));
+    await user.click(chatToggle());
+    expect(screen.queryByText('New picks')).not.toBeInTheDocument();
+  });
+
   it('a stopped turn that discards its picks leaves no "New picks" badge', async () => {
     const user = userEvent.setup();
     renderTab(new ScriptedTransport([{ fixture: 'normal_turn.sse', delayMs: 30 }]));
