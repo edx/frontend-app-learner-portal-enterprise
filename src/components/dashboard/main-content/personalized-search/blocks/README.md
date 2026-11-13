@@ -14,7 +14,7 @@ The registry also validates blocks for the stream reducer, so a block shows only
 
 ## More options groups
 
-`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` (linking to the host's search through `ItemLinks.getSeeAllHref`), the one-line `dek`, and up to three cards. When the learner removes a card, the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
+`item_section` blocks render under one "More options" eyebrow, one group per row. Each group shows the type as an h3, "See all (n)" when the server sends the catalog `total` and the `search_query` it counts (linking to the host's search for that query through `ItemLinks.getSeeAllHref`; without a `search_query` there's no link, since the learner's message isn't the query that was counted), the one-line `dek`, and a row of up to three cards: the section's `items`, padded from its `reserve` when it has fewer than three. The reserve also refills the row after "Not for me": the next item and then the `reserve` cards fill the gap, and an empty group disappears. Block types this client hasn't registered (newer ones) are dropped, so older turns and newer servers both render.
 
 ## Decision guide
 
@@ -22,10 +22,10 @@ The registry also validates blocks for the stream reducer, so a block shows only
 
 ## Why these?
 
-`plan` ("A suggested order") renders where it arrives, after the sections: it can only name items already on the page, so it's always last in the stream. It has an info button that opens a Popover on hover or focus: how the steps were picked (the best fit first, each step building on the last) and, when the server sends it, the AI's one sentence on why this order.
+`plan` ("A suggested order") is a `top` slot block: it sits in the top row's corner beside the headline (or alone, when a turn has no headline), though it can only name items already on the page, so it's always last in the stream; the corner holds a placeholder until it arrives. It has an info button that opens a Popover on hover or focus: how the steps were picked (the best fit first, each step building on the last) and, when the server sends it, the AI's one sentence on why this order.
 
 The `profile` block (what the AI knows about the learner, restated from the merged intent; the server keeps only the preferences the shown results reflect and sends it after them) isn't drawn on its own: the header shows a "Why these?" link that opens a read-only Paragon Popover on click (or Enter/Space) and closes on a click elsewhere or Escape, so it stays open while the learner reads it. It shows the plain-language basis and the preferences as chips. Without a profile there's no link. There is no edit-preferences control yet.
 
 ## Caveat
 
-A `caveat` block renders as a warning `Alert` at the top of For you. The latest finished turn's caveat shows even when that turn found nothing, above the previous results that stay in place. Turns with only a caveat or the profile don't count as having results (`hasPage`), so they don't replace what's shown.
+A `caveat` block renders as a warning `Alert` at the top of For you. The latest finished turn's caveat shows even when that turn found nothing, above the previous results that stay in place. Turns with only a caveat or the profile don't count as having results (`hasPage`), so they don't replace what's shown. A no-match turn still shows placeholders while it searches, like any turn; when it finishes with no results, the previous results return under its caveat.

@@ -89,11 +89,6 @@
     overflow-y: auto;
     padding-right: .25rem;
     scrollbar-gutter: stable;
-
-    // While a turn streams, the conversation is held at its newest message.
-    &--locked {
-      overflow-y: hidden;
-    }
   }
 }
 
@@ -212,10 +207,14 @@
     background-color: #f2f0ef;
   }
 
-  // A visible keyboard focus ring (WCAG 2.4.7): this rule replaces Paragon's own focus styling.
+  // A visible keyboard focus ring (WCAG 2.4.7), replacing Paragon's own focus styling. Two-tone, because the
+  // button sits on the course image: a dark ring (the shadow, showing in the outline's offset) against the
+  // white button and light images, edged in white (the outline) against dark ones, so some part keeps 3:1
+  // against any image (WCAG 1.4.11; checked in Chromium over dark, busy and light images).
   &:focus-visible {
-    outline: 3px solid currentColor;
+    outline: 2px solid #fff;
     outline-offset: 2px;
+    box-shadow: 0 0 0 4px currentColor;
   }
 }
 

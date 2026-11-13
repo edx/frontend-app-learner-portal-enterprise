@@ -14,6 +14,9 @@ describe('selectTransport', () => {
     [null, SseChatTransport],
     [undefined, SseChatTransport],
     ['', SseChatTransport],
+    ['  ', SseChatTransport],
+    ['fixtures', UnavailableChatTransport],
+    ['SSE', UnavailableChatTransport],
   ])('PERSONALIZED_SEARCH_TRANSPORT=%p selects %p', (setting, expected) => {
     expect(selectTransport(setting)).toBeInstanceOf(expected);
   });

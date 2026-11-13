@@ -7,7 +7,7 @@ import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { hasPage, selectPageTurn } from '../../core/selectors';
+import { hasPage, selectPageTurn, selectShownTurn } from '../../core/selectors';
 import type { ExplainScope } from '../../core/analytics';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
@@ -47,12 +47,14 @@ export interface LearningPagePaneProps {
   onExplain?: (scope: ExplainScope, item?: ItemCard) => void;
   /** Leaves an earlier reply's results (the "Earlier results" banner) for the newest ones. */
   onBackToLatest?: () => void;
+  /** Moves focus to the results when it changes (not on mount): after the learner picks which results show. */
+  focusRequest?: number;
 }
 
 const LearningPagePane = ({
   turns, viewedTurnId, links, reducedMotion, savedIds, dismissedIds, onToggleSave,
   onDismiss, undoItem, onUndo, feedbackError, onClearNotice, onAsk, onOpenItem, onExplain, onBackToLatest,
-  registry = defaultBlockRegistry,
+  focusRequest, registry = defaultBlockRegistry,
 }: LearningPagePaneProps) => {
   const intl = useIntl();
   const paneRef = useRef<HTMLElement>(null);
@@ -60,11 +62,9 @@ const LearningPagePane = ({
   // the previous ones: placeholders first, then its blocks top to bottom. Until then (or for an
   // off-topic turn) the previous results stay.
   const latest = turns[turns.length - 1];
-  const loadingTurn = !viewedTurnId && latest?.status === 'streaming'
-    && (latest.blocks.length > 0 || latest.step === 'searching' || latest.step === 'writing') ? latest : null;
-  const pageTurn = loadingTurn ?? selectPageTurn(turns, viewedTurnId);
+  const pageTurn = selectShownTurn(turns, viewedTurnId);
+  const loadingTurn = pageTurn?.status === 'streaming' ? pageTurn : null;
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
-  const searchQuery = pageTurn?.userMessage ?? undefined;
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
   const profileBlock = blocks.find(({ block }) => block.type === 'profile')?.block;
   const ctx = useMemo(() => ({
@@ -74,14 +74,13 @@ const LearningPagePane = ({
     dismissedIds,
     onToggleSave,
     onDismiss,
-    searchQuery,
     onAsk,
     topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
     profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
     onOpenItem,
     onExplain,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, searchQuery, onAsk, topPickId, profileBlock,
-    onOpenItem, onExplain]);
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, onAsk, topPickId, profileBlock, onOpenItem,
+    onExplain]);
 
   // New results start at the top: the results pane scrolls back to its top when another turn's results
   // (or their placeholders) take over, including a search reopened from History or an earlier turn
@@ -107,14 +106,40 @@ const LearningPagePane = ({
     }
   }, [shownTurnId, reducedMotion]);
 
-  // Blocks render in the order they stream, which is page order (the compose prompt writes them top
-  // to bottom), so a new block only ever appears below the ones already shown. Consecutive sections
-  // share one "More options" group; the profile shows through the header's "Why these?".
+  // "View these results" and "Back to latest results" put focus on the results they show (scrolling is
+  // left to the effect above).
+  const lastFocusRequest = useRef(focusRequest);
+  useEffect(() => {
+    if (focusRequest === lastFocusRequest.current) { return; }
+    lastFocusRequest.current = focusRequest;
+    paneRef.current?.focus({ preventScroll: true });
+  }, [focusRequest]);
+
+  // When the Undo notice closes, its focus would fall to the page. Undo puts it on the restored card's link;
+  // Close or the timeout on the results. Only if focus was in the notice or lost, so a learner who has moved
+  // on keeps their place.
+  const focusAfterNotice = useRef<string | null>(null);
+  useEffect(() => {
+    const itemId = focusAfterNotice.current;
+    if (itemId === null || undoItem) { return; }
+    focusAfterNotice.current = null;
+    const active = document.activeElement;
+    if (active && active !== document.body && !active.closest('.pgn__toast')) { return; }
+    const card = Array.from(paneRef.current?.querySelectorAll<HTMLElement>('[data-item-id]') ?? [])
+      .find((el) => el.dataset.itemId === itemId);
+    (card?.querySelector<HTMLElement>('a') ?? paneRef.current)?.focus();
+  }, [undoItem]);
+
+  // The registry's `top` blocks (the headline and the plan) share the row above the rest, so a plan
+  // still shows when a turn has no headline. The others render in the order they stream, which is page
+  // order (the compose prompt writes them top to bottom), so a new block only ever appears below the
+  // ones already shown. Consecutive sections share one "More options" group.
+  const { top, body } = useMemo(() => registry.layout(blocks), [registry, blocks]);
   const segments = useMemo(() => {
     const out: Array<{ key: string; entries: PageBlock[] }> = [];
-    blocks.forEach((entry) => {
-      // The profile shows through "Why these?"; the plan sits in the header row's reserved corner.
-      if (entry.block.type === 'profile' || entry.block.type === 'plan') { return; }
+    body.forEach((entry) => {
+      // The profile shows through the header's "Why these?".
+      if (entry.block.type === 'profile') { return; }
       const last = out[out.length - 1];
       if (entry.block.type === 'item_section' && last?.entries[0].block.type === 'item_section') {
         last.entries.push(entry);
@@ -123,7 +148,7 @@ const LearningPagePane = ({
       }
     });
     return out;
-  }, [blocks]);
+  }, [body]);
   // A caveat from the latest finished turn shows above the previous results when that turn has none of its
   // own; while the learner views an earlier reply, only that reply's caveat (in its blocks) shows.
   const standaloneCaveat = latest?.status === 'done' && latest !== pageTurn && !hasPage(latest)
@@ -132,7 +157,6 @@ const LearningPagePane = ({
   const loading = !!pageTurn && pageTurn.status === 'streaming';
   const has = (type: string) => blocks.some(({ block }) => block.type === type);
   const reachedCards = has('compare') || has('item_section');
-  const planEntry = blocks.find(({ block }) => block.type === 'plan');
   // Earlier results (the learner went back to an older reply): say which, with a way back.
   const latestPageId = selectPageTurn(turns, null)?.localId ?? null;
   const viewingEarlier = !!pageTurn && !loadingTurn && pageTurn.localId !== latestPageId;
@@ -147,9 +171,20 @@ const LearningPagePane = ({
       data-turn-id={pageTurn?.localId}
     >
       <Toast
+        // One notice per hidden card, so each gets its full time before it closes.
+        key={undoItem?.item_id}
         show={!!undoItem && !feedbackError}
-        onClose={() => onClearNotice?.()}
-        action={{ label: intl.formatMessage(messages.undo), onClick: () => onUndo?.() }}
+        onClose={() => {
+          focusAfterNotice.current = '';
+          onClearNotice?.();
+        }}
+        action={{
+          label: intl.formatMessage(messages.undo),
+          onClick: () => {
+            focusAfterNotice.current = undoItem?.item_id ?? '';
+            onUndo?.();
+          },
+        }}
       >
         {undoItem ? intl.formatMessage(messages.hiddenItem, { title: undoItem.title }) : ''}
       </Toast>
@@ -173,31 +208,26 @@ const LearningPagePane = ({
         <p className="text-gray-700 mb-0">{intl.formatMessage(messages.emptyPage)}</p>
       ) : (
         <Stack gap={4}>
-          {segments.map(({ key, entries }) => {
-            if (entries[0].block.type === 'page_header') {
-              // The headline row keeps "A suggested order" in its top-right corner. The plan streams last
-              // (it names items already shown), so the corner holds a placeholder until it arrives and
-              // closes if the turn ends without one.
-              return (
-                <div key={key} className="d-flex flex-wrap align-items-start personalized-search__page-top">
-                  <div className={classNames(blockClass, 'personalized-search__header-col mr-4 mb-3')} data-block-id={key}>
-                    {renderBlock(entries[0].block, ctx, registry)}
-                  </div>
-                  {planEntry && (
-                    <div className={classNames(blockClass, 'personalized-search__plan-col mb-3')} data-block-id={planEntry.id}>
-                      {renderBlock(planEntry.block, ctx, registry)}
-                    </div>
-                  )}
-                  {!planEntry && loading && (
-                    <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
-                      <Skeleton height={18} width="70%" className="mb-2" />
-                      <Skeleton count={3} />
-                    </div>
-                  )}
+          {top.length > 0 && (
+            // The headline row keeps "A suggested order" in its top-right corner. The plan streams last (it
+            // names items already shown), so the corner holds a placeholder until it arrives and closes if the
+            // turn ends without one.
+            <div className="d-flex flex-wrap align-items-start personalized-search__page-top">
+              {top.map(({ entry, className }) => (
+                <div key={entry.id} className={classNames(blockClass, className)} data-block-id={entry.id}>
+                  {renderBlock(entry.block, ctx, registry)}
                 </div>
-              );
-            }
-            return entries[0].block.type === 'item_section' ? (
+              ))}
+              {!has('plan') && loading && (
+                <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
+                  <Skeleton height={18} width="70%" className="mb-2" />
+                  <Skeleton count={3} />
+                </div>
+              )}
+            </div>
+          )}
+          {segments.map(({ key, entries }) => (
+            entries[0].block.type === 'item_section' ? (
               <div key={key} className="personalized-search__more-options">
                 <p className="personalized-search__eyebrow small font-weight-bold text-uppercase mb-3">
                   <Icon src={AutoAwesome} size="xs" className="mr-1 text-danger-500 d-inline-block" />
@@ -215,8 +245,8 @@ const LearningPagePane = ({
               <div key={key} className={blockClass} data-block-id={key}>
                 {renderBlock(entries[0].block, ctx, registry)}
               </div>
-            );
-          })}
+            )
+          ))}
           {loading && (
             <ResultsSkeleton
               header={!has('page_header')}

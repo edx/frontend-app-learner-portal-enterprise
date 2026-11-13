@@ -35,8 +35,9 @@ describe('applyPart', () => {
       });
     });
 
-    it('replays without a client-started turn (history reopen)', () => {
-      const replayed = applyParts(getInitialChatStreamState(), goldenParts(file));
+    it('replays a stored turn opened by beginTurn, as history does, into the turn the live stream produced', () => {
+      const opened = beginTurn(getInitialChatStreamState(), { localId: 'past-1', userMessage: null });
+      const replayed = applyParts(opened, goldenParts(file));
       const live = reduceGolden(file);
       expect(replayed.turns).toHaveLength(1);
       expect({ ...replayed.turns[0], localId: null, userMessage: null })
@@ -107,6 +108,8 @@ describe('applyPart', () => {
   it('ignores turn parts when no turn is active', () => {
     const state = getInitialChatStreamState();
     expect(applyPart(state, { type: 'text-delta', id: 'reply', delta: 'x' })).toBe(state);
+    // A bare start opens nothing: every turn begins with beginTurn.
+    expect(applyPart(state, { type: 'start', messageId: 'turn_x' })).toBe(state);
   });
 
   it('endActiveTurn marks the turn stopped and discards its blocks', () => {

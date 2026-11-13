@@ -13,7 +13,7 @@ import type { ChatTransport, SendTurnOptions, TurnRequest } from '../../core/tra
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import type { SessionDetail } from '../../core/api/sessions';
 import { createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
-import { applyParts, getInitialChatStreamState } from '../../core/stream/applyPart';
+import { applyParts, beginTurn, getInitialChatStreamState } from '../../core/stream/applyPart';
 import { readGolden } from '../../core/stream/testUtils';
 import { parseSseText } from '../../core/stream/parseSse';
 import type { Part } from '../../core/stream/types';
@@ -68,7 +68,7 @@ const DETAIL: SessionDetail = {
 
 describe('reopenSessionWorkflow', () => {
   it('replays stored parts into the same turn the live stream produced', () => {
-    const live = applyParts(getInitialChatStreamState(), GOLDEN).turns[0];
+    const live = applyParts(beginTurn(getInitialChatStreamState(), { localId: 'live', userMessage: null }), GOLDEN).turns[0];
     const state = reopenSessionWorkflow(DETAIL);
     const [past] = state.turns;
     expect(past.status).toBe('done');
@@ -276,6 +276,19 @@ describe('History panel (chunk 29)', () => {
       expect(screen.getByText('Prepare for a leadership role')).toBeInTheDocument();
       expect(httpGet).toHaveBeenCalledWith(`http://ea.test/api/v1/personalized-search/sessions/${DETAIL.uuid}/`, expect.anything());
       expect(params().get('session')).toBe(DETAIL.uuid);
+    });
+
+    it('continuing a conversation restored from the URL is not a resume from History', async () => {
+      const user = userEvent.setup();
+      const transport = new RecordingTransport();
+      const store = createPersonalizedSearchStore();
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, transport, store);
+      expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+      await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+      await waitFor(() => expect(store.getState().stream.activeTurnId).toBeNull());
+      expect(transport.requests[0]).toEqual(expect.objectContaining({ sessionUuid: DETAIL.uuid }));
+      expect(transport.requests[0].resumedFromHistory).toBeUndefined();
+      expect(screen.queryByText(/^Past search/)).not.toBeInTheDocument();
     });
 
     it('drops an unknown conversation id from the URL and starts fresh', async () => {

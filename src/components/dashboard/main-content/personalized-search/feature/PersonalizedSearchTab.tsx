@@ -55,6 +55,12 @@ const PersonalizedSearchTab = ({
     isWide, reducedMotion, mobilePane, feedback, savedIds, dismissedIds,
   } = controller;
   const [savedToast, setSavedToast] = useState(false);
+  // Focus follows the learner's choice instead of being lost: More like this unmounts while the reply
+  // streams, so its send moves focus to the composer (or, on phones where the chat is hidden, the results);
+  // View these results and Back to latest results move it to the results they show.
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+  const [resultsFocusRequest, setResultsFocusRequest] = useState(0);
+  const focusResults = () => setResultsFocusRequest((n) => n + 1);
   const toggleSave = (item: Parameters<typeof controller.toggleSave>[0]) => {
     const saving = !savedIds.has(item.item_id);
     controller.toggleSave(item).then((ok) => {
@@ -76,7 +82,11 @@ const PersonalizedSearchTab = ({
       ratings={controller.ratings}
       onRate={controller.rateTurn}
       viewedTurnId={controller.viewedTurnId}
-      onViewResults={controller.viewPage}
+      onViewResults={(turnId: string) => {
+        controller.viewPage(turnId);
+        focusResults();
+      }}
+      composerFocusRequest={composerFocusRequest}
     />
   );
   const forYou = (
@@ -84,7 +94,11 @@ const PersonalizedSearchTab = ({
       turns={controller.turns}
       registry={registry}
       viewedTurnId={controller.viewedTurnId}
-      onBackToLatest={controller.showLatestResults}
+      onBackToLatest={() => {
+        controller.showLatestResults();
+        focusResults();
+      }}
+      focusRequest={resultsFocusRequest}
       links={controller.links}
       reducedMotion={reducedMotion || controller.mode === 'past'}
       savedIds={savedIds}
@@ -95,7 +109,10 @@ const PersonalizedSearchTab = ({
       onUndo={controller.undoDismiss}
       feedbackError={feedback.error}
       onClearNotice={controller.clearFeedbackNotice}
-      onAsk={controller.busy ? undefined : (message: string) => controller.send(message, 'more_like_this')}
+      onAsk={controller.busy ? undefined : (message: string) => {
+        controller.send(message, 'more_like_this');
+        if (isWide) { setComposerFocusRequest((n) => n + 1); } else { focusResults(); }
+      }}
       onOpenItem={controller.openItem}
       onExplain={controller.explain}
     />

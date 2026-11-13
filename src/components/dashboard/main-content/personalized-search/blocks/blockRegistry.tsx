@@ -23,8 +23,6 @@ export interface BlockRenderContext {
   dismissedIds?: ReadonlySet<string>;
   onToggleSave?: (item: ItemCard) => void;
   onDismiss?: (item: ItemCard) => void;
-  /** The learner's message for this turn, for "See all (n)" links to the host's search. */
-  searchQuery?: string;
   /** Sends a chat message for the learner (More like this). */
   onAsk?: (message: string) => void;
   /** The turn's top pick, so other blocks can tag it. */
@@ -67,7 +65,6 @@ export const catalogBlocks: CatalogBlocks = {
         dismissedIds={ctx.dismissedIds}
         onToggleSave={ctx.onToggleSave}
         onDismiss={ctx.onDismiss}
-        searchQuery={ctx.searchQuery}
         onOpenItem={ctx.onOpenItem}
         onExplain={ctx.onExplain}
       />
@@ -80,10 +77,12 @@ export const catalogBlocks: CatalogBlocks = {
   caveat: { render: (props) => <CaveatBlock {...props} /> },
   compare: { render: (props, ctx) => <CompareBlock {...props} ctx={ctx} /> },
   plan: {
-    // Rendered where it arrives, last: the plan can only name items already on the page.
+    // Streams last (it can only name items already on the page) but sits in the top row's corner.
     render: (props, ctx) => (
       <PlanBlock {...props} itemTitles={ctx.itemTitles} onOpenWhy={() => ctx.onExplain?.('order')} />
     ),
+    slot: 'top',
+    slotClassName: 'personalized-search__plan-col mb-3',
   },
 };
 

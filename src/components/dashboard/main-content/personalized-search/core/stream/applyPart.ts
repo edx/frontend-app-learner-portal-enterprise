@@ -98,15 +98,6 @@ export const applyPart = (
   part: Part,
   isRenderableBlock: BlockValidator = isCatalogBlock,
 ): ChatStreamState => {
-  if (part.type === 'start') {
-    if (state.activeTurnId) {
-      return updateTurn(state, state.activeTurnId, (turn) => ({ ...turn, messageId: part.messageId }));
-    }
-    // Replaying a stored turn (history): there is no client-started turn, so open one here.
-    const opened = beginTurn(state, { localId: part.messageId, userMessage: null });
-    return updateTurn(opened, part.messageId, (turn) => ({ ...turn, messageId: part.messageId }));
-  }
-
   if (part.type === 'data-session') {
     const withSession = {
       ...state,
@@ -127,6 +118,10 @@ export const applyPart = (
   if (!activeTurnId) { return state; }
 
   switch (part.type) {
+    // Every turn is opened by `beginTurn` first, live or replayed (reopenSessionWorkflow), so `start` only
+    // names the active turn.
+    case 'start':
+      return updateTurn(state, activeTurnId, (turn) => ({ ...turn, messageId: part.messageId }));
     case 'data-status':
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, step: part.data.step }));
     case 'text-start':

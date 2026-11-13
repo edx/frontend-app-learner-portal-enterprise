@@ -72,6 +72,29 @@ describe('parseSse', () => {
     expect(await collect(parseSse(streamFromBytes(encode(body))))).toEqual([{ type: 'finish' }]);
   });
 
+  it('drops a known part missing a field the reducer reads, and keeps unknown types for the reducer to ignore', () => {
+    const frames = [
+      { type: 'start' },
+      { type: 'text-delta', id: 't', delta: 7 },
+      { type: 'data-session', id: 's', data: { session_uuid: 's1' } },
+      { type: 'data-status', data: null },
+      { type: 'data-block', data: { v: 1, type: 'insight', props: {} } },
+      { type: 'data-followups', id: 'f', data: { question: 'q' } },
+      { type: 'data-analytics', id: 'a', data: { conversation_id: 'c', turn_id: 't' } },
+      { type: 'error' },
+      { type: 'toString' },
+      { type: 'data-newer', id: 'n', data: {} },
+      { type: 'text-delta', id: 't', delta: 'ok' },
+      { type: 'finish' },
+    ];
+    expect(parseSseText(frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join(''))).toEqual([
+      { type: 'toString' },
+      { type: 'data-newer', id: 'n', data: {} },
+      { type: 'text-delta', id: 't', delta: 'ok' },
+      { type: 'finish' },
+    ]);
+  });
+
   it('cancels the reader when the caller stops early', async () => {
     // Callers stop a turn through the transport's AbortSignal. Note that in this repo's Babel
     // transform, `break` inside `for await` does not call the iterator's return(), so the

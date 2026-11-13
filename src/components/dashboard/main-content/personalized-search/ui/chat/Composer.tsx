@@ -1,4 +1,4 @@
-import { forwardRef, KeyboardEvent } from 'react';
+import { forwardRef, KeyboardEvent, Ref } from 'react';
 import {
   Button, Form, Icon, Stack,
 } from '@openedx/paragon';
@@ -15,10 +15,12 @@ export interface ComposerProps {
   onSend: (message: string) => void;
   /** Shown instead of Send while a turn is in progress. */
   onStop: () => void;
+  /** The Stop button, the composer's one focusable control while the textarea is disabled. */
+  stopRef: Ref<HTMLButtonElement>;
 }
 
 const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
-  draft, disabled, onDraftChange, onSend, onStop,
+  draft, disabled, onDraftChange, onSend, onStop, stopRef,
 }, ref) => {
   const intl = useIntl();
   const tooLong = draft.trim().length > MAX_MESSAGE_LENGTH;
@@ -61,7 +63,7 @@ const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(({
           )}
         </Form.Group>
         {disabled ? (
-          <Button variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
+          <Button ref={stopRef} variant="outline-primary" onClick={onStop}>{intl.formatMessage(messages.stop)}</Button>
         ) : (
           <Button type="submit" disabled={!canSend} aria-label={intl.formatMessage(messages.send)}>
             <Icon src={Send} />

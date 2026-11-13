@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/extend-expect';
+import { useState } from 'react';
 import {
-  fireEvent, render, screen, waitFor, within,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -70,6 +71,10 @@ const turnWithParts = (parts: Part[]): AssistantTurn[] => applyParts(
   beginTurn(getInitialChatStreamState(), { localId: 'turn-1', userMessage: 'm' }),
   [{ type: 'start', messageId: 'turn_x' }, ...parts, { type: 'finish' }],
 ).turns;
+
+/** The golden turn with every block of one type left out. */
+const goldenTurnWithout = (type: string) => turnWithParts(goldenParts('normal_turn.sse').filter((p) => !(
+  p.type === 'data-block' && p.data.type === type)));
 
 describe('LearningPagePane', () => {
   beforeEach(() => {
@@ -160,13 +165,13 @@ describe('LearningPagePane', () => {
 
   describe('loading: placeholders, then blocks top to bottom', () => {
     /** The first turn done, then a second turn with only `upTo` of its parts streamed. */
-    const secondTurnUpTo = (upTo: (parts: Part[]) => Part[]) => {
+    const secondTurnUpTo = (upTo: (parts: Part[]) => Part[], second: GoldenFile = 'normal_turn.sse') => {
       const done = applyParts(
         beginTurn(getInitialChatStreamState(), { localId: 'turn-1', userMessage: 'first' }),
         goldenParts('normal_turn.sse'),
       );
       const next = beginTurn(done, { localId: 'turn-2', userMessage: 'second' });
-      return applyParts(next, upTo(goldenParts('normal_turn.sse'))).turns;
+      return applyParts(next, upTo(goldenParts(second))).turns;
     };
     const blockTypes = (container: HTMLElement) => Array.from(container.querySelectorAll('[data-block-id]'))
       .map((el) => el.getAttribute('data-block-id'));
@@ -207,6 +212,20 @@ describe('LearningPagePane', () => {
       expect(blockTypes(container)).toHaveLength(1);
     });
 
+    it('a no-match turn shows placeholders while it searches, then the previous results return under its caveat', () => {
+      const searching = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block')), 'no_match_turn.sse');
+      const { container, unmount } = renderPane(searching);
+      expect(screen.getByTestId('results-skeleton')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { level: 2, name: 'Lead with confidence' })).not.toBeInTheDocument();
+      expect(container.querySelector('.personalized-search__caveat')).toBeNull();
+      unmount();
+
+      renderPane(secondTurnUpTo((parts) => parts, 'no_match_turn.sse'));
+      expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
+      expect(screen.getByText('No matching courses')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
+    });
+
     it('renders the finished turn in stream order, with the suggested order in the header row and no placeholders', () => {
       const { container } = renderPane(runTurns(['normal_turn.sse']).turns);
       expect(screen.queryByTestId('results-skeleton')).not.toBeInTheDocument();
@@ -225,11 +244,18 @@ describe('LearningPagePane', () => {
       const { container, unmount } = renderPane(streaming);
       expect(container.querySelector('.personalized-search__page-top [data-skeleton="plan"]')).not.toBeNull();
       unmount();
-      const noPlan = turnWithParts(goldenParts('normal_turn.sse').filter((p) => !(p.type === 'data-block'
-        && (p as { data: { type: string } }).data.type === 'plan')));
-      const done = renderPane(noPlan);
+      const done = renderPane(goldenTurnWithout('plan'));
       expect(done.container.querySelector('[data-skeleton="plan"], .personalized-search__plan')).toBeNull();
     });
+  });
+
+  it('keeps a plan in the top row when the turn has no headline, with no Why these?', () => {
+    const { container } = renderPane(goldenTurnWithout('page_header'));
+    const topRow = container.querySelector('.personalized-search__page-top') as HTMLElement;
+    expect(within(topRow).getByRole('heading', { name: 'A suggested order' })).toBeInTheDocument();
+    expect(container.querySelector('.personalized-search__page-header')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Top pick' })).toBeInTheDocument();
   });
 
   it('shows the empty page before any turn has a page', () => {
@@ -498,7 +524,7 @@ describe('LearningPagePane', () => {
     const trigger = screen.getByRole('button', { name: 'Why these?' });
     await user.click(trigger);
     const popover = await screen.findByRole('tooltip');
-    expect(within(popover).getByText(/I picked these from your organization's catalog/)).toBeInTheDocument();
+    expect(within(popover).getByText(/Here's what I understood about your goal and your level/)).toBeInTheDocument();
     expect(within(popover).getByText('Leadership')).toBeInTheDocument();
     // rootClose listens for keyup with keyCode 27, which browsers set and user-event doesn't.
     fireEvent.keyUp(document, { key: 'Escape', keyCode: 27 });
@@ -612,6 +638,7 @@ describe('LearningPagePane', () => {
           dek: 'Focused, single-topic learning.',
           fallback: false,
           total: 7,
+          search_query: 'team leadership',
           items: [card({ item_id: 'c1', title: 'One' }), card({ item_id: 'c2', title: 'Two' }),
             card({ item_id: 'c3', title: 'Three' })],
           reserve: [card({ item_id: 'c4', title: 'Four' })],
@@ -623,9 +650,35 @@ describe('LearningPagePane', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Courses' })).toBeInTheDocument();
     expect(screen.getByText('Focused, single-topic learning.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See all (7)' }))
-      .toHaveAttribute('href', `/${SLUG}/search?q=m&content_type=course`);
+      .toHaveAttribute('href', `/${SLUG}/search?q=team%20leadership&content_type=course`);
     expect(screen.getAllByRole('link', { name: /One|Two|Three|Four/ }).map((l) => l.textContent))
       .toEqual(['One', 'Two', 'Three']);
+  });
+
+  it('hides See all (n) when the section has no search query, even with a total', () => {
+    const section = (searchQuery?: string) => turnWithParts([{
+      type: 'data-block',
+      id: 'blk_1',
+      data: {
+        v: 1,
+        type: 'item_section',
+        props: {
+          item_type: 'course',
+          label: 'Courses',
+          dek: '',
+          fallback: false,
+          total: 7,
+          items: [card({})],
+          ...(searchQuery === undefined ? {} : { search_query: searchQuery }),
+        },
+      },
+    }]);
+    const { unmount } = renderPane(section());
+    expect(screen.getByRole('heading', { level: 3, name: 'Courses' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /See all/ })).not.toBeInTheDocument();
+    unmount();
+    renderPane(section('  '));
+    expect(screen.queryByRole('link', { name: /See all/ })).not.toBeInTheDocument();
   });
 
   it('fills a removed card with the next item, then the reserve, and drops See all without a total', () => {
@@ -682,6 +735,91 @@ describe('LearningPagePane', () => {
     links[links.length - 1].focus();
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('location')).toHaveTextContent(`/${SLUG}/program/p-2`);
+  });
+
+  describe('the Undo notice', () => {
+    const C1 = 'edX+C1';
+    /** The golden page with C1 hidden by Not for me, and a host that clears the notice like the controller. */
+    const PaneWithNotice = ({ onClearNotice }: { onClearNotice?: () => void }) => {
+      const hidden = runTurns(['normal_turn.sse']).turns[0].blocks.flatMap(({ block }) => (
+        block.type === 'item_section' ? block.props.items : [])).find((item) => item.item_id === C1) as ItemCard;
+      const [undoItem, setUndoItem] = useState<ItemCard | null>(hidden);
+      const [dismissedIds, setDismissedIds] = useState(new Set([C1]));
+      return (
+        <IntlProvider locale="en">
+          <MemoryRouter>
+            <input aria-label="Elsewhere" />
+            <LearningPagePane
+              turns={runTurns(['normal_turn.sse']).turns}
+              viewedTurnId={null}
+              links={createPortalItemLinks(SLUG)}
+              reducedMotion
+              undoItem={undoItem}
+              dismissedIds={dismissedIds}
+              onUndo={() => {
+                setUndoItem(null);
+                setDismissedIds(new Set());
+              }}
+              onClearNotice={() => {
+                onClearNotice?.();
+                setUndoItem(null);
+              }}
+            />
+          </MemoryRouter>
+        </IntlProvider>
+      );
+    };
+    afterEach(() => jest.useRealTimers());
+
+    it('restarts its 5 second timer for each hidden card', () => {
+      jest.useFakeTimers();
+      const onClearNotice = jest.fn();
+      const tree = (item: ItemCard) => (
+        <IntlProvider locale="en">
+          <MemoryRouter>
+            <LearningPagePane
+              turns={[]}
+              viewedTurnId={null}
+              links={createPortalItemLinks(SLUG)}
+              reducedMotion
+              undoItem={item}
+              onClearNotice={onClearNotice}
+            />
+          </MemoryRouter>
+        </IntlProvider>
+      );
+      const { rerender } = render(tree(card({ item_id: 'a', title: 'First' })));
+      act(() => { jest.advanceTimersByTime(3000); });
+      rerender(tree(card({ item_id: 'b', title: 'Second' })));
+      act(() => { jest.advanceTimersByTime(3000); });
+      expect(onClearNotice).not.toHaveBeenCalled();
+      expect(screen.getByText(/^Removed Second/)).toBeInTheDocument();
+      act(() => { jest.advanceTimersByTime(2500); });
+      expect(onClearNotice).toHaveBeenCalledTimes(1);
+    });
+
+    it('Undo puts focus on the restored card\'s link', async () => {
+      const user = userEvent.setup();
+      render(<PaneWithNotice />);
+      expect(screen.queryByRole('link', { name: 'Course edX+C1' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Undo' }));
+      await waitFor(() => expect(screen.getByRole('link', { name: 'Course edX+C1' })).toHaveFocus());
+    });
+
+    it('closing on its timeout puts lost focus on the results, and leaves focus the learner moved alone', () => {
+      jest.useFakeTimers();
+      const { unmount } = render(<PaneWithNotice />);
+      act(() => { jest.advanceTimersByTime(5000); });
+      expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+      unmount();
+
+      const onClearNotice = jest.fn();
+      render(<PaneWithNotice onClearNotice={onClearNotice} />);
+      screen.getByRole('textbox', { name: 'Elsewhere' }).focus();
+      act(() => { jest.advanceTimersByTime(5000); });
+      expect(onClearNotice).toHaveBeenCalled();
+      expect(screen.getByRole('textbox', { name: 'Elsewhere' })).toHaveFocus();
+    });
   });
 
   it('adds the entrance transition only when reduced motion is not requested', () => {

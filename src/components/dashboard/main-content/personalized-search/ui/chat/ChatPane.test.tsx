@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  act, render, screen, waitFor, within,
+  act, fireEvent, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
@@ -121,18 +121,24 @@ describe('ChatPane', () => {
     expect(sent).toEqual(['Build data skills', 'Programs', 'Giving feedback to my team']);
   });
 
-  it('snaps the conversation to the newest message and locks scrolling until the turn finishes', async () => {
+  it('snaps the conversation to the newest message while the reply streams, until the learner scrolls up', async () => {
     const user = userEvent.setup();
     jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(800);
-    const { transport } = scriptedTransport(['normal_turn.sse'], 30);
+    const { transport } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 30);
     renderTab(transport);
     const scroll = screen.getByTestId('chat-scroll');
     await user.click(screen.getByText('Build data skills'));
-    await waitFor(() => expect(scroll).toHaveClass('personalized-search__chat-scroll--locked'));
-    expect(scroll.scrollTop).toBe(800);
+    await waitFor(() => expect(scroll.scrollTop).toBe(800));
     await waitForIdle();
-    expect(scroll).not.toHaveClass('personalized-search__chat-scroll--locked');
     expect(scroll.scrollTop).toBe(800);
+
+    await user.type(composer(), 'Something shorter{Enter}');
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).not.toBeNull());
+    // The learner scrolls up to reread while the reply streams: it's never locked, and isn't snapped back.
+    scroll.scrollTop = 100;
+    fireEvent.scroll(scroll);
+    await waitForIdle();
+    expect(scroll.scrollTop).toBe(100);
     jest.restoreAllMocks();
   });
 
@@ -150,9 +156,27 @@ describe('ChatPane', () => {
     await user.click(screen.getByRole('button', { name: 'View these results' }));
     expect(screen.getByText('Earlier results for “Build data skills”')).toBeInTheDocument();
     expect(screen.getByText('Showing these results')).toBeInTheDocument();
+    // Focus goes to the results the learner chose, both ways.
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
+    composer().focus();
     await user.click(screen.getByRole('button', { name: 'Back to latest results' }));
     expect(screen.queryByText(/Earlier results for/)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Your results' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'View these results' })).toBeInTheDocument();
+  });
+
+  it('More like this moves focus to the composer\'s Stop while the reply streams, then to the textarea', async () => {
+    const user = userEvent.setup();
+    const { transport, sent } = scriptedTransport(['normal_turn.sse', 'normal_turn.sse'], 5);
+    renderTab(transport);
+    await user.click(screen.getByText('Build data skills'));
+    await waitForIdle();
+    await user.click(screen.getByRole('button', { name: 'More like this' }));
+    expect(screen.queryByRole('button', { name: 'More like this' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stop' })).toHaveFocus();
+    await waitForIdle();
+    expect(composer()).toHaveFocus();
+    expect(sent).toHaveLength(2);
   });
 
   it('chips are keyboard operable', async () => {

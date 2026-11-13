@@ -47,3 +47,14 @@ export const selectPageTurn = (turns: AssistantTurn[], viewedTurnId: string | nu
   }
   return null;
 };
+
+/**
+ * The turn whose results the page pane has on screen. Once a live turn is past understanding the message
+ * (it's searching or writing, or has blocks), it replaces the previous results; until then, `selectPageTurn`.
+ */
+export const selectShownTurn = (turns: AssistantTurn[], viewedTurnId: string | null): AssistantTurn | null => {
+  const latest = turns[turns.length - 1];
+  const loading = !viewedTurnId && latest?.status === 'streaming'
+    && (latest.blocks.length > 0 || latest.step === 'searching' || latest.step === 'writing');
+  return loading ? latest : selectPageTurn(turns, viewedTurnId);
+};
