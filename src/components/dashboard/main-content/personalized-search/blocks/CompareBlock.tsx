@@ -14,7 +14,10 @@ import type { BlockRenderContext } from './blockRegistry';
  */
 const CompareBlock = ({ options, ctx }: CompareProps & { ctx: BlockRenderContext }) => {
   const intl = useIntl();
-  const visible = options.filter(({ item }) => !ctx.dismissedIds?.has(item.item_id));
+  // An option promoted to the top pick (the learner removed the original) shows there instead.
+  const visible = options.filter(({ item }) => (
+    !ctx.dismissedIds?.has(item.item_id) && item.item_id !== ctx.promotedTopPick?.item.item_id
+  ));
   if (visible.length === 0) { return null; }
   return (
     <section className="personalized-search__compare">

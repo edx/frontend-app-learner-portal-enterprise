@@ -25,12 +25,16 @@ const PageHeaderBlock = ({
 }: PageHeaderBlockProps) => {
   const intl = useIntl();
   const [showWhy, setShowWhy] = useState(false);
+  // "Why these?" only when the profile names something the results reflect: enterprise-access replaces an early
+  // profile with one with no chips when nothing is left, to hide it. Blank text isn't shown.
+  const summary = profile?.summary?.trim() ?? '';
+  const chips = (profile?.chips ?? []).filter((chip) => chip.trim());
   return (
     <header className="personalized-search__page-header">
       {label && <p className="sr-only">{label}</p>}
       <div className="d-flex align-items-start justify-content-between">
         <h2 className="mb-2 mr-3">{title}</h2>
-        {profile && profile.chips.length > 0 && (
+        {chips.length > 0 && (
           <OverlayTrigger
             trigger="click"
             rootClose
@@ -44,9 +48,9 @@ const PageHeaderBlock = ({
               <Popover id="personalized-search-why-these" style={{ maxWidth: 460 }}>
                 <Popover.Title as="h3" className="h5">{intl.formatMessage(messages.whyThese)}</Popover.Title>
                 <Popover.Content>
-                  <p className="mb-2">{profile.summary}</p>
+                  {summary && <p className="mb-2">{summary}</p>}
                   <Stack direction="horizontal" gap={2} className="flex-wrap">
-                    {profile.chips.map((chip) => <Chip key={chip}>{chip}</Chip>)}
+                    {chips.map((chip) => <Chip key={chip}>{chip}</Chip>)}
                   </Stack>
                 </Popover.Content>
               </Popover>
@@ -63,7 +67,7 @@ const PageHeaderBlock = ({
           </OverlayTrigger>
         )}
       </div>
-      {dek && <p className="text-gray-700 mb-0">{dek}</p>}
+      {dek?.trim() && <p className="text-gray-700 mb-0">{dek}</p>}
     </header>
   );
 };

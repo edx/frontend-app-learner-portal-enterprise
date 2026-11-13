@@ -81,6 +81,7 @@ const ChatPane = ({
 
   const latest = turns[turns.length - 1];
   const followups = latest?.status === 'done' ? latest.followups : null;
+  // Only the newest reply's chips: one with none (or no follow-ups at all) shows none, never older ones.
   const chips = followups?.suggestions ?? [];
   const ideas = followups?.ideas ?? [];
 

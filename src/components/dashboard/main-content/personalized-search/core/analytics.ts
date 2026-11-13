@@ -49,6 +49,11 @@ export interface AnalyticsContext {
   cohort?: string | null;
   engine?: string | null;
   is_debug?: boolean;
+  /**
+   * Why the server redirected the message instead of searching, when it did: `off_topic`, `unsafe`, `injection`,
+   * `distress`, `external_provider`, or a newer reason. Optional and open-ended; passed through as is.
+   */
+  redirect_reason?: string | null;
 }
 
 /** The join keys as event properties, or none when the server hasn't sent them yet. */

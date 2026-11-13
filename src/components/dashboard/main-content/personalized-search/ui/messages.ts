@@ -86,6 +86,11 @@ const messages = defineMessages({
     defaultMessage: 'New reply, {count, plural, one {# pick} other {# picks}} in your results',
     description: 'Screen-reader announcement when a Personalized Search reply finishes.',
   },
+  newReplyAnnouncementNoResults: {
+    id: 'learner.personalizedSearch.chat.newReplyAnnouncementNoResults',
+    defaultMessage: 'New reply',
+    description: 'Screen-reader announcement when a Personalized Search reply finishes without new results.',
+  },
   whyThisFits: {
     id: 'learner.personalizedSearch.page.card.whyThisFits',
     defaultMessage: 'Why this fits you',

@@ -37,6 +37,9 @@ const AssistantMessage = ({
   const intl = useIntl();
   const isStreaming = turn.status === 'streaming';
   const isDone = turn.status === 'done';
+  // The follow-up question heads its chips: without any (a distress reply may send none), it's left out.
+  const followupQuestion = (turn.followups?.suggestions?.length || turn.followups?.ideas?.length)
+    ? turn.followups.question : null;
 
   if (turn.status === 'error') {
     const {
@@ -78,8 +81,8 @@ const AssistantMessage = ({
         )}
         {/* Plain text with **bold** as <strong> elements: model output never becomes HTML. */}
         {turn.text && <p className="mb-1 personalized-search__reply">{renderInlineBold(turn.text, { partial: !isDone })}</p>}
-        {isDone && turn.followups?.question && (
-          <p className="mb-0 mt-1 personalized-search__followup-question">{turn.followups.question}</p>
+        {isDone && followupQuestion && (
+          <p className="mb-0 mt-1 personalized-search__followup-question">{followupQuestion}</p>
         )}
         {isDone && results === 'view' && onViewResults && (
           <Button

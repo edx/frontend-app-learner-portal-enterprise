@@ -517,6 +517,20 @@ describe('LearningPagePane', () => {
     expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
   });
 
+  it('renders no empty dek, and no Why these? for a profile with only blank chips', () => {
+    const block = (id: string, type: string, props: object) => ({ type: 'data-block', id, data: { v: 1, type, props } });
+    const { container } = renderPane(turnWithParts([
+      block('h', 'page_header', { title: 'Lead with confidence', dek: '  ', label: 'Your results' }),
+      block('p', 'profile', { summary: 'S', chips: [' '] }),
+      block('s', 'item_section', {
+        item_type: 'course', label: 'Courses', dek: ' ', fallback: false, items: [card({})],
+      }),
+    ] as Part[]));
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+    expect(container.querySelectorAll('.personalized-search__page-header > p:not(.sr-only)')).toHaveLength(0);
+    expect(container.querySelectorAll('.personalized-search__section > p')).toHaveLength(0);
+  });
+
   it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {
     const user = userEvent.setup();
     const { turns } = runTurns(['normal_turn.sse']);
@@ -617,12 +631,21 @@ describe('LearningPagePane', () => {
     expect(within(oldCard).queryByText('Updated')).not.toBeInTheDocument();
   });
 
-  it('hides a dismissed top pick and compared option', () => {
+  it('hides a dismissed top pick and compared option, filling the top pick from compare', () => {
     const { turns } = runTurns(['normal_turn.sse']);
     renderPane(turns, { dismissedIds: new Set(['p-1']) });
-    expect(screen.queryByRole('heading', { name: 'Top pick' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Program p-1' })).not.toBeInTheDocument();
+    const topPick = document.querySelector('.personalized-search__top-pick') as HTMLElement;
+    expect(within(topPick).getByRole('link', { name: 'Course Yale+E1' })).toBeInTheDocument();
     const compare = screen.getByText('Compare top options').closest('section') as HTMLElement;
-    expect(within(compare).queryByRole('link', { name: 'Program p-1' })).not.toBeInTheDocument();
+    expect(within(compare).queryByRole('link', { name: 'Course Yale+E1' })).not.toBeInTheDocument();
+  });
+
+  it('closes the top pick slot when every compare option is removed too', () => {
+    const { turns } = runTurns(['normal_turn.sse']);
+    renderPane(turns, { dismissedIds: new Set(['p-1', 'Yale+E1', 'edX+C3']) });
+    expect(screen.queryByRole('heading', { name: 'Top pick' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Compare top options')).not.toBeInTheDocument();
   });
 
   it('groups sections under More options with the type, See all (n), one line and up to three cards', () => {
