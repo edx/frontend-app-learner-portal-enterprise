@@ -290,7 +290,8 @@ describe('ChatPane', () => {
 
     const liveRegions = container.querySelectorAll('[aria-live="polite"]');
     expect(liveRegions).toHaveLength(1);
-    expect(liveRegions[0]).toHaveTextContent('New reply, 3 picks in your results');
+    // Every card on screen, once: the top pick (also compared), two more compared, and the sections' four.
+    expect(liveRegions[0]).toHaveTextContent('New reply, 7 picks in your results');
     await waitFor(() => expect(composer()).toHaveFocus());
   });
 });

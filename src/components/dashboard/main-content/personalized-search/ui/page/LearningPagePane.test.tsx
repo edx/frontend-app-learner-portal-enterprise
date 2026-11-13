@@ -517,6 +517,20 @@ describe('LearningPagePane', () => {
     expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
   });
 
+  it('renders no empty dek, and no Why these? for a profile with only blank chips', () => {
+    const block = (id: string, type: string, props: object) => ({ type: 'data-block', id, data: { v: 1, type, props } });
+    const { container } = renderPane(turnWithParts([
+      block('h', 'page_header', { title: 'Lead with confidence', dek: '  ', label: 'Your results' }),
+      block('p', 'profile', { summary: 'S', chips: [' '] }),
+      block('s', 'item_section', {
+        item_type: 'course', label: 'Courses', dek: ' ', fallback: false, items: [card({})],
+      }),
+    ] as Part[]));
+    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+    expect(container.querySelectorAll('.personalized-search__page-header > p:not(.sr-only)')).toHaveLength(0);
+    expect(container.querySelectorAll('.personalized-search__section > p')).toHaveLength(0);
+  });
+
   it('opens Why these? with the profile summary and chips, and closes it with Escape', async () => {
     const user = userEvent.setup();
     const { turns } = runTurns(['normal_turn.sse']);

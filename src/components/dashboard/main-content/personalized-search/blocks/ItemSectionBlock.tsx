@@ -3,12 +3,13 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../ui/messages';
 import type { ExplainScope } from '../core/analytics';
+import { CARDS_PER_SECTION } from '../core/selectors';
 import type { ItemCard, ItemSectionProps } from '../core/stream/types';
 import EditorialItemCard, { RESULT_COLUMN_SIZES } from '../ui/cards/EditorialItemCard';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 
 /** Cards shown per group, one row on wide screens: the items, padded from the reserve; the rest fill a removed card. */
-export const CARDS_PER_GROUP = 3;
+export const CARDS_PER_GROUP = CARDS_PER_SECTION;
 
 const SECTION_NAMES = {
   course: messages.sectionCourse,
@@ -52,7 +53,7 @@ const ItemSectionBlock = ({
           </links.LinkComponent>
         )}
       </div>
-      {dek && <p className="text-gray-700 mb-3">{dek}</p>}
+      {dek?.trim() && <p className="text-gray-700 mb-3">{dek}</p>}
       <CardGrid columnSizes={RESULT_COLUMN_SIZES}>
         {visible.map((item) => (
           <EditorialItemCard

@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
 import {
-  hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId, selectShownTurn,
+  countShownItems, hasPage, isSendableMessage, latestPicksTurnId, previousPageTurnId, selectShownTurn,
 } from '../core/selectors';
 import { removeTurn } from '../core/stream/applyPart';
 import type { BlockValidator } from '../core/stream/applyPart';
@@ -306,8 +306,14 @@ export const createPersonalizedSearchController = ({
       if (abortRef.current === controller) { abortRef.current = null; }
       const after = storeApi.getState();
       if (result.outcome === 'done') {
-        after.setAnnouncement(intl.formatMessage(messages.newReplyAnnouncement, { count: result.itemCount }));
+        // The count is of the cards on screen; a reply without results (off topic, a redirect) leaves the
+        // previous ones, so it doesn't count them as its own.
         const finished = after.stream.turns.find((t) => t.localId === localId);
+        after.setAnnouncement(finished && hasPage(finished)
+          ? intl.formatMessage(messages.newReplyAnnouncement, {
+            count: countShownItems(finished, new Set(after.feedback.dismissedIds)),
+          })
+          : intl.formatMessage(messages.newReplyAnnouncementNoResults));
         if (finished && hasPage(finished)) { track('results_rendered', {}, finished); }
       } else if (result.outcome === 'stopped') {
         // The stopped turn's blocks were discarded, so show the page from before it.

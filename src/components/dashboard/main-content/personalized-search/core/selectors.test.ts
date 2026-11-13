@@ -1,5 +1,5 @@
 import {
-  hasPage, previousPageTurnId, promotedTopPick, selectPageTurn, selectShownTurn,
+  countShownItems, hasPage, previousPageTurnId, promotedTopPick, selectPageTurn, selectShownTurn,
 } from './selectors';
 import type { AssistantTurn, ItemCard, PageBlock } from './stream/types';
 
@@ -85,5 +85,35 @@ describe('promotedTopPick', () => {
   it('is null when no option is left, or the turn has no compare', () => {
     expect(promotedTopPick(blocks, new Set(['a', 'b', 'c']))).toBeNull();
     expect(promotedTopPick([blocks[0]], new Set(['a']))).toBeNull();
+  });
+});
+
+describe('countShownItems', () => {
+  const item = (id: string) => ({ item_id: id }) as ItemCard;
+  const section = (items: string[], reserve: string[] = []) => ({
+    v: 1, type: 'item_section', props: { items: items.map(item), reserve: reserve.map(item) },
+  });
+  const withBlocks = (...blocks: unknown[]) => (
+    { blocks: blocks.map((block, i) => ({ id: `b${i}`, block })) } as unknown as AssistantTurn
+  );
+  const page = withBlocks(
+    { v: 1, type: 'top_pick', props: { item: item('a'), reason: 'r', checks: [] } },
+    { v: 1, type: 'compare', props: { options: [{ best_for: 'A', item: item('a') }, { best_for: 'B', item: item('b') }] } },
+    section(['c'], ['d', 'e', 'f']),
+    section([], ['g']),
+  );
+
+  it('counts each card on screen once: the top pick, compare, and sections padded from the reserve to three', () => {
+    expect(countShownItems(page)).toBe(6); // a, b, c d e, g
+  });
+
+  it('leaves out removed items, with the reserve filling in and compare filling the top pick', () => {
+    expect(countShownItems(page, new Set(['c']))).toBe(6); // a, b, d e f, g
+    expect(countShownItems(page, new Set(['a']))).toBe(5); // b (promoted), c d e, g
+  });
+
+  it('is 0 for a turn without results', () => {
+    expect(countShownItems(withBlocks({ v: 1, type: 'caveat', props: { title: 't', body: 'b' } }))).toBe(0);
+    expect(countShownItems(undefined)).toBe(0);
   });
 });
