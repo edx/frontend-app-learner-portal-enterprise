@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
 import {
-  Alert, Button, Icon, Skeleton, Stack, Toast,
+  Alert, Button, Icon, Stack, Toast,
 } from '@openedx/paragon';
 import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
@@ -214,21 +214,15 @@ const LearningPagePane = ({
       ) : (
         <Stack gap={4}>
           {top.length > 0 && (
-            // The headline row keeps "A suggested order" in its top-right corner. The plan streams last (it
-            // names items already shown), so the corner holds a placeholder until it arrives and closes if the
-            // turn ends without one.
+            // The headline row keeps "A suggested order" in its top-right corner when a turn has one. The plan
+            // streams last and enterprise-access may have it switched off, so no placeholder holds the corner:
+            // one would flash and close on every turn without a plan.
             <div className="d-flex flex-wrap align-items-start personalized-search__page-top">
               {top.map(({ entry, className }) => (
                 <div key={entry.id} className={classNames(blockClass, className)} data-block-id={entry.id}>
                   {renderBlock(entry.block, ctx, registry)}
                 </div>
               ))}
-              {!has('plan') && loading && (
-                <div className="personalized-search__plan-col mb-3" data-skeleton="plan" aria-hidden>
-                  <Skeleton height={18} width="70%" className="mb-2" />
-                  <Skeleton count={3} />
-                </div>
-              )}
             </div>
           )}
           {segments.map(({ key, entries }) => (

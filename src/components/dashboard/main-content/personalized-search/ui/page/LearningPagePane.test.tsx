@@ -238,11 +238,12 @@ describe('LearningPagePane', () => {
       expect(container.querySelector('[data-skeleton="plan"]')).toBeNull();
     });
 
-    it('holds the header row corner for the plan while the turn streams, and closes it without one', () => {
+    it('holds no placeholder for the plan while the turn streams, and shows none without one', () => {
+      // enterprise-access can have the suggested order switched off, so a placeholder would flash on every turn.
       const streaming = secondTurnUpTo((parts) => parts.slice(0, parts.findIndex((p) => p.type === 'data-block'
         && (p as { data: { type: string } }).data.type === 'compare')));
       const { container, unmount } = renderPane(streaming);
-      expect(container.querySelector('.personalized-search__page-top [data-skeleton="plan"]')).not.toBeNull();
+      expect(container.querySelector('[data-skeleton="plan"]')).toBeNull();
       unmount();
       const done = renderPane(goldenTurnWithout('plan'));
       expect(done.container.querySelector('[data-skeleton="plan"], .personalized-search__plan')).toBeNull();
@@ -506,22 +507,26 @@ describe('LearningPagePane', () => {
     expect(onExplain).toHaveBeenCalledWith('order');
   });
 
-  it('hides Why these? when the final profile has no chips (nothing the results reflect)', () => {
+  it('shows Why these? with the summary alone when the final profile has no chips', async () => {
+    const user = userEvent.setup();
     const block = (id: string, type: string, props: object) => ({ type: 'data-block', id, data: { v: 1, type, props } });
     renderPane(turnWithParts([
       block('h', 'page_header', { title: 'Lead with confidence', dek: '', label: 'Your results' }),
       block('p', 'profile', { summary: 'S', chips: ['Leadership'] }),
-      block('p', 'profile', { summary: 'S', chips: [] }),
+      block('p', 'profile', { summary: 'Closest matches in your catalog.', chips: [] }),
     ] as Part[]));
     expect(screen.getByRole('heading', { level: 2, name: 'Lead with confidence' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Why these?' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Why these?' }));
+    const popover = await screen.findByRole('tooltip');
+    expect(within(popover).getByText('Closest matches in your catalog.')).toBeInTheDocument();
+    expect(within(popover).queryByText('Leadership')).not.toBeInTheDocument();
   });
 
-  it('renders no empty dek, and no Why these? for a profile with only blank chips', () => {
+  it('renders no empty dek, and no Why these? for a profile with only blank text', () => {
     const block = (id: string, type: string, props: object) => ({ type: 'data-block', id, data: { v: 1, type, props } });
     const { container } = renderPane(turnWithParts([
       block('h', 'page_header', { title: 'Lead with confidence', dek: '  ', label: 'Your results' }),
-      block('p', 'profile', { summary: 'S', chips: [' '] }),
+      block('p', 'profile', { summary: ' ', chips: [' '] }),
       block('s', 'item_section', {
         item_type: 'course', label: 'Courses', dek: ' ', fallback: false, items: [card({})],
       }),
