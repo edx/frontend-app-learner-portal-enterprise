@@ -284,6 +284,34 @@ describe('Save / Not interested and the Saved view (chunk 31)', () => {
     });
   });
 
+  it('Not for me on the top pick moves the next compare option into its place, and Undo puts it back', async () => {
+    const user = userEvent.setup();
+    await renderWithPage(user);
+    const topPick = () => document.querySelector('.personalized-search__top-pick') as HTMLElement;
+    const compare = () => document.querySelector('.personalized-search__compare') as HTMLElement;
+    expect(within(topPick()).getByRole('link', { name: 'Program p-1' })).toBeInTheDocument();
+    expect(within(compare()).getByRole('link', { name: 'Course Yale+E1' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Not for me: Program p-1' }));
+    expect(within(topPick()).getByRole('link', { name: 'Course Yale+E1' })).toBeInTheDocument();
+    expect(within(topPick()).getByText('Best for an executive-level perspective')).toBeInTheDocument();
+    // The removed pick's reason and checks were about it, so they go with it.
+    expect(within(topPick()).queryByText('Because you want to lead a team and earn a credential.')).not.toBeInTheDocument();
+    expect(within(topPick()).queryByText('Certificate')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Program p-1' })).not.toBeInTheDocument();
+    expect(within(compare()).queryByRole('link', { name: 'Course Yale+E1' })).not.toBeInTheDocument();
+    expect(within(compare()).getByRole('link', { name: 'Course edX+C3' })).toBeInTheDocument();
+
+    // Removing the promoted pick moves up the next one.
+    await user.click(screen.getByRole('button', { name: 'Not for me: Course Yale+E1' }));
+    expect(within(topPick()).getByRole('link', { name: 'Course edX+C3' })).toBeInTheDocument();
+    expect(compare()).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(within(topPick()).getByRole('link', { name: 'Course Yale+E1' })).toBeInTheDocument();
+    expect(within(compare()).getByRole('link', { name: 'Course edX+C3' })).toBeInTheDocument();
+  });
+
   it('reverts and shows an Alert when the server call fails', async () => {
     const user = userEvent.setup();
     http.post.mockRejectedValue(new Error('down'));

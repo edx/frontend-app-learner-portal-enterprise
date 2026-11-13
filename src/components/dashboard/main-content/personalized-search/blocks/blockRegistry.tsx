@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import type { ExplainScope } from '../core/analytics';
 import { BLOCK_CATALOG_VERSION } from '../core/stream/types';
 import type {
-  Block, ItemCard, PageBlock, ProfileProps,
+  Block, CompareOption, ItemCard, PageBlock, ProfileProps,
 } from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
 import InsightBlock from './InsightBlock';
@@ -27,6 +27,8 @@ export interface BlockRenderContext {
   onAsk?: (message: string) => void;
   /** The turn's top pick, so other blocks can tag it. */
   topPickId?: string;
+  /** The compare option shown as the top pick after the learner removed the original; compare leaves it out. */
+  promotedTopPick?: CompareOption;
   /** What the AI knows about the learner, shown by the header's "Why these?". */
   profile?: ProfileProps;
   /** Usage events: a card was opened, or an explanation was expanded (a card's or the set's). */

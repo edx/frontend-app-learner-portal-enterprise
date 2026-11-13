@@ -13,16 +13,24 @@ import type { BlockRenderContext } from './blockRegistry';
  * The top pick (wireframe D2): the item's card beside a lighter details block with the reason, the
  * learner's preferences it meets, and More like this / Not for me. The card takes one result column, so
  * it is the same width as the cards below it; the details fill the rest of the row (below it on phones).
+ * When the learner removes it, the next compare option takes its place with what it is best for.
  */
 const TopPickBlock = ({
-  item, reason, checks, ctx,
+  item: pick, reason: pickReason, checks: pickChecks, ctx,
 }: TopPickProps & { ctx: BlockRenderContext }) => {
   const intl = useIntl();
-  if (ctx.dismissedIds?.has(item.item_id)) { return null; }
+  const removed = !!ctx.dismissedIds?.has(pick.item_id);
+  const promoted = removed ? ctx.promotedTopPick : undefined;
+  if (removed && !promoted) { return null; }
+  const item = promoted?.item ?? pick;
+  const reason = promoted ? intl.formatMessage(messages.bestFor, { bestFor: promoted.best_for }) : pickReason;
+  // The checks were written for the removed pick.
+  const checks = promoted ? [] : pickChecks;
   return (
     <Row as="section" className="personalized-search__top-pick bg-light-300 rounded mx-0 py-3">
       <Col {...RESULT_COLUMN_SIZES} className="mb-3 mb-md-0">
         <EditorialItemCard
+          key={item.item_id}
           item={{ ...item, why: null }}
           links={ctx.links}
           saved={ctx.savedIds?.has(item.item_id) ?? false}

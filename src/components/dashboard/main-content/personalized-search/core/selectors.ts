@@ -1,7 +1,7 @@
 /**
  * Pure selectors over chat state, shared by the controller and the UI (no React, no host).
  */
-import type { AssistantTurn } from './stream/types';
+import type { AssistantTurn, CompareOption, PageBlock } from './stream/types';
 
 /** Longest message the turn endpoint accepts. */
 export const MAX_MESSAGE_LENGTH = 500;
@@ -57,4 +57,22 @@ export const selectShownTurn = (turns: AssistantTurn[], viewedTurnId: string | n
   const loading = !viewedTurnId && latest?.status === 'streaming'
     && (latest.blocks.length > 0 || latest.step === 'searching' || latest.step === 'writing');
   return loading ? latest : selectPageTurn(turns, viewedTurnId);
+};
+
+/**
+ * The compare option that takes the top pick's place once the learner removes the top pick (Not for me, P1-4):
+ * the first option that is neither the top pick nor removed. Null while the top pick stands, or when no other
+ * option is left (the slot then closes).
+ */
+export const promotedTopPick = (
+  blocks: PageBlock[],
+  dismissedIds: ReadonlySet<string> | undefined,
+): CompareOption | null => {
+  const topPick = blocks.find(({ block }) => block.type === 'top_pick')?.block;
+  if (topPick?.type !== 'top_pick' || !dismissedIds?.has(topPick.props.item.item_id)) { return null; }
+  const compare = blocks.find(({ block }) => block.type === 'compare')?.block;
+  if (compare?.type !== 'compare') { return null; }
+  return compare.props.options.find(({ item }) => (
+    item.item_id !== topPick.props.item.item_id && !dismissedIds.has(item.item_id)
+  )) ?? null;
 };

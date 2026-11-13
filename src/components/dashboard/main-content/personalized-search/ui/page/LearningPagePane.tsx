@@ -7,7 +7,9 @@ import { AutoAwesome } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import { hasPage, selectPageTurn, selectShownTurn } from '../../core/selectors';
+import {
+  hasPage, promotedTopPick, selectPageTurn, selectShownTurn,
+} from '../../core/selectors';
 import type { ExplainScope } from '../../core/analytics';
 import type { AssistantTurn, ItemCard, PageBlock } from '../../core/stream/types';
 import { defaultBlockRegistry, renderBlock } from '../../blocks/blockRegistry';
@@ -67,6 +69,8 @@ const LearningPagePane = ({
   const blocks = useMemo(() => pageTurn?.blocks ?? [], [pageTurn]);
   const topPickId = blocks.find(({ block }) => block.type === 'top_pick')?.block;
   const profileBlock = blocks.find(({ block }) => block.type === 'profile')?.block;
+  // Not for me on the top pick moves the next compare option into its place.
+  const promoted = useMemo(() => promotedTopPick(blocks, dismissedIds) ?? undefined, [blocks, dismissedIds]);
   const ctx = useMemo(() => ({
     links,
     itemTitles: itemTitlesOf(blocks),
@@ -75,12 +79,13 @@ const LearningPagePane = ({
     onToggleSave,
     onDismiss,
     onAsk,
-    topPickId: topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined,
+    topPickId: promoted?.item.item_id ?? (topPickId?.type === 'top_pick' ? topPickId.props.item.item_id : undefined),
+    promotedTopPick: promoted,
     profile: profileBlock?.type === 'profile' ? profileBlock.props : undefined,
     onOpenItem,
     onExplain,
-  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, onAsk, topPickId, profileBlock, onOpenItem,
-    onExplain]);
+  }), [blocks, links, savedIds, dismissedIds, onToggleSave, onDismiss, onAsk, topPickId, promoted, profileBlock,
+    onOpenItem, onExplain]);
 
   // New results start at the top: the results pane scrolls back to its top when another turn's results
   // (or their placeholders) take over, including a search reopened from History or an earlier turn
