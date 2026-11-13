@@ -25,3 +25,5 @@ Each finished reply has thumbs up ("Helpful") and down ("Not helpful") with `ari
 ## Debug panel (`?debug=true`)
 
 The panel switches live AI on or off and picks the intent and compose models and their reasoning effort; the benchmark table lists each turn's models, timings, tokens and cost. Model choices last one conversation: a page load, New chat and reopening a past search all return to the server defaults, and nothing is saved in the browser. Only the Live switch carries over to a new conversation in the same page view.
+
+Every turn in debug mode sends a `debug` object, empty (`{}`) when no model is chosen. Where enterprise-access has a debug catalog configured (`PERSONALIZED_SEARCH_DEBUG_CATALOG_SCOPE`, stage only), those turns search it instead of the learner's own catalog. enterprise-access honours debug mode only when `PERSONALIZED_SEARCH_DEBUG_OVERRIDES_ENABLED` is on and the learner is a superuser or on `enterprise_access.personalized_search_debug`; for everyone else `?debug=true` changes nothing on the server. See the Feature Flags table in the [tech spec](../../../../../../docs/personalized-search/personalized-search-tech-spec.md#feature-flags).
