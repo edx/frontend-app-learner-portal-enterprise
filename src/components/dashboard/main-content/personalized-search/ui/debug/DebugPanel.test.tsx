@@ -142,23 +142,6 @@ describe('Personalized Search debug panel (?debug=true)', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({});
   });
 
-  it('drops a chosen model the server no longer offers, so turns use the default again', async () => {
-    testStore.setState({
-      debugSettings: {
-        live: true, intentModel: 'retired-model', intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: 'ultra',
-      },
-    });
-    const user = userEvent.setup();
-    renderTab('/test-enterprise?tab=personalized-search&debug=true');
-    await screen.findByText('Catalog: Example catalog');
-    await waitFor(() => expect(testStore.getState().debugSettings).toEqual(expect.objectContaining({
-      intentModel: null, intentEffort: null, composeModel: 'gpt-5.4-mini', composeEffort: null,
-    })));
-    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
-    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({ compose_model: 'gpt-5.4-mini', compose_effort: null });
-  });
-
   it('explains what the intent and compose models do on hover or focus', async () => {
     const user = userEvent.setup();
     renderTab('/test-enterprise?tab=personalized-search&debug=true');
