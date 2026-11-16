@@ -173,15 +173,21 @@ export async function ensureEnterpriseAppData({
  * visit to the learner portal. The redirect does not occur if the user has
  * already visited the learner portal.
  *
+ * A dashboard URL that names a tab (`?tab=`, e.g. a deep link to one of the dashboard's tabs)
+ * is an explicit request for that tab, so it is never redirected. The visit still counts as the
+ * first visit: the learner reached the dashboard.
+ *
  * @param {Object} params - The parameters object.
  * @param {string} params.enterpriseSlug - The enterprise slug.
  * @param {Array} params.enterpriseCourseEnrollments - The enterprise course enrollments.
  * @param {Object} params.redeemablePolicies - The redeemable policies.
+ * @param {URL} [params.requestUrl] - The loader's request URL (defaults to the current location).
  */
 export function redirectToSearchPageForNewUser({
   enterpriseSlug,
   enterpriseCourseEnrollments,
   redeemablePolicies,
+  requestUrl,
 }) {
   // If the user has already visited the dashboard, return early.
   if (localStorage.getItem('has-user-visited-learner-dashboard')) {
@@ -198,6 +204,12 @@ export function redirectToSearchPageForNewUser({
   // to view the dashboard.
   const isCurrentUrlMatchingDashboard = matchPath('/:enterpriseSlug', global.location.pathname);
   if (!isCurrentUrlMatchingDashboard) {
+    return;
+  }
+
+  // The URL names a dashboard tab, so the learner asked for that tab: stay on it.
+  const searchParams = requestUrl ? requestUrl.searchParams : new URLSearchParams(global.location.search);
+  if (searchParams.get('tab')) {
     return;
   }
 

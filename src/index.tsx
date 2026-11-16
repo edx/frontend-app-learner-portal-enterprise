@@ -66,8 +66,16 @@ initialize({
         XPERT_AI_CLIENT_ID: process.env.XPERT_AI_CLIENT_ID || null,
         XPERT_API_BASE_URL: process.env.XPERT_API_BASE_URL || null,
         PATHWAYS_FEEDBACK_FORM_URL: process.env.PATHWAYS_FEEDBACK_FORM_URL || null,
+        PERSONALIZED_SEARCH_TRANSPORT: process.env.PERSONALIZED_SEARCH_TRANSPORT || null,
+        PERSONALIZED_SEARCH_API_BASE_URL: process.env.PERSONALIZED_SEARCH_API_BASE_URL || null,
         FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: (
           process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS
+            ?.split(',')
+            .map((uuid) => uuid.trim())
+            .filter(Boolean) || []
+        ),
+        FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: (
+          process.env.FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS
             ?.split(',')
             .map((uuid) => uuid.trim())
             .filter(Boolean) || []

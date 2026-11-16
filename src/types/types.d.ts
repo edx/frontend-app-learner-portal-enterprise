@@ -164,6 +164,7 @@ declare global {
     enterpriseLearnerBffEnabled?: boolean;
     enableMultiLicenseEntitlementsBff?: boolean;
     enterpriseAiPathwaysOperatorEnabled?: boolean;
+    enterprisePersonalizedSearchEnabled?: boolean;
     useAlgoliaIndexV2?: boolean;
   };
 
