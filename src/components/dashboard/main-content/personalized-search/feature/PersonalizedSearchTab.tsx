@@ -44,14 +44,6 @@ const PersonalizedSearchTab = ({
   const isWide = useMediaQuery({ minWidth: breakpoints.medium.minWidth });
   const reducedMotion = useMediaQuery({ query: '(prefers-reduced-motion: reduce)' });
 
-  if (controller.unavailable) {
-    return (
-      <Alert variant="warning" className="mt-3">
-        {intl.formatMessage(messages.notAvailable)}
-      </Alert>
-    );
-  }
-
   const chat = (
     <ChatPane
       turns={controller.turns}
@@ -78,6 +70,16 @@ const PersonalizedSearchTab = ({
       reducedMotion={reducedMotion}
     />
   );
+
+  if (controller.unavailable) {
+    return (
+      <div className="personalized-search py-3">
+        <Alert variant="warning" className="mt-3">
+          {intl.formatMessage(messages.notAvailable)}
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="personalized-search py-3" data-layout={isWide ? 'dual' : 'stacked'}>
