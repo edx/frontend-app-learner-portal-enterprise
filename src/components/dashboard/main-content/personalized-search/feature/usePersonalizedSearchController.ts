@@ -29,7 +29,8 @@ import type { BenchmarkRow } from '../core/debug/benchmark';
 import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
 import {
-  itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
+  deleteSessionWorkflow, HISTORY_PAGE_SIZE, isSessionGoneError, itemFeedbackWorkflow, loadFeedbackWorkflow,
+  loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
 } from '../core/workflows';
 import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
@@ -110,7 +111,7 @@ export const createPersonalizedSearchController = ({
     const {
       stream, viewedTurnId, draft, unavailable, announcement,
       mobilePane, seenPageTurnId, debugSettings, debugConfig, debugConfigError, mode, pastSessionCreated, history,
-      feedback, savedOpen, excludedOpen, excludedTabShown, feedbackLoaded,
+      sessionGone, feedback, savedOpen, excludedOpen, excludedTabShown, feedbackLoaded,
     } = useStore(storeApi, useShallow((state) => ({
       stream: state.stream,
       viewedTurnId: state.viewedTurnId,
@@ -121,6 +122,7 @@ export const createPersonalizedSearchController = ({
       seenPageTurnId: state.seenPageTurnId,
       mode: state.mode,
       pastSessionCreated: state.pastSessionCreated,
+      sessionGone: state.sessionGone,
       history: state.history,
       feedback: state.feedback,
       savedOpen: state.savedOpen,
@@ -248,6 +250,7 @@ export const createPersonalizedSearchController = ({
       // from History counts as resumed; one restored from the URL (?session=) is the learner coming back.
       const resumedFromHistory = store.mode === 'past' && reopenedFromHistory.current;
       if (store.mode === 'past') { store.setMode('live'); }
+      if (store.sessionGone) { store.setSessionGone(false); }
       // Fixed chip copy only (starter and follow-up chips); suggested chips are model-written and typed
       // text is the learner's.
       const fixedChip = source === 'starter_chip' || source === 'followup_chip';
@@ -319,6 +322,13 @@ export const createPersonalizedSearchController = ({
         // The stopped turn's blocks were discarded, so show the page from before it.
         const { turns } = after.stream;
         after.setViewedTurnId(previousPageTurnId(turns, turns.findIndex((t) => t.localId === localId)));
+      } else if (result.status === 404 && result.code === 'session_not_found') {
+        // The conversation was deleted (in another tab, or by the 30-day purge) or isn't this learner's: start
+        // fresh with their message back in the box, instead of reporting the whole feature unavailable.
+        after.reset();
+        setSessionParam(null);
+        storeApi.getState().setSessionGone(true);
+        storeApi.getState().setDraft(message);
       } else if (result.status === 403 || result.status === 404) {
         if (result.status === 403) {
           deps.logError(`Personalized Search turn forbidden for enterprise ${enterpriseCustomerUuid}`);
@@ -327,7 +337,7 @@ export const createPersonalizedSearchController = ({
       } else if (result.status === 400) {
         after.setDraft(message);
       }
-    }, [enterpriseCustomerUuid, intl, transport, track, closeSaved]);
+    }, [enterpriseCustomerUuid, intl, transport, track, closeSaved, setSessionParam]);
 
     const stop = useCallback(() => {
       abortRef.current?.abort();
@@ -454,6 +464,8 @@ export const createPersonalizedSearchController = ({
       storeApi.getState().setExcludedOpen(true);
     }, [track]);
 
+    // Conversations deleted in this page view, so a list request already in flight can't bring one back.
+    const deletedSessions = useRef(new Set<string>());
     const loadHistoryPage = useCallback(async (page: number) => {
       const store = storeApi.getState();
       if (!enterpriseCustomerUuid || store.history.loading) { return; }
@@ -465,7 +477,8 @@ export const createPersonalizedSearchController = ({
           page,
           () => storeApi.getState().history.items,
         );
-        storeApi.getState().setHistory({ ...loaded, loading: false });
+        const items = loaded.items.filter((item) => !deletedSessions.current.has(item.uuid));
+        storeApi.getState().setHistory({ ...loaded, items, loading: false });
       } catch (e) {
         deps.logError(e);
         storeApi.getState().setHistory({ loading: false, error: true });
@@ -474,7 +487,7 @@ export const createPersonalizedSearchController = ({
 
     const openHistory = useCallback(() => {
       track('history_opened');
-      storeApi.getState().setHistory({ open: true });
+      storeApi.getState().setHistory({ open: true, gone: false });
       loadHistoryPage(1);
     }, [loadHistoryPage, track]);
 
@@ -483,19 +496,46 @@ export const createPersonalizedSearchController = ({
     }, []);
 
     const loadMoreHistory = useCallback(() => {
-      loadHistoryPage(storeApi.getState().history.page + 1);
+      // By rows loaded, not pages: a delete shifts the server's pages up, and page + 1 would skip a row.
+      // Rows the page shares with the list are dropped when it's merged.
+      loadHistoryPage(Math.floor(storeApi.getState().history.items.length / HISTORY_PAGE_SIZE) + 1);
     }, [loadHistoryPage]);
+
+    // The past session being fetched by openSession; a delete of that one drops the fetch's result.
+    const openRequest = useRef(0);
+    const openingSession = useRef<string | null>(null);
+
+    /**
+     * Permanently delete one of the learner's past sessions from History; saved items stay. Deleting the
+     * conversation on screen also starts a new chat, as New chat does, and the panel stays open on the rest
+     * of the list. Rejects when the delete fails, so the confirmation can say so.
+     */
+    const deleteSession = useCallback(async (sessionUuid: string) => {
+      if (!enterpriseCustomerUuid) { return; }
+      await deleteSessionWorkflow(deps.sessionsApi, enterpriseCustomerUuid, sessionUuid);
+      deletedSessions.current.add(sessionUuid);
+      if (openingSession.current === sessionUuid) { openRequest.current += 1; } // still loading: don't show it
+      track('history_session_deleted', { conversation_id: sessionUuid }, null);
+      const store = storeApi.getState();
+      const remaining = { ...store.history, items: store.history.items.filter((item) => item.uuid !== sessionUuid) };
+      if (store.stream.session.sessionUuid === sessionUuid) {
+        abortRef.current?.abort();
+        store.reset();
+        setSessionParam(null);
+      }
+      storeApi.getState().setHistory(remaining); // reset() also clears History, which stays open here
+    }, [enterpriseCustomerUuid, track, setSessionParam]);
 
     /**
      * Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. A
      * response that arrives after the learner moved on (sent a message, started a new chat, or opened
      * another session) is dropped.
      */
-    const openRequest = useRef(0);
     const openSession = useCallback(async (sessionUuid: string, { restoring = false } = {}) => {
       const store = storeApi.getState();
       if (!enterpriseCustomerUuid || store.stream.activeTurnId) { return; }
       openRequest.current += 1;
+      openingSession.current = sessionUuid;
       const request = openRequest.current;
       const isStale = () => request !== openRequest.current || storeApi.getState().stream !== store.stream;
       try {
@@ -520,8 +560,14 @@ export const createPersonalizedSearchController = ({
       } catch (e) {
         deps.logError(e);
         if (isStale()) { return; }
+        const gone = isSessionGoneError(e);
         if (restoring) {
           setSessionParam(null); // the URL named a conversation that's gone or not this learner's
+          if (gone) { storeApi.getState().setSessionGone(true); }
+        } else if (gone) {
+          // Deleted since History loaded (another tab, or the purge): drop its row and say so in the open panel.
+          const { items } = storeApi.getState().history;
+          storeApi.getState().setHistory({ gone: true, items: items.filter((item) => item.uuid !== sessionUuid) });
         } else {
           storeApi.getState().setHistory({ error: true });
         }
@@ -608,6 +654,9 @@ export const createPersonalizedSearchController = ({
       closeHistory,
       loadMoreHistory,
       openSession,
+      deleteSession,
+      sessionGone,
+      dismissSessionGone: () => storeApi.getState().setSessionGone(false),
       feedback,
       feedbackLoaded,
       savedIds,

@@ -47,6 +47,7 @@ export const PERSONALIZED_SEARCH_EVENTS = {
   saved_tab_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.saved_tab_opened`,
   excluded_tab_opened: `${PERSONALIZED_SEARCH_PREFIX}.results.excluded_tab_opened`,
   history_opened: `${PERSONALIZED_SEARCH_PREFIX}.history.history_opened`,
+  history_session_deleted: `${PERSONALIZED_SEARCH_PREFIX}.history.history_session_deleted`,
 } as const;
 
 const EVENT_NAMES = {

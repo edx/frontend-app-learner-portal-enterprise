@@ -1,14 +1,16 @@
 import '@testing-library/jest-dom/extend-expect';
 import {
-  render, screen, waitFor, within,
+  act, render, screen, waitFor, within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { useMediaQuery } from '@openedx/paragon';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
+import { TransportError } from '../../core/transports/ChatTransport';
 import type { ChatTransport, SendTurnOptions, TurnRequest } from '../../core/transports/ChatTransport';
 import { FixtureChatTransport } from '../../core/transports/FixtureChatTransport';
 import type { SessionDetail } from '../../core/api/sessions';
@@ -16,7 +18,7 @@ import { createPersonalizedSearchStore } from '../../feature/personalizedSearchS
 import { applyParts, beginTurn, getInitialChatStreamState } from '../../core/stream/applyPart';
 import { readGolden } from '../../core/stream/testUtils';
 import { parseSseText } from '../../core/stream/parseSse';
-import type { Part } from '../../core/stream/types';
+import type { ItemCard, Part } from '../../core/stream/types';
 import { reopenSessionWorkflow } from '../../core/workflows';
 import { loadPendingTurn, savePendingTurn } from '../../core/pendingTurn';
 import HistoryPanel, { groupByDay } from './HistoryPanel';
@@ -24,6 +26,10 @@ import { useEnterpriseCustomer } from '../../../../../app/data';
 
 const testStore = createPersonalizedSearchStore();
 
+jest.mock('@2uinc/frontend-enterprise-utils', () => ({
+  ...jest.requireActual('@2uinc/frontend-enterprise-utils'),
+  sendEnterpriseTrackEvent: jest.fn(),
+}));
 jest.mock('@openedx/paragon', () => ({
   ...jest.requireActual('@openedx/paragon'),
   useMediaQuery: jest.fn(),
@@ -181,12 +187,14 @@ describe('History panel (chunk 29)', () => {
             hasMore: false,
             loading: false,
             error: false,
+            gone: false,
           }}
           busy={false}
           currentSessionUuid="s-1"
           onClose={onClose}
           onLoadMore={jest.fn()}
           onOpenSession={onOpenSession}
+          onDeleteSession={jest.fn()}
         />
       </IntlProvider>,
     );
@@ -376,6 +384,235 @@ describe('History panel (chunk 29)', () => {
       await waitFor(() => expect(params().get('session')).toBe(started));
       expect(screen.queryByText(/Past search/)).not.toBeInTheDocument();
       expect(store.getState().stream.session.sessionUuid).toBe(started);
+    });
+  });
+
+  describe('deleting a conversation', () => {
+    const httpDelete = jest.fn();
+    const LocationProbe = () => <span data-testid="search">{useLocation().search}</span>;
+    const renderAt = (path: string, store = createPersonalizedSearchStore()) => render(
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[path]}>
+          <PersonalizedSearchTab store={store} transport={new RecordingTransport()} />
+          <LocationProbe />
+        </MemoryRouter>
+      </IntlProvider>,
+    );
+    const params = () => new URLSearchParams(screen.getByTestId('search').textContent ?? '');
+    const openHistory = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.click(screen.getByRole('button', { name: 'History' }));
+      const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+      await within(panel).findByRole('button', { name: /^Search 1 / });
+      return panel;
+    };
+    const confirmation = () => screen.getByRole('dialog', { name: 'Delete this search?' });
+
+    beforeEach(() => {
+      httpDelete.mockResolvedValue({ data: null });
+      (getAuthenticatedHttpClient as jest.Mock).mockReturnValue({ get: httpGet, delete: httpDelete });
+    });
+
+    it('the X asks first, says it is permanent and keeps saved items, and Cancel keeps the conversation', async () => {
+      const user = userEvent.setup();
+      renderAt('/test-enterprise?tab=personalized-search');
+      const panel = await openHistory(user);
+      await user.click(within(panel).getByRole('button', { name: 'Delete Search 1' }));
+      expect(within(confirmation()).getByText(
+        "This permanently deletes the conversation. It can't be retrieved once it's deleted. "
+        + 'Your saved recommendations will be kept.',
+      )).toBeInTheDocument();
+      await user.click(within(confirmation()).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Delete this search?' })).not.toBeInTheDocument());
+      expect(httpDelete).not.toHaveBeenCalled();
+      expect(within(panel).getByRole('button', { name: /^Search 1 / })).toBeInTheDocument();
+    });
+
+    it('Delete removes the conversation from History and reports it', async () => {
+      const user = userEvent.setup();
+      renderAt('/test-enterprise?tab=personalized-search');
+      const panel = await openHistory(user);
+      await user.click(within(panel).getByRole('button', { name: 'Delete Search 1' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(within(panel).queryByRole('button', { name: /^Search 1 / })).not.toBeInTheDocument());
+      expect(httpDelete).toHaveBeenCalledWith(
+        'http://ea.test/api/v1/personalized-search/sessions/s-1/',
+        { params: { enterprise_customer_uuid: 'ent-uuid' } },
+      );
+      expect(screen.queryByRole('dialog', { name: 'Delete this search?' })).not.toBeInTheDocument();
+      expect(within(panel).getByRole('button', { name: /^Search 2 / })).toBeInTheDocument();
+      expect(within(panel).getByRole('status')).toHaveTextContent('Search deleted.');
+      expect(sendEnterpriseTrackEvent).toHaveBeenCalledWith(
+        'ent-uuid',
+        'edx.ui.enterprise.learner_portal.personalized_search.history.history_session_deleted',
+        expect.objectContaining({ conversation_id: 's-1', enterprise_customer_uuid: 'ent-uuid' }),
+      );
+    });
+
+    it('deleting the open conversation starts a new chat, drops ?session= and keeps History open and saved items', async () => {
+      const user = userEvent.setup();
+      const store = createPersonalizedSearchStore();
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, store);
+      expect(await screen.findByText(/Past search/)).toBeInTheDocument();
+      const card: ItemCard = {
+        item_id: 'edX+X1',
+        item_type: 'course',
+        title: 'A saved course',
+        image_url: null,
+        partner_name: 'edX',
+        partner_logo_url: null,
+        link: { kind: 'course', course_key: 'edX+X1', course_type: 'verified-audit' },
+        facts: { level_type: 'Introductory', weeks_to_complete: 4, pacing_type: 'self_paced' },
+        why: null,
+        fit: [],
+      };
+      act(() => store.getState().setFeedback((feedback) => ({ ...feedback, saved: [card] })));
+      const { saved } = store.getState().feedback;
+      await user.click(screen.getByRole('button', { name: 'History' }));
+      const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+      await user.click(await within(panel).findByRole('button', { name: 'Delete Becoming a team lead' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(params().get('session')).toBeNull());
+      expect(screen.getByText('Hi! What do you want to learn?')).toBeInTheDocument();
+      expect(screen.queryByText(/^Past search ·/)).not.toBeInTheDocument(); // the banner, not the panel's title
+      expect(within(screen.getByRole('dialog', { name: 'Past searches' }))
+        .queryByRole('button', { name: /^Becoming a team lead/ })).not.toBeInTheDocument();
+      expect(store.getState().feedback.saved).toBe(saved);
+      // Reported as the deleted conversation, without the replayed turns' keys.
+      const [, name, props] = (sendEnterpriseTrackEvent as jest.Mock).mock.calls
+        .find(([, event]) => event.endsWith('.history.history_session_deleted'));
+      expect(name).toMatch(/history_session_deleted$/);
+      expect(props).toEqual(expect.objectContaining({ conversation_id: DETAIL.uuid }));
+      expect(props).not.toHaveProperty('turn_id');
+      expect(props).not.toHaveProperty('turn_index');
+    });
+
+    it('a failed delete keeps the conversation and says so in the confirmation', async () => {
+      const user = userEvent.setup();
+      httpDelete.mockRejectedValue(Object.assign(new Error('down'), { response: { status: 500 } }));
+      renderAt('/test-enterprise?tab=personalized-search');
+      const panel = await openHistory(user);
+      await user.click(within(panel).getByRole('button', { name: 'Delete Search 1' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      expect(await within(confirmation()).findByText("We couldn't delete this search. Try again.")).toBeInTheDocument();
+      expect(within(panel).getByRole('button', { name: /^Search 1 / })).toBeInTheDocument();
+    });
+
+    it('deleting a conversation while it is still opening does not show it', async () => {
+      const user = userEvent.setup();
+      const listing = httpGet.getMockImplementation() as (...args: unknown[]) => unknown;
+      let answer: (value: unknown) => void = () => {};
+      httpGet.mockImplementation((url: string, options: unknown) => (url.endsWith(`/sessions/${DETAIL.uuid}/`)
+        ? new Promise((resolve) => { answer = resolve; }) : listing(url, options)));
+      renderAt('/test-enterprise?tab=personalized-search');
+      await user.click(screen.getByRole('button', { name: 'History' }));
+      const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+      await user.click(await within(panel).findByRole('button', { name: /^Becoming a team lead/ }));
+      await user.click(within(panel).getByRole('button', { name: 'Delete Becoming a team lead' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(within(panel).queryByRole('button', { name: /^Becoming a team lead/ })).not.toBeInTheDocument());
+      await act(async () => { answer({ data: DETAIL }); });
+      expect(screen.queryByText(/^Past search ·/)).not.toBeInTheDocument();
+      expect(params().get('session')).toBeNull();
+    });
+
+    it('Load more after a delete picks up the conversation that moved onto the first page', async () => {
+      const user = userEvent.setup();
+      const server = [...SUMMARIES];
+      httpGet.mockImplementation(async (_url: string, { params: query }: { params: { page?: number } }) => {
+        const page = query.page ?? 1;
+        const results = server.slice((page - 1) * 20, page * 20);
+        return { data: { count: server.length, next: server.length > page * 20 ? 'next' : null, results } };
+      });
+      httpDelete.mockImplementation(async (url: string) => {
+        server.splice(server.findIndex((item) => url.endsWith(`/sessions/${item.uuid}/`)), 1);
+        return { data: null };
+      });
+      renderAt('/test-enterprise?tab=personalized-search');
+      const panel = await openHistory(user);
+      await user.click(within(panel).getByRole('button', { name: 'Delete Search 1' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(within(panel).queryByRole('button', { name: /^Search 1 / })).not.toBeInTheDocument());
+      await user.click(within(panel).getByRole('button', { name: 'Load more' }));
+      expect(await within(panel).findByRole('button', { name: /^Search 20 / })).toBeInTheDocument();
+      expect(within(panel).getAllByRole('button', { name: /^(Becoming|Search)/ })).toHaveLength(20);
+      expect(within(panel).queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+      expect(within(panel).queryByText("We couldn't load your past searches. Try again.")).not.toBeInTheDocument();
+    });
+
+    it('a conversation that is already gone (404) counts as deleted', async () => {
+      const user = userEvent.setup();
+      httpDelete.mockRejectedValue(Object.assign(new Error('gone'), { response: { status: 404 } }));
+      renderAt('/test-enterprise?tab=personalized-search');
+      const panel = await openHistory(user);
+      await user.click(within(panel).getByRole('button', { name: 'Delete Search 1' }));
+      await user.click(within(confirmation()).getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(within(panel).queryByRole('button', { name: /^Search 1 / })).not.toBeInTheDocument());
+    });
+  });
+
+  describe('a conversation that is gone (deleted, or not this learner\'s)', () => {
+    const GONE = Object.assign(new Error('gone'), { response: { status: 404, data: { code: 'session_not_found' } } });
+    const NOTICE = 'That search is no longer available. It may have been deleted. Start a new one below.';
+    const LocationProbe = () => <span data-testid="search">{useLocation().search}</span>;
+    const renderAt = (path: string, transport: ChatTransport = new RecordingTransport()) => render(
+      <IntlProvider locale="en">
+        <MemoryRouter initialEntries={[path]}>
+          <PersonalizedSearchTab store={createPersonalizedSearchStore()} transport={transport} />
+          <LocationProbe />
+        </MemoryRouter>
+      </IntlProvider>,
+    );
+    const params = () => new URLSearchParams(screen.getByTestId('search').textContent ?? '');
+
+    /** The server's answer to a turn on a deleted conversation. */
+    const goneTransport: ChatTransport = {
+      // eslint-disable-next-line require-yield
+      async* send(): AsyncGenerator<Part> {
+        throw new TransportError(404, 'session_not_found');
+      },
+    };
+
+    it('a link or Back to a deleted conversation drops ?session= and says it is gone', async () => {
+      const user = userEvent.setup();
+      httpGet.mockImplementation(async (url: string) => {
+        if (url.endsWith(`/sessions/${DETAIL.uuid}/`)) { throw GONE; }
+        return { data: { count: 0, next: null, results: [] } };
+      });
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`);
+      expect(await screen.findByText(NOTICE)).toBeInTheDocument();
+      expect(params().get('session')).toBeNull();
+      expect(screen.getByText('Hi! What do you want to learn?')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+      expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+    });
+
+    it('continuing a conversation deleted elsewhere starts fresh with the message back, not "unavailable"', async () => {
+      const user = userEvent.setup();
+      renderAt(`/test-enterprise?tab=personalized-search&session=${DETAIL.uuid}`, goneTransport);
+      expect(await screen.findByText(/^Past search ·/)).toBeInTheDocument();
+      await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Something shorter{Enter}');
+      expect(await screen.findByText(NOTICE)).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue('Something shorter');
+      expect(params().get('session')).toBeNull();
+      expect(screen.queryByText(/^Past search ·/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/isn't available/i)).not.toBeInTheDocument(); // not the feature-unavailable view
+    });
+
+    it('opening from History a conversation deleted in another tab drops its row and says so in the open panel', async () => {
+      const user = userEvent.setup();
+      const listing = httpGet.getMockImplementation() as (...args: unknown[]) => unknown;
+      httpGet.mockImplementation((url: string, options: unknown) => (url.endsWith(`/sessions/${DETAIL.uuid}/`)
+        ? Promise.reject(GONE) : listing(url, options)));
+      renderAt('/test-enterprise?tab=personalized-search');
+      await user.click(screen.getByRole('button', { name: 'History' }));
+      const panel = await screen.findByRole('dialog', { name: 'Past searches' });
+      await user.click(await within(panel).findByRole('button', { name: /^Becoming a team lead/ }));
+      expect(await within(panel).findByText('That search is no longer available. It may have been deleted.'))
+        .toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Past searches' })).toBeInTheDocument(); // stays open
+      expect(within(panel).queryByRole('button', { name: /^Becoming a team lead/ })).not.toBeInTheDocument();
+      expect(within(panel).getByRole('button', { name: /^Search 1 / })).toBeInTheDocument();
+      expect(within(panel).queryByText("We couldn't load your past searches. Try again.")).not.toBeInTheDocument();
     });
   });
 });

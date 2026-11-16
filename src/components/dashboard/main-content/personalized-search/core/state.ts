@@ -20,4 +20,6 @@ export interface HistoryState {
   hasMore: boolean;
   loading: boolean;
   error: boolean;
+  /** A row the learner opened turned out to be deleted (another tab, or the purge); the panel says so. */
+  gone: boolean;
 }

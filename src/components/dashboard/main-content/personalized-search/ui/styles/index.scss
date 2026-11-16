@@ -282,6 +282,20 @@
   }
 }
 
+// The X that deletes a conversation sits in the row's top right corner, beside the row button rather
+// than inside it (a button can't hold another), and the title leaves room for it.
+.personalized-search__history-row {
+  position: relative;
+
+  .personalized-search__history-item { padding-right: 2.75rem; }
+}
+
+.personalized-search__history-delete {
+  position: absolute;
+  top: .375rem;
+  right: .75rem;
+}
+
 .personalized-search__clamp-2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
