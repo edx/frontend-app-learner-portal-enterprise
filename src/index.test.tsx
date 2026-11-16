@@ -35,6 +35,7 @@ describe('src/index.tsx bootstrap', () => {
     document.body.innerHTML = '<div id="root"></div>';
     process.env = { ...originalEnv };
     delete process.env.FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS;
+    delete process.env.FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS;
     delete process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER;
   });
 
@@ -91,6 +92,25 @@ describe('src/index.tsx bootstrap', () => {
 
     expect(mockMergeConfig).toHaveBeenCalledWith(
       expect.objectContaining({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: ['uuid-1', 'uuid-2'] }),
+    );
+  });
+
+  it.each([
+    [undefined, []],
+    ['uuid-1, uuid-2,', ['uuid-1', 'uuid-2']],
+  ])('parses FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS %p into %p', (value, expected) => {
+    if (value !== undefined) {
+      process.env.FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS = value;
+    }
+
+    // eslint-disable-next-line global-require
+    require('./index');
+
+    const { handlers } = mockInitialize.mock.calls[0][0];
+    handlers.config();
+
+    expect(mockMergeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: expected }),
     );
   });
 

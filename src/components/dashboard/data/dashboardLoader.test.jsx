@@ -100,12 +100,22 @@ describe('dashboardLoader', () => {
       hasVisitedDashboardBefore: false,
       shouldRedirectToSearch: false,
     },
+    {
+      // A deep link to a dashboard tab stays on that tab, even for a first-time learner with nothing to show.
+      hasAssignmentsForDisplay: false,
+      hasEnterpriseCourseEnrollments: false,
+      currentPageRoute: `/${mockEnterpriseSlug}`,
+      search: '?tab=personalized-search',
+      hasVisitedDashboardBefore: false,
+      shouldRedirectToSearch: false,
+    },
   ])('ensures the requisite dashboard data is resolved (%s)', async ({
     hasAssignmentsForDisplay,
     hasEnterpriseCourseEnrollments,
     currentPageRoute,
     hasVisitedDashboardBefore,
     shouldRedirectToSearch,
+    search = '',
   }) => {
     resolveBFFQuery.mockReturnValue(queryEnterpriseLearnerDashboardBFF);
 
@@ -175,7 +185,7 @@ describe('dashboardLoader', () => {
         loader: makeDashboardLoader(mockQueryClient),
       },
       {
-        initialEntries: [`/${mockEnterpriseSlug}`],
+        initialEntries: [`/${mockEnterpriseSlug}${search}`],
         routes: [
           {
             path: '/:enterpriseSlug/search',
@@ -190,6 +200,8 @@ describe('dashboardLoader', () => {
     } else {
       expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
     }
+    // Any visit to the dashboard (including a deep link to one of its tabs) counts as the first one.
+    expect(localStorage.getItem('has-user-visited-learner-dashboard')).toBeTruthy();
 
     expect(mockQueryClient.ensureQueryData).toHaveBeenCalledTimes(4);
     expect(mockQueryClient.ensureQueryData).toHaveBeenCalledWith(

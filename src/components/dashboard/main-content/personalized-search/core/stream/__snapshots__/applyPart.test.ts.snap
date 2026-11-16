@@ -10,12 +10,13 @@ exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`
   },
   "turns": [
     {
+      "analytics": null,
       "blocks": [
         {
           "block": {
             "props": {
               "dek": "Matches from your organization’s catalog.",
-              "label": "Your learning page",
+              "label": "Your results",
               "title": "Results for “I want to get better at leading a team”",
             },
             "type": "page_header",
@@ -146,6 +147,7 @@ exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`
       },
       "localId": "local-1",
       "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "sequence": 1,
       "status": "done",
       "step": null,
       "text": "Here's what I found in your catalog.",
@@ -176,22 +178,36 @@ exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] =
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [],
       "error": "model_failed",
       "followups": {
         "attribute": "type",
-        "question": "How much time can you give it?",
+        "ideas": [
+          "Giving feedback to my team",
+          "Leading remote teams",
+        ],
+        "question": "Do you want courses, executive education or a program?",
         "suggestions": [
-          "Under 4 weeks",
-          "1 to 3 months",
           "Courses",
+          "Executive education",
+          "Programs",
         ],
       },
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "sequence": 1,
       "status": "error",
       "step": null,
-      "text": "Here are picks for leading a team.",
+      "text": "I put a leadership certificate at the top.",
       "timing": null,
       "userMessage": "I want to get better at leading a team",
     },
@@ -209,25 +225,47 @@ exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`
   },
   "turns": [
     {
-      "blocks": [],
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "body": "Your catalog has nothing on this topic yet.",
+              "title": "No matching courses",
+            },
+            "type": "caveat",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+      ],
       "error": null,
       "followups": {
         "attribute": "open",
-        "question": "Is there another skill you want?",
-        "suggestions": [
-          "Data",
-          "AI",
-          "Prepare for a leadership role",
+        "ideas": [
+          "Data skills",
+          "AI for my job",
         ],
+        "question": "Is there another skill you want?",
+        "suggestions": [],
       },
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "sequence": 1,
       "status": "done",
       "step": null,
       "text": "Nothing in your catalog covers underwater basket weaving.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 1600,
+        "complete_ms": 2400,
         "dropped_lines": 0,
         "first_section_ms": null,
         "first_text_ms": 400,
@@ -252,12 +290,21 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [
         {
           "block": {
             "props": {
               "dek": "Short, practical picks.",
-              "label": "Your learning page",
+              "label": "Your results",
               "title": "Lead with confidence",
             },
             "type": "page_header",
@@ -268,12 +315,151 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
         {
           "block": {
             "props": {
+              "chips": [
+                "Leadership",
+                "Introductory",
+              ],
+              "summary": "Here's what I understood about your goal and your level.",
+            },
+            "type": "profile",
+            "v": 1,
+          },
+          "id": "blk_profile",
+        },
+        {
+          "block": {
+            "props": {
+              "checks": [
+                "Certificate",
+              ],
+              "item": {
+                "facts": {
+                  "course_count": 3,
+                  "level_type": "Intermediate",
+                  "program_type": "Professional Certificate",
+                },
+                "fit": [],
+                "image_url": "https://img/p-1.png",
+                "item_id": "p-1",
+                "item_type": "program",
+                "link": {
+                  "kind": "program",
+                  "program_uuid": "p-1",
+                },
+                "partner_logo_url": "https://logo/mit.png",
+                "partner_name": "MITx",
+                "position": 1,
+                "section": "top_pick",
+                "title": "Program p-1",
+                "why": "Because you want to lead a team and earn a credential.",
+              },
+              "reason": "Because you want to lead a team and earn a credential.",
+            },
+            "type": "top_pick",
+            "v": 1,
+          },
+          "id": "blk_2",
+        },
+        {
+          "block": {
+            "props": {
+              "options": [
+                {
+                  "best_for": "a recognized credential",
+                  "item": {
+                    "facts": {
+                      "course_count": 3,
+                      "level_type": "Intermediate",
+                      "program_type": "Professional Certificate",
+                    },
+                    "fit": [],
+                    "image_url": "https://img/p-1.png",
+                    "item_id": "p-1",
+                    "item_type": "program",
+                    "link": {
+                      "kind": "program",
+                      "program_uuid": "p-1",
+                    },
+                    "partner_logo_url": "https://logo/mit.png",
+                    "partner_name": "MITx",
+                    "position": 2,
+                    "section": "compare",
+                    "title": "Program p-1",
+                    "why": null,
+                  },
+                },
+                {
+                  "best_for": "an executive-level perspective",
+                  "item": {
+                    "facts": {
+                      "hours_per_week_max": 4,
+                      "hours_per_week_min": 2,
+                      "level_type": "Introductory",
+                      "pacing_type": "self_paced",
+                      "weeks_to_complete": 4,
+                    },
+                    "fit": [],
+                    "image_url": "https://img/Yale+E1.png",
+                    "item_id": "Yale+E1",
+                    "item_type": "executive_education",
+                    "link": {
+                      "course_key": "Yale+E1",
+                      "course_type": "executive-education-2u",
+                      "kind": "course",
+                    },
+                    "partner_logo_url": "https://logo/edx.png",
+                    "partner_name": "edX",
+                    "position": 3,
+                    "section": "compare",
+                    "title": "Course Yale+E1",
+                    "why": null,
+                  },
+                },
+                {
+                  "best_for": "a quick start",
+                  "item": {
+                    "facts": {
+                      "hours_per_week_max": 4,
+                      "hours_per_week_min": 2,
+                      "level_type": "Introductory",
+                      "pacing_type": "instructor_paced",
+                      "weeks_to_complete": 4,
+                    },
+                    "fit": [],
+                    "image_url": "https://img/edX+C3.png",
+                    "item_id": "edX+C3",
+                    "item_type": "course",
+                    "link": {
+                      "course_key": "edX+C3",
+                      "course_type": "verified-audit",
+                      "kind": "course",
+                    },
+                    "partner_logo_url": "https://logo/edx.png",
+                    "partner_name": "edX",
+                    "position": 4,
+                    "section": "compare",
+                    "title": "Course edX+C3",
+                    "why": null,
+                  },
+                },
+              ],
+            },
+            "type": "compare",
+            "v": 1,
+          },
+          "id": "blk_3",
+        },
+        {
+          "block": {
+            "props": {
               "dek": "Start here",
               "fallback": false,
               "item_type": "course",
               "items": [
                 {
                   "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
                     "level_type": "Introductory",
                     "pacing_type": "self_paced",
                     "weeks_to_complete": 4,
@@ -292,11 +478,15 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/edx.png",
                   "partner_name": "edX",
+                  "position": 5,
+                  "section": "course",
                   "title": "Course edX+C1",
                   "why": "Covers the basics you asked for.",
                 },
                 {
                   "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
                     "level_type": "Intermediate",
                     "pacing_type": "self_paced",
                     "weeks_to_complete": 8,
@@ -314,16 +504,43 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   },
                   "partner_logo_url": "https://logo/edx.png",
                   "partner_name": "edX",
+                  "position": 6,
+                  "section": "course",
                   "title": "Course edX+C2",
                   "why": "Builds on it.",
                 },
               ],
-              "label": "Courses · 2 picks",
+              "label": "Courses · 3 picks",
+              "reserve": [
+                {
+                  "facts": {
+                    "hours_per_week_max": 4,
+                    "hours_per_week_min": 2,
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 12,
+                  },
+                  "fit": [],
+                  "image_url": "https://img/edX+C4.png",
+                  "item_id": "edX+C4",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+C4",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": "https://logo/edx.png",
+                  "partner_name": "edX",
+                  "section": "course",
+                  "title": "Course edX+C4",
+                  "why": null,
+                },
+              ],
             },
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_2",
+          "id": "blk_4",
         },
         {
           "block": {
@@ -341,16 +558,18 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   "fit": [
                     "Certificate",
                   ],
-                  "image_url": "https://img/p-1.png",
-                  "item_id": "p-1",
+                  "image_url": "https://img/p-2.png",
+                  "item_id": "p-2",
                   "item_type": "program",
                   "link": {
                     "kind": "program",
-                    "program_uuid": "p-1",
+                    "program_uuid": "p-2",
                   },
                   "partner_logo_url": "https://logo/mit.png",
                   "partner_name": "MITx",
-                  "title": "Program p-1",
+                  "position": 7,
+                  "section": "program",
+                  "title": "Program p-2",
                   "why": "A full certificate.",
                 },
               ],
@@ -359,7 +578,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "item_section",
             "v": 1,
           },
-          "id": "blk_3",
+          "id": "blk_5",
         },
         {
           "block": {
@@ -370,7 +589,7 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
             "type": "insight",
             "v": 1,
           },
-          "id": "blk_4",
+          "id": "blk_6",
         },
         {
           "block": {
@@ -385,33 +604,39 @@ exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] 
                   "note": "Then",
                 },
               ],
+              "why": "Start with the basics, then build to the full certificate.",
             },
             "type": "plan",
             "v": 1,
           },
-          "id": "blk_5",
+          "id": "blk_7",
         },
       ],
       "error": null,
       "followups": {
         "attribute": "type",
-        "question": "How much time can you give it?",
+        "ideas": [
+          "Giving feedback to my team",
+          "Leading remote teams",
+        ],
+        "question": "Do you want courses, executive education or a program?",
         "suggestions": [
-          "Under 4 weeks",
-          "1 to 3 months",
           "Courses",
+          "Executive education",
+          "Programs",
         ],
       },
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "sequence": 1,
       "status": "done",
       "step": null,
-      "text": "Here are picks for leading a team.",
+      "text": "I put a leadership certificate at the top.",
       "timing": {
         "backend": "openai",
-        "complete_ms": 6600,
+        "complete_ms": 9900,
         "dropped_lines": 0,
-        "first_section_ms": 3000,
+        "first_section_ms": 2400,
         "first_text_ms": 400,
         "intent_ms": 100,
         "model_compose": "gpt-5.4-mini",
@@ -434,11 +659,20 @@ exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1
   },
   "turns": [
     {
+      "analytics": {
+        "cohort": null,
+        "conversation_id": "00000000-0000-0000-0000-0000000a11ce",
+        "engine": null,
+        "enterprise_customer_uuid": "00000000-0000-0000-0000-000000000001",
+        "is_debug": false,
+        "turn_id": "00000000-0000-0000-0000-000000000b0b",
+        "turn_index": 1,
+      },
       "blocks": [],
       "error": null,
       "followups": {
         "attribute": "open",
-        "question": "What else would you like to learn?",
+        "question": "Want a starting point?",
         "suggestions": [
           "Prepare for a leadership role",
           "Learn AI for my job",
@@ -448,6 +682,7 @@ exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1
       },
       "localId": "local-1",
       "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "sequence": 1,
       "status": "done",
       "step": null,
       "text": "I can help you find learning in your organization's catalog. What would you like to learn?",

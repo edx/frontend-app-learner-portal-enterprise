@@ -1,11 +1,15 @@
-import { act, renderHook } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import {
+  act, render, renderHook, screen,
+} from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
 import { mergeConfig } from '@edx/frontend-platform';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { NIL as NIL_UUID } from 'uuid';
 
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { Tabs } from '@openedx/paragon';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import useDashboardTabs from './useDashboardTabs';
 import { features } from '../../../config';
@@ -93,7 +97,10 @@ describe('useDashboardTabs', () => {
     features.FEATURE_ENABLE_MY_CAREER = false;
     // Nil-uuid wildcard by default so every existing test below (which never touches this
     // allowlist itself) keeps its current "enabled for all" expectations.
-    mergeConfig({ FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
+    mergeConfig({
+      FEATURE_ENABLE_LEARNER_PATHWAYS_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID],
+      FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [],
+    });
   });
 
   it('always returns courses tab', () => {
@@ -232,6 +239,7 @@ describe('useDashboardTabs', () => {
     const enablePersonalizedSearch = () => {
       useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomerFactory({ enable_pathways: true }) });
       useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: true } });
+      mergeConfig({ FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: [NIL_UUID] });
     };
 
     it('appears immediately after the Pathways tab when its flag is on, keeping existing order', () => {
@@ -250,11 +258,18 @@ describe('useDashboardTabs', () => {
       ]);
     });
 
-    it('has a Beta badge in its title', () => {
+    it('is named "Personalized Search Beta" for screen readers, with its sparkle icon hidden from them', () => {
       enablePersonalizedSearch();
-      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
-      const tab = result.current.tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
-      expect(tab.props.title.props.children[1].props.children).toBe('Beta');
+      const PersonalizedSearchTabTitle = () => {
+        const { tabs, activeTab } = useDashboardTabs();
+        const searchTab = tabs.find(t => t.props.eventKey === DASHBOARD_PERSONALIZED_SEARCH_TAB);
+        return <Tabs activeKey={activeTab}>{searchTab}</Tabs>;
+      };
+      render(<PersonalizedSearchTabTitle />, { wrapper });
+      const tab = screen.getByRole('tab', { name: 'Personalized Search Beta' });
+      const icon = tab.querySelector('svg');
+      expect(icon).toBeInTheDocument();
+      expect(icon.closest('[aria-hidden="true"]')).toBeInTheDocument();
     });
 
     it('is absent when its flag is off, even with the Learner Pathways operator flag on', () => {
@@ -273,6 +288,33 @@ describe('useDashboardTabs', () => {
       expect(result.current.tabs.map(tab => tab.props.eventKey)).toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
     });
 
+    it.each([
+      { allowlist: undefined, visible: false },
+      { allowlist: [], visible: false },
+      { allowlist: [ALLOWLISTED_UUID], visible: false },
+      { allowlist: 'customer', visible: true },
+      { allowlist: [NIL_UUID], visible: true },
+    ])('follows its own customer allowlist ($allowlist -> visible: $visible)', ({ allowlist, visible }) => {
+      enablePersonalizedSearch();
+      const enterpriseCustomer = enterpriseCustomerFactory({ enable_pathways: true });
+      useEnterpriseCustomer.mockReturnValue({ data: enterpriseCustomer });
+      mergeConfig({
+        FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: (
+          allowlist === 'customer' ? [enterpriseCustomer.uuid] : allowlist
+        ),
+      });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      const tabKeys = result.current.tabs.map(tab => tab.props.eventKey);
+      expect(tabKeys.includes(DASHBOARD_PERSONALIZED_SEARCH_TAB)).toBe(visible);
+    });
+
+    it('is absent for an allowlisted customer when the learner flag is off', () => {
+      enablePersonalizedSearch();
+      useEnterpriseFeatures.mockReturnValue({ data: { enterprisePersonalizedSearchEnabled: false } });
+      const { result } = renderHook(() => useDashboardTabs(), { wrapper });
+      expect(result.current.tabs.map(tab => tab.props.eventKey)).not.toContain(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+    });
+
     it('renders PersonalizedSearchTab and sends its own page-visit event when selected', () => {
       enablePersonalizedSearch();
       const { result } = renderHook(() => useDashboardTabs(), { wrapper });
@@ -287,6 +329,20 @@ describe('useDashboardTabs', () => {
         'edx.ui.enterprise.learner_portal.personalized_search_tab.page_visit',
         expect.objectContaining({ tab: DASHBOARD_PERSONALIZED_SEARCH_TAB }),
       );
+    });
+
+    it('marks a tab chosen here with navigation state, so the tab can tell it from a deep link', () => {
+      enablePersonalizedSearch();
+      const { result } = renderHook(
+        () => ({ ...useDashboardTabs(), location: useLocation() }),
+        { wrapper: createWrapper([`/?tab=${DASHBOARD_COURSES_TAB}`]) },
+      );
+      expect(result.current.location.state).toBeNull();
+      act(() => {
+        result.current.onSelectHandler(DASHBOARD_PERSONALIZED_SEARCH_TAB);
+      });
+      expect(result.current.location.search).toBe(`?tab=${DASHBOARD_PERSONALIZED_SEARCH_TAB}`);
+      expect(result.current.location.state).toEqual({ dashboardTabSource: 'nav_tab' });
     });
   });
 

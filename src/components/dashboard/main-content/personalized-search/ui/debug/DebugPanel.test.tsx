@@ -1,0 +1,191 @@
+import '@testing-library/jest-dom/extend-expect';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
+import { useMediaQuery } from '@openedx/paragon';
+import { MemoryRouter } from 'react-router-dom';
+
+import PersonalizedSearchTab from '../../adapters/portal/PortalPersonalizedSearchTab';
+import { defaultDebugSettings, createPersonalizedSearchStore } from '../../feature/personalizedSearchStore';
+import { installStreamGlobals, readGoldenBytes, streamFromBytes } from '../../core/stream/testUtils';
+import { useEnterpriseCustomer } from '../../../../../app/data';
+
+const testStore = createPersonalizedSearchStore();
+
+jest.mock('@openedx/paragon', () => ({
+  ...jest.requireActual('@openedx/paragon'),
+  useMediaQuery: jest.fn(),
+}));
+jest.mock('@edx/frontend-platform/auth', () => ({
+  ...jest.requireActual('@edx/frontend-platform/auth'),
+  getAuthenticatedHttpClient: jest.fn(),
+}));
+jest.mock('@edx/frontend-platform/config', () => ({
+  ...jest.requireActual('@edx/frontend-platform/config'),
+  getConfig: () => ({ PERSONALIZED_SEARCH_API_BASE_URL: 'http://ea.test', ENTERPRISE_ACCESS_BASE_URL: 'http://ea.default' }),
+}));
+jest.mock('../../../../../app/data', () => ({
+  ...jest.requireActual('../../../../../app/data'),
+  useEnterpriseCustomer: jest.fn(),
+}));
+
+const DEBUG_CONFIG = {
+  models: [
+    {
+      id: 'gpt-4.1', price_in: 2, price_cached_in: 0.5, price_out: 8, efforts: [null],
+    },
+    {
+      id: 'gpt-5.4-mini', price_in: 0.75, price_cached_in: 0.075, price_out: 4.5, efforts: ['none', 'low', 'medium', 'high'],
+    },
+    {
+      id: 'xpert', label: 'Xpert platform', price_in: null, price_cached_in: null, price_out: null, efforts: [null],
+    },
+  ],
+  defaults: {
+    intent_model: 'gpt-4.1-mini', intent_effort: null, compose_model: 'gpt-5.4-mini', compose_effort: 'low',
+  },
+  catalog: 'Example catalog',
+};
+
+const renderTab = (path: string) => render(
+  <IntlProvider locale="en">
+    <MemoryRouter initialEntries={[path]}>
+      <PersonalizedSearchTab store={testStore} />
+    </MemoryRouter>
+  </IntlProvider>,
+);
+
+describe('Personalized Search debug panel (?debug=true)', () => {
+  const httpGet = jest.fn();
+  let fetchMock: jest.Mock;
+
+  beforeAll(installStreamGlobals);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    window.localStorage.clear();
+    testStore.setState({
+      debugSettings: defaultDebugSettings(), debugConfig: undefined, debugConfigError: null,
+    });
+    testStore.getState().reset();
+    (useEnterpriseCustomer as jest.Mock).mockReturnValue({ data: { uuid: 'ent-uuid', slug: 'test-enterprise' } });
+    (useMediaQuery as jest.Mock).mockReturnValue(true);
+    httpGet.mockImplementation(async (url: string) => (
+      url.endsWith('/csrf/api/v1/token') ? { data: { csrfToken: 'csrf' } } : { data: DEBUG_CONFIG }
+    ));
+    (getAuthenticatedHttpClient as jest.Mock).mockReturnValue({ get: httpGet });
+    fetchMock = jest.fn().mockImplementation(async () => ({
+      ok: true, status: 200, body: streamFromBytes(readGoldenBytes('normal_turn.sse')),
+    }));
+    (globalThis as { fetch?: unknown }).fetch = fetchMock;
+  });
+
+  it('is hidden without ?debug=true', () => {
+    renderTab('/test-enterprise?tab=personalized-search');
+    expect(screen.queryByTestId('personalized-search-debug')).not.toBeInTheDocument();
+    expect(httpGet).not.toHaveBeenCalled();
+  });
+
+  it('loads the model menu, sends the chosen model and lists the turn in the benchmark table', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    expect(await screen.findByText('Catalog: Example catalog')).toBeInTheDocument();
+    expect(httpGet).toHaveBeenCalledWith(
+      'http://ea.test/api/v1/personalized-search/debug/',
+      { params: { enterprise_customer_uuid: 'ent-uuid' } },
+    );
+
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'gpt-4.1');
+    expect(screen.getByLabelText('Reasoning', { selector: '#ps-debug-compose-effort' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Prepare for a leadership role' }));
+
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://ea.test/api/v1/personalized-search/turns/');
+    expect(JSON.parse(init.body).debug).toEqual({ compose_model: 'gpt-4.1', compose_effort: null });
+    expect(screen.getByRole('button', { name: 'Copy results as JSON' })).toBeInTheDocument();
+    // Kept for this conversation only, never in the browser.
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it('a new conversation goes back to the server default models, in the store and the dropdown', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'gpt-4.1');
+    expect(screen.getByLabelText('Compose model')).toHaveValue('gpt-4.1');
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.getByLabelText('Compose model')).toHaveValue('');
+    expect(testStore.getState().debugSettings).toEqual(defaultDebugSettings());
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    // Still a debug turn (an empty debug object), just without model overrides.
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).debug).toEqual({});
+  });
+
+  it('a page load starts on the defaults', () => {
+    expect(createPersonalizedSearchStore().getState().debugSettings).toEqual(defaultDebugSettings());
+  });
+
+  it('switching back to Server default stops sending the override', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'gpt-4.1');
+    await user.selectOptions(screen.getByLabelText('Compose model'), '');
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({});
+  });
+
+  it('explains what the intent and compose models do on hover or focus', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    await user.hover(screen.getByRole('button', { name: 'About the compose model' }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/writes the chat reply and the results/);
+    await user.unhover(screen.getByRole('button', { name: 'About the compose model' }));
+    screen.getByRole('button', { name: 'About the intent model' }).focus();
+    await waitFor(() => expect(screen.getByRole('tooltip')).toHaveTextContent(/structured search/));
+  });
+
+  it('offers the Xpert platform without token pricing and sends it as the override', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await screen.findByText('Catalog: Example catalog');
+    const option = screen.getAllByRole('option', { name: 'Xpert platform · no token pricing' });
+    expect(option).toHaveLength(2); // compose and intent pickers
+    await user.selectOptions(screen.getByLabelText('Compose model'), 'xpert');
+    await user.selectOptions(screen.getByLabelText('Intent model'), 'xpert');
+    await user.click(screen.getByRole('button', { name: 'Build data skills' }));
+    await waitFor(() => expect(testStore.getState().stream.activeTurnId).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).debug).toEqual({
+      intent_model: 'xpert', intent_effort: null, compose_model: 'xpert', compose_effort: null,
+    });
+  });
+
+  it('turning Live AI off replays fixtures without calling enterprise-access, and New chat keeps it off', async () => {
+    const user = userEvent.setup();
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    await user.click(await screen.findByRole('switch', { name: /Live AI/ }));
+    expect(screen.getByText('Canned fixture replies, no model calls')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Learn AI for my job' }));
+    await waitFor(() => expect(testStore.getState().stream.turns[0]?.status).toBe('done'), { timeout: 8000 });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // New chat resets the model choices but keeps the Live switch off.
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.getByRole('switch', { name: /Live AI/ })).not.toBeChecked();
+    expect(testStore.getState().debugSettings).toEqual({ ...defaultDebugSettings(), live: false });
+  });
+
+  it('says the switcher is off when the server has debug overrides disabled', async () => {
+    httpGet.mockImplementation(async () => { throw Object.assign(new Error('nope'), { response: { status: 404 } }); });
+    renderTab('/test-enterprise?tab=personalized-search&debug=true');
+    expect(await screen.findByText(/debug overrides disabled/)).toBeInTheDocument();
+  });
+});

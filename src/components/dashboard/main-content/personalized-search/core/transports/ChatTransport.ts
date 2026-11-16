@@ -6,6 +6,13 @@ export interface TurnRequest {
   /** null starts a new session. */
   sessionUuid: string | null;
   message: string;
+  /** The first message after reopening a past search (usage events, KD-12). */
+  resumedFromHistory?: boolean;
+  /**
+   * The learner's content language (e.g. "es"). The server returns catalog records and writes its text
+   * in this language when it supports it, and English otherwise.
+   */
+  locale?: string;
 }
 
 export interface SendTurnOptions {
@@ -43,8 +50,12 @@ export const getTurnsUrl = (enterpriseAccessBaseUrl: string) => (
   `${enterpriseAccessBaseUrl}/api/v1/personalized-search/turns/`
 );
 
-export const toTurnRequestBody = ({ enterpriseCustomerUuid, sessionUuid, message }: TurnRequest) => ({
+export const toTurnRequestBody = ({
+  enterpriseCustomerUuid, sessionUuid, message, resumedFromHistory, locale,
+}: TurnRequest) => ({
   enterprise_customer_uuid: enterpriseCustomerUuid,
   session_uuid: sessionUuid,
   message,
+  ...(resumedFromHistory ? { resumed_from_history: true } : {}),
+  ...(locale ? { locale } : {}),
 });

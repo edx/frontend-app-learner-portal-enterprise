@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import type { Block, PageBlock } from '../core/stream/types';
 import type { ItemLinks } from '../ui/cards/EditorialItemCard';
@@ -33,6 +34,20 @@ describe('block registry', () => {
     expect(defaultBlockRegistry.isRenderable({ v: 1, type: 'constructor', props: {} })).toBe(false);
   });
 
+  it('a plan step whose id is an Object.prototype name shows the id, not a crash', () => {
+    const block = {
+      v: 1,
+      type: 'plan',
+      props: { steps: [{ item_id: '__proto__' }, { item_id: 'toString' }, { item_id: 'edX+C1' }] },
+    } as unknown as Block;
+    render(
+      <IntlProvider locale="en">
+        {renderBlock(block, { ...ctx, itemTitles: { 'edX+C1': 'Leading people' } })}
+      </IntlProvider>,
+    );
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['__proto__', 'toString', 'Leading people']);
+  });
+
   it('register returns a new registry and leaves the original unchanged', () => {
     const extended = defaultBlockRegistry.register('callout', { render: () => <p>callout</p> });
     expect(extended).not.toBe(defaultBlockRegistry);
@@ -60,8 +75,10 @@ describe('block registry', () => {
         entry('d', 'page_header'), entry('e', 'item_section'),
       ];
       const { top, body } = defaultBlockRegistry.layout(blocks);
+      // The plan streams last but sits in the top row's corner, after the headline.
       expect(top.map((t) => t.entry.id)).toEqual(['c', 'b']);
       expect(top[0].className).toContain('personalized-search__header-col');
+      expect(top[1].className).toContain('personalized-search__plan-col');
       expect(body.map((b) => b.id)).toEqual(['a', 'd', 'e']);
     });
 

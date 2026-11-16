@@ -19,6 +19,8 @@ export const getInitialChatStreamState = (): ChatStreamState => ({
 const newTurn = (localId: string, userMessage: string | null): AssistantTurn => ({
   localId,
   messageId: null,
+  sequence: null,
+  analytics: null,
   userMessage,
   status: 'streaming',
   step: null,
@@ -96,17 +98,8 @@ export const applyPart = (
   part: Part,
   isRenderableBlock: BlockValidator = isCatalogBlock,
 ): ChatStreamState => {
-  if (part.type === 'start') {
-    if (state.activeTurnId) {
-      return updateTurn(state, state.activeTurnId, (turn) => ({ ...turn, messageId: part.messageId }));
-    }
-    // Replaying a stored turn (history): there is no client-started turn, so open one here.
-    const opened = beginTurn(state, { localId: part.messageId, userMessage: null });
-    return updateTurn(opened, part.messageId, (turn) => ({ ...turn, messageId: part.messageId }));
-  }
-
   if (part.type === 'data-session') {
-    return {
+    const withSession = {
       ...state,
       session: {
         sessionUuid: part.data.session_uuid,
@@ -115,12 +108,20 @@ export const applyPart = (
         title: part.data.title ?? state.session.title,
       },
     };
+    // The active turn learns its sequence too, so it can be rated later.
+    return state.activeTurnId
+      ? updateTurn(withSession, state.activeTurnId, (turn) => ({ ...turn, sequence: part.data.turn_sequence }))
+      : withSession;
   }
 
   const { activeTurnId } = state;
   if (!activeTurnId) { return state; }
 
   switch (part.type) {
+    // Every turn is opened by `beginTurn` first, live or replayed (reopenSessionWorkflow), so `start` only
+    // names the active turn.
+    case 'start':
+      return updateTurn(state, activeTurnId, (turn) => ({ ...turn, messageId: part.messageId }));
     case 'data-status':
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, step: part.data.step }));
     case 'text-start':
@@ -143,6 +144,8 @@ export const applyPart = (
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, followups: part.data }));
     case 'data-timing':
       return updateTurn(state, activeTurnId, (turn) => ({ ...turn, timing: part.data }));
+    case 'data-analytics':
+      return updateTurn(state, activeTurnId, (turn) => ({ ...turn, analytics: part.data }));
     case 'error':
       return {
         ...updateTurn(state, activeTurnId, (turn) => ({

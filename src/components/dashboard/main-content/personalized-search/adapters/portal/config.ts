@@ -10,5 +10,5 @@ export const getPersonalizedSearchApiBaseUrl = (): string => {
   return config.PERSONALIZED_SEARCH_API_BASE_URL || config.ENTERPRISE_ACCESS_BASE_URL;
 };
 
-/** `PERSONALIZED_SEARCH_TRANSPORT`: `fixture`, `buffered`, `unavailable`, or unset for the default. */
+/** `PERSONALIZED_SEARCH_TRANSPORT`: unset or `sse` (the default), `fixture`, `buffered` or `unavailable`. */
 export const getTransportSetting = (): string | null | undefined => getConfig().PERSONALIZED_SEARCH_TRANSPORT;

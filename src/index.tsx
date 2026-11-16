@@ -74,6 +74,12 @@ initialize({
             .map((uuid) => uuid.trim())
             .filter(Boolean) || []
         ),
+        FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS: (
+          process.env.FEATURE_ENABLE_PERSONALIZED_SEARCH_FOR_ENTERPRISE_CUSTOMERS
+            ?.split(',')
+            .map((uuid) => uuid.trim())
+            .filter(Boolean) || []
+        ),
         FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER: (
           process.env.FEATURE_ENABLE_PATHWAY_MESSAGE_FOR_ENTERPRISE_CUSTOMER?.trim() || null
         ),
