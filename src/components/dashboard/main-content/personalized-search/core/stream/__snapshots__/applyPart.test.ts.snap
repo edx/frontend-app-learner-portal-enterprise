@@ -1,0 +1,469 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`applyPart golden degraded_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "6f1c2a3e-0b7d-4c5e-9a10-2b3c4d5e6f70",
+    "title": "I want to get better at leading a team",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "dek": "Matches from your organization’s catalog.",
+              "label": "Your learning page",
+              "title": "Results for “I want to get better at leading a team”",
+            },
+            "type": "page_header",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Courses that match your search.",
+              "fallback": false,
+              "item_type": "course",
+              "items": [
+                {
+                  "facts": {
+                    "level_type": "Intermediate",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 6,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-ldr201.jpg",
+                  "item_id": "edX+LDR201",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+LDR201",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Leading High-Performing Teams",
+                  "why": null,
+                },
+                {
+                  "facts": {
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 4,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-com110.jpg",
+                  "item_id": "edX+COM110",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+COM110",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Communicating with Influence",
+                  "why": null,
+                },
+                {
+                  "facts": {
+                    "level_type": "Advanced",
+                    "pacing_type": "instructor_paced",
+                    "weeks_to_complete": 8,
+                  },
+                  "fit": [],
+                  "image_url": "https://prod-discovery.edx-cdn.org/media/course/image/edx-str305.jpg",
+                  "item_id": "edX+STR305",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+STR305",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Strategic Thinking for Managers",
+                  "why": null,
+                },
+              ],
+              "label": "Courses · 3 picks",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_2",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Programs that match your search.",
+              "fallback": false,
+              "item_type": "program",
+              "items": [
+                {
+                  "facts": {
+                    "course_count": 3,
+                    "level_type": "Intermediate",
+                    "program_type": "Professional Certificate",
+                  },
+                  "fit": [],
+                  "image_url": null,
+                  "item_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  "item_type": "program",
+                  "link": {
+                    "kind": "program",
+                    "program_uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                  },
+                  "partner_logo_url": null,
+                  "partner_name": "edX",
+                  "title": "Professional Certificate in Management",
+                  "why": null,
+                },
+              ],
+              "label": "Programs · 1 pick",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_3",
+        },
+      ],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "What would you like to learn?",
+        "suggestions": [
+          "Prepare for a leadership role",
+          "Learn AI for my job",
+          "Build data skills",
+          "Something quick, under 4 weeks",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_0d9e8f7a-6b5c-4d3e-8f2a-1b0c9d8e7f60",
+      "status": "done",
+      "step": null,
+      "text": "Here's what I found in your catalog.",
+      "timing": {
+        "backend": "claude",
+        "complete_ms": 480,
+        "dropped_lines": 0,
+        "first_section_ms": 460,
+        "first_text_ms": 450,
+        "intent_ms": null,
+        "model_compose": null,
+        "model_intent": null,
+        "retrieval_ms": 300,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden error_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "00000000-0000-0000-0000-0000000a11ce",
+    "title": null,
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": "model_failed",
+      "followups": {
+        "attribute": "type",
+        "question": "How much time can you give it?",
+        "suggestions": [
+          "Under 4 weeks",
+          "1 to 3 months",
+          "Courses",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "status": "error",
+      "step": null,
+      "text": "Here are picks for leading a team.",
+      "timing": null,
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden no_match_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "00000000-0000-0000-0000-0000000a11ce",
+    "title": "Underwater basket weaving",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "Is there another skill you want?",
+        "suggestions": [
+          "Data",
+          "AI",
+          "Prepare for a leadership role",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "status": "done",
+      "step": null,
+      "text": "Nothing in your catalog covers underwater basket weaving.",
+      "timing": {
+        "backend": "openai",
+        "complete_ms": 1600,
+        "dropped_lines": 0,
+        "first_section_ms": null,
+        "first_text_ms": 400,
+        "intent_ms": 100,
+        "model_compose": "gpt-5.4-mini",
+        "model_intent": "gpt-4.1-mini",
+        "retrieval_ms": 100,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden normal_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "00000000-0000-0000-0000-0000000a11ce",
+    "title": "Leading a team",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [
+        {
+          "block": {
+            "props": {
+              "dek": "Short, practical picks.",
+              "label": "Your learning page",
+              "title": "Lead with confidence",
+            },
+            "type": "page_header",
+            "v": 1,
+          },
+          "id": "blk_1",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Start here",
+              "fallback": false,
+              "item_type": "course",
+              "items": [
+                {
+                  "facts": {
+                    "level_type": "Introductory",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 4,
+                  },
+                  "fit": [
+                    "Introductory",
+                    "4 weeks",
+                  ],
+                  "image_url": "https://img/edX+C1.png",
+                  "item_id": "edX+C1",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+C1",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": "https://logo/edx.png",
+                  "partner_name": "edX",
+                  "title": "Course edX+C1",
+                  "why": "Covers the basics you asked for.",
+                },
+                {
+                  "facts": {
+                    "level_type": "Intermediate",
+                    "pacing_type": "self_paced",
+                    "weeks_to_complete": 8,
+                  },
+                  "fit": [
+                    "Next step",
+                  ],
+                  "image_url": "https://img/edX+C2.png",
+                  "item_id": "edX+C2",
+                  "item_type": "course",
+                  "link": {
+                    "course_key": "edX+C2",
+                    "course_type": "verified-audit",
+                    "kind": "course",
+                  },
+                  "partner_logo_url": "https://logo/edx.png",
+                  "partner_name": "edX",
+                  "title": "Course edX+C2",
+                  "why": "Builds on it.",
+                },
+              ],
+              "label": "Courses · 2 picks",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_2",
+        },
+        {
+          "block": {
+            "props": {
+              "dek": "Go deeper",
+              "fallback": false,
+              "item_type": "program",
+              "items": [
+                {
+                  "facts": {
+                    "course_count": 3,
+                    "level_type": "Intermediate",
+                    "program_type": "Professional Certificate",
+                  },
+                  "fit": [
+                    "Certificate",
+                  ],
+                  "image_url": "https://img/p-1.png",
+                  "item_id": "p-1",
+                  "item_type": "program",
+                  "link": {
+                    "kind": "program",
+                    "program_uuid": "p-1",
+                  },
+                  "partner_logo_url": "https://logo/mit.png",
+                  "partner_name": "MITx",
+                  "title": "Program p-1",
+                  "why": "A full certificate.",
+                },
+              ],
+              "label": "Programs · 1 pick",
+            },
+            "type": "item_section",
+            "v": 1,
+          },
+          "id": "blk_3",
+        },
+        {
+          "block": {
+            "props": {
+              "body": "New leads grow fastest by practising feedback.",
+              "title": "Start with people skills",
+            },
+            "type": "insight",
+            "v": 1,
+          },
+          "id": "blk_4",
+        },
+        {
+          "block": {
+            "props": {
+              "steps": [
+                {
+                  "item_id": "edX+C1",
+                  "note": "Start",
+                },
+                {
+                  "item_id": "p-1",
+                  "note": "Then",
+                },
+              ],
+            },
+            "type": "plan",
+            "v": 1,
+          },
+          "id": "blk_5",
+        },
+      ],
+      "error": null,
+      "followups": {
+        "attribute": "type",
+        "question": "How much time can you give it?",
+        "suggestions": [
+          "Under 4 weeks",
+          "1 to 3 months",
+          "Courses",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "status": "done",
+      "step": null,
+      "text": "Here are picks for leading a team.",
+      "timing": {
+        "backend": "openai",
+        "complete_ms": 6600,
+        "dropped_lines": 0,
+        "first_section_ms": 3000,
+        "first_text_ms": 400,
+        "intent_ms": 100,
+        "model_compose": "gpt-5.4-mini",
+        "model_intent": "gpt-4.1-mini",
+        "retrieval_ms": 100,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;
+
+exports[`applyPart golden off_topic_turn.sse reduces to the committed snapshot 1`] = `
+{
+  "activeTurnId": null,
+  "session": {
+    "sessionUuid": "00000000-0000-0000-0000-0000000a11ce",
+    "title": "What is the weather today?",
+    "turnSequence": 1,
+  },
+  "turns": [
+    {
+      "blocks": [],
+      "error": null,
+      "followups": {
+        "attribute": "open",
+        "question": "What else would you like to learn?",
+        "suggestions": [
+          "Prepare for a leadership role",
+          "Learn AI for my job",
+          "Build data skills",
+          "Something quick, under 4 weeks",
+        ],
+      },
+      "localId": "local-1",
+      "messageId": "turn_00000000-0000-0000-0000-000000000b0b",
+      "status": "done",
+      "step": null,
+      "text": "I can help you find learning in your organization's catalog. What would you like to learn?",
+      "timing": {
+        "backend": "openai",
+        "complete_ms": 200,
+        "dropped_lines": 0,
+        "first_section_ms": null,
+        "first_text_ms": 150,
+        "intent_ms": 100,
+        "model_compose": "gpt-5.4-mini",
+        "model_intent": "gpt-4.1-mini",
+        "retrieval_ms": null,
+      },
+      "userMessage": "I want to get better at leading a team",
+    },
+  ],
+}
+`;

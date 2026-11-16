@@ -13,4 +13,7 @@ const config = createConfig('jest', {
 // dependencies we authored (plus lodash-es).
 config.transformIgnorePatterns = ['node_modules/(?!(lodash-es|@(open)?edx|@2uinc)/)'];
 
+// The fixture-sync script is a developer CLI (it rewrites the .sse fixture index), not shipped code.
+config.coveragePathIgnorePatterns = [...(config.coveragePathIgnorePatterns || []), 'personalized-search/core/stream/__fixtures__/syncFixtures.js'];
+
 module.exports = config;
