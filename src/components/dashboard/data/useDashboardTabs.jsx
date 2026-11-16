@@ -12,6 +12,7 @@ import { getConfig } from '@edx/frontend-platform/config';
 import { sendPageEvent } from '@edx/frontend-platform/analytics';
 import CoursesTabComponent from '../main-content/CoursesTabComponent';
 import { LearnerPathwaysTab } from '../main-content/learner-pathways';
+import { PersonalizedSearchTab } from '../main-content/personalized-search';
 import { ProgramListingPage } from '../../program-progress';
 import PathwayProgressListingPage from '../../pathway-progress/PathwayProgressListingPage';
 import { features } from '../../../config';
@@ -19,6 +20,7 @@ import {
   DASHBOARD_COURSES_TAB,
   DASHBOARD_MY_CAREER_TAB,
   DASHBOARD_PATHWAYS_TAB,
+  DASHBOARD_PERSONALIZED_SEARCH_TAB,
   DASHBOARD_PROGRAMS_TAB,
   DASHBOARD_TABS_SEGMENT_KEY,
 } from './constants';
@@ -87,6 +89,10 @@ const useDashboardTabs = () => {
       isVisible: enablePathways,
       isAvailable: hasPathwaysTab,
     },
+    [DASHBOARD_PERSONALIZED_SEARCH_TAB]: {
+      isVisible: isLearnerPathwaysEnabled,
+      isAvailable: isLearnerPathwaysEnabled,
+    },
     [DASHBOARD_MY_CAREER_TAB]: {
       isVisible: enableMyCareer,
       isAvailable: enableMyCareer,
@@ -97,6 +103,7 @@ const useDashboardTabs = () => {
     enablePrograms,
     enterprisePrograms.length,
     hasPathwaysTab,
+    isLearnerPathwaysEnabled,
   ]);
 
   const activeTab = tabState[requestedTab]?.isAvailable
@@ -234,6 +241,31 @@ const useDashboardTabs = () => {
             <PathwayProgressListingPage />
           )
         )}
+      </Tab>
+    ),
+
+    tabState[DASHBOARD_PERSONALIZED_SEARCH_TAB].isVisible && (
+      <Tab
+        key={DASHBOARD_PERSONALIZED_SEARCH_TAB}
+        eventKey={DASHBOARD_PERSONALIZED_SEARCH_TAB}
+        title={(
+          <>
+            {intl.formatMessage({
+              id: 'enterprise.dashboard.tab.personalized.search',
+              defaultMessage: 'Personalized Search',
+              description: 'Title for the Personalized Search tab on enterprise dashboard.',
+            })}
+            <Badge variant="info" className="ml-2 font-weight-bold">
+              {intl.formatMessage({
+                id: 'enterprise.dashboard.tab.personalized.search.beta',
+                defaultMessage: 'Beta',
+                description: 'Label for the beta badge shown next to the Personalized Search tab title on the enterprise dashboard.',
+              })}
+            </Badge>
+          </>
+        )}
+      >
+        {activeTab === DASHBOARD_PERSONALIZED_SEARCH_TAB && <PersonalizedSearchTab />}
       </Tab>
     ),
 
