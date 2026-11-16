@@ -22,6 +22,8 @@ Each finished reply has thumbs up ("Helpful") and down ("Not helpful") with `ari
 
 `HistoryPanel` follows the Xpert chat sidebar, the platform's existing chatbot: a 25rem right-hand panel with a title bar and an icon close button, conversations under day dividers (Today, Yesterday, Previous 7 days, Older), and one row per conversation with its title (two lines at most) above the time or date and the number of picks. The conversation on screen is marked with `aria-current` and a left rule.
 
+Each row has a small X in its top right corner (a sibling of the row button, labelled "Delete {title}"). It opens `DeleteConversationModal`, which says the delete is permanent, the conversation can't be retrieved, and saved recommendations are kept. Delete calls `DELETE sessions/{uuid}/`; a 404 counts as deleted. A failure keeps the modal open with an error. Deleting the conversation on screen also starts a new chat, as New chat does, and History stays open. enterprise-access also deletes every conversation 30 days after its last message.
+
 ## Debug panel (`?debug=true`)
 
 The panel switches live AI on or off and picks the intent and compose models and their reasoning effort; the benchmark table lists each turn's models, timings, tokens and cost. Model choices last one conversation: a page load, New chat and reopening a past search all return to the server defaults, and nothing is saved in the browser. Only the Live switch carries over to a new conversation in the same page view.

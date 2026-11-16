@@ -56,7 +56,7 @@ This POC is an **internal demo**. It shows that a streaming chat, beside an edit
 | Org Ontology and org-goal alignment | R-29–R-32, UX-07, K-09 | Already V2 in the PRD |
 | Retiring the Pathways tab, quiz and banner, and the redirect | R-02, RK-06 | POC runs beside Pathways. **Amended 2026-11-04:** it has its own flags (KD-8), so the two tabs roll out independently |
 | Single-column inline trays, scroll pills, sticky slim bar, tile pop animation | R-16 layout, R-19, R-20, R-22, UX-01, UX-05 | Superseded by the dual pane (KD-1) |
-| Search inside history, rename, delete, clear all, 90-day purge job, time grouping | R-34 (search), R-37, R-38 (purge) | Demo needs reopen and continue only |
+| Search inside history, rename, clear all, time grouping (delete and a 30-day purge were added 2026-11-16) | R-34 (search), R-37, R-38 (purge) | Demo needs reopen and continue only |
 | Segment instrumentation, KPI dashboards, thumbs feedback | R-39, R-40, K-01–K-09 | Internal demo; no success metrics reported |
 | Production security and privacy review, prompt retention policy, no-training terms | NFR-02 (partial) | Internal demo on stage data. Auth and per-enterprise scoping stay in scope |
 | Formal WCAG 2.1 AA audit and screen-reader testing | NFR-03 (partial) | Paragon defaults + keyboard basics only |

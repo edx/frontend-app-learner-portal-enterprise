@@ -13,7 +13,8 @@ export type TrackAction =
   | 'new_chat_started'
   | 'saved_tab_opened'
   | 'excluded_tab_opened'
-  | 'history_opened';
+  | 'history_opened'
+  | 'history_session_deleted';
 
 /**
  * How a message was sent: typed, a starter chip, a fixed follow-up chip, a model-suggested chip, or a

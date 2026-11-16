@@ -40,6 +40,8 @@ export interface SessionsApi {
   listSessions: (enterpriseCustomerUuid: string, page?: number) => Promise<SessionPage>;
   /** One session with its stored turns, for replay. */
   getSession: (enterpriseCustomerUuid: string, sessionUuid: string) => Promise<SessionDetail>;
+  /** Permanently deletes one session and its turns; the learner's saved items are kept. */
+  deleteSession: (enterpriseCustomerUuid: string, sessionUuid: string) => Promise<void>;
 }
 
 export const createSessionsApi = ({ getHttpClient, getBaseUrl }: ApiOptions): SessionsApi => ({
@@ -54,5 +56,10 @@ export const createSessionsApi = ({ getHttpClient, getBaseUrl }: ApiOptions): Se
       params: { enterprise_customer_uuid: enterpriseCustomerUuid },
     });
     return data as SessionDetail;
+  },
+  deleteSession: async (enterpriseCustomerUuid, sessionUuid) => {
+    await getHttpClient().delete(`${getSessionsUrl(getBaseUrl())}${encodeURIComponent(sessionUuid)}/`, {
+      params: { enterprise_customer_uuid: enterpriseCustomerUuid },
+    });
   },
 });

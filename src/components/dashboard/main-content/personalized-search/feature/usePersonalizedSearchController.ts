@@ -29,7 +29,8 @@ import type { BenchmarkRow } from '../core/debug/benchmark';
 import type { FeedbackAction } from '../core/workflows';
 import type { PersonalizedSearchDeps } from './deps';
 import {
-  itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, sendTurnWorkflow,
+  deleteSessionWorkflow, itemFeedbackWorkflow, loadFeedbackWorkflow, loadHistoryPageWorkflow, openSessionWorkflow,
+  sendTurnWorkflow,
 } from '../core/workflows';
 import type { DebugSettings, MobilePane, PersonalizedSearchStoreApi } from './personalizedSearchStore';
 
@@ -487,6 +488,25 @@ export const createPersonalizedSearchController = ({
     }, [loadHistoryPage]);
 
     /**
+     * Permanently delete one of the learner's past sessions from History; saved items stay. Deleting the
+     * conversation on screen also starts a new chat, as New chat does, and the panel stays open on the rest
+     * of the list. Rejects when the delete fails, so the confirmation can say so.
+     */
+    const deleteSession = useCallback(async (sessionUuid: string) => {
+      if (!enterpriseCustomerUuid) { return; }
+      await deleteSessionWorkflow(deps.sessionsApi, enterpriseCustomerUuid, sessionUuid);
+      track('history_session_deleted', { conversation_id: sessionUuid }, null);
+      const store = storeApi.getState();
+      const remaining = { ...store.history, items: store.history.items.filter((item) => item.uuid !== sessionUuid) };
+      if (store.stream.session.sessionUuid === sessionUuid) {
+        abortRef.current?.abort();
+        store.reset();
+        setSessionParam(null);
+      }
+      storeApi.getState().setHistory(remaining); // reset() also clears History, which stays open here
+    }, [enterpriseCustomerUuid, track, setSessionParam]);
+
+    /**
      * Reopen a past session: replay its stored parts, unanimated, under the "Past search" banner. A
      * response that arrives after the learner moved on (sent a message, started a new chat, or opened
      * another session) is dropped.
@@ -608,6 +628,7 @@ export const createPersonalizedSearchController = ({
       closeHistory,
       loadMoreHistory,
       openSession,
+      deleteSession,
       feedback,
       feedbackLoaded,
       savedIds,

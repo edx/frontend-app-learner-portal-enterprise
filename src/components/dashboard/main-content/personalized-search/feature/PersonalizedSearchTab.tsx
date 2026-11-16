@@ -206,6 +206,7 @@ const PersonalizedSearchTab = ({
       onClose={controller.closeHistory}
       onLoadMore={controller.loadMoreHistory}
       onOpenSession={controller.openSession}
+      onDeleteSession={controller.deleteSession}
     />
   );
   const savedNotice = (

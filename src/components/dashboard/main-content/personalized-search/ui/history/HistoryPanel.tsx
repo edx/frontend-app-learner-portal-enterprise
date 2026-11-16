@@ -4,8 +4,10 @@ import {
 import { ChatBubbleOutline, Close } from '@openedx/paragon/icons';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import classNames from 'classnames';
+import { useState } from 'react';
 
 import messages from '../messages';
+import DeleteConversationModal from './DeleteConversationModal';
 import type { HistoryState } from '../../core/state';
 import type { SessionSummary } from '../../core/api/sessions';
 
@@ -17,6 +19,8 @@ export interface HistoryPanelProps {
   onClose: () => void;
   onLoadMore: () => void;
   onOpenSession: (sessionUuid: string) => void;
+  /** Permanently deletes a past session (after the learner confirms); rejects when the delete fails. */
+  onDeleteSession: (sessionUuid: string) => Promise<void>;
 }
 
 export type HistoryDay = 'today' | 'yesterday' | 'week' | 'older';
@@ -54,12 +58,14 @@ export const groupByDay = (
 /**
  * The learner's past sessions in this enterprise (REQ-010), laid out like the Xpert chat sidebar: a
  * right-hand panel with a title bar and an icon close button, conversations under day dividers, and
- * one row per conversation (title, then time and picks). The open conversation is marked current.
+ * one row per conversation (title, then time and picks). The open conversation is marked current. Each row
+ * has a small X at its top right that deletes the conversation after a confirmation.
  */
 const HistoryPanel = ({
-  history, busy, currentSessionUuid, onClose, onLoadMore, onOpenSession,
+  history, busy, currentSessionUuid, onClose, onLoadMore, onOpenSession, onDeleteSession,
 }: HistoryPanelProps) => {
   const intl = useIntl();
+  const [deleting, setDeleting] = useState<string | null>(null);
   const when = (item: SessionSummary, day: HistoryDay) => (day === 'today' || day === 'yesterday'
     ? intl.formatTime(item.last_message_at, { timeStyle: 'short' })
     : intl.formatDate(item.last_message_at, { dateStyle: 'medium' }));
@@ -92,8 +98,9 @@ const HistoryPanel = ({
               <ul className="list-unstyled mb-0">
                 {items.map((item) => {
                   const current = item.uuid === currentSessionUuid;
+                  const title = item.title || item.first_prompt;
                   return (
-                    <li key={item.uuid}>
+                    <li key={item.uuid} className="personalized-search__history-row">
                       <button
                         type="button"
                         className={classNames('personalized-search__history-item', {
@@ -104,7 +111,7 @@ const HistoryPanel = ({
                         onClick={() => onOpenSession(item.uuid)}
                       >
                         <span className="d-block small font-weight-bold personalized-search__clamp-2">
-                          {item.title || item.first_prompt}
+                          {title}
                         </span>
                         <span className="d-block x-small text-gray-700">
                           {when(item, day)}
@@ -112,6 +119,14 @@ const HistoryPanel = ({
                             && ` · ${intl.formatMessage(messages.historyPicks, { count: item.item_count })}`}
                         </span>
                       </button>
+                      <IconButton
+                        className="personalized-search__history-delete"
+                        src={Close}
+                        iconAs={Icon}
+                        size="sm"
+                        alt={intl.formatMessage(messages.historyDelete, { title })}
+                        onClick={() => setDeleting(item.uuid)}
+                      />
                     </li>
                   );
                 })}
@@ -132,6 +147,11 @@ const HistoryPanel = ({
           )}
         </div>
       </div>
+      <DeleteConversationModal
+        isOpen={deleting !== null}
+        onConfirm={() => onDeleteSession(deleting as string)}
+        onClose={() => setDeleting(null)}
+      />
     </Sheet>
   );
 };

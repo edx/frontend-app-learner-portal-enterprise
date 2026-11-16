@@ -64,3 +64,19 @@ export const loadHistoryPageWorkflow = async (
     hasMore: !!result.next,
   };
 };
+
+/**
+ * Permanently deletes one of the learner's sessions. A 404 means it's already gone (deleted in another tab,
+ * or by the 30-day purge), which is what the learner asked for, so it counts as deleted.
+ */
+export const deleteSessionWorkflow = async (
+  api: Pick<SessionsApi, 'deleteSession'>,
+  enterpriseCustomerUuid: string,
+  sessionUuid: string,
+): Promise<void> => {
+  try {
+    await api.deleteSession(enterpriseCustomerUuid, sessionUuid);
+  } catch (e) {
+    if ((e as { response?: { status?: number } })?.response?.status !== 404) { throw e; }
+  }
+};
