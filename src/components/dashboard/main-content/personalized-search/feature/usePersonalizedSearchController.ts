@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import messages from '../ui/messages';
 import { isSendableMessage } from '../core/selectors';
+import type { BlockValidator } from '../core/stream/applyPart';
 import type { ChatTransport } from '../core/transports/ChatTransport';
 import type { PersonalizedSearchDeps } from './deps';
 import { sendTurnWorkflow } from '../core/workflows';
@@ -16,6 +17,8 @@ import type { PersonalizedSearchStoreApi } from './personalizedSearchStore';
 export interface PersonalizedSearchControllerOptions {
   deps: PersonalizedSearchDeps;
   store: PersonalizedSearchStoreApi;
+  /** The block registry's check, so the reducer keeps only blocks the page can render. */
+  isRenderableBlock?: BlockValidator;
 }
 
 /**
@@ -25,7 +28,7 @@ export interface PersonalizedSearchControllerOptions {
  * app (KD-10) and its callbacks stay stable.
  */
 export const createPersonalizedSearchController = ({
-  deps, store: storeApi,
+  deps, store: storeApi, isRenderableBlock,
 }: PersonalizedSearchControllerOptions) => {
   const usePersonalizedSearchController = (
     { transport: injected }: { transport?: ChatTransport } = {},
@@ -33,6 +36,8 @@ export const createPersonalizedSearchController = ({
     const intl = useIntl();
     const enterpriseCustomer = deps.useEnterpriseContext();
     const enterpriseCustomerUuid = enterpriseCustomer.uuid;
+    const enterpriseSlug = enterpriseCustomer.slug;
+    const links = useMemo(() => deps.createItemLinks(enterpriseSlug ?? ''), [enterpriseSlug]);
     const transport = useMemo(
       () => injected ?? deps.createTransport(),
       [injected],
@@ -84,6 +89,7 @@ export const createPersonalizedSearchController = ({
         localId: uuidv4(),
         signal: controller.signal,
         dispatch: store.setStream,
+        isRenderableBlock,
       });
 
       if (abortRef.current === controller) { abortRef.current = null; }
@@ -115,7 +121,8 @@ export const createPersonalizedSearchController = ({
 
     return {
       enterpriseCustomerUuid,
-      enterpriseSlug: enterpriseCustomer.slug,
+      enterpriseSlug,
+      links,
       transport,
       turns: stream.turns,
       session: stream.session,

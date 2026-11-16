@@ -6,4 +6,43 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+
+  &__page:focus {
+    outline: none;
+  }
+
+  &__page:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  &__header-col {
+    flex: 1 1 18rem;
+  }
+
+  &__plan-col {
+    flex: 0 1 14rem;
+  }
+
+  &__block--enter {
+    animation: personalized-search-block-enter 240ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__block--enter {
+      animation: none;
+    }
+  }
+}
+
+@keyframes personalized-search-block-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
