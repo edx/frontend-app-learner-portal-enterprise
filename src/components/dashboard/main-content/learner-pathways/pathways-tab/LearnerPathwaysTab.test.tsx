@@ -52,6 +52,7 @@ jest.mock('../../../../app/data/hooks', () => ({
   useAlgoliaSearch: jest.fn(() => ({ catalogUuidsToCatalogQueryUuids: { 'cat-1': 'query-1' } })),
 }));
 jest.mock('../../../../app/data', () => ({
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(() => false),
   useEnterpriseCustomer: jest.fn(),
   useEnterpriseCourseEnrollments: jest.fn(),
 }));

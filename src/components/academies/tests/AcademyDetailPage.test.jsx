@@ -8,7 +8,12 @@ import { AppContext } from '@edx/frontend-platform/react';
 import { generateTestPermutations, renderWithRouter } from '../../../utils/tests';
 
 import AcademyDetailPage from '../AcademyDetailPage';
-import { useAcademyDetails, useAlgoliaSearch, useEnterpriseCustomer } from '../../app/data';
+import {
+  isFindACourseDisabledForEnterpriseCustomer,
+  useAcademyDetails,
+  useAlgoliaSearch,
+  useEnterpriseCustomer,
+} from '../../app/data';
 import { authenticatedUserFactory, enterpriseCustomerFactory } from '../../app/data/services/data/__factories__';
 import { messages } from '../../search-unavailable-alert/SearchUnavailableAlert';
 
@@ -70,6 +75,7 @@ getAuthenticatedHttpClient.mockReturnValue(axios);
 
 jest.mock('../../app/data', () => ({
   ...jest.requireActual('../../app/data'),
+  isFindACourseDisabledForEnterpriseCustomer: jest.fn(),
   useEnterpriseCustomer: jest.fn(),
   useAlgoliaSearch: jest.fn(),
   useAcademyDetails: jest.fn(),
@@ -102,6 +108,7 @@ describe('<AcademyDetailPage />', () => {
       shouldUseSecuredAlgoliaApiKey: false,
     });
     useAcademyDetails.mockReturnValue({ data: ACADEMY_MOCK_DATA });
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(false);
   });
 
   it('renders academy detail page', async () => {
@@ -118,6 +125,26 @@ describe('<AcademyDetailPage />', () => {
     );
     expect(screen.getAllByTestId('academy-course-card').length).toEqual(1);
     expect(screen.getByText(ALOGLIA_MOCK_DATA.hits[0].title)).toBeInTheDocument();
+  });
+
+  it('renders the "Find a Course" breadcrumb', async () => {
+    renderWithRouter(<AcademyDetailPageWrapper />);
+
+    expect(await screen.findByTestId('academy-breadcrumb')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Find a Course' })).toHaveAttribute(
+      'href',
+      `/${mockEnterpriseCustomer.slug}/search`,
+    );
+  });
+
+  it('does not render the breadcrumb when "Find a Course" is disabled for the enterprise customer', async () => {
+    isFindACourseDisabledForEnterpriseCustomer.mockReturnValue(true);
+    renderWithRouter(<AcademyDetailPageWrapper />);
+
+    expect(await screen.findByTestId('academy-title')).toBeInTheDocument();
+    expect(isFindACourseDisabledForEnterpriseCustomer).toHaveBeenCalledWith(mockEnterpriseCustomer.uuid);
+    expect(screen.queryByTestId('academy-breadcrumb')).not.toBeInTheDocument();
+    expect(screen.queryByText('Find a Course')).not.toBeInTheDocument();
   });
 
   it('renders a not found page', () => {

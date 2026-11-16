@@ -17,6 +17,7 @@ import {
   useHasAvailableSubsidiesOrRequests,
   useIsAssignmentsOnlyLearner,
   useCouponCodes,
+  isFindACourseDisabledForEnterpriseCustomer,
 } from '../../app/data';
 import { COURSE_STATUSES } from '../../../constants';
 import { getStatusMetadata } from '../data/utils';
@@ -37,6 +38,10 @@ const SearchCoursesCta = ({
     return null;
   }
   const ctaLinkDestination = isOneAcademy && academies[0]?.uuid ? `academies/${academies[0]?.uuid}` : 'search';
+  // Only the "Find a course" (search) destination may be disabled; "Go to Academy" stays (ENT-12375).
+  if (ctaLinkDestination === 'search' && isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer.uuid)) {
+    return null;
+  }
 
   return (
     <Card.Section>
@@ -115,7 +120,16 @@ const SubsidiesSummary = ({
     return hasCourseEnrollments ? 'primary' : 'outline-primary';
   }, [allEnrollmentsByStatus]);
 
-  if (!hasAvailableSubsidyOrRequests) {
+  const hasSummaryCards = (
+    hasActivatedCurrentLicenseOrLicenseRequest || hasAssignedCodesOrCodeRequests || hasApplicableLearnerCredit
+  );
+  // When "Find a course" is disabled (ENT-12375) and there is no "Go to Academy" CTA to show instead,
+  // SearchCoursesCta renders nothing; don't render an empty bordered card around it. Uses the
+  // enableOneAcademy flag rather than the academies list so the list is not fetched just for this.
+  const isSearchCoursesCtaDisabled = !enterpriseCustomer?.enableOneAcademy
+    && isFindACourseDisabledForEnterpriseCustomer(enterpriseCustomer?.uuid);
+
+  if (!hasAvailableSubsidyOrRequests || (!hasSummaryCards && isSearchCoursesCtaDisabled)) {
     return null;
   }
 
