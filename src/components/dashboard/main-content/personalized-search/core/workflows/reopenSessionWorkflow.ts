@@ -47,9 +47,12 @@ export const openSessionWorkflow = async (
   return { stream: reopenSessionWorkflow(detail, isRenderableBlock), created: detail.created, ratings };
 };
 
+/** Sessions per page of enterprise-access's history list. */
+export const HISTORY_PAGE_SIZE = 20;
+
 /**
  * Loads one page of the learner's sessions and returns the history fields to set: page 1 replaces
- * the list, later pages append to it.
+ * the list, later pages append the sessions not already listed (after a delete, a page overlaps the list).
  */
 export const loadHistoryPageWorkflow = async (
   api: Pick<SessionsApi, 'listSessions'>,
@@ -59,7 +62,11 @@ export const loadHistoryPageWorkflow = async (
 ): Promise<{ items: SessionSummary[]; page: number; hasMore: boolean }> => {
   const result = await api.listSessions(enterpriseCustomerUuid, page);
   return {
-    items: page === 1 ? result.results : [...getLoadedItems(), ...result.results],
+    items: page === 1 ? result.results : (() => {
+      const listed = getLoadedItems();
+      const seen = new Set(listed.map((item) => item.uuid));
+      return [...listed, ...result.results.filter((item) => !seen.has(item.uuid))];
+    })(),
     page,
     hasMore: !!result.next,
   };
@@ -69,6 +76,11 @@ export const loadHistoryPageWorkflow = async (
  * Permanently deletes one of the learner's sessions. A 404 means it's already gone (deleted in another tab,
  * or by the 30-day purge), which is what the learner asked for, so it counts as deleted.
  */
+/** The HTTP status of a failed request from the host's client, if it has one. */
+export const httpStatusOf = (e: unknown): number | undefined => (
+  (e as { response?: { status?: number } })?.response?.status
+);
+
 export const deleteSessionWorkflow = async (
   api: Pick<SessionsApi, 'deleteSession'>,
   enterpriseCustomerUuid: string,
@@ -77,6 +89,15 @@ export const deleteSessionWorkflow = async (
   try {
     await api.deleteSession(enterpriseCustomerUuid, sessionUuid);
   } catch (e) {
-    if ((e as { response?: { status?: number } })?.response?.status !== 404) { throw e; }
+    if (httpStatusOf(e) !== 404) { throw e; }
   }
+};
+
+/**
+ * Whether a request failed because the session is gone: deleted, purged, or not this learner's. enterprise-access
+ * answers 404 with `{"code": "session_not_found"}`; a plain 404 means the feature is off.
+ */
+export const isSessionGoneError = (e: unknown): boolean => {
+  const response = (e as { response?: { status?: number; data?: { code?: unknown } } })?.response;
+  return response?.status === 404 && response.data?.code === 'session_not_found';
 };

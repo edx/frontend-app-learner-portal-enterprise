@@ -66,6 +66,8 @@ const HistoryPanel = ({
 }: HistoryPanelProps) => {
   const intl = useIntl();
   const [deleting, setDeleting] = useState<string | null>(null);
+  // The tab's live region sits outside the Sheet, which hides it while History is open, so announce here.
+  const [deletedNotice, setDeletedNotice] = useState('');
   const when = (item: SessionSummary, day: HistoryDay) => (day === 'today' || day === 'yesterday'
     ? intl.formatTime(item.last_message_at, { timeStyle: 'short' })
     : intl.formatDate(item.last_message_at, { dateStyle: 'medium' }));
@@ -80,9 +82,13 @@ const HistoryPanel = ({
           <h2 className="h4 mb-0">{intl.formatMessage(messages.historyTitle)}</h2>
           <IconButton src={Close} iconAs={Icon} alt={intl.formatMessage(messages.close)} onClick={onClose} />
         </div>
+        <div role="status" className="sr-only">{deletedNotice}</div>
         <div className="personalized-search__history-list flex-grow-1 py-2">
           {history.error && (
             <Alert variant="danger" className="mx-3">{intl.formatMessage(messages.historyError)}</Alert>
+          )}
+          {history.gone && (
+            <Alert variant="warning" className="mx-3">{intl.formatMessage(messages.historyGone)}</Alert>
           )}
           {!history.loading && !history.error && history.items.length === 0 && (
             <div className="text-center text-gray-700 px-4 py-5">
@@ -149,7 +155,10 @@ const HistoryPanel = ({
       </div>
       <DeleteConversationModal
         isOpen={deleting !== null}
-        onConfirm={() => onDeleteSession(deleting as string)}
+        onConfirm={async () => {
+          await onDeleteSession(deleting as string);
+          setDeletedNotice(intl.formatMessage(messages.historyDeleted));
+        }}
         onClose={() => setDeleting(null)}
       />
     </Sheet>

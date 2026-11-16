@@ -4,6 +4,7 @@ export {
 export { itemFeedbackWorkflow, loadFeedbackWorkflow } from './itemFeedbackWorkflow';
 export type { FeedbackAction, FeedbackApi, FeedbackState } from './itemFeedbackWorkflow';
 export {
-  deleteSessionWorkflow, loadHistoryPageWorkflow, openSessionWorkflow, reopenSessionWorkflow,
+  deleteSessionWorkflow, HISTORY_PAGE_SIZE, httpStatusOf, isSessionGoneError, loadHistoryPageWorkflow,
+  openSessionWorkflow, reopenSessionWorkflow,
 } from './reopenSessionWorkflow';
 export type { SendTurnWorkflowInput, SendTurnWorkflowResult, StreamDispatch } from './types';

@@ -336,10 +336,25 @@ const messages = defineMessages({
     defaultMessage: 'Past search · {date}. Send a message to continue it.',
     description: 'Banner over a reopened past session.',
   },
+  sessionGone: {
+    id: 'learner.personalizedSearch.history.sessionGone',
+    defaultMessage: 'That search is no longer available. It may have been deleted. Start a new one below.',
+    description: 'Shown when the learner opens or continues a past search that was deleted or is not theirs.',
+  },
+  historyGone: {
+    id: 'learner.personalizedSearch.history.gone',
+    defaultMessage: 'That search is no longer available. It may have been deleted.',
+    description: 'Shown in the History panel when the past search the learner picked was deleted in the meantime.',
+  },
   historyDelete: {
     id: 'learner.personalizedSearch.history.delete',
     defaultMessage: 'Delete {title}',
-    description: 'Accessible label of the X button that deletes one past search in the History panel.',
+    description: 'Accessible label of the X button that deletes one past search in the History panel. {title} is the search\'s title.',
+  },
+  historyDeleted: {
+    id: 'learner.personalizedSearch.history.deleted',
+    defaultMessage: 'Search deleted.',
+    description: 'Announced to screen readers after a past search is deleted from History.',
   },
   historyDeleteTitle: {
     id: 'learner.personalizedSearch.history.delete.title',

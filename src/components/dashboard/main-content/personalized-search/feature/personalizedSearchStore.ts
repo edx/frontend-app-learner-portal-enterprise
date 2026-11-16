@@ -19,7 +19,7 @@ export type { DebugSettings, HistoryState };
 export type MobilePane = 'chat' | 'page';
 
 const initialHistory = (): HistoryState => ({
-  open: false, items: [], page: 0, hasMore: false, loading: false, error: false,
+  open: false, items: [], page: 0, hasMore: false, loading: false, error: false, gone: false,
 });
 
 export interface PersonalizedSearchState {
@@ -39,6 +39,11 @@ export interface PersonalizedSearchState {
   mode: 'live' | 'past';
   /** When the reopened session was created, for the "Past search · {date}" banner. */
   pastSessionCreated: string | null;
+  /**
+   * Set when the conversation the learner tried to open or continue is gone (deleted, or not theirs): the server's
+   * 404 `session_not_found`. Shows a notice over a fresh chat until they dismiss it or send a message.
+   */
+  sessionGone: boolean;
   history: HistoryState;
   /** Saved and dismissed items (REQ-009); survives New chat. */
   feedback: FeedbackState;
@@ -70,6 +75,7 @@ export interface PersonalizedSearchStore extends PersonalizedSearchState {
   setAnnouncement: (announcement: string) => void;
   setMobilePane: (pane: MobilePane) => void;
   setMode: (mode: 'live' | 'past', pastSessionCreated?: string | null) => void;
+  setSessionGone: (sessionGone: boolean) => void;
   setHistory: (changes: Partial<HistoryState>) => void;
   setFeedback: (update: (feedback: FeedbackState) => FeedbackState) => void;
   setFeedbackLoaded: (loaded: boolean) => void;
@@ -92,6 +98,7 @@ export const getInitialPersonalizedSearchState = (): PersonalizedSearchState => 
   mobilePane: 'chat',
   mode: 'live',
   pastSessionCreated: null,
+  sessionGone: false,
   history: initialHistory(),
   feedback: {
     saved: [], dismissedIds: [], dismissed: [], undo: null, error: false,
@@ -120,6 +127,7 @@ export const createPersonalizedSearchStore = () => createStore<PersonalizedSearc
   setAnnouncement: (announcement) => set({ announcement }),
   setMobilePane: (mobilePane) => set({ mobilePane }),
   setMode: (mode, pastSessionCreated = null) => set({ mode, pastSessionCreated }),
+  setSessionGone: (sessionGone) => set({ sessionGone }),
   setHistory: (changes) => set((state) => ({ history: { ...state.history, ...changes } })),
   setFeedback: (update) => set((state) => ({ feedback: update(state.feedback) })),
   setFeedbackLoaded: (feedbackLoaded) => set({ feedbackLoaded }),

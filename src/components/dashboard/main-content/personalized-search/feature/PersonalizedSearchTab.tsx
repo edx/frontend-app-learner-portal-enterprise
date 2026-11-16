@@ -9,6 +9,7 @@ import ChatPane from '../ui/chat/ChatPane';
 import DebugPanel from '../ui/debug/DebugPanel';
 import HistoryPanel from '../ui/history/HistoryPanel';
 import PastSearchBanner from '../ui/history/PastSearchBanner';
+import SessionGoneNotice from '../ui/history/SessionGoneNotice';
 import SavedView from '../ui/saved/SavedView';
 import ExcludedView from '../ui/saved/ExcludedView';
 import ResultsTabs from '../ui/page/ResultsTabs';
@@ -234,6 +235,7 @@ const PersonalizedSearchTab = ({
       {controller.mode === 'past' && controller.pastSessionCreated && (
         <PastSearchBanner created={controller.pastSessionCreated} />
       )}
+      {controller.sessionGone && <SessionGoneNotice onDismiss={controller.dismissSessionGone} />}
       {isWide ? (
         // Both panes fit the window and scroll inside themselves, like the search page.
         <div ref={panesRef} className="personalized-search__panes">
