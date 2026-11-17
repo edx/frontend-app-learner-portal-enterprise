@@ -113,6 +113,10 @@ const SubsidyRequestButton = () => {
   && learnerCreditRequestablePolicy
   && !userHasLearnerCreditRequest;
 
+  // An applicable subsidy takes precedence over an existing learner credit request (e.g. the
+  // course was since assigned), so the learner sees the "Enroll" CTA, not "Awaiting approval".
+  const showLearnerCreditRequested = userHasLearnerCreditRequest && !userSubsidyApplicableToCourse;
+
   /*
     * Determine if the component should render at all.
     * It should render if either "request" button should be shown,
@@ -122,7 +126,7 @@ const SubsidyRequestButton = () => {
     !showSubsidyRequestButton
     && !showLearnerCreditRequestButton
     && !userHasSubsidyRequest
-    && !userHasLearnerCreditRequest
+    && !showLearnerCreditRequested
   ) {
     return null;
   }
@@ -138,7 +142,7 @@ const SubsidyRequestButton = () => {
       return 'pending';
     }
     // If a request of either type exists, the state is 'requested'.
-    if (userHasSubsidyRequest || userHasLearnerCreditRequest) {
+    if (userHasSubsidyRequest || showLearnerCreditRequested) {
       return 'requested';
     }
     return 'request';
