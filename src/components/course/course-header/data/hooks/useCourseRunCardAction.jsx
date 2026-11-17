@@ -98,12 +98,13 @@ const useCourseRunCardAction = ({
   }
 
   if (
-    (userCanRequestSubsidyForCourse && !userSubsidyApplicableToCourse)
-    || userHasLearnerCreditRequest || userHasSubsidyRequestForCourse
+    ((userCanRequestSubsidyForCourse || userHasLearnerCreditRequest) && !userSubsidyApplicableToCourse)
+    || userHasSubsidyRequestForCourse
   ) {
     // User can request a subsidy for the course, but is not enrolled so
     // hide the "Enroll" CTA in favor of the "Request enrollment" CTA below
-    // the course run cards.
+    // the course run cards. An applicable subsidy takes precedence over a
+    // pending learner credit request, e.g. the course was since assigned.
     return null;
   }
 

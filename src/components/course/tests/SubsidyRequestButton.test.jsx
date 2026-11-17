@@ -189,6 +189,34 @@ describe('<SubsidyRequestButton />', () => {
       expect(screen.queryByText('Request enrollment')).not.toBeInTheDocument();
     });
 
+    it('should not show "Awaiting approval" for an existing LCR if the user has an applicable subsidy', () => {
+      useUserHasLearnerCreditRequestForCourse.mockReturnValue(true);
+      useBrowseAndRequestConfiguration.mockReturnValue({ // Disable legacy B&R to isolate LCR
+        data: { ...mockSubsidyRequestConfiguration, subsidyRequestsEnabled: false },
+      });
+      useUserSubsidyApplicableToCourse.mockReturnValue({
+        userSubsidyApplicableToCourse: { discount: 100 },
+        isPending: false,
+        canRequestLearnerCredit: false,
+        learnerCreditRequestablePolicy: null,
+      });
+      render(<SubsidyRequestButtonWrapper />);
+      expect(screen.queryByText('Awaiting approval')).not.toBeInTheDocument();
+      expect(screen.queryByText('Request enrollment')).not.toBeInTheDocument();
+    });
+
+    it('should still show "Awaiting approval" for a legacy request if the user has an applicable subsidy', () => {
+      useUserHasSubsidyRequestForCourse.mockReturnValue(true);
+      useUserSubsidyApplicableToCourse.mockReturnValue({
+        userSubsidyApplicableToCourse: { discount: 100 },
+        isPending: false,
+        canRequestLearnerCredit: false,
+        learnerCreditRequestablePolicy: null,
+      });
+      render(<SubsidyRequestButtonWrapper />);
+      expect(screen.getByText('Awaiting approval')).toBeInTheDocument();
+    });
+
     it('should show "Request enrollment" for LCR if conditions are met', () => {
       useBrowseAndRequestConfiguration.mockReturnValue({ // Disable legacy B&R
         data: { ...mockSubsidyRequestConfiguration, subsidyRequestsEnabled: false },

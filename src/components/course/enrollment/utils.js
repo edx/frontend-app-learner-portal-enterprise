@@ -63,11 +63,11 @@ export function determineEnrollmentType({
     return isCourseStarted ? TO_COURSEWARE_PAGE : VIEW_ON_DASHBOARD;
   }
 
-  // Hide enroll button if learner can request a subsidy for the course (and has no direct subsidy),
-  // or already has a pending subsidy request for the course.
+  // Hide enroll button if learner can request a subsidy for the course or has a pending learner
+  // credit request (and has no direct subsidy), or already has a pending subsidy request for the course.
   if (
-    (userCanRequestSubsidyForCourse && !userSubsidyApplicableToCourse)
-    || userHasLearnerCreditRequest || userHasSubsidyRequestForCourse
+    ((userCanRequestSubsidyForCourse || userHasLearnerCreditRequest) && !userSubsidyApplicableToCourse)
+    || userHasSubsidyRequestForCourse
   ) {
     return HIDE_BUTTON;
   }

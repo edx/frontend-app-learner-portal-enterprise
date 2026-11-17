@@ -89,6 +89,31 @@ describe('useCourseRunCardAction', () => {
     expect(result.current).toBeNull();
   });
 
+  it('returns stateful enroll if user has a pending learner credit request but a subsidy is applicable', () => {
+    useUserHasLearnerCreditRequestForCourse.mockReturnValue(true);
+    useUserSubsidyApplicableToCourse.mockReturnValue({
+      userSubsidyApplicableToCourse: MOCK_REDEEMABLE_SUBSIDY,
+    });
+    const { getByTestId } = renderUseCourseRunCardActionHook({
+      isUserEnrolled: false,
+      contentKey: MOCK_COURSE_RUN_KEY,
+      course: MOCK_COURSE,
+    });
+    expect(getByTestId('stateful-enroll')).toBeInTheDocument();
+  });
+
+  it('returns null if user has a pending subsidy request, even if a subsidy is applicable', () => {
+    useUserHasSubsidyRequestForCourse.mockReturnValue(true);
+    useUserSubsidyApplicableToCourse.mockReturnValue({
+      userSubsidyApplicableToCourse: MOCK_REDEEMABLE_SUBSIDY,
+    });
+    const { result } = renderUseCourseRunCardActionHook({
+      isUserEnrolled: false,
+      course: MOCK_COURSE,
+    });
+    expect(result.current).toBeNull();
+  });
+
   it('returns disabled enroll button if user is not yet enrolled and does not have a subsidy access policy', () => {
     const { getByTestId } = renderUseCourseRunCardActionHook({
       isUserEnrolled: false,
