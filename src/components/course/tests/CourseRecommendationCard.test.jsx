@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { sendEnterpriseTrackEvent } from '@2uinc/frontend-enterprise-utils';
 import userEvent from '@testing-library/user-event';
+import cardFallbackImg from '@edx/brand/paragon/images/card-imagecap-fallback.png';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 import { renderWithRouter } from '../../../utils/tests';
 import { TEST_IMAGE_URL } from '../../search/tests/constants';
@@ -57,6 +58,14 @@ describe('<CourseRecommendationCard />', () => {
 
     expect(container.querySelector('.partner')).toHaveTextContent(TEST_OWNER.name);
     expect(container.querySelector('.pgn__card-image-cap')).toHaveAttribute('src', TEST_CARD_IMG_URL);
+  });
+
+  test.each([null, { src: null }])('renders the fallback image when cardImageUrl is %p', (cardImageUrl) => {
+    const { container } = renderWithRouter(
+      <CourseRecommendationCardWithContext course={{ ...course, cardImageUrl }} />,
+    );
+    expect(screen.getByText(TEST_TITLE)).toBeInTheDocument();
+    expect(container.querySelector('.pgn__card-image-cap')).toHaveAttribute('src', cardFallbackImg);
   });
 
   test('sends segment event with correct data when clicked', async () => {
