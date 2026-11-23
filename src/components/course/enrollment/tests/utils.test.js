@@ -109,6 +109,38 @@ describe('determineEnrollmentType', () => {
     expect(determineEnrollmentType(args)).toBe(TO_DATASHARING_CONSENT);
   });
 
+  test('pending learner credit request without a direct subsidy, hide enroll button', () => {
+    const args = {
+      ...baseArgs,
+      userHasLearnerCreditRequest: true,
+    };
+    expect(determineEnrollmentType(args)).toBe(HIDE_BUTTON);
+  });
+
+  test('prioritizes direct subsidy over a pending learner credit request', () => {
+    const args = {
+      ...baseArgs,
+      subsidyData: {
+        ...baseArgs.subsidyData,
+        userSubsidyApplicableToCourse: { subsidyType: LICENSE_SUBSIDY_TYPE },
+      },
+      userHasLearnerCreditRequest: true,
+    };
+    expect(determineEnrollmentType(args)).toBe(TO_DATASHARING_CONSENT);
+  });
+
+  test('pending subsidy request with a direct subsidy, hide enroll button', () => {
+    const args = {
+      ...baseArgs,
+      subsidyData: {
+        ...baseArgs.subsidyData,
+        userSubsidyApplicableToCourse: { subsidyType: LICENSE_SUBSIDY_TYPE },
+      },
+      userHasSubsidyRequestForCourse: true,
+    };
+    expect(determineEnrollmentType(args)).toBe(HIDE_BUTTON);
+  });
+
   test.each([
     { hasSubsidyData: true },
     { hasSubsidyData: false },
