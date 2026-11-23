@@ -52,7 +52,7 @@ const CourseRecommendationCard = ({ course, isPartnerRecommendation }) => {
       }}
     >
       <Card.ImageCap
-        src={course.cardImageUrl.src || cardFallbackImg}
+        src={course.cardImageUrl?.src || cardFallbackImg}
         fallbackSrc={cardFallbackImg}
         logoSrc={primaryPartnerLogo?.src}
         logoAlt={primaryPartnerLogo?.alt}
@@ -88,9 +88,10 @@ CourseRecommendationCard.propTypes = {
     key: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
     owners: PropTypes.arrayOf(PropTypes.shape({})).isRequired,
+    // Discovery returns `null` when the recommended course has no image.
     cardImageUrl: PropTypes.shape({
-      src: PropTypes.string.isRequired,
-    }).isRequired,
+      src: PropTypes.string,
+    }),
   }).isRequired,
   isPartnerRecommendation: PropTypes.bool,
 };
